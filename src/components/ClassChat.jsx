@@ -238,6 +238,8 @@ function MessageView({ chat, user, courseId, onBack }) {
 }
 
 // ─── New Chat View ───
+// FIX #31: Try per-course enrollments first, fall back to user doc check if empty.
+// Students only see the course owner (teacher), not all teachers in the system.
 function NewChatView({ courseId, user, userRole, onCreated, onBack }) {
   const [students, setStudents] = useState([]);
   const [selected, setSelected] = useState([]);
@@ -247,41 +249,79 @@ function NewChatView({ courseId, user, userRole, onCreated, onBack }) {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        // Get all users
+        // Get all users (needed for name resolution and role checking)
         const usersSnap = await getDocs(collection(db, "users"));
         const allUsers = usersSnap.docs.map((d) => ({ uid: d.id, ...d.data() }));
 
-        // Find enrolled students for this course
-        let enrolledStudents = allUsers.filter((u) => {
-          if (u.uid === user.uid) return false;
-          if (u.role === "teacher") return false;
-          const ec = u.enrolledCourses;
-          if (Array.isArray(ec)) return ec.includes(courseId);
-          if (ec && typeof ec === "object") return courseId in ec;
-          return false;
-        });
-
-        // Fallback: check global enrollments collection if no students found via enrolledCourses
-        if (enrolledStudents.length === 0) {
-          const enrollSnap = await getDocs(
-            query(collection(db, "enrollments"), where("courseId", "==", courseId))
-          );
-          const enrolledUids = new Set();
-          enrollSnap.docs.forEach((d) => {
+        // Try per-course enrollments subcollection first
+        let enrolledUids = new Set();
+        try {
+          const enrollSubSnap = await getDocs(collection(db, "courses", courseId, "enrollments"));
+          enrollSubSnap.forEach((d) => {
             const data = d.data();
             if (data.uid) enrolledUids.add(data.uid);
             if (data.studentUid) enrolledUids.add(data.studentUid);
           });
-          enrolledUids.delete(user.uid);
-          enrolledStudents = allUsers.filter((u) => enrolledUids.has(u.uid) && u.role !== "teacher");
+        } catch (e) { /* subcollection may not exist */ }
+
+        let enrolledStudents;
+
+        if (enrolledUids.size > 0) {
+          // Use subcollection results
+          enrolledStudents = allUsers.filter((u) =>
+            u.uid !== user.uid && u.role !== "teacher" && enrolledUids.has(u.uid)
+          );
+        } else {
+          // Fallback: check enrolledCourses on user docs
+          enrolledStudents = allUsers.filter((u) => {
+            if (u.uid === user.uid) return false;
+            if (u.role === "teacher") return false;
+            const ec = u.enrolledCourses;
+            if (Array.isArray(ec)) return ec.includes(courseId);
+            if (ec && typeof ec === "object") return courseId in ec;
+            return false;
+          });
+
+          // Second fallback: check global enrollments collection
+          if (enrolledStudents.length === 0) {
+            const enrollSnap = await getDocs(
+              query(collection(db, "enrollments"), where("courseId", "==", courseId))
+            );
+            const fallbackUids = new Set();
+            enrollSnap.docs.forEach((d) => {
+              const data = d.data();
+              if (data.uid) fallbackUids.add(data.uid);
+              if (data.studentUid) fallbackUids.add(data.studentUid);
+            });
+            fallbackUids.delete(user.uid);
+            enrolledStudents = allUsers.filter((u) => fallbackUids.has(u.uid) && u.role !== "teacher");
+          }
         }
 
-        // Build final list: enrolled students + teachers (if current user is a student)
+        // Build final list
         const result = [...enrolledStudents];
+
+        // For students: add only the course owner (teacher), not all teachers
         if (userRole !== "teacher") {
-          const teachers = allUsers.filter((u) => u.role === "teacher" && u.uid !== user.uid);
-          const existingUids = new Set(result.map((r) => r.uid));
-          teachers.forEach((t) => { if (!existingUids.has(t.uid)) result.push(t); });
+          try {
+            const courseDoc = await getDoc(doc(db, "courses", courseId));
+            const ownerUid = courseDoc.exists() ? courseDoc.data().ownerUid : null;
+            if (ownerUid && ownerUid !== user.uid) {
+              const existingUids = new Set(result.map((r) => r.uid));
+              if (!existingUids.has(ownerUid)) {
+                const ownerUser = allUsers.find((u) => u.uid === ownerUid);
+                if (ownerUser) {
+                  result.push(ownerUser);
+                } else {
+                  // Owner not in allUsers (shouldn't happen, but fetch directly as fallback)
+                  const ownerDoc = await getDoc(doc(db, "users", ownerUid));
+                  if (ownerDoc.exists()) {
+                    result.push({ uid: ownerUid, ...ownerDoc.data() });
+                  }
+                }
+              }
+            }
+          } catch (e) { /* ignore */ }
         }
 
         setStudents(result);
@@ -452,24 +492,22 @@ export default function ClassChat() {
   const [courses, setCourses] = useState([]);
   const [chatEnabled, setChatEnabled] = useState(true);
 
-  // Get courses
+  // FIX #30: Get courses — teachers fetch all, students resolve from user doc then fetch only those
   useEffect(() => {
     if (!user) return;
     const fetchCourses = async () => {
-      const snap = await getDocs(collection(db, "courses"));
-      const allCourses = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
       if (userRole === "teacher") {
+        const snap = await getDocs(collection(db, "courses"));
+        const allCourses = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setCourses(allCourses);
         if (allCourses.length > 0) setCourseId(allCourses[0].id);
       } else {
-        // Check user doc for enrolledCourses (map or array)
+        // Students: read enrolledCourses from their user doc to get IDs
         const userDoc = await getDoc(doc(db, "users", user.uid));
         const ec = userDoc.exists() ? userDoc.data().enrolledCourses : null;
         let enrolledIds = new Set();
 
         if (ec && typeof ec === "object" && !Array.isArray(ec)) {
-          // Map format — filter out numeric junk keys
           Object.entries(ec).forEach(([key, value]) => {
             if (value === true && isNaN(key)) enrolledIds.add(key);
             else if (typeof value === "string" && value) enrolledIds.add(value);
@@ -486,7 +524,17 @@ export default function ClassChat() {
           enrollSnap.forEach((d) => enrolledIds.add(d.data().courseId));
         }
 
-        const enrolled = allCourses.filter((c) => enrolledIds.has(c.id));
+        // Fetch only the enrolled course docs (not ALL courses)
+        const enrolled = [];
+        for (const cid of enrolledIds) {
+          try {
+            const courseDoc = await getDoc(doc(db, "courses", cid));
+            if (courseDoc.exists()) {
+              enrolled.push({ id: courseDoc.id, ...courseDoc.data() });
+            }
+          } catch (e) { /* course may not exist */ }
+        }
+
         setCourses(enrolled);
         if (enrolled.length > 0) setCourseId(enrolled[0].id);
       }
@@ -525,12 +573,12 @@ export default function ClassChat() {
     return unsub;
   }, [courseId, user, userRole]);
 
-  // Track unread
+  // FIX #32: Parallelize unread checks instead of sequential loop
   useEffect(() => {
     if (!courseId || !user || chats.length === 0) return;
     const checkUnread = async () => {
       const map = {};
-      for (const chat of chats) {
+      const readPromises = chats.map(async (chat) => {
         try {
           const readDoc = await getDoc(doc(db, "courses", courseId, "chats", chat.id, "readBy", user.uid));
           if (!readDoc.exists()) {
@@ -541,7 +589,8 @@ export default function ClassChat() {
             if (readAt && lastAt && lastAt > readAt) map[chat.id] = true;
           }
         } catch (e) { /* ignore */ }
-      }
+      });
+      await Promise.all(readPromises);
       setUnreadMap(map);
     };
     checkUnread();
