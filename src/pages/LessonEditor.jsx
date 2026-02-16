@@ -1,5 +1,5 @@
 // src/pages/LessonEditor.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy } from "firebase/firestore";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { db } from "../lib/firebase";
@@ -396,6 +396,12 @@ export default function LessonEditor() {
     const b = [...blocks]; const t = b[index]; b[index] = b[index + dir]; b[index + dir] = t; setBlocks(b); setSaved(false);
   };
 
+  // FIX #36: Shared helper — refreshes the lesson list from Firestore
+  const refreshLessons = async () => {
+    const snapshot = await getDocs(query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc")));
+    setLessons(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+  };
+
   // Save lesson
   const save = async () => {
     if (!selectedCourse || !selectedLesson) return;
@@ -419,9 +425,7 @@ export default function LessonEditor() {
       await setDoc(lessonRef, data, { merge: true });
       if (isNew) setSelectedLesson(lessonId);
       setSaved(true);
-      // Refresh lessons list
-      const snapshot = await getDocs(query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc")));
-      setLessons(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+      await refreshLessons();
 
       // Generate AI baselines for short-answer questions (runs in background)
       const hasWrittenQuestions = blocks.some(
@@ -460,9 +464,7 @@ export default function LessonEditor() {
       setLessonUnit("");
       setLessonDueDate("");
       setLessonVisible(true);
-      // Refresh lessons list
-      const snapshot = await getDocs(query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc")));
-      setLessons(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+      await refreshLessons();
     } catch (err) {
       console.error("Delete failed:", err);
       alert("Failed to delete. Check the console for details.");
@@ -503,8 +505,6 @@ export default function LessonEditor() {
   };
 
   // Swap lesson order in sidebar and persist to Firestore
-  // FIX: Instead of swapping potentially duplicate order values,
-  // swap positions in the array and reassign clean sequential order values
   const swapLessonOrder = async (indexA, indexB) => {
     const a = lessons[indexA];
     const b = lessons[indexB];
@@ -532,9 +532,7 @@ export default function LessonEditor() {
         await Promise.all(updates);
       }
 
-      // Refresh
-      const snapshot = await getDocs(query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc")));
-      setLessons(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+      await refreshLessons();
     } catch (err) {
       console.error("Reorder failed:", err);
     }
@@ -545,8 +543,8 @@ export default function LessonEditor() {
     setCollapsedUnits((prev) => ({ ...prev, [unit]: !prev[unit] }));
   };
 
-  // Group lessons by unit for sidebar display
-  const groupedLessons = (() => {
+  // FIX #37: Group lessons by unit for sidebar display (memoized)
+  const groupedLessons = useMemo(() => {
     const groups = [];
     let currentUnit = null;
     let currentGroup = null;
@@ -560,7 +558,7 @@ export default function LessonEditor() {
       currentGroup.lessons.push(lesson);
     }
     return groups;
-  })();
+  }, [lessons]);
 
   if (userRole !== "teacher") {
     return (

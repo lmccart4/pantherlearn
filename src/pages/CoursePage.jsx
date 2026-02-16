@@ -1,5 +1,5 @@
 // src/pages/CoursePage.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -88,6 +88,30 @@ export default function CoursePage() {
     fetchData();
   }, [courseId, user, userRole]);
 
+  // FIX #33: Memoize lesson grouping instead of recalculating in an IIFE on every render
+  const visibleLessons = useMemo(() =>
+    lessons.filter((lesson) => isTeacher || lesson.visible !== false),
+    [lessons, isTeacher]
+  );
+
+  const lessonGroups = useMemo(() => {
+    const groups = [];
+    let currentUnit = null;
+    let currentGroup = null;
+    let globalNum = 0;
+    for (const lesson of visibleLessons) {
+      const unit = lesson.unit || "";
+      if (unit !== currentUnit) {
+        currentUnit = unit;
+        currentGroup = { unit, lessons: [] };
+        groups.push(currentGroup);
+      }
+      globalNum++;
+      currentGroup.lessons.push({ lesson, num: globalNum });
+    }
+    return groups;
+  }, [visibleLessons]);
+
   if (loading) return <div className="page-container" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}><div className="spinner" /></div>;
   if (!course) return <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}><h2 data-translatable>{ui(0, "Course not found")}</h2></div>;
 
@@ -148,116 +172,96 @@ export default function CoursePage() {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {(() => {
-                  const visibleLessons = lessons.filter((lesson) => isTeacher || lesson.visible !== false);
+                {lessonGroups.map((group) => {
+                  const hasUnit = group.unit.trim() !== "";
+                  const isCollapsed = hasUnit && collapsedUnits[group.unit];
 
-                  // Group lessons by unit, preserving order
-                  const groups = [];
-                  let currentUnit = null;
-                  let currentGroup = null;
-                  let globalNum = 0;
-                  for (const lesson of visibleLessons) {
-                    const unit = lesson.unit || "";
-                    if (unit !== currentUnit) {
-                      currentUnit = unit;
-                      currentGroup = { unit, lessons: [] };
-                      groups.push(currentGroup);
-                    }
-                    globalNum++;
-                    currentGroup.lessons.push({ lesson, num: globalNum });
-                  }
+                  return (
+                    <div key={group.unit || "__no_unit__"}>
+                      {/* Unit header */}
+                      {hasUnit && (
+                        <button
+                          onClick={() => setCollapsedUnits((prev) => ({ ...prev, [group.unit]: !prev[group.unit] }))}
+                          className="card"
+                          style={{
+                            display: "flex", alignItems: "center", gap: 14, width: "100%",
+                            padding: "16px 20px", marginBottom: 8, marginTop: lessonGroups.indexOf(group) > 0 ? 20 : 0,
+                            cursor: "pointer", transition: "all 0.15s",
+                            borderLeft: "4px solid var(--amber)",
+                            textAlign: "left", color: "inherit",
+                          }}
+                        >
+                          <span style={{
+                            transition: "transform 0.2s",
+                            transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                            display: "inline-block", fontSize: 14, color: "var(--amber)",
+                          }}>▼</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{
+                              fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18,
+                              color: "var(--text1, #e8e8e8)",
+                            }}>
+                              {group.unit}
+                            </div>
+                            <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>
+                              {group.lessons.length} {group.lessons.length === 1 ? "lesson" : "lessons"}
+                            </div>
+                          </div>
+                        </button>
+                      )}
 
-                  return groups.map((group) => {
-                    const hasUnit = group.unit.trim() !== "";
-                    const isCollapsed = hasUnit && collapsedUnits[group.unit];
-
-                    return (
-                      <div key={group.unit || "__no_unit__"}>
-                        {/* Unit header */}
-                        {hasUnit && (
-                          <button
-                            onClick={() => setCollapsedUnits((prev) => ({ ...prev, [group.unit]: !prev[group.unit] }))}
-                            className="card"
-                            style={{
-                              display: "flex", alignItems: "center", gap: 14, width: "100%",
-                              padding: "16px 20px", marginBottom: 8, marginTop: groups.indexOf(group) > 0 ? 20 : 0,
-                              cursor: "pointer", transition: "all 0.15s",
-                              borderLeft: "4px solid var(--amber)",
-                              textAlign: "left", color: "inherit",
-                            }}
-                          >
-                            <span style={{
-                              transition: "transform 0.2s",
-                              transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
-                              display: "inline-block", fontSize: 14, color: "var(--amber)",
-                            }}>▼</span>
-                            <div style={{ flex: 1 }}>
+                      {/* Lessons in this group */}
+                      {!isCollapsed && group.lessons.map(({ lesson, num }, i) => {
+                        const originalIndex = lessons.indexOf(lesson);
+                        const tTitle = translatedLessonTexts?.[originalIndex * 2] ?? lesson.title;
+                        const tUnit = translatedLessonTexts?.[originalIndex * 2 + 1] || "";
+                        const qCount = (lesson.blocks || []).filter((b) => b.type === "question").length;
+                        return (
+                          <Link key={lesson.id} to={`/course/${courseId}/lesson/${lesson.id}`}
+                            style={{ textDecoration: "none", color: "inherit" }}>
+                            <div className="card fade-in" style={{
+                              display: "flex", alignItems: "center", gap: 16, cursor: "pointer",
+                              animationDelay: `${i * 0.05}s`,
+                              marginLeft: hasUnit ? 12 : 0,
+                            }}>
                               <div style={{
-                                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18,
-                                color: "var(--text1, #e8e8e8)",
+                                width: 36, height: 36, borderRadius: 8, background: "var(--surface2)",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--amber)",
                               }}>
-                                {group.unit}
+                                {num}
                               </div>
-                              <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>
-                                {group.lessons.length} {group.lessons.length === 1 ? "lesson" : "lessons"}
+                              <div>
+                                <div style={{ fontWeight: 600, fontSize: 15 }} data-translatable>{tTitle}</div>
+                              </div>
+                              <div style={{ marginLeft: "auto", textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                                <div style={{ color: "var(--text3)", fontSize: 13 }}>
+                                  {qCount} {ui(4, "questions")}
+                                </div>
+                                {lesson.dueDate && (() => {
+                                  const due = new Date(lesson.dueDate + "T23:59:59");
+                                  const now = new Date();
+                                  const isPastDue = due < now;
+                                  const isToday = lesson.dueDate === now.toISOString().slice(0, 10);
+                                  const isSoon = !isPastDue && !isToday && (due - now) < 2 * 24 * 60 * 60 * 1000;
+                                  return (
+                                    <div style={{
+                                      fontSize: 11, fontWeight: 600,
+                                      color: isPastDue ? "var(--red)" : isToday ? "var(--amber)" : isSoon ? "var(--amber)" : "var(--text3)",
+                                    }}>
+                                      {isPastDue ? "⚠️ " : isToday ? "📌 " : ""}
+                                      Due {new Date(lesson.dueDate + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </div>
-                          </button>
-                        )}
-
-                        {/* Lessons in this group */}
-                        {!isCollapsed && group.lessons.map(({ lesson, num }, i) => {
-                          const originalIndex = lessons.indexOf(lesson);
-                          const tTitle = translatedLessonTexts?.[originalIndex * 2] ?? lesson.title;
-                          const tUnit = translatedLessonTexts?.[originalIndex * 2 + 1] || "";
-                          const qCount = (lesson.blocks || []).filter((b) => b.type === "question").length;
-                          return (
-                            <Link key={lesson.id} to={`/course/${courseId}/lesson/${lesson.id}`}
-                              style={{ textDecoration: "none", color: "inherit" }}>
-                              <div className="card fade-in" style={{
-                                display: "flex", alignItems: "center", gap: 16, cursor: "pointer",
-                                animationDelay: `${i * 0.05}s`,
-                                marginLeft: hasUnit ? 12 : 0,
-                              }}>
-                                <div style={{
-                                  width: 36, height: 36, borderRadius: 8, background: "var(--surface2)",
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                  fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--amber)",
-                                }}>
-                                  {num}
-                                </div>
-                                <div>
-                                  <div style={{ fontWeight: 600, fontSize: 15 }} data-translatable>{tTitle}</div>
-                                </div>
-                                <div style={{ marginLeft: "auto", textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-                                  <div style={{ color: "var(--text3)", fontSize: 13 }}>
-                                    {qCount} {ui(4, "questions")}
-                                  </div>
-                                  {lesson.dueDate && (() => {
-                                    const due = new Date(lesson.dueDate + "T23:59:59");
-                                    const now = new Date();
-                                    const isPastDue = due < now;
-                                    const isToday = lesson.dueDate === now.toISOString().slice(0, 10);
-                                    const isSoon = !isPastDue && !isToday && (due - now) < 2 * 24 * 60 * 60 * 1000;
-                                    return (
-                                      <div style={{
-                                        fontSize: 11, fontWeight: 600,
-                                        color: isPastDue ? "var(--red)" : isToday ? "var(--amber)" : isSoon ? "var(--amber)" : "var(--text3)",
-                                      }}>
-                                        {isPastDue ? "⚠️ " : isToday ? "📌 " : ""}
-                                        Due {new Date(lesson.dueDate + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    );
-                  });
-                })()}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
