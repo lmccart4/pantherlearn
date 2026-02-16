@@ -21,6 +21,11 @@ export default function ExternalLinkBlock({ block }) {
   const description = texts?.[1] || block.description;
   const buttonLabel = texts?.[2] || block.buttonLabel || "Open";
 
+  // Ensure URL has a protocol so the browser doesn't treat it as a relative path
+  const normalizedUrl = block.url && !/^https?:\/\//i.test(block.url)
+    ? `https://${block.url}`
+    : block.url;
+
   return (
     <div className="external-link-block">
       <div className="external-link-header">
@@ -36,7 +41,7 @@ export default function ExternalLinkBlock({ block }) {
       )}
       {block.url && (
         <a
-          href={block.url}
+          href={normalizedUrl}
           target={block.openInNewTab !== false ? "_blank" : "_self"}
           rel="noopener noreferrer"
           className="external-link-button"
