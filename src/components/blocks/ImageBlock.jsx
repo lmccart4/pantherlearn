@@ -8,13 +8,19 @@ function normalizeImageUrl(url) {
   // Google Drive sharing link: https://drive.google.com/file/d/FILE_ID/view?...
   const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
   if (driveMatch) {
-    return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+    return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
   }
 
   // Google Drive open link: https://drive.google.com/open?id=FILE_ID
   const openMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
   if (openMatch) {
-    return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
+    return `https://lh3.googleusercontent.com/d/${openMatch[1]}`;
+  }
+
+  // Already a uc?export link — convert that too
+  const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
+  if (ucMatch) {
+    return `https://lh3.googleusercontent.com/d/${ucMatch[1]}`;
   }
 
   return url;
@@ -27,13 +33,14 @@ export default function ImageBlock({ block }) {
   if (!block.url) return null;
 
   return (
-    <div style={{ margin: "24px 0" }}>
+    <div style={{ margin: "24px 0", textAlign: "center" }}>
       <img
         src={imgUrl}
         alt={block.alt || translatedCaption || "Lesson image"}
         style={{
-          width: "100%",
-          maxWidth: 700,
+          maxWidth: "100%",
+          width: "auto",
+          maxHeight: 500,
           borderRadius: "var(--radius, 12px)",
           border: "1px solid var(--border, #2a2f3d)",
         }}
