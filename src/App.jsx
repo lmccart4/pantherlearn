@@ -1,5 +1,5 @@
 // src/App.jsx
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import TopBar from "./components/TopBar";
@@ -24,25 +24,31 @@ import ClassChat from "./components/ClassChat";
 // Reuse PantherPrep's existing translate Cloud Function
 const TRANSLATE_URL = "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
 
-function ProtectedRoute({ children }) {
+function ProtectedLayout() {
   const { user, loading } = useAuth();
+
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
       <div className="spinner" />
     </div>
   );
+
   if (!user) return <Navigate to="/login" />;
-  return children;
+
+  return (
+    <>
+      <TopBar />
+      <Outlet />
+    </>
+  );
 }
 
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
-    // Reset all possible scroll containers
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-    // Also reset any scrollable divs in the page
     document.querySelectorAll('[style*="overflow"]').forEach(el => {
       el.scrollTop = 0;
     });
@@ -65,18 +71,20 @@ function AppRoutes() {
       <PreviewBanner />
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
-        <Route path="/" element={<ProtectedRoute><TopBar /><Dashboard /></ProtectedRoute>} />
-        <Route path="/course/:courseId" element={<ProtectedRoute><TopBar /><CoursePage /></ProtectedRoute>} />
-        <Route path="/course/:courseId/lesson/:lessonId" element={<ProtectedRoute><TopBar /><LessonViewer /></ProtectedRoute>} />
-        <Route path="/editor" element={<ProtectedRoute><TopBar /><LessonEditor /></ProtectedRoute>} />
-        <Route path="/grading" element={<ProtectedRoute><TopBar /><GradingDashboard /></ProtectedRoute>} />
-        <Route path="/rosters" element={<ProtectedRoute><TopBar /><RosterSync /></ProtectedRoute>} />
-        <Route path="/progress" element={<ProtectedRoute><TopBar /><StudentProgress /></ProtectedRoute>} />
-        <Route path="/xp-controls/:courseId" element={<ProtectedRoute><TopBar /><XPControls /></ProtectedRoute>} />
-        <Route path="/teams/:courseId" element={<ProtectedRoute><TopBar /><TeamManager /></ProtectedRoute>} />
-        <Route path="/mana/:courseId" element={<ProtectedRoute><TopBar /><ManaManager /></ProtectedRoute>} />
-        <Route path="/boss-battle/:courseId" element={<ProtectedRoute><TopBar /><BossBattle /></ProtectedRoute>} />
-        <Route path="/avatar" element={<ProtectedRoute><TopBar /><AvatarCreator /></ProtectedRoute>} />
+        <Route element={<ProtectedLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/course/:courseId" element={<CoursePage />} />
+          <Route path="/course/:courseId/lesson/:lessonId" element={<LessonViewer />} />
+          <Route path="/editor" element={<LessonEditor />} />
+          <Route path="/grading" element={<GradingDashboard />} />
+          <Route path="/rosters" element={<RosterSync />} />
+          <Route path="/progress" element={<StudentProgress />} />
+          <Route path="/xp-controls/:courseId" element={<XPControls />} />
+          <Route path="/teams/:courseId" element={<TeamManager />} />
+          <Route path="/mana/:courseId" element={<ManaManager />} />
+          <Route path="/boss-battle/:courseId" element={<BossBattle />} />
+          <Route path="/avatar" element={<AvatarCreator />} />
+        </Route>
       </Routes>
       {user && <ClassChat />}
     </PreviewProvider>
@@ -84,7 +92,6 @@ function AppRoutes() {
 }
 
 export default function App() {
-  // Disable browser's automatic scroll restoration
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
