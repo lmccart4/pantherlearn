@@ -370,3 +370,70 @@
   background-size: 200% 100%;
   animation: legendaryShimmer 3s linear infinite;
 }
+
+/* --- External Link Block --- */
+.external-link-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  transition: border-color 0.3s;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+.external-link-block:hover {
+  border-color: var(--cyan);
+}
+.external-link-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.external-link-icon {
+  font-size: 26px;
+  flex-shrink: 0;
+}
+.external-link-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+.external-link-description {
+  font-size: 16px;
+  color: var(--text2);
+  line-height: 1.75;
+  margin-bottom: 16px;
+}
+.external-link-description strong {
+  color: var(--amber);
+}
+.external-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--cyan), #3b82f6);
+  color: white;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(34, 211, 238, 0.2);
+}
+.external-link-button:hover {
+  box-shadow: 0 4px 18px rgba(34, 211, 238, 0.35);
+  transform: translateY(-1px);
+}
+.external-link-url {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

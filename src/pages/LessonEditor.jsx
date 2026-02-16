@@ -24,6 +24,7 @@ const BLOCK_TYPES = [
   { type: "question", label: "Question (MC)", icon: "❓", questionType: "multiple_choice" },
   { type: "question", label: "Question (Written)", icon: "✏️", questionType: "short_answer" },
   { type: "sorting", label: "Sorting (Swipe)", icon: "🔀" },
+  { type: "external_link", label: "External Link", icon: "🔗" },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -48,6 +49,7 @@ function defaultBlockData(typeInfo) {
       }
       return { ...base, questionType: "short_answer", prompt: "" };
     case "sorting": return { ...base, icon: "🔀", title: "Sort It!", instructions: "", leftLabel: "Category A", rightLabel: "Category B", items: [{ text: "", correct: "left" }] };
+    case "external_link": return { ...base, icon: "🔗", title: "", url: "", description: "", buttonLabel: "Open", openInNewTab: true };
     default: return base;
   }
 }
@@ -219,6 +221,22 @@ function BlockEditor({ block, onChange, onDelete, onMoveUp, onMoveDown, isFirst,
               </div>
             ))}
             <button className="editor-add-btn" onClick={() => update("items", [...(block.items || []), { text: "", correct: "left" }])}>+ Add item</button>
+          </div>
+        </>);
+      case "external_link":
+        return (<>
+          <Field label="Icon" value={block.icon} onChange={(v) => update("icon", v)} small />
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="e.g. Explore Google Gemini" />
+          <Field label="URL" value={block.url} onChange={(v) => update("url", v)} placeholder="https://gemini.google.com" />
+          <Field label="Description (optional)" value={block.description} onChange={(v) => update("description", v)} multiline />
+          <Field label="Button Label" value={block.buttonLabel} onChange={(v) => update("buttonLabel", v)} placeholder="Open" small />
+          <div className="editor-field">
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <input type="checkbox" checked={block.openInNewTab !== false}
+                onChange={(e) => update("openInNewTab", e.target.checked)}
+                style={{ accentColor: "var(--cyan)" }} />
+              Open in new tab
+            </label>
           </div>
         </>);
       default: return <p style={{ color: "var(--text3)" }}>Unknown block type</p>;

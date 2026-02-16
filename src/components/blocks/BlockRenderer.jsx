@@ -14,6 +14,7 @@ import ChecklistBlock from "./ChecklistBlock";
 import EmbedBlock from "./EmbedBlock";
 import DividerBlock from "./DividerBlock";
 import SortingBlock from "./SortingBlock";
+import ExternalLinkBlock from "./ExternalLinkBlock";
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -29,6 +30,7 @@ const BLOCK_MAP = {
   embed: EmbedBlock,
   divider: DividerBlock,
   sorting: SortingBlock,
+  external_link: ExternalLinkBlock,
   chatbot: ChatbotBlock,
   question: QuestionBlock,
 };
