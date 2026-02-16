@@ -601,15 +601,14 @@ export async function getLeaderboard(courseId, sectionFilter = null, limit = 50)
     const usersMap = {};
     usersSnap.forEach((d) => { usersMap[d.id] = d.data(); });
 
-    // Get enrollment docs to find each student's section
+     // Get enrollment docs to find each student's section
     let enrollmentsByUid = {};
     if (courseId) {
-      const enrollSnap = await getDocs(collection(db, "enrollments"));
+      const enrollSnap = await getDocs(collection(db, "courses", courseId, "enrollments"));
       enrollSnap.forEach((d) => {
         const data = d.data();
-        if (data.courseId === courseId && (data.uid || data.studentUid)) {
-          enrollmentsByUid[data.uid || data.studentUid] = data;
-        }
+        const uid = d.id;
+        enrollmentsByUid[uid] = data;
       });
     }
 

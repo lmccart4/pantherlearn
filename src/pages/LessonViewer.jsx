@@ -1,5 +1,5 @@
 // src/pages/LessonViewer.jsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -63,7 +63,7 @@ export default function LessonViewer() {
     fetchLesson();
   }, [courseId, lessonId, user]);
 
-  // Save answer to Firestore (skipped during preview)
+  // FIX #18: Firestore write moved outside of state setter
   const handleAnswer = useCallback(
     async (blockId, data) => {
       if (isPreviewActive) {
@@ -71,18 +71,18 @@ export default function LessonViewer() {
         return;
       }
 
-      setRealStudentData((prev) => {
-        const updated = { ...prev, [blockId]: data };
+      setRealStudentData((prev) => ({ ...prev, [blockId]: data }));
 
-        if (user) {
-          const progressRef = doc(
-            db, "progress", user.uid, "courses", courseId, "lessons", lessonId
-          );
-          setDoc(progressRef, { answers: updated, lastUpdated: new Date() }, { merge: true });
-        }
-
-        return updated;
-      });
+      // Persist to Firestore after state update, not inside the setter
+      if (user) {
+        const progressRef = doc(
+          db, "progress", user.uid, "courses", courseId, "lessons", lessonId
+        );
+        setRealStudentData((current) => {
+          setDoc(progressRef, { answers: current, lastUpdated: new Date() }, { merge: true });
+          return current;
+        });
+      }
     },
     [user, courseId, lessonId, isPreviewActive]
   );
@@ -94,6 +94,27 @@ export default function LessonViewer() {
 
   const translatedTitle = useTranslatedText(lesson?.title);
   const translatedUnit = useTranslatedText(lesson?.unit || lesson?.course);
+
+  // FIX #16: Memoize block extra props so they only recalculate when dependencies change
+  const blocksWithProps = useMemo(() => {
+    if (!lesson?.blocks) return [];
+    return lesson.blocks.map((block) => {
+      const extraProps = {};
+      if (block.type === "chatbot") {
+        extraProps.lessonId = lessonId;
+        extraProps.courseId = courseId;
+        extraProps.getToken = getToken;
+        extraProps.onLog = handleChatLog;
+      }
+      if (block.type === "question") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+        extraProps.courseId = courseId;
+        extraProps.lessonCompleted = lessonCompleted;
+      }
+      return { block, extraProps };
+    });
+  }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted]);
 
   if (loading) {
     return (
@@ -153,21 +174,7 @@ export default function LessonViewer() {
 
         {/* Blocks */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {(lesson.blocks || []).map((block) => {
-            const extraProps = {};
-            if (block.type === "chatbot") {
-              extraProps.lessonId = lessonId;
-              extraProps.courseId = courseId;
-              extraProps.getToken = getToken;
-              extraProps.onLog = handleChatLog;
-            }
-            if (block.type === "question") {
-              extraProps.studentData = studentData;
-              extraProps.onAnswer = handleAnswer;
-              extraProps.courseId = courseId;
-              extraProps.lessonCompleted = lessonCompleted;
-            }
-
+          {blocksWithProps.map(({ block, extraProps }) => {
             const el = <BlockRenderer key={block.id} block={block} extraProps={extraProps} />;
 
             if (block.type === "section_header") {
