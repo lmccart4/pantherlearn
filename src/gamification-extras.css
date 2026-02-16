@@ -1,0 +1,55 @@
+/* ─── gamification-extras.css ─────────────────────────────────
+   Add these rules to your blocks.css or import separately.
+   Covers: badge celebration pulse, multiplier glow, streak fire.
+   ─────────────────────────────────────────────────────────── */
+
+/* Badge celebration pulse */
+@keyframes badgePulse {
+  0% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+/* Multiplier event glow */
+@keyframes multiplierGlow {
+  0% { box-shadow: 0 0 8px #f39c1222; }
+  100% { box-shadow: 0 0 20px #f39c1244; }
+}
+
+/* Level-up celebration (for future use) */
+@keyframes levelUp {
+  0% { transform: scale(1); filter: brightness(1); }
+  25% { transform: scale(1.15); filter: brightness(1.3); }
+  50% { transform: scale(1); filter: brightness(1); }
+  75% { transform: scale(1.08); filter: brightness(1.15); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* Streak fire shimmer */
+@keyframes fireShimmer {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.2) saturate(1.3); }
+}
+
+.streak-fire {
+  animation: fireShimmer 2s ease-in-out infinite;
+}
+
+/* Badge rarity shimmer for legendary items */
+@keyframes legendaryShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.badge-legendary {
+  background: linear-gradient(
+    90deg,
+    #3a2a1a 0%,
+    #5a3a1a 25%,
+    #f39c1244 50%,
+    #5a3a1a 75%,
+    #3a2a1a 100%
+  );
+  background-size: 200% 100%;
+  animation: legendaryShimmer 3s linear infinite;
+}

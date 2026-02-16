@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+    function isTeacher() {
+      return isLoggedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
+    }
+    function isOwner(uid) {
+      return isLoggedIn() && request.auth.uid == uid;
+    }
+    function isCourseOwner(courseId) {
+      return isTeacher()
+        && get(/databases/$(database)/documents/courses/$(courseId)).data.ownerUid == request.auth.uid;
+    }
+    function isEnrolledStudent(courseId) {
+      return isLoggedIn()
+        && courseId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.enrolledCourses;
+    }
+    function hasCourseAccess(courseId) {
+      return isCourseOwner(courseId) || isEnrolledStudent(courseId);
+    }
+    match /users/{uid} {
+      allow read: if isLoggedIn();
+      allow write: if isOwner(uid) || isTeacher();
+    }
+    match /courses/{courseId} {
+      allow read: if isLoggedIn();
+      allow create: if isTeacher();
+      allow update, delete: if isCourseOwner(courseId);
+      match /lessons/{lessonId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isCourseOwner(courseId);
+      }
+      match /settings/{settingId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isCourseOwner(courseId);
+      }
+      match /teams/{teamId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if hasCourseAccess(courseId);
+      }
+      match /mana/{docId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if hasCourseAccess(courseId);
+      }
+      match /bossBattles/{battleId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if hasCourseAccess(courseId);
+      }
+      // Per-course gamification (Phase 2)
+      match /gamification/{uid} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isOwner(uid) || isTeacher();
+      }
+      // Per-course chat logs (Phase 2)
+      match /chatLogs/{lessonId}/{blockId}/{studentId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isLoggedIn();
+      }
+      // Perk requests
+      match /perkRequests/{requestId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if hasCourseAccess(courseId);
+      }
+      // Enrollments subcollection
+      match /enrollments/{uid} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isOwner(uid) || isTeacher();
+      }
+      // Class chat rooms
+      match /chats/{chatId} {
+        // Teacher can read all chats; students can read chats they belong to
+        allow read: if isTeacher()
+          || (isLoggedIn() && request.auth.uid in resource.data.members);
+        // Any logged-in user with course access can create a chat
+        allow create: if hasCourseAccess(courseId);
+        // Members can update the chat (lastMessage, etc.)
+        allow update: if isLoggedIn()
+          && request.auth.uid in resource.data.members;
+
+        // Messages within a chat
+        match /messages/{messageId} {
+          allow read: if isTeacher()
+            || (isLoggedIn() && request.auth.uid in get(/databases/$(database)/documents/courses/$(courseId)/chats/$(chatId)).data.members);
+          allow create: if isLoggedIn()
+            && request.auth.uid in get(/databases/$(database)/documents/courses/$(courseId)/chats/$(chatId)).data.members;
+        }
+
+        // Read receipts — each user manages their own
+        match /readBy/{userId} {
+          allow read, write: if isLoggedIn() && request.auth.uid == userId;
+          // Teacher can also read all read receipts
+          allow read: if isTeacher();
+        }
+      }
+    }
+    // Legacy global gamification (backward compat)
+    match /gamification/{uid} {
+      allow read: if isLoggedIn();
+      allow write: if isOwner(uid) || isTeacher();
+    }
+    match /progress/{uid}/{document=**} {
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid) || isTeacher();
+    }
+    match /enrollments/{enrollmentId} {
+      allow read, write: if isLoggedIn();
+    }
+    // Legacy global chatLogs (backward compat)
+    match /chatLogs/{document=**} {
+      allow read: if isLoggedIn();
+      allow write: if isLoggedIn();
+    }
+    match /rateLimits/{uid} {
+      allow read, write: if isLoggedIn();
+    }
+  }
+}
