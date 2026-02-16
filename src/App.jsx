@@ -1,39 +1,42 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import TopBar from "./components/TopBar";
 import ErrorBoundary from "./components/ErrorBoundary";
-import LoginPage from "./pages/LoginPage";
-import Dashboard from "./pages/Dashboard";
-import CoursePage from "./pages/CoursePage";
-import LessonViewer from "./pages/LessonViewer";
-import LessonEditor from "./pages/LessonEditor";
-import GradingDashboard from "./pages/GradingDashboard";
-import RosterSync from "./pages/RosterSync";
-import StudentProgress from "./pages/StudentProgress";
-import XPControls from "./pages/XPControls";
-import TeamManager from "./pages/TeamManager";
-import ManaManager from "./pages/ManaManager";
-import BossBattle from "./pages/BossBattle";
-import AvatarCreator from "./pages/AvatarCreator";
 import { TranslationProvider } from "./contexts/TranslationContext";
 import { PreviewProvider } from "./contexts/PreviewContext";
 import PreviewBanner from "./components/PreviewBanner";
 import ClassChat from "./components/ClassChat";
 
+// Lazy-loaded pages — only downloaded when the user navigates to them
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const CoursePage = lazy(() => import("./pages/CoursePage"));
+const LessonViewer = lazy(() => import("./pages/LessonViewer"));
+const LessonEditor = lazy(() => import("./pages/LessonEditor"));
+const GradingDashboard = lazy(() => import("./pages/GradingDashboard"));
+const RosterSync = lazy(() => import("./pages/RosterSync"));
+const StudentProgress = lazy(() => import("./pages/StudentProgress"));
+const XPControls = lazy(() => import("./pages/XPControls"));
+const TeamManager = lazy(() => import("./pages/TeamManager"));
+const ManaManager = lazy(() => import("./pages/ManaManager"));
+const BossBattle = lazy(() => import("./pages/BossBattle"));
+const AvatarCreator = lazy(() => import("./pages/AvatarCreator"));
+
 // Reuse PantherPrep's existing translate Cloud Function
 const TRANSLATE_URL = "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
+
+const LoadingSpinner = () => (
+  <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+    <div className="spinner" />
+  </div>
+);
 
 function ProtectedLayout() {
   const { user, loading } = useAuth();
 
-  if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
-      <div className="spinner" />
-    </div>
-  );
-
+  if (loading) return <LoadingSpinner />;
   if (!user) return <Navigate to="/login" />;
 
   return (
@@ -60,33 +63,31 @@ function ScrollToTop() {
 function AppRoutes() {
   const { user, loading } = useAuth();
 
-  if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
-      <div className="spinner" />
-    </div>
-  );
+  if (loading) return <LoadingSpinner />;
 
   return (
     <PreviewProvider>
       <ScrollToTop />
       <PreviewBanner />
-      <Routes>
-        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
-        <Route element={<ProtectedLayout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/course/:courseId" element={<CoursePage />} />
-          <Route path="/course/:courseId/lesson/:lessonId" element={<LessonViewer />} />
-          <Route path="/editor" element={<LessonEditor />} />
-          <Route path="/grading" element={<GradingDashboard />} />
-          <Route path="/rosters" element={<RosterSync />} />
-          <Route path="/progress" element={<StudentProgress />} />
-          <Route path="/xp-controls/:courseId" element={<XPControls />} />
-          <Route path="/teams/:courseId" element={<TeamManager />} />
-          <Route path="/mana/:courseId" element={<ManaManager />} />
-          <Route path="/boss-battle/:courseId" element={<BossBattle />} />
-          <Route path="/avatar" element={<AvatarCreator />} />
-        </Route>
-      </Routes>
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
+          <Route element={<ProtectedLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/course/:courseId" element={<CoursePage />} />
+            <Route path="/course/:courseId/lesson/:lessonId" element={<LessonViewer />} />
+            <Route path="/editor" element={<LessonEditor />} />
+            <Route path="/grading" element={<GradingDashboard />} />
+            <Route path="/rosters" element={<RosterSync />} />
+            <Route path="/progress" element={<StudentProgress />} />
+            <Route path="/xp-controls/:courseId" element={<XPControls />} />
+            <Route path="/teams/:courseId" element={<TeamManager />} />
+            <Route path="/mana/:courseId" element={<ManaManager />} />
+            <Route path="/boss-battle/:courseId" element={<BossBattle />} />
+            <Route path="/avatar" element={<AvatarCreator />} />
+          </Route>
+        </Routes>
+      </Suspense>
       {user && <ClassChat />}
     </PreviewProvider>
   );
