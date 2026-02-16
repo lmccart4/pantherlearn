@@ -1,14 +1,25 @@
 // src/components/LessonCompleteButton.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { awardXP } from "../lib/gamification";
+import { awardXP, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
 
 export default function LessonCompleteButton({ lesson, studentData, chatLogs, user, courseId, lessonId }) {
   const navigate = useNavigate();
   const [completing, setCompleting] = useState(false);
   const [lessonCompleted, setLessonCompleted] = useState(false);
+  const [xpConfig, setXpConfig] = useState(null);
+
+  useEffect(() => {
+    if (courseId) {
+      getXPConfig(courseId).then(setXpConfig).catch(() => setXpConfig(null));
+    }
+  }, [courseId]);
+
+  const getXPValue = (key) => {
+    return xpConfig?.xpValues?.[key] ?? DEFAULT_XP_VALUES[key] ?? 0;
+  };
 
   const blocks = lesson.blocks || [];
   const questionBlocks = blocks.filter((b) => b.type === "question");
@@ -54,7 +65,8 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
         setLessonCompleted(true);
 
         try {
-          await awardXP(user.uid, courseId, "lesson_complete", { lessonId });
+          const baseXP = getXPValue("lesson_complete");
+          await awardXP(user.uid, baseXP, "lesson_complete", courseId);
         } catch (e) {
           console.warn("Could not award XP:", e);
         }
