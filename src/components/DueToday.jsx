@@ -6,10 +6,10 @@ export default function DueToday({ lessonMap, allCourses }) {
   if (!lessonMap || Object.keys(lessonMap).length === 0) return null;
 
   const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
 
   // Collect lessons with due dates that are relevant (overdue, today, tomorrow)
   const items = [];

@@ -79,7 +79,9 @@ export default function StudentDashboard() {
               query(collection(db, "courses", course.id, "lessons"), orderBy("order", "asc"))
             );
             lessonsSnap.forEach((ld) => {
-              lessons[ld.id] = { ...ld.data(), courseId: course.id };
+              const data = ld.data();
+              if (data.visible === false) return; // skip hidden lessons
+              lessons[ld.id] = { ...data, courseId: course.id };
             });
           } catch (e) {
             console.warn("Could not fetch lessons for", course.id, e);

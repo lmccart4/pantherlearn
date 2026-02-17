@@ -1,8 +1,9 @@
 // src/components/blocks/QuestionBlock.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../../lib/gamification";
 import { useTranslatedText, useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
+import useAutoSave from "../../hooks/useAutoSave.jsx";
 
 export default function QuestionBlock({ block, studentData, onAnswer, courseId, lessonCompleted }) {
   const { user } = useAuth();
@@ -36,6 +37,17 @@ export default function QuestionBlock({ block, studentData, onAnswer, courseId, 
       getXPConfig(courseId).then(setXpConfig).catch(() => setXpConfig(null));
     }
   }, [courseId]);
+
+  // Auto-save draft for short answer (saves text without officially submitting)
+  const performDraftSave = useCallback(() => {
+    if (block.questionType !== "short_answer") return;
+    if (submitted) return; // don't overwrite a submitted answer with a draft
+    if (!textAnswer.trim()) return;
+    // Save as draft (submitted: false) so it doesn't count as turned in
+    onAnswer(block.id, { answer: textAnswer, submitted: false, draft: true });
+  }, [block.id, block.questionType, textAnswer, submitted, onAnswer]);
+
+  const { markDirty: markSADirty, saveNow: saveSANow, lastSaved: saLastSaved } = useAutoSave(performDraftSave);
 
   // Get XP value from config or fallback to defaults
   const getXPValue = (key) => {
@@ -146,14 +158,47 @@ export default function QuestionBlock({ block, studentData, onAnswer, courseId, 
         <p className="question-prompt" data-translatable>{translatedPrompt}</p>
         {!submitted ? (
           <>
-            <textarea className="sa-input" rows={4} placeholder={ui(4) || "Type your answer here..."} value={textAnswer} onChange={(e) => setTextAnswer(e.target.value)} />
-            <button className="btn btn-primary" onClick={handleSubmitSA} disabled={!textAnswer.trim()} data-translatable>{ui(3) || "Submit Response"}</button>
+            <textarea className="sa-input" rows={4} placeholder={ui(4) || "Type your answer here..."}
+              value={textAnswer}
+              onChange={(e) => { setTextAnswer(e.target.value); markSADirty(); }}
+              onBlur={saveSANow}
+            />
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button className="btn btn-primary" onClick={handleSubmitSA} disabled={!textAnswer.trim()} data-translatable>{ui(3) || "Submit Response"}</button>
+              {saLastSaved && !submitted && (
+                <span style={{ fontSize: 11, color: "var(--text3)" }}>
+                  Draft saved {saLastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                </span>
+              )}
+            </div>
           </>
         ) : (
           <div className="sa-submitted">
             <div className="sa-answer-display">{textAnswer}</div>
-            <div className="sa-status" data-translatable>✓ {ui(6) || "Submitted — awaiting teacher review"}</div>
-            {!locked && (
+            {data.writtenLabel ? (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10, marginTop: 8,
+              }}>
+                <span style={{
+                  fontSize: 13, fontWeight: 700, padding: "4px 14px", borderRadius: 6,
+                  background: data.writtenScore >= 1.0 ? "rgba(16,185,129,0.12)"
+                    : data.writtenScore >= 0.85 ? "rgba(34,211,238,0.12)"
+                    : data.writtenScore >= 0.65 ? "rgba(245,166,35,0.12)"
+                    : data.writtenScore >= 0.55 ? "rgba(239,68,68,0.12)"
+                    : "var(--surface2)",
+                  color: data.writtenScore >= 1.0 ? "var(--green)"
+                    : data.writtenScore >= 0.85 ? "var(--cyan)"
+                    : data.writtenScore >= 0.65 ? "var(--amber)"
+                    : data.writtenScore >= 0.55 ? "#ef4444"
+                    : "var(--text3)",
+                }}>
+                  ✓ Graded: {data.writtenLabel} ({Math.round((data.writtenScore ?? 0) * 100)}%)
+                </span>
+              </div>
+            ) : (
+              <div className="sa-status" data-translatable>✓ {ui(6) || "Submitted — awaiting teacher review"}</div>
+            )}
+            {!locked && !data.writtenLabel && (
               <button
                 className="btn"
                 onClick={() => {

@@ -112,6 +112,14 @@ export default function LessonViewer() {
         extraProps.courseId = courseId;
         extraProps.lessonCompleted = lessonCompleted;
       }
+      if (block.type === "calculator") {
+        extraProps.lessonId = lessonId;
+        extraProps.courseId = courseId;
+      }
+      if (block.type === "data_table") {
+        extraProps.lessonId = lessonId;
+        extraProps.courseId = courseId;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted]);
@@ -184,8 +192,8 @@ export default function LessonViewer() {
           })}
         </div>
 
-        {/* Complete Lesson — students only */}
-        {userRole !== "teacher" && !isPreview && (
+        {/* Complete Lesson — students and teacher preview */}
+        {(userRole !== "teacher" || isPreview) && (
           <LessonCompleteButton
             lesson={lesson}
             studentData={studentData}

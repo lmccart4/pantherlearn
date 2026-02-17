@@ -38,44 +38,45 @@ service cloud.firestore {
         allow read: if hasCourseAccess(courseId);
         allow write: if isCourseOwner(courseId);
       }
-      // FIX #11: Only teachers can modify teams
       match /teams/{teamId} {
         allow read: if hasCourseAccess(courseId);
         allow write: if isCourseOwner(courseId);
       }
-      // FIX #11: Only teachers can modify mana
       match /mana/{docId} {
         allow read: if hasCourseAccess(courseId);
         allow write: if isCourseOwner(courseId);
       }
-      // FIX #11: Only teachers can modify boss battles
       match /bossBattles/{battleId} {
         allow read: if hasCourseAccess(courseId);
         allow write: if isCourseOwner(courseId);
       }
-      // Per-course gamification (Phase 2)
       match /gamification/{uid} {
         allow read: if hasCourseAccess(courseId);
         allow write: if isOwner(uid) || isCourseOwner(courseId);
       }
-      // Per-course chat logs (Phase 2)
-      // FIX #9: Only the student who owns the log or the course teacher can write
       match /chatLogs/{lessonId}/{blockId}/{studentId} {
         allow read: if hasCourseAccess(courseId);
         allow write: if isOwner(studentId) || isCourseOwner(courseId);
       }
-      // Perk requests
       match /perkRequests/{requestId} {
         allow read: if hasCourseAccess(courseId);
         allow create: if hasCourseAccess(courseId);
         allow update, delete: if isCourseOwner(courseId);
       }
-      // Enrollments subcollection
       match /enrollments/{uid} {
         allow read: if hasCourseAccess(courseId);
         allow write: if isOwner(uid) || isCourseOwner(courseId);
       }
-      // Class chat rooms
+      // Grades (teacher-graded entries + reflection gradebook)
+      match /grades/{gradeId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if hasCourseAccess(courseId);
+      }
+      // Reflections (read by MyGrades + StudentProgress)
+      match /reflections/{reflectionId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if hasCourseAccess(courseId);
+      }
       match /chats/{chatId} {
         allow read: if isTeacher()
           || (isLoggedIn() && request.auth.uid in resource.data.members);
@@ -105,13 +106,11 @@ service cloud.firestore {
       allow read: if isOwner(uid) || isTeacher();
       allow write: if isOwner(uid) || isTeacher();
     }
-    // FIX #8: Lock down legacy enrollments — teachers can read/write all, students can only read/write their own
     match /enrollments/{enrollmentId} {
       allow read: if isLoggedIn();
       allow write: if isTeacher()
         || (isLoggedIn() && resource.data.email == request.auth.token.email);
     }
-    // FIX #9: Lock down legacy chatLogs — teachers can read/write, students can only read/write their own
     match /chatLogs/{uid}/{document=**} {
       allow read: if isOwner(uid) || isTeacher();
       allow write: if isOwner(uid) || isTeacher();

@@ -242,7 +242,7 @@ export default function CoursePage() {
                                   const due = new Date(lesson.dueDate + "T23:59:59");
                                   const now = new Date();
                                   const isPastDue = due < now;
-                                  const isToday = lesson.dueDate === now.toISOString().slice(0, 10);
+                                  const isToday = lesson.dueDate === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
                                   const isSoon = !isPastDue && !isToday && (due - now) < 2 * 24 * 60 * 60 * 1000;
                                   return (
                                     <div style={{

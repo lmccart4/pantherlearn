@@ -1,10 +1,22 @@
 // src/components/grading/WrittenResponseCard.jsx
 import { useState } from "react";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "../../lib/firebase";
 import { analyzeResponse } from "../../lib/aiDetection";
 import { compareToBaselines } from "../../lib/aiBaselines";
 
+const GRADE_TIERS = [
+  { label: "Missing", value: 0, color: "var(--text3)", bg: "var(--surface2)" },
+  { label: "Emerging", value: 0.55, color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  { label: "Approaching", value: 0.65, color: "var(--amber)", bg: "rgba(245,166,35,0.12)" },
+  { label: "Developing", value: 0.85, color: "var(--cyan)", bg: "rgba(34,211,238,0.12)" },
+  { label: "Refining", value: 1.0, color: "var(--green)", bg: "rgba(16,185,129,0.12)" },
+];
+
 export default function WrittenResponseCard({ item, helpers, onSelectStudent, selectedLesson }) {
   const [isAnalysisExpanded, setIsAnalysisExpanded] = useState(false);
+  const [grading, setGrading] = useState(false);
+  const [savedGrade, setSavedGrade] = useState(item.writtenScore ?? null);
   const { getStudentName, getStudentEmail, getStudentPhoto, getBlockPrompt, lessonMap, responses } = helpers;
 
   // Build per-student writing history for comparison
@@ -23,6 +35,35 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
     aiBaselines,
     compareToBaselines,
   });
+
+  const handleGrade = async (tier) => {
+    if (grading) return;
+    setGrading(true);
+    try {
+      // Merge grade fields into the student's existing progress answer
+      const progressRef = doc(
+        db, "progress", item.studentId, "courses", item.courseId, "lessons", item.lessonId
+      );
+      await setDoc(progressRef, {
+        answers: {
+          [item.blockId]: {
+            writtenScore: tier.value,
+            writtenLabel: tier.label,
+            needsGrading: false,
+            gradedAt: new Date(),
+          },
+        },
+      }, { merge: true });
+
+      setSavedGrade(tier.value);
+    } catch (err) {
+      console.error("Failed to save grade:", err);
+      alert("Failed to save grade. Please try again.");
+    }
+    setGrading(false);
+  };
+
+  const currentTier = savedGrade !== null ? GRADE_TIERS.find((t) => t.value === savedGrade) : null;
 
   return (
     <div className="card" style={{ padding: "16px 20px", borderColor: analysis.risk === "high" ? "rgba(239,68,68,0.25)" : analysis.risk === "medium" ? "rgba(245,166,35,0.25)" : undefined }}>
@@ -55,9 +96,18 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
               {analysis.label}
             </span>
           )}
-          <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 4, background: "var(--blue-dim)", color: "var(--blue)", fontWeight: 600 }}>
-            Needs review
-          </span>
+          {currentTier ? (
+            <span style={{
+              fontSize: 11, padding: "2px 10px", borderRadius: 4, fontWeight: 600,
+              background: currentTier.bg, color: currentTier.color,
+            }}>
+              {currentTier.label}
+            </span>
+          ) : (
+            <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 4, background: "var(--blue-dim)", color: "var(--blue)", fontWeight: 600 }}>
+              Needs review
+            </span>
+          )}
         </div>
       </div>
 
@@ -126,9 +176,41 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
       <div style={{ background: "var(--bg)", borderRadius: 8, padding: 14, fontSize: 15, lineHeight: 1.6, marginBottom: 12, border: "1px solid var(--border)" }}>
         {item.answer}
       </div>
+
+      {/* Grading buttons */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+        <span style={{ fontSize: 11, color: "var(--text3)", fontWeight: 600, marginRight: 4 }}>Grade:</span>
+        {GRADE_TIERS.map((tier) => {
+          const isSelected = savedGrade === tier.value;
+          return (
+            <button
+              key={tier.label}
+              onClick={() => handleGrade(tier)}
+              disabled={grading}
+              style={{
+                fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 6,
+                border: isSelected ? `2px solid ${tier.color}` : "1px solid var(--border)",
+                background: isSelected ? tier.bg : "transparent",
+                color: isSelected ? tier.color : "var(--text3)",
+                cursor: grading ? "default" : "pointer",
+                transition: "all 0.15s",
+                opacity: grading ? 0.5 : 1,
+              }}
+              onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.background = tier.bg; e.currentTarget.style.color = tier.color; } }}
+              onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text3)"; } }}
+            >
+              {tier.label} {Math.round(tier.value * 100)}%
+            </button>
+          );
+        })}
+      </div>
+
       {item.submittedAt && (
         <div style={{ fontSize: 11, color: "var(--text3)" }}>
           Submitted {new Date(item.submittedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+          {currentTier && (
+            <span> · Graded: <span style={{ color: currentTier.color, fontWeight: 600 }}>{currentTier.label}</span></span>
+          )}
         </div>
       )}
     </div>

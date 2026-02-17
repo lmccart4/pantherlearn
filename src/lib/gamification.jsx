@@ -362,14 +362,30 @@ export async function denyPerkRedemption(courseId, requestId) {
 // ─── XP Config Helpers ───
 
 export async function loadXPConfig(courseId) {
+  const defaults = {
+    xpValues: DEFAULT_XP_VALUES,
+    behaviorRewards: DEFAULT_BEHAVIOR_REWARDS,
+    multiplierConfig: DEFAULT_MULTIPLIER_CONFIG,
+    levelThresholds: DEFAULT_LEVEL_THRESHOLDS,
+    activeMultiplier: null,
+  };
   try {
     const ref = doc(db, "courses", courseId, "settings", "xpConfig");
     const snap = await getDoc(ref);
-    if (snap.exists()) return snap.data();
-    return { xpValues: DEFAULT_XP_VALUES, behaviorRewards: DEFAULT_BEHAVIOR_REWARDS, multiplierConfig: DEFAULT_MULTIPLIER_CONFIG };
+    if (snap.exists()) {
+      const data = snap.data();
+      return {
+        xpValues: data.xpValues || defaults.xpValues,
+        behaviorRewards: data.behaviorRewards || defaults.behaviorRewards,
+        multiplierConfig: data.multiplierConfig || defaults.multiplierConfig,
+        levelThresholds: data.levelThresholds || defaults.levelThresholds,
+        activeMultiplier: data.activeMultiplier || defaults.activeMultiplier,
+      };
+    }
+    return defaults;
   } catch (err) {
     console.error("Error loading XP config:", err);
-    return { xpValues: DEFAULT_XP_VALUES, behaviorRewards: DEFAULT_BEHAVIOR_REWARDS, multiplierConfig: DEFAULT_MULTIPLIER_CONFIG };
+    return defaults;
   }
 }
 

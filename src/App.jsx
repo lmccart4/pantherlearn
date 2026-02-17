@@ -9,7 +9,7 @@ import { PreviewProvider } from "./contexts/PreviewContext";
 import PreviewBanner from "./components/PreviewBanner";
 import ClassChat from "./components/ClassChat";
 
-// Lazy-loaded pages — only downloaded when the user navigates to them
+// Lazy-loaded pages
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const CoursePage = lazy(() => import("./pages/CoursePage"));
@@ -23,6 +23,7 @@ const TeamManager = lazy(() => import("./pages/TeamManager"));
 const ManaManager = lazy(() => import("./pages/ManaManager"));
 const BossBattle = lazy(() => import("./pages/BossBattle"));
 const AvatarCreator = lazy(() => import("./pages/AvatarCreator"));
+const MyGrades = lazy(() => import("./pages/MyGrades"));
 
 // Reuse PantherPrep's existing translate Cloud Function
 const TRANSLATE_URL = "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
@@ -85,6 +86,7 @@ function AppRoutes() {
             <Route path="/mana/:courseId" element={<ManaManager />} />
             <Route path="/boss-battle/:courseId" element={<BossBattle />} />
             <Route path="/avatar" element={<AvatarCreator />} />
+            <Route path="/my-grades" element={<MyGrades />} />
           </Route>
         </Routes>
       </Suspense>

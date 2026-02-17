@@ -25,6 +25,8 @@ const BLOCK_TYPES = [
   { type: "question", label: "Question (Written)", icon: "✏️", questionType: "short_answer" },
   { type: "sorting", label: "Sorting (Swipe)", icon: "🔀" },
   { type: "external_link", label: "External Link", icon: "🔗" },
+  { type: "calculator", label: "Calculator", icon: "🧮" },
+  { type: "data_table", label: "Data Table", icon: "📊" },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -50,12 +52,14 @@ function defaultBlockData(typeInfo) {
       return { ...base, questionType: "short_answer", prompt: "" };
     case "sorting": return { ...base, icon: "🔀", title: "Sort It!", instructions: "", leftLabel: "Category A", rightLabel: "Category B", items: [{ text: "", correct: "left" }] };
     case "external_link": return { ...base, icon: "🔗", title: "", url: "", description: "", buttonLabel: "Open", openInNewTab: true };
+    case "calculator": return { ...base, title: "", description: "", formula: "", showFormula: false, inputs: [{ name: "value1", label: "Value 1", unit: "" }], output: { label: "Result", unit: "", decimals: 2 } };
+    case "data_table": return { ...base, preset: "momentum", title: "Momentum Data Table", trials: 1, labelA: "", labelB: "" };
     default: return base;
   }
 }
 
 // --- Block editor forms ---
-function BlockEditor({ block, onChange, onDelete, onMoveUp, onMoveDown, isFirst, isLast }) {
+function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown, isFirst, isLast }) {
   const update = (field, value) => onChange({ ...block, [field]: value });
 
   const renderFields = () => {
@@ -239,6 +243,114 @@ function BlockEditor({ block, onChange, onDelete, onMoveUp, onMoveDown, isFirst,
             </label>
           </div>
         </>);
+      case "calculator":
+        return (<>
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="e.g. Calculate Momentum" />
+          <Field label="Description (optional)" value={block.description} onChange={(v) => update("description", v)} multiline placeholder="Instructions for the student..." />
+          <Field label="Formula (use input names as variables)" value={block.formula} onChange={(v) => update("formula", v)} placeholder="e.g. mass * velocity" />
+          <div className="editor-field">
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <input type="checkbox" checked={block.showFormula || false}
+                onChange={(e) => update("showFormula", e.target.checked)}
+                style={{ accentColor: "var(--cyan)" }} />
+              Show formula to students
+            </label>
+          </div>
+          <div className="editor-field">
+            <label>Inputs</label>
+            {(block.inputs || []).map((inp, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+                <input className="editor-input" placeholder="Variable name" value={inp.name} style={{ flex: "0 0 25%" }}
+                  onChange={(e) => { const inputs = [...block.inputs]; inputs[i] = { ...inputs[i], name: e.target.value.replace(/\s/g, "_") }; update("inputs", inputs); }} />
+                <input className="editor-input" placeholder="Label (shown to student)" value={inp.label} style={{ flex: 1 }}
+                  onChange={(e) => { const inputs = [...block.inputs]; inputs[i] = { ...inputs[i], label: e.target.value }; update("inputs", inputs); }} />
+                <input className="editor-input" placeholder="Unit" value={inp.unit} style={{ width: 70 }}
+                  onChange={(e) => { const inputs = [...block.inputs]; inputs[i] = { ...inputs[i], unit: e.target.value }; update("inputs", inputs); }} />
+                <button className="editor-icon-btn" onClick={() => { const inputs = block.inputs.filter((_, j) => j !== i); update("inputs", inputs); }}>✕</button>
+              </div>
+            ))}
+            <button className="editor-add-btn" onClick={() => update("inputs", [...(block.inputs || []), { name: "", label: "", unit: "" }])}>+ Add input</button>
+            <p style={{ fontSize: 11, color: "var(--text3)", marginTop: 4 }}>Variable names must match what you use in the formula (no spaces).</p>
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <div style={{ flex: 1 }}><Field label="Output Label" value={block.output?.label || ""} onChange={(v) => update("output", { ...block.output, label: v })} placeholder="e.g. Momentum" /></div>
+            <div style={{ flex: "0 0 80px" }}><Field label="Unit" value={block.output?.unit || ""} onChange={(v) => update("output", { ...block.output, unit: v })} placeholder="kg·m/s" small /></div>
+            <div style={{ flex: "0 0 80px" }}><Field label="Decimals" value={block.output?.decimals ?? 2} onChange={(v) => update("output", { ...block.output, decimals: parseInt(v) || 0 })} small /></div>
+          </div>
+        </>);
+      case "data_table":
+        return (<>
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="e.g. Momentum Data Table" />
+          <div className="editor-field">
+            <label>Preset</label>
+            <select value={block.preset || "momentum"} onChange={(e) => update("preset", e.target.value)} className="editor-select">
+              <option value="momentum">Momentum (mass, speed, velocity → scalar/vector candidates)</option>
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <div style={{ flex: 1 }}><Field label="Object A Label" value={block.labelA || ""} onChange={(v) => update("labelA", v)} placeholder="Cart A" /></div>
+            <div style={{ flex: 1 }}><Field label="Object B Label" value={block.labelB || ""} onChange={(v) => update("labelB", v)} placeholder="Cart B" /></div>
+          </div>
+          <div className="editor-field">
+            <label>Computed Columns</label>
+            <div style={{ display: "flex", gap: 20, marginTop: 4 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "var(--text)" }}>
+                <input type="checkbox" checked={block.showScalar !== false}
+                  onChange={(e) => update("showScalar", e.target.checked)}
+                  style={{ accentColor: "var(--cyan)" }} />
+                Scalar: m|v| (mass × speed)
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "var(--text)" }}>
+                <input type="checkbox" checked={block.showVector !== false}
+                  onChange={(e) => update("showVector", e.target.checked)}
+                  style={{ accentColor: "var(--cyan)" }} />
+                Vector: mv (mass × velocity)
+              </label>
+            </div>
+          </div>
+          <Field label="Number of Trials" value={block.trials || 1} onChange={(v) => update("trials", Math.max(1, Math.min(5, parseInt(v) || 1)))} small />
+          <div className="editor-field">
+            <label>Column Labels & Variables</label>
+            <p style={{ fontSize: 11, color: "var(--text3)", marginBottom: 8 }}>Customize how columns appear to students. Leave blank for defaults.</p>
+            {[
+              { key: "mass", defaults: { label: "Mass", unit: "kg", sublabel: "m" } },
+              ...(block.showScalar !== false ? [
+                { key: "speed", defaults: { label: "Speed", unit: "m/s", sublabel: "|v|" } },
+                { key: "scalar", defaults: { label: "Scalar Cand.", unit: "", sublabel: "m|v|" } },
+              ] : []),
+              ...(block.showVector !== false ? [
+                { key: "velocity", defaults: { label: "Velocity", unit: "m/s", sublabel: "v" } },
+                { key: "vector", defaults: { label: "Vector Cand.", unit: "", sublabel: "mv" } },
+              ] : []),
+            ].map(({ key, defaults }) => {
+              const ov = (block.columnOverrides || {})[key] || {};
+              const updateCol = (field, val) => {
+                const prev = block.columnOverrides || {};
+                update("columnOverrides", { ...prev, [key]: { ...(prev[key] || {}), [field]: val } });
+              };
+              return (
+                <div key={key} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+                  <span style={{ fontSize: 11, color: "var(--text3)", width: 60, flexShrink: 0 }}>{key}</span>
+                  <input className="editor-input" placeholder={defaults.label} value={ov.label || ""} style={{ flex: 1 }}
+                    onChange={(e) => updateCol("label", e.target.value)} />
+                  <input className="editor-input" placeholder={defaults.unit || "unit"} value={ov.unit || ""} style={{ width: 60 }}
+                    onChange={(e) => updateCol("unit", e.target.value)} />
+                  <input className="editor-input" placeholder={defaults.sublabel} value={ov.sublabel || ""} style={{ width: 60 }}
+                    onChange={(e) => updateCol("sublabel", e.target.value)} />
+                </div>
+              );
+            })}
+            <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+              <span style={{ width: 60 }} />
+              <span style={{ flex: 1, fontSize: 10, color: "var(--text3)" }}>Header label</span>
+              <span style={{ width: 60, fontSize: 10, color: "var(--text3)" }}>Unit</span>
+              <span style={{ width: 60, fontSize: 10, color: "var(--text3)" }}>Variable</span>
+            </div>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.5 }}>
+            Each trial creates a Before/After pair. Checked columns auto-calculate. System Totals auto-sum. Leave labels blank for defaults.
+          </p>
+        </>);
       default: return <p style={{ color: "var(--text3)" }}>Unknown block type</p>;
     }
   };
@@ -252,6 +364,7 @@ function BlockEditor({ block, onChange, onDelete, onMoveUp, onMoveDown, isFirst,
         <div className="block-editor-actions">
           {!isFirst && <button className="editor-icon-btn" onClick={onMoveUp} title="Move up">↑</button>}
           {!isLast && <button className="editor-icon-btn" onClick={onMoveDown} title="Move down">↓</button>}
+          <button className="editor-icon-btn" onClick={onDuplicate} title="Duplicate block">⧉</button>
           <button className="editor-icon-btn delete" onClick={onDelete} title="Delete block">🗑</button>
         </div>
       </div>
@@ -316,7 +429,7 @@ function AddBlockInline({ onInsert }) {
 
 // --- Main Editor ---
 export default function LessonEditor() {
-  const { userRole, getToken } = useAuth();
+  const { user, userRole, getToken } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState([]);
@@ -337,15 +450,18 @@ export default function LessonEditor() {
   const [showJsonImport, setShowJsonImport] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
 
-  // Fetch courses
+  // Fetch courses (only owned by current teacher)
   useEffect(() => {
     const fetch = async () => {
       const snapshot = await getDocs(query(collection(db, "courses"), orderBy("order", "asc")));
-      setCourses(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+      const owned = snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((c) => c.ownerUid === user?.uid);
+      setCourses(owned);
       setLoading(false);
     };
     fetch();
-  }, []);
+  }, [user]);
 
   // Fetch lessons when course selected
   useEffect(() => {
@@ -410,6 +526,15 @@ export default function LessonEditor() {
   };
   const updateBlock = (index, data) => { const b = [...blocks]; b[index] = data; setBlocks(b); setSaved(false); };
   const deleteBlock = (index) => { setBlocks(blocks.filter((_, i) => i !== index)); setSaved(false); };
+  const duplicateBlock = (index) => {
+    const original = blocks[index];
+    const clone = JSON.parse(JSON.stringify(original));
+    clone.id = uid();
+    const b = [...blocks];
+    b.splice(index + 1, 0, clone);
+    setBlocks(b);
+    setSaved(false);
+  };
   const moveBlock = (index, dir) => {
     const b = [...blocks]; const t = b[index]; b[index] = b[index + dir]; b[index + dir] = t; setBlocks(b); setSaved(false);
   };
@@ -770,6 +895,7 @@ export default function LessonEditor() {
                   <BlockEditor block={block}
                     onChange={(data) => updateBlock(i, data)}
                     onDelete={() => deleteBlock(i)}
+                    onDuplicate={() => duplicateBlock(i)}
                     onMoveUp={() => moveBlock(i, -1)}
                     onMoveDown={() => moveBlock(i, 1)}
                     isFirst={i === 0} isLast={i === blocks.length - 1} />

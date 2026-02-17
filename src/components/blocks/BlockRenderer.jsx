@@ -15,6 +15,9 @@ import EmbedBlock from "./EmbedBlock";
 import DividerBlock from "./DividerBlock";
 import SortingBlock from "./SortingBlock";
 import ExternalLinkBlock from "./ExternalLinkBlock";
+import CalculatorBlock from "./CalculatorBlock";
+import DataTableBlock from "./DataTableBlock";
+import ErrorBoundary from "./ErrorBoundary";
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -31,6 +34,8 @@ const BLOCK_MAP = {
   divider: DividerBlock,
   sorting: SortingBlock,
   external_link: ExternalLinkBlock,
+  calculator: CalculatorBlock,
+  data_table: DataTableBlock,
   chatbot: ChatbotBlock,
   question: QuestionBlock,
 };
@@ -43,5 +48,9 @@ export default function BlockRenderer({ block, extraProps = {} }) {
     return <DividerBlock />;
   }
 
-  return <Component block={block} {...extraProps} />;
+  return (
+    <ErrorBoundary>
+      <Component block={block} {...extraProps} />
+    </ErrorBoundary>
+  );
 }

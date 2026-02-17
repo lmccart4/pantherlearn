@@ -13,11 +13,19 @@ const AuthContext = createContext(null);
  * - 3+ digits before @ = student (e.g. jsmith123@paps.net)
  * - Fewer than 3 digits before @ = teacher (e.g. lmccarthy@paps.net)
  */
+// Emails that don't follow the digit-count rule but are actually students
+const STUDENT_OVERRIDES = [
+  "jtolentinomoctezuma5@paps.net",
+];
+
 function getRoleFromEmail(email) {
   if (!email) return null;
   const lower = email.toLowerCase();
 
   if (!lower.endsWith("@paps.net")) return null;
+
+  // Check override list first
+  if (STUDENT_OVERRIDES.includes(lower)) return "student";
 
   const localPart = lower.split("@")[0];
   const digitCount = (localPart.match(/\d/g) || []).length;
