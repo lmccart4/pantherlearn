@@ -113,7 +113,7 @@ exports.geminiChat = onRequest(
       parts: [{ text: msg.content }],
     }));
 
-    const model = "gemini-2.0-flash";
+    const model = "gemini-2.5-flash-lite";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
 
     try {
@@ -253,7 +253,7 @@ exports.validateReflection = onRequest(
     }
 
     // Use Gemini to validate
-    const model = "gemini-2.0-flash";
+    const model = "gemini-2.5-flash-lite";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
 
     const validationPrompt = `You are a teacher's assistant validating student reflections. The student just completed a lesson called "${(lessonTitle || "a class lesson").replace(/"/g, '\\"')}".
