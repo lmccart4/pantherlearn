@@ -66,24 +66,42 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
             display: "flex", alignItems: "center", gap: 10, marginBottom: 8,
           }}>
             <div style={{
-              width: 34, height: 34, borderRadius: "50%",
-              background: "var(--amber-dim)", border: "2px solid var(--amber)",
+              width: 38, height: 38, borderRadius: "50%",
+              background: `${level.current.tierColor || "var(--amber)"}18`,
+              border: `2px solid ${level.current.tierColor || "var(--amber)"}`,
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--amber)",
+              fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14,
+              color: level.current.tierColor || "var(--amber)",
             }}>
-              {level.current.level}
+              {level.current.tierIcon || level.current.level}
             </div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 12 }} data-translatable>{translatedLevelName || level.current.name}</div>
-              <div style={{ fontSize: 11, color: "var(--text3)" }}>{gamification.totalXP} XP</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: level.current.tierColor || "var(--amber)" }} data-translatable>
+                {translatedLevelName || level.current.name}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text3)" }}>
+                {gamification.totalXP} XP
+              </div>
             </div>
           </div>
-          {level.next && (
-            <div style={{ width: "100%", height: 4, background: "var(--surface2)", borderRadius: 2 }}>
-              <div style={{
-                width: `${level.progress * 100}%`, height: "100%",
-                background: "var(--amber)", borderRadius: 2, transition: "width 0.3s",
-              }} />
+          {level.next ? (
+            <>
+              <div style={{ width: "100%", height: 6, background: "var(--surface2)", borderRadius: 3 }}>
+                <div style={{
+                  width: `${level.progress * 100}%`, height: "100%",
+                  background: `linear-gradient(90deg, ${level.current.tierColor || "var(--amber)"}, ${level.next.tierColor || "var(--amber)"})`,
+                  borderRadius: 3, transition: "width 0.3s",
+                }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: "var(--text3)" }}>
+                <span>Lv {level.current.level}</span>
+                <span>{level.xpInLevel} / {level.xpForNext} XP</span>
+                <span>Lv {level.next.level}</span>
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 10, color: "var(--text3)", textAlign: "center", marginTop: 2 }}>
+              Max level reached!
             </div>
           )}
         </div>
