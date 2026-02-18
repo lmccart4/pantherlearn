@@ -25,8 +25,7 @@ const BossBattle = lazy(() => import("./pages/BossBattle"));
 const AvatarCreator = lazy(() => import("./pages/AvatarCreator"));
 const MyGrades = lazy(() => import("./pages/MyGrades"));
 
-// Reuse PantherPrep's existing translate Cloud Function
-const TRANSLATE_URL = "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
+const TRANSLATE_URL = import.meta.env.VITE_TRANSLATE_URL || "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
 
 const LoadingSpinner = () => (
   <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>

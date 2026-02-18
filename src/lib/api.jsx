@@ -2,7 +2,7 @@
 // Helper for calling the Gemini chatbot Cloud Function
 
 const CLOUD_FUNCTION_URL =
-  "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/geminiChat";
+  import.meta.env.VITE_GEMINI_CHAT_URL || "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/geminiChat";
 
 export async function sendChatMessage({ authToken, courseId, lessonId, blockId, systemPrompt, messages }) {
   const response = await fetch(CLOUD_FUNCTION_URL, {

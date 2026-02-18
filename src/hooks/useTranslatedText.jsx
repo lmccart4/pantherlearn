@@ -50,7 +50,7 @@ export function useTranslatedTexts(texts) {
     })();
 
     return () => { cancelled = true; };
-  }, [texts?.join("|"), language, translate]);
+  }, [JSON.stringify(texts), language, translate]);
 
   return translated;
 }

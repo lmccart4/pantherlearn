@@ -127,7 +127,7 @@ export default function StudentDashboard() {
             } catch (e) { /* no config yet */ }
           }
 
-          // Fetch progress for enrolled courses
+          // Fetch progress for enrolled courses (batch query per course)
           const progress = {};
           for (const course of enrolledCourses) {
             const courseLessons = Object.entries(lessons)
@@ -136,13 +136,19 @@ export default function StudentDashboard() {
 
             let totalQuestions = 0, answeredQuestions = 0, correctQuestions = 0;
 
+            // Single query gets all lesson progress for this course
+            const allProgressSnap = await getDocs(
+              collection(db, "progress", user.uid, "courses", course.id, "lessons")
+            );
+            const progressByLesson = {};
+            allProgressSnap.forEach((d) => { progressByLesson[d.id] = d.data(); });
+
             for (const lesson of courseLessons) {
               const questions = (lesson.blocks || []).filter((b) => b.type === "question");
               totalQuestions += questions.length;
-              const progRef = doc(db, "progress", user.uid, "courses", course.id, "lessons", lesson.id);
-              const progDoc = await getDoc(progRef);
-              if (progDoc.exists()) {
-                const answers = progDoc.data().answers || {};
+              const progData = progressByLesson[lesson.id];
+              if (progData) {
+                const answers = progData.answers || {};
                 questions.forEach((qBlock) => {
                   if (answers[qBlock.id]?.submitted) {
                     answeredQuestions++;

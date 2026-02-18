@@ -1,5 +1,5 @@
 // src/pages/LessonViewer.jsx
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -63,7 +63,10 @@ export default function LessonViewer() {
     fetchLesson();
   }, [courseId, lessonId, user]);
 
-  // FIX #18: Firestore write moved outside of state setter
+  // Track latest student data for Firestore writes without stale closures
+  const studentDataRef = useRef({});
+  useEffect(() => { studentDataRef.current = realStudentData; }, [realStudentData]);
+
   const handleAnswer = useCallback(
     async (blockId, data) => {
       if (isPreviewActive) {
@@ -71,17 +74,22 @@ export default function LessonViewer() {
         return;
       }
 
-      setRealStudentData((prev) => ({ ...prev, [blockId]: data }));
+      setRealStudentData((prev) => {
+        const updated = { ...prev, [blockId]: data };
+        studentDataRef.current = updated;
+        return updated;
+      });
 
-      // Persist to Firestore after state update, not inside the setter
+      // Persist to Firestore outside of the state setter
       if (user) {
-        const progressRef = doc(
-          db, "progress", user.uid, "courses", courseId, "lessons", lessonId
-        );
-        setRealStudentData((current) => {
-          setDoc(progressRef, { answers: current, lastUpdated: new Date() }, { merge: true });
-          return current;
-        });
+        try {
+          const progressRef = doc(
+            db, "progress", user.uid, "courses", courseId, "lessons", lessonId
+          );
+          await setDoc(progressRef, { answers: studentDataRef.current, lastUpdated: new Date() }, { merge: true });
+        } catch (err) {
+          console.error("Failed to save answer:", err);
+        }
       }
     },
     [user, courseId, lessonId, isPreviewActive]

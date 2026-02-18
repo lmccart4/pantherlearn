@@ -72,15 +72,24 @@ export async function generateEnrollCode(courseTitle) {
 // ═══════════════════════════════════════
 
 // Find a course and section by enroll code
-// Searches the sections map on each course document
+// First tries a direct query on legacy enrollCode field, then scans sections
 export async function findCourseByEnrollCode(code) {
   const normalizedCode = code.toUpperCase().trim();
-  const coursesSnap = await getDocs(collection(db, "courses"));
 
+  // Fast path: query for legacy enrollCode field directly
+  const legacySnap = await getDocs(
+    query(collection(db, "courses"), where("enrollCode", "==", normalizedCode))
+  );
+  if (!legacySnap.empty) {
+    const courseDoc = legacySnap.docs[0];
+    return { id: courseDoc.id, ...courseDoc.data(), matchedSectionId: null, matchedSectionName: null };
+  }
+
+  // Section codes are stored in a map, so we must scan courses
+  // Firestore can't query nested map values
+  const coursesSnap = await getDocs(collection(db, "courses"));
   for (const courseDoc of coursesSnap.docs) {
     const data = courseDoc.data();
-
-    // Check per-section codes (new format)
     if (data.sections) {
       for (const [sectionId, section] of Object.entries(data.sections)) {
         if (section.enrollCode === normalizedCode) {
@@ -92,11 +101,6 @@ export async function findCourseByEnrollCode(code) {
           };
         }
       }
-    }
-
-    // Fallback: check legacy single enrollCode on course
-    if (data.enrollCode === normalizedCode) {
-      return { id: courseDoc.id, ...data, matchedSectionId: null, matchedSectionName: null };
     }
   }
   return null;

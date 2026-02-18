@@ -288,12 +288,14 @@ export async function useAbilityAction(courseId, battleId, teamId, abilityId) {
 // ─── End Battle (teacher) ───
 export async function endBattle(courseId, battleId, status = "defeat") {
   const ref = doc(db, "courses", courseId, "bossBattles", battleId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
-  const battle = snap.data();
-  battle.status = status;
-  battle.lastUpdated = new Date().toISOString();
-  await setDoc(ref, sanitize(battle));
+  await runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    if (!snap.exists()) return;
+    const battle = snap.data();
+    battle.status = status;
+    battle.lastUpdated = new Date().toISOString();
+    transaction.set(ref, sanitize(battle));
+  });
 }
 
 // ─── List / Delete ───
