@@ -134,7 +134,7 @@ export default function TeacherDashboard() {
         </div>
 
         <div style={{ display: "flex", gap: 12, marginBottom: 36, flexWrap: "wrap" }}>
-          <Link to="/editor" className="btn btn-primary" style={{ textDecoration: "none" }}>✏️ Lesson Editor</Link>
+          <Link to="/editor" className="btn btn-secondary" style={{ textDecoration: "none" }}>✏️ Lesson Editor</Link>
           <Link to="/progress" className="btn btn-secondary" style={{ textDecoration: "none" }}>📈 Student Progress</Link>
           <Link to="/grading" className="btn btn-secondary" style={{ textDecoration: "none" }}>📊 Grading Dashboard</Link>
           <Link to="/rosters" className="btn btn-secondary" style={{ textDecoration: "none" }}>📋 Roster</Link>
