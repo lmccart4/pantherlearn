@@ -283,7 +283,11 @@ export default function StudentDashboard() {
 
           {/* Stats Row */}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "stretch" }}>
-            {gamification && <StreakDisplay streak={gamification.currentStreak} />}
+            {gamification && <StreakDisplay
+              currentStreak={gamification.currentStreak || 0}
+              longestStreak={gamification.longestStreak || 0}
+              streakFreezes={gamification.streakFreezes || 0}
+            />}
             <DueToday lessonMap={lessonMap} allCourses={allCourses} completedLessons={completedLessons} />
           </div>
         </div>

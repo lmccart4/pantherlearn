@@ -4,6 +4,7 @@ import { collection, getDocs, query, orderBy, doc, getDoc, setDoc } from "fireba
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
+import StreakDisplay from "../components/StreakDisplay";
 
 const GRADE_TIERS = [
   { label: "Missing", value: 0, color: "var(--text3)", bg: "var(--surface2)" },
@@ -691,9 +692,13 @@ export default function StudentProgress() {
               <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--amber)" }}>{gam.totalXP || 0}</div>
               <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.06em" }}>XP</div>
             </div>
-            <div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--red)" }}>{gam.currentStreak || 0}d</div>
-              <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.06em" }}>Streak</div>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <StreakDisplay
+                currentStreak={gam.currentStreak || 0}
+                longestStreak={gam.longestStreak || 0}
+                streakFreezes={gam.streakFreezes || 0}
+                compact
+              />
             </div>
             <div>
               <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--cyan)" }}>Lv{level.current.level}</div>

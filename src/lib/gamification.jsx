@@ -491,15 +491,35 @@ export async function awardXP(uid, amount, source, courseId) {
     const finalAmount = Math.round(amount * multiplier);
     const newTotal = (data.totalXP || 0) + finalAmount;
 
+    // Track activity date for streaks (deduplicated per day)
+    const today = new Date().toISOString().slice(0, 10);
+    const existingDates = data.activityDates || [];
+    const isNewDay = !existingDates.includes(today);
+    const updatedDates = isNewDay ? [...existingDates, today] : existingDates;
+
+    // Recalculate streak from activity dates
+    const currentStreak = calculateStreak(updatedDates);
+    const longestStreak = Math.max(currentStreak, data.longestStreak || 0);
+
+    // Award streak freezes: +1 for every 7-day streak milestone, max 3
+    let streakFreezes = data.streakFreezes || 0;
+    if (isNewDay && currentStreak > 0 && currentStreak % 7 === 0 && streakFreezes < 3) {
+      streakFreezes = Math.min(streakFreezes + 1, 3);
+    }
+
     await setDoc(ref, {
       ...data,
       totalXP: newTotal,
       lastXPSource: source,
       lastXPAmount: finalAmount,
       lastXPAt: new Date(),
+      activityDates: updatedDates,
+      currentStreak,
+      longestStreak,
+      streakFreezes,
     }, { merge: true });
 
-    return { newTotal, awarded: finalAmount, multiplier };
+    return { newTotal, awarded: finalAmount, multiplier, currentStreak };
   } catch (err) {
     console.error("Error awarding XP:", err);
     return null;
