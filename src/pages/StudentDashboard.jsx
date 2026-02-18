@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { getLevelInfo, getStudentGamification, getXPConfig } from "../lib/gamification";
-import { getStudentEnrolledCourseIds } from "../lib/enrollment";
+import { getStudentEnrolledCourseIds, getEnrollment } from "../lib/enrollment";
 import { getAvatar, generateRandomAvatar } from "../lib/avatar";
 import { AvatarWithPet } from "../components/PixelAvatar";
 import BadgeGrid from "../components/BadgeGrid";
@@ -30,6 +30,7 @@ export default function StudentDashboard() {
   const [lessonMap, setLessonMap] = useState({});
   const [activeMultiplier, setActiveMultiplier] = useState(null);
   const [completedLessons, setCompletedLessons] = useState(new Set());
+  const [sectionIdMap, setSectionIdMap] = useState({});
 
   const firstName = nickname || user?.displayName?.split(" ")[0] || "there";
 
@@ -127,6 +128,24 @@ export default function StudentDashboard() {
               }
             } catch (e) { /* no config yet */ }
           }
+
+          // Resolve sectionId for each enrolled course (for per-section due dates)
+          const sectionMap = {};
+          for (const course of enrolledCourses) {
+            try {
+              const enrollment = await getEnrollment(user.uid, course.id, user.email);
+              if (enrollment?.sectionId) {
+                sectionMap[course.id] = enrollment.sectionId;
+              } else if (enrollment?.section && course.sections) {
+                for (const [key, sec] of Object.entries(course.sections)) {
+                  if (sec.name === enrollment.section) { sectionMap[course.id] = key; break; }
+                }
+              }
+            } catch (e) {
+              console.warn("Could not fetch enrollment for", course.id, e);
+            }
+          }
+          setSectionIdMap(sectionMap);
 
           // Fetch progress for enrolled courses (batch query per course)
           const progress = {};
@@ -284,7 +303,7 @@ export default function StudentDashboard() {
           {/* Stats Row */}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "stretch" }}>
             {gamification && <StreakDisplay streak={gamification.currentStreak} />}
-            <DueToday lessonMap={lessonMap} allCourses={allCourses} completedLessons={completedLessons} />
+            <DueToday lessonMap={lessonMap} allCourses={allCourses} completedLessons={completedLessons} sectionIdMap={sectionIdMap} />
           </div>
         </div>
 

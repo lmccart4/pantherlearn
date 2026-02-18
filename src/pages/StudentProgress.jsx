@@ -4,6 +4,7 @@ import { collection, getDocs, query, orderBy, doc, getDoc, setDoc } from "fireba
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
+import { getEffectiveDueDate } from "../lib/utils";
 
 const GRADE_TIERS = [
   { label: "Missing", value: 0, color: "var(--text3)", bg: "var(--surface2)" },
@@ -197,7 +198,10 @@ export default function StudentProgress() {
     const mc = getMCQuestions(lesson);
     const sa = getSAQuestions(lesson);
     const today = new Date().toISOString().split("T")[0];
-    const isPastDue = lesson.dueDate && lesson.dueDate < today;
+    const student = students.find(s => s.uid === studentUid);
+    const sectionId = student ? getStudentSectionId(student) : null;
+    const effectiveDueDate = getEffectiveDueDate(lesson, sectionId);
+    const isPastDue = effectiveDueDate && effectiveDueDate < today;
     const studentCompleted = progressData[studentUid]?.[lessonId]?._completed || false;
     const reflection = reflectionData[studentUid]?.[lessonId];
 
@@ -303,6 +307,22 @@ export default function StudentProgress() {
     if (student.section) return student.section;
     const enroll = enrollments[student.uid] || enrollments[student.email?.toLowerCase()];
     return enroll?.section || "—";
+  };
+
+  // Resolve sectionId (key like "period-1") for per-section due date lookups
+  const getStudentSectionId = (student) => {
+    const enroll = enrollments[student.uid] || enrollments[student.email?.toLowerCase()];
+    if (enroll?.sectionId) return enroll.sectionId;
+    const sectionName = enroll?.section || student.section;
+    if (sectionName) {
+      const courseData = courses.find(c => c.id === selectedCourse);
+      if (courseData?.sections) {
+        for (const [key, sec] of Object.entries(courseData.sections)) {
+          if (sec.name === sectionName) return key;
+        }
+      }
+    }
+    return null;
   };
 
   const gradeColor = (grade) => {

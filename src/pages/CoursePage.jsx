@@ -10,6 +10,7 @@ import { getLeaderboard } from "../lib/gamification";
 import { getEnrollment, getCourseSections } from "../lib/enrollment";
 import { resolveFirstName } from "../lib/displayName";
 import { useTranslatedText, useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
+import { getEffectiveDueDate } from "../lib/utils";
 
 export default function CoursePage() {
   const { courseId } = useParams();
@@ -264,11 +265,13 @@ export default function CoursePage() {
                                 <div style={{ color: "var(--text3)", fontSize: 13 }}>
                                   {qCount} {ui(4, "questions")}
                                 </div>
-                                {lesson.dueDate && (() => {
-                                  const due = new Date(lesson.dueDate + "T23:59:59");
+                                {(() => {
+                                  const effectiveDue = getEffectiveDueDate(lesson, isTeacher ? null : mySectionId);
+                                  if (!effectiveDue) return null;
+                                  const due = new Date(effectiveDue + "T23:59:59");
                                   const now = new Date();
                                   const isPastDue = due < now;
-                                  const isToday = lesson.dueDate === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+                                  const isToday = effectiveDue === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
                                   const isSoon = !isPastDue && !isToday && (due - now) < 2 * 24 * 60 * 60 * 1000;
                                   return (
                                     <div style={{
@@ -276,7 +279,7 @@ export default function CoursePage() {
                                       color: isPastDue ? "var(--red)" : isToday ? "var(--amber)" : isSoon ? "var(--amber)" : "var(--text3)",
                                     }}>
                                       {isPastDue ? "⚠️ " : isToday ? "📌 " : ""}
-                                      Due {new Date(lesson.dueDate + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                      Due {new Date(effectiveDue + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                     </div>
                                   );
                                 })()}

@@ -21,3 +21,17 @@ export function renderMarkdown(text) {
 export function uid() {
   return crypto.randomUUID().slice(0, 8);
 }
+
+/**
+ * Resolves the effective due date for a lesson given a student's sectionId.
+ * Priority: section-specific override > global dueDate > null
+ * @param {Object} lesson - Lesson object with optional dueDate and dueDates fields
+ * @param {string|null} sectionId - The student's sectionId (e.g., "period-1")
+ * @returns {string|null} - Due date string "YYYY-MM-DD" or null
+ */
+export function getEffectiveDueDate(lesson, sectionId) {
+  if (sectionId && lesson?.dueDates?.[sectionId]) {
+    return lesson.dueDates[sectionId];
+  }
+  return lesson?.dueDate || null;
+}
