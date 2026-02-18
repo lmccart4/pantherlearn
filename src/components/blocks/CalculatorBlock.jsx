@@ -72,26 +72,84 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
     markDirty();
   };
 
+  // Safe math parser — no eval/Function(), only supports +, -, *, /, parentheses
   const evaluate = (formula, vals) => {
-    // Simple safe evaluator for basic math: +, -, *, /
-    // Replace variable names with their numeric values
     let expr = formula;
     for (const [name, val] of Object.entries(vals)) {
       const num = parseFloat(val);
       if (isNaN(num)) return null;
-      // Replace all occurrences of the variable name with the number
-      // Use word boundary to avoid partial replacements
       expr = expr.replace(new RegExp(`\\b${name}\\b`, "g"), `(${num})`);
     }
 
-    // Only allow safe characters: digits, operators, parentheses, dots, spaces
-    if (!/^[\d\s+\-*/().]+$/.test(expr)) return null;
+    // Tokenize: numbers, operators, parentheses
+    const tokens = [];
+    let i = 0;
+    while (i < expr.length) {
+      if (/\s/.test(expr[i])) { i++; continue; }
+      if ("+-*/()".includes(expr[i])) { tokens.push(expr[i]); i++; continue; }
+      if (/[\d.]/.test(expr[i])) {
+        let num = "";
+        while (i < expr.length && /[\d.]/.test(expr[i])) num += expr[i++];
+        const parsed = parseFloat(num);
+        if (isNaN(parsed)) return null;
+        tokens.push(parsed);
+        continue;
+      }
+      return null; // unexpected character
+    }
+
+    // Recursive descent: expr -> term ((+|-) term)*
+    let pos = 0;
+    const peek = () => tokens[pos];
+    const next = () => tokens[pos++];
+
+    function parseExpr() {
+      let val = parseTerm();
+      if (val === null) return null;
+      while (peek() === "+" || peek() === "-") {
+        const op = next();
+        const right = parseTerm();
+        if (right === null) return null;
+        val = op === "+" ? val + right : val - right;
+      }
+      return val;
+    }
+
+    function parseTerm() {
+      let val = parseUnary();
+      if (val === null) return null;
+      while (peek() === "*" || peek() === "/") {
+        const op = next();
+        const right = parseUnary();
+        if (right === null) return null;
+        val = op === "*" ? val * right : val / right;
+      }
+      return val;
+    }
+
+    function parseUnary() {
+      if (peek() === "-") { next(); const val = parsePrimary(); return val === null ? null : -val; }
+      if (peek() === "+") { next(); return parsePrimary(); }
+      return parsePrimary();
+    }
+
+    function parsePrimary() {
+      if (peek() === "(") {
+        next(); // consume (
+        const val = parseExpr();
+        if (val === null || peek() !== ")") return null;
+        next(); // consume )
+        return val;
+      }
+      if (typeof peek() === "number") return next();
+      return null;
+    }
 
     try {
-      // eslint-disable-next-line no-eval
-      const res = Function(`"use strict"; return (${expr})`)();
+      const res = parseExpr();
+      if (res === null || pos !== tokens.length) return null;
       if (!isFinite(res)) return null;
-      return Math.round(res * 10000) / 10000; // Round to 4 decimal places
+      return Math.round(res * 10000) / 10000;
     } catch {
       return null;
     }
