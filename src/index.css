@@ -1,18 +1,18 @@
 /* src/index.css — PantherLearn Design System v2 */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   --bg: #0a0c12;
-  --surface: #12151e;
-  --surface2: #191d29;
-  --surface3: #1f2433;
-  --border: #262c3d;
-  --border-glow: rgba(245, 166, 35, 0.18);
-  --text: #ededf0;
-  --text2: #9297ad;
-  --text3: #5d6175;
+  --surface: #161a26;
+  --surface2: #1e2330;
+  --surface3: #262c3d;
+  --border: #323952;
+  --border-glow: rgba(245, 166, 35, 0.22);
+  --text: #f0f0f4;
+  --text2: #b0b5c9;
+  --text3: #7a809a;
   --amber: #f5a623;
   --amber-bright: #ffbe47;
   --amber-dim: rgba(245, 166, 35, 0.10);
@@ -27,7 +27,7 @@
   --cyan: #22d3ee;
   --cyan-dim: rgba(34, 211, 238, 0.10);
   --font-display: 'Fraunces', serif;
-  --font-body: 'DM Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
   --radius: 14px;
 }
 
@@ -35,8 +35,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 17px;
-  line-height: 1.75;
+  font-size: 16px;
+  line-height: 1.7;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
@@ -60,7 +60,7 @@ a:hover { color: var(--amber-bright); text-decoration: underline; }
   box-shadow: 0 1px 20px rgba(0,0,0,0.3);
 }
 .top-brand {
-  font-family: var(--font-display); font-weight: 700; font-size: 21px; color: var(--amber);
+  font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--amber);
   cursor: pointer; letter-spacing: -0.02em;
   text-shadow: 0 0 24px rgba(245, 166, 35, 0.3);
 }
@@ -88,10 +88,10 @@ a:hover { color: var(--amber-bright); text-decoration: underline; }
   transition: border-color 0.2s;
 }
 .user-avatar:hover { border-color: var(--amber); }
-.user-name { font-size: 14px; color: var(--text2); font-weight: 500; }
+.user-name { font-size: 15px; color: var(--text2); font-weight: 500; }
 .sign-out-btn {
   padding: 6px 14px; border-radius: 7px; border: 1px solid var(--border);
-  background: transparent; color: var(--text3); font-size: 13px; font-family: var(--font-body);
+  background: transparent; color: var(--text3); font-size: 14px; font-family: var(--font-body);
   cursor: pointer; transition: all 0.2s; font-weight: 500;
 }
 .sign-out-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
@@ -103,7 +103,7 @@ a:hover { color: var(--amber-bright); text-decoration: underline; }
 /* --- Buttons --- */
 .btn {
   padding: 12px 26px; border-radius: 10px; border: none;
-  font-family: var(--font-body); font-size: 15px; font-weight: 600;
+  font-family: var(--font-body); font-size: 16px; font-weight: 600;
   cursor: pointer; transition: all 0.25s; display: inline-flex; align-items: center; gap: 8px;
 }
 .btn:hover { transform: translateY(-2px); }
@@ -132,10 +132,10 @@ a:hover { color: var(--amber-bright); text-decoration: underline; }
   transform: translateY(-3px);
 }
 .card-title {
-  font-family: var(--font-display); font-size: 21px; font-weight: 700;
+  font-family: var(--font-display); font-size: 24px; font-weight: 700;
   margin-bottom: 8px; letter-spacing: -0.01em;
 }
-.card-subtitle { font-size: 15px; color: var(--text2); line-height: 1.6; }
+.card-subtitle { font-size: 16px; color: var(--text2); line-height: 1.6; }
 
 /* --- Animations --- */
 @keyframes fadeIn {
