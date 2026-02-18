@@ -198,7 +198,6 @@ export default function StudentDashboard() {
 
   const level = gamification ? getLevelInfo(gamification.totalXP) : null;
   const enrolledCourses = allCourses.filter((c) => enrolledIds?.has(c.id));
-  const lockedCourses = allCourses.filter((c) => !enrolledIds?.has(c.id));
 
   return (
     <div className="page-container" style={{ padding: "48px 40px" }}>
@@ -323,7 +322,7 @@ export default function StudentDashboard() {
             </button>
           </div>
 
-          {enrolledCourses.length === 0 && lockedCourses.length === 0 ? (
+          {enrolledCourses.length === 0 ? (
             <div className="card" style={{ textAlign: "center", padding: 60 }}>
               <p style={{ fontSize: 40, marginBottom: 12 }}>🔑</p>
               <p style={{ fontWeight: 600 }} data-translatable>{ui(3, "No courses yet")}</p>
@@ -371,32 +370,6 @@ export default function StudentDashboard() {
                 );
               })}
 
-              {lockedCourses.map((course) => (
-                <div
-                  key={course.id}
-                  className="card fade-in"
-                  style={{ cursor: "pointer", opacity: 0.6, position: "relative" }}
-                  onClick={() => setShowJoinModal(true)}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                    <div style={{
-                      fontSize: 28, width: 48, height: 48, borderRadius: 10, background: "var(--surface2)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>🔒</div>
-                    <div>
-                      <div className="card-title" style={{ fontSize: 16, marginBottom: 2 }}>{course.title}</div>
-                      <div className="card-subtitle">{course.description}</div>
-                    </div>
-                  </div>
-                  <div style={{
-                    background: "rgba(243,156,18,0.1)", border: "1px solid rgba(243,156,18,0.2)",
-                    borderRadius: 8, padding: "10px 14px", textAlign: "center",
-                    fontSize: 13, color: "var(--amber)", fontWeight: 600,
-                  }} data-translatable>
-                    {ui(6, "🔑 Enter enroll code to access this course")}
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </div>
