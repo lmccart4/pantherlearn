@@ -14,7 +14,7 @@ export default function GradingDashboard() {
   // Navigation state
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [selectedSection, setSelectedSection] = useState("all");
+  const [selectedSection] = useState("all");
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [activeTab, setActiveTab] = useState("written");
@@ -23,7 +23,7 @@ export default function GradingDashboard() {
   const [lessonMap, setLessonMap] = useState({});
   const [courseLessons, setCourseLessons] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
-  const [sections, setSections] = useState([]);
+  const [sections] = useState([]);
   const [studentMap, setStudentMap] = useState({});
   const [responses, setResponses] = useState([]);
   const [chatLogGroups, setChatLogGroups] = useState([]);
@@ -69,7 +69,6 @@ export default function GradingDashboard() {
       setChatLogGroups([]);
       setSelectedLesson(null);
       setSelectedStudent(null);
-      setSelectedSection("all");
       setEnrollments([]);
 
       try {
@@ -132,10 +131,6 @@ export default function GradingDashboard() {
           return true;
         });
         setEnrollments(deduped);
-
-        // Extract sections for this course
-        const sectionSet = [...new Set(deduped.map((e) => e.section).filter(Boolean))].sort();
-        setSections(sectionSet);
 
         // Fetch lessons for this course
         const lessonsSnap = await getDocs(
@@ -383,21 +378,6 @@ export default function GradingDashboard() {
                   ))}
                 </div>
 
-                {/* Section filter */}
-                {sections.length > 0 && (
-                  <select
-                    value={selectedSection}
-                    onChange={(e) => { setSelectedSection(e.target.value); setSelectedLesson(null); setSelectedStudent(null); }}
-                    style={{
-                      padding: "6px 12px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                      border: "1px solid var(--border)", background: "var(--surface)",
-                      color: "var(--text)", cursor: "pointer", fontFamily: "var(--font-body)",
-                    }}
-                  >
-                    <option value="all">All sections</option>
-                    {sections.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                )}
               </div>
 
               {/* Content type tabs */}

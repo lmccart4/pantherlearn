@@ -1,9 +1,8 @@
 // src/components/DueToday.jsx
 // Shows lessons due today, tomorrow, or overdue in a compact dashboard widget.
 import { Link } from "react-router-dom";
-import { getEffectiveDueDate } from "../lib/utils";
 
-export default function DueToday({ lessonMap, allCourses, completedLessons = new Set(), sectionIdMap = {} }) {
+export default function DueToday({ lessonMap, allCourses, completedLessons = new Set() }) {
   if (!lessonMap || Object.keys(lessonMap).length === 0) return null;
 
   const now = new Date();
@@ -16,8 +15,7 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
   const items = [];
   for (const [lessonId, lesson] of Object.entries(lessonMap)) {
     if (lesson.visible === false) continue;
-    const sectionId = sectionIdMap[lesson.courseId] || null;
-    const dueDate = getEffectiveDueDate(lesson, sectionId);
+    const dueDate = lesson.dueDate;
     if (!dueDate) continue;
     const isPastDue = dueDate < todayStr;
     const isToday = dueDate === todayStr;

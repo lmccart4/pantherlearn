@@ -2,42 +2,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { getManaState, castVote, MANA_CAP } from "../lib/mana";
-import { getEnrollment } from "../lib/enrollment";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
-// Helper: resolve a section name like "Period 1" to its key like "period-1"
-// by looking up the course's sections map
-async function resolveSectionKey(courseId, sectionIdOrName) {
-  if (!sectionIdOrName) return null;
-  // First, check if this is already a valid section key by trying to read mana doc
-  const directRef = doc(db, "courses", courseId, "mana", sectionIdOrName);
-  const directSnap = await getDoc(directRef);
-  if (directSnap.exists()) return sectionIdOrName;
-
-  // Otherwise, look up the course sections map to find the key by name
-  const courseRef = doc(db, "courses", courseId);
-  const courseSnap = await getDoc(courseRef);
-  if (!courseSnap.exists()) return sectionIdOrName;
-
-  const sections = courseSnap.data().sections || {};
-  // Check if sectionIdOrName is already a key in the sections map
-  if (sections[sectionIdOrName]) return sectionIdOrName;
-  // Search by display name
-  for (const [key, sec] of Object.entries(sections)) {
-    if (sec.name === sectionIdOrName) return key;
-  }
-  // Fallback: return as-is
-  return sectionIdOrName;
-}
-
-export default function ManaPool({ courseId, sectionId: propSectionId, compact = false }) {
+export default function ManaPool({ courseId, compact = false }) {
   const { user, userRole } = useAuth();
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
-  const [resolvedSectionId, setResolvedSectionId] = useState(propSectionId || null);
   const [showInfo, setShowInfo] = useState(false);
 
   const uiStrings = useTranslatedTexts([
@@ -63,43 +34,16 @@ export default function ManaPool({ courseId, sectionId: propSectionId, compact =
   const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
 
   useEffect(() => {
-    if (!courseId) return;
-
-    async function resolve() {
-      try {
-        let rawSection = propSectionId;
-
-        // If no prop provided and we're a student, look up from enrollment
-        if (!rawSection && user && userRole !== "teacher") {
-          const enrollment = await getEnrollment(user.uid, courseId);
-          rawSection = enrollment?.sectionId || enrollment?.section || null;
-        }
-
-        if (!rawSection) return;
-
-        // Resolve to actual Firestore key (handles "Period 1" → "period-1")
-        const resolved = await resolveSectionKey(courseId, rawSection);
-        if (resolved) {
-          setResolvedSectionId(resolved);
-        }
-      } catch (err) {
-        console.error("Error resolving section:", err);
-      }
-    }
-    resolve();
-  }, [courseId, user, propSectionId, userRole]);
-
-  useEffect(() => {
-    if (!courseId || !resolvedSectionId) {
+    if (!courseId) {
       setLoading(false);
       return;
     }
     loadMana();
-  }, [courseId, resolvedSectionId]);
+  }, [courseId]);
 
   async function loadMana() {
     try {
-      const s = await getManaState(courseId, resolvedSectionId);
+      const s = await getManaState(courseId);
       setState(s);
     } catch (err) {
       console.error("Error loading mana:", err);
@@ -108,10 +52,10 @@ export default function ManaPool({ courseId, sectionId: propSectionId, compact =
   }
 
   async function handleVote(powerId, vote) {
-    if (!user || voting || !resolvedSectionId) return;
+    if (!user || voting) return;
     setVoting(true);
     try {
-      await castVote(courseId, resolvedSectionId, powerId, user.uid, vote);
+      await castVote(courseId, undefined, powerId, user.uid, vote);
       await loadMana();
     } catch (err) {
       console.error("Vote error:", err);
@@ -119,7 +63,7 @@ export default function ManaPool({ courseId, sectionId: propSectionId, compact =
     setVoting(false);
   }
 
-  if (loading || !state || !state.enabled || !resolvedSectionId) return null;
+  if (loading || !state || !state.enabled) return null;
 
   const pct = Math.min((state.currentMP / MANA_CAP) * 100, 100);
   const isLow = pct < 20;

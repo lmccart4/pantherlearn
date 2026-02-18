@@ -605,28 +605,17 @@ export async function awardBehaviorXP(uid, behaviorReward, courseId) {
 }
 
 // ─── Leaderboard ───
-export async function getLeaderboard(courseId, sectionFilter = null, limit = 50) {
+export async function getLeaderboard(courseId, limit = 50) {
   try {
     const ref = courseId
       ? collection(db, "courses", courseId, "gamification")
       : collection(db, "gamification");
     const snap = await getDocs(ref);
 
-    // Get user docs to check roles and sections
+    // Get user docs to check roles
     const usersSnap = await getDocs(collection(db, "users"));
     const usersMap = {};
     usersSnap.forEach((d) => { usersMap[d.id] = d.data(); });
-
-     // Get enrollment docs to find each student's section
-    let enrollmentsByUid = {};
-    if (courseId) {
-      const enrollSnap = await getDocs(collection(db, "courses", courseId, "enrollments"));
-      enrollSnap.forEach((d) => {
-        const data = d.data();
-        const uid = d.id;
-        enrollmentsByUid[uid] = data;
-      });
-    }
 
     const entries = [];
     snap.forEach((d) => {
@@ -637,12 +626,6 @@ export async function getLeaderboard(courseId, sectionFilter = null, limit = 50)
       // Exclude teachers
       if (userData?.role === "teacher") return;
 
-      // Filter by section if specified
-      if (sectionFilter) {
-        const enrollment = enrollmentsByUid[uid];
-        if (!enrollment || enrollment.section !== sectionFilter) return;
-      }
-
       entries.push({
         uid,
         ...data,
@@ -650,7 +633,6 @@ export async function getLeaderboard(courseId, sectionFilter = null, limit = 50)
         displayName: data.displayName || userData?.displayName || userData?.name || null,
         nickname: data.nickname || userData?.nickname || null,
         photoURL: data.photoURL || userData?.photoURL || null,
-        section: enrollmentsByUid[uid]?.section || null,
       });
     });
 

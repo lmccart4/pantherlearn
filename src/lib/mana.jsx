@@ -1,6 +1,6 @@
 // src/lib/mana.jsx
-// Class Mana Pool system — shared resource for per-section powers.
-// Data lives at courses/{courseId}/mana/{sectionId}
+// Class Mana Pool system — shared resource for course-wide powers.
+// Data lives at courses/{courseId}/mana/{poolId} (default "pool")
 
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
@@ -32,8 +32,7 @@ function defaultState() {
 }
 
 // ─── Get Mana State ───
-export async function getManaState(courseId, sectionId) {
-  if (!sectionId) return defaultState();
+export async function getManaState(courseId, sectionId = "pool") {
   const ref = doc(db, "courses", courseId, "mana", sectionId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return defaultState();
@@ -41,14 +40,13 @@ export async function getManaState(courseId, sectionId) {
 }
 
 // ─── Save Mana State ───
-export async function saveManaState(courseId, sectionId, state) {
-  if (!sectionId) return;
+export async function saveManaState(courseId, sectionId = "pool", state) {
   const ref = doc(db, "courses", courseId, "mana", sectionId);
   await setDoc(ref, { ...state, lastUpdated: new Date() });
 }
 
 // ─── Award Mana ───
-export async function awardMana(courseId, sectionId, amount, reason, awardedBy = "system") {
+export async function awardMana(courseId, sectionId = "pool", amount, reason, awardedBy = "system") {
   const state = await getManaState(courseId, sectionId);
   const newMP = Math.min(state.currentMP + amount, MANA_CAP);
   const actualGain = newMP - state.currentMP;
@@ -64,7 +62,7 @@ export async function awardMana(courseId, sectionId, amount, reason, awardedBy =
 }
 
 // ─── Spend Mana (activate a power) ───
-export async function spendMana(courseId, sectionId, powerId) {
+export async function spendMana(courseId, sectionId = "pool", powerId) {
   const state = await getManaState(courseId, sectionId);
   const power = (state.powers || []).find((p) => p.id === powerId);
   if (!power) throw new Error("Power not found");
@@ -83,7 +81,7 @@ export async function spendMana(courseId, sectionId, powerId) {
 }
 
 // ─── Deduct Mana (teacher penalty) ───
-export async function deductMana(courseId, sectionId, amount, reason) {
+export async function deductMana(courseId, sectionId = "pool", amount, reason) {
   const state = await getManaState(courseId, sectionId);
   const newMP = Math.max(state.currentMP - amount, 0);
   const actualLoss = state.currentMP - newMP;
@@ -99,7 +97,7 @@ export async function deductMana(courseId, sectionId, amount, reason) {
 }
 
 // ─── Apply Weekly Decay ───
-export async function applyDecay(courseId, sectionId) {
+export async function applyDecay(courseId, sectionId = "pool") {
   const state = await getManaState(courseId, sectionId);
   const now = new Date();
 
@@ -130,14 +128,14 @@ export async function applyDecay(courseId, sectionId) {
 
 // ─── Voting ───
 
-export async function startVote(courseId, sectionId, powerId) {
+export async function startVote(courseId, sectionId = "pool", powerId) {
   const state = await getManaState(courseId, sectionId);
   state.activeVote = powerId;
   state.votes = { [powerId]: [] };
   await saveManaState(courseId, sectionId, state);
 }
 
-export async function castVote(courseId, sectionId, powerId, uid, vote) {
+export async function castVote(courseId, sectionId = "pool", powerId, uid, vote) {
   const state = await getManaState(courseId, sectionId);
   if (state.activeVote !== powerId) throw new Error("No active vote for this power");
 
@@ -149,7 +147,7 @@ export async function castVote(courseId, sectionId, powerId, uid, vote) {
   return state.votes[powerId];
 }
 
-export async function endVote(courseId, sectionId) {
+export async function endVote(courseId, sectionId = "pool") {
   const state = await getManaState(courseId, sectionId);
   state.activeVote = null;
   await saveManaState(courseId, sectionId, state);
@@ -157,7 +155,7 @@ export async function endVote(courseId, sectionId) {
 
 // ─── Power Management ───
 
-export async function addPower(courseId, sectionId, power) {
+export async function addPower(courseId, sectionId = "pool", power) {
   const state = await getManaState(courseId, sectionId);
   const id = power.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + Date.now().toString(36);
   const newPower = { id, ...power };
@@ -166,14 +164,14 @@ export async function addPower(courseId, sectionId, power) {
   return newPower;
 }
 
-export async function removePower(courseId, sectionId, powerId) {
+export async function removePower(courseId, sectionId = "pool", powerId) {
   const state = await getManaState(courseId, sectionId);
   state.powers = (state.powers || []).filter((p) => p.id !== powerId);
   if (state.activeVote === powerId) state.activeVote = null;
   await saveManaState(courseId, sectionId, state);
 }
 
-export async function updatePower(courseId, sectionId, powerId, updates) {
+export async function updatePower(courseId, sectionId = "pool", powerId, updates) {
   const state = await getManaState(courseId, sectionId);
   state.powers = (state.powers || []).map((p) =>
     p.id === powerId ? { ...p, ...updates } : p

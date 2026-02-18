@@ -1,7 +1,6 @@
 // src/lib/enrollment.jsx
 // Enroll code system for course access control.
-// Each course has sections, each section has its own enroll code.
-// Students join by entering a section's code.
+// Each course has a single enroll code. Students join by entering the code.
 
 import { db } from "./firebase";
 import {
@@ -68,25 +67,24 @@ export async function generateEnrollCode(courseTitle) {
 }
 
 // ═══════════════════════════════════════
-// COURSE + SECTION LOOKUP BY ENROLL CODE
+// COURSE LOOKUP BY ENROLL CODE
 // ═══════════════════════════════════════
 
-// Find a course and section by enroll code
-// First tries a direct query on legacy enrollCode field, then scans sections
+// Find a course by enroll code
+// Primary: query on enrollCode field. Fallback: scan legacy section codes for backward compat.
 export async function findCourseByEnrollCode(code) {
   const normalizedCode = code.toUpperCase().trim();
 
-  // Fast path: query for legacy enrollCode field directly
-  const legacySnap = await getDocs(
+  // Primary: query for enrollCode field directly
+  const snap = await getDocs(
     query(collection(db, "courses"), where("enrollCode", "==", normalizedCode))
   );
-  if (!legacySnap.empty) {
-    const courseDoc = legacySnap.docs[0];
+  if (!snap.empty) {
+    const courseDoc = snap.docs[0];
     return { id: courseDoc.id, ...courseDoc.data(), matchedSectionId: null, matchedSectionName: null };
   }
 
-  // Section codes are stored in a map, so we must scan courses
-  // Firestore can't query nested map values
+  // Backward compat: scan legacy section codes
   const coursesSnap = await getDocs(collection(db, "courses"));
   for (const courseDoc of coursesSnap.docs) {
     const data = courseDoc.data();
@@ -96,8 +94,8 @@ export async function findCourseByEnrollCode(code) {
           return {
             id: courseDoc.id,
             ...data,
-            matchedSectionId: sectionId,
-            matchedSectionName: section.name,
+            matchedSectionId: null,
+            matchedSectionName: null,
           };
         }
       }
@@ -138,7 +136,7 @@ export async function enrollWithCode(studentUid, studentEmail, enrollCode) {
     } catch (e) {
       console.warn("Could not repair enrolledCourses:", e);
     }
-    return { ...course, section: existingEnrollment.section || course.matchedSectionName };
+    return { ...course };
   }
 
   const emailClean = studentEmail.toLowerCase().replace(/[^a-z0-9]/g, "_");
@@ -151,8 +149,6 @@ export async function enrollWithCode(studentUid, studentEmail, enrollCode) {
     teacherUid: course.ownerUid,
     email: studentEmail.toLowerCase(),
     enrollCode: enrollCode.toUpperCase().trim(),
-    section: course.matchedSectionName || null,
-    sectionId: course.matchedSectionId || null,
     enrolledAt: serverTimestamp(),
   }, { merge: true });
 
@@ -167,7 +163,7 @@ export async function enrollWithCode(studentUid, studentEmail, enrollCode) {
     }, { merge: true });
   }
 
-  return { ...course, section: course.matchedSectionName };
+  return { ...course };
 }
 
 // ═══════════════════════════════════════
@@ -253,65 +249,6 @@ export async function getTeacherEnrollments(teacherUid) {
   const q = query(collection(db, "enrollments"), where("teacherUid", "==", teacherUid));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-
-// ═══════════════════════════════════════
-// SECTION MANAGEMENT
-// ═══════════════════════════════════════
-
-// Add a new section to a course with a unique enroll code
-export async function addSection(courseId, sectionName) {
-  const courseRef = doc(db, "courses", courseId);
-  const courseDoc = await getDoc(courseRef);
-  if (!courseDoc.exists()) throw new Error(`Course ${courseId} not found`);
-
-  const data = courseDoc.data();
-  const sections = data.sections || {};
-  const sectionId = sectionName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-
-  if (sections[sectionId]) throw new Error(`Section "${sectionName}" already exists`);
-
-  const enrollCode = await generateEnrollCode(data.title || courseId);
-  sections[sectionId] = { name: sectionName, enrollCode };
-
-  await updateDoc(courseRef, { sections });
-  return { sectionId, name: sectionName, enrollCode };
-}
-
-// Remove a section from a course
-export async function removeSection(courseId, sectionId) {
-  const courseRef = doc(db, "courses", courseId);
-  const courseDoc = await getDoc(courseRef);
-  if (!courseDoc.exists()) throw new Error(`Course ${courseId} not found`);
-
-  const sections = { ...courseDoc.data().sections };
-  delete sections[sectionId];
-  await updateDoc(courseRef, { sections });
-}
-
-// Regenerate enroll code for a specific section
-export async function regenerateSectionCode(courseId, sectionId) {
-  const courseRef = doc(db, "courses", courseId);
-  const courseDoc = await getDoc(courseRef);
-  if (!courseDoc.exists()) throw new Error(`Course ${courseId} not found`);
-
-  const sections = { ...courseDoc.data().sections };
-  if (!sections[sectionId]) throw new Error(`Section ${sectionId} not found`);
-
-  const newCode = await generateEnrollCode(courseDoc.data().title || courseId);
-  sections[sectionId].enrollCode = newCode;
-  await updateDoc(courseRef, { sections });
-  return newCode;
-}
-
-// Get all sections for a course
-export function getCourseSections(courseData) {
-  if (!courseData?.sections) return [];
-  return Object.entries(courseData.sections).map(([id, s]) => ({
-    id,
-    name: s.name,
-    enrollCode: s.enrollCode,
-  }));
 }
 
 // ═══════════════════════════════════════

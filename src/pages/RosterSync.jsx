@@ -14,11 +14,11 @@ export default function RosterSync() {
   const [syncResult, setSyncResult] = useState(null);
   const [error, setError] = useState(null);
   const [csvData, setCsvData] = useState(null);
-  const [columnMap, setColumnMap] = useState({ email: "", firstName: "", lastName: "", section: "" });
+  const [columnMap, setColumnMap] = useState({ email: "", firstName: "", lastName: "" });
   const [preview, setPreview] = useState([]);
   const fileRef = useRef(null);
   const [existingCount, setExistingCount] = useState(0);
-  const [existingSections, setExistingSections] = useState([]);
+  const [existingSections] = useState([]);
   const [enrolledStudents, setEnrolledStudents] = useState([]);
   const [rosterFilter, setRosterFilter] = useState("all");
   const [rosterSearch, setRosterSearch] = useState("");
@@ -29,7 +29,7 @@ export default function RosterSync() {
   const [addEmail, setAddEmail] = useState("");
   const [addFirstName, setAddFirstName] = useState("");
   const [addLastName, setAddLastName] = useState("");
-  const [addSection, setAddSection] = useState("");
+  // Manual add section removed — no longer needed
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
@@ -55,22 +55,16 @@ export default function RosterSync() {
     const fetchExisting = async () => {
       const snap = await getDocs(collection(db, "enrollments"));
       let count = 0;
-      const sections = new Set();
       const students = [];
       snap.forEach((d) => {
         const data = d.data();
         if (data.courseId === selectedCourse) {
           count++;
-          if (data.section) sections.add(data.section);
           students.push({ docId: d.id, ...data });
         }
       });
-      students.sort((a, b) => {
-        if (a.section !== b.section) return (a.section || "").localeCompare(b.section || "");
-        return (a.name || a.email || "").localeCompare(b.name || b.email || "");
-      });
+      students.sort((a, b) => (a.name || a.email || "").localeCompare(b.name || b.email || ""));
       setExistingCount(count);
-      setExistingSections([...sections].sort());
       setEnrolledStudents(students);
     };
     fetchExisting();
@@ -124,12 +118,11 @@ export default function RosterSync() {
 
       // Auto-detect columns
       const lower = parsed.headers.map((h) => h.toLowerCase());
-      const autoMap = { email: "", firstName: "", lastName: "", section: "" };
+      const autoMap = { email: "", firstName: "", lastName: "" };
       lower.forEach((h, i) => {
         if (h.includes("email") || h.includes("e-mail")) autoMap.email = parsed.headers[i];
         else if (h === "first" || h === "first name" || h === "firstname" || h === "first_name") autoMap.firstName = parsed.headers[i];
         else if (h === "last" || h === "last name" || h === "lastname" || h === "last_name") autoMap.lastName = parsed.headers[i];
-        else if (h.includes("section") || h.includes("period") || h.includes("class")) autoMap.section = parsed.headers[i];
       });
       setColumnMap(autoMap);
     };
@@ -170,8 +163,6 @@ export default function RosterSync() {
         const firstName = columnMap.firstName ? (row[columnMap.firstName] || "").trim() : "";
         const lastName = columnMap.lastName ? (row[columnMap.lastName] || "").trim() : "";
         const name = [firstName, lastName].filter(Boolean).join(" ") || email.split("@")[0];
-        const section = columnMap.section ? (row[columnMap.section] || "").trim() : "";
-        if (section) sections.add(section);
 
         const matchedUid = usersByEmail[email] || null;
         const emailClean = email.replace(/[^a-z0-9]/g, "_");
@@ -183,7 +174,6 @@ export default function RosterSync() {
           name,
           firstName,
           lastName,
-          section,
           uid: matchedUid,
           studentUid: matchedUid,
           enrolledAt: new Date(),
@@ -244,8 +234,6 @@ export default function RosterSync() {
       setSyncResult({
         students: totalStudents,
         skipped,
-        sections: sections.size,
-        sectionNames: [...sections],
         savedCount,
       });
 
@@ -282,14 +270,13 @@ export default function RosterSync() {
       const firstName = addFirstName.trim();
       const lastName = addLastName.trim();
       const name = [firstName, lastName].filter(Boolean).join(" ") || email.split("@")[0];
-      const section = addSection.trim();
       const emailClean = email.replace(/[^a-z0-9]/g, "_");
       const docId = `${selectedCourse}_${emailClean}`;
 
       // Step 1: Write enrollment doc
       try {
         await setDoc(doc(db, "enrollments", docId), {
-          courseId: selectedCourse, email, name, firstName, lastName, section,
+          courseId: selectedCourse, email, name, firstName, lastName,
           uid: matchedUid, studentUid: matchedUid, enrolledAt: new Date(),
         }, { merge: true });
       } catch (enrollErr) {
@@ -314,7 +301,7 @@ export default function RosterSync() {
       }
 
       setSyncResult({ manual: true });
-      setAddEmail(""); setAddFirstName(""); setAddLastName(""); setAddSection("");
+      setAddEmail(""); setAddFirstName(""); setAddLastName("");
       setShowAddForm(false);
     } catch (err) {
       console.error("Add student error:", err);
@@ -428,7 +415,6 @@ export default function RosterSync() {
   };
 
   const filteredEnrolled = enrolledStudents.filter((s) => {
-    if (rosterFilter !== "all" && s.section !== rosterFilter) return false;
     if (rosterSearch) {
       const term = rosterSearch.toLowerCase();
       return (s.name || "").toLowerCase().includes(term) ||
@@ -470,7 +456,6 @@ export default function RosterSync() {
             borderRadius: 10, padding: "14px 20px", marginBottom: 20, fontSize: 14, color: "var(--green)",
           }}>
             ✓ Enrolled {syncResult.savedCount} students in {courseName}
-            {syncResult.sections > 0 && ` across ${syncResult.sections} sections (${syncResult.sectionNames.join(", ")})`}
             {syncResult.skipped > 0 && <span style={{ display: "block", fontSize: 12, marginTop: 4, opacity: 0.8 }}>{syncResult.skipped} rows skipped (missing/invalid email)</span>}
           </div>
         )}
@@ -496,7 +481,6 @@ export default function RosterSync() {
           {existingCount > 0 && (
             <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 8 }}>
               Currently enrolled: {existingCount} students
-              {existingSections.length > 0 && ` · Sections: ${existingSections.join(", ")}`}
             </div>
           )}
         </div>
@@ -521,12 +505,6 @@ export default function RosterSync() {
                 <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", display: "block", marginBottom: 4 }}>Email *</label>
                 <input type="email" placeholder="student@paps.net" value={addEmail} onChange={(e) => setAddEmail(e.target.value)}
                   style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${!addEmail.includes("@") && addEmail ? "var(--red)" : "var(--border)"}`, background: "var(--surface)", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 13 }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", display: "block", marginBottom: 4 }}>Section / Period</label>
-                <input type="text" placeholder="e.g. Period 3" value={addSection} onChange={(e) => setAddSection(e.target.value)} list="existing-sections"
-                  style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 13 }} />
-                {existingSections.length > 0 && <datalist id="existing-sections">{existingSections.map((s) => <option key={s} value={s} />)}</datalist>}
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", display: "block", marginBottom: 4 }}>First Name</label>
@@ -562,7 +540,6 @@ export default function RosterSync() {
                 { key: "email", label: "Email *", required: true },
                 { key: "firstName", label: "First Name" },
                 { key: "lastName", label: "Last Name" },
-                { key: "section", label: "Section / Period" },
               ].map(({ key, label, required }) => (
                 <div key={key}>
                   <label style={{ fontSize: 12, fontWeight: 600, color: required ? "var(--text)" : "var(--text3)", marginBottom: 4, display: "block" }}>
@@ -596,7 +573,6 @@ export default function RosterSync() {
                   <tr style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
                     <th style={{ textAlign: "left", padding: "8px 12px", color: "var(--text2)" }}>Email</th>
                     <th style={{ textAlign: "left", padding: "8px 12px", color: "var(--text2)" }}>Name</th>
-                    <th style={{ textAlign: "left", padding: "8px 12px", color: "var(--text2)" }}>Section</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -604,13 +580,11 @@ export default function RosterSync() {
                     const email = columnMap.email ? row[columnMap.email] : "";
                     const first = columnMap.firstName ? row[columnMap.firstName] : "";
                     const last = columnMap.lastName ? row[columnMap.lastName] : "";
-                    const section = columnMap.section ? row[columnMap.section] : "";
                     const valid = email && email.includes("@");
                     return (
                       <tr key={i} style={{ borderBottom: "1px solid var(--border)", opacity: valid ? 1 : 0.4 }}>
                         <td style={{ padding: "6px 12px", color: valid ? "var(--cyan)" : "var(--red)" }}>{email || "—"}</td>
                         <td style={{ padding: "6px 12px" }}>{[first, last].filter(Boolean).join(" ") || "—"}</td>
-                        <td style={{ padding: "6px 12px", color: "var(--text3)" }}>{section || "—"}</td>
                       </tr>
                     );
                   })}
@@ -650,7 +624,6 @@ export default function RosterSync() {
             </h2>
             <p style={{ color: "var(--text3)", fontSize: 13, marginBottom: 16 }}>
               {existingCount} students enrolled
-              {existingSections.length > 0 && ` across ${existingSections.length} sections`}
             </p>
 
             {/* Search + filter */}
@@ -669,36 +642,7 @@ export default function RosterSync() {
                   }}
                 />
               </div>
-              {existingSections.length > 1 && (
-                <select
-                  value={rosterFilter}
-                  onChange={(e) => setRosterFilter(e.target.value)}
-                  style={{
-                    padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border)",
-                    background: "var(--surface)", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 13,
-                  }}
-                >
-                  <option value="all">All sections ({existingCount})</option>
-                  {existingSections.map((s) => (
-                    <option key={s} value={s}>{s} ({enrolledStudents.filter((st) => st.section === s).length})</option>
-                  ))}
-                </select>
-              )}
             </div>
-
-            {/* Section bulk actions */}
-            {rosterFilter !== "all" && (
-              <div style={{ marginBottom: 12 }}>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => handleRemoveSection(rosterFilter)}
-                  disabled={removing === rosterFilter}
-                  style={{ fontSize: 12, padding: "6px 14px", color: "var(--red)", borderColor: "rgba(248,113,113,0.3)" }}
-                >
-                  {removing === rosterFilter ? "Removing..." : `🗑 Remove all ${rosterFilter} students`}
-                </button>
-              </div>
-            )}
 
             {/* Student list */}
             <div style={{ overflowX: "auto", borderRadius: 12, border: "1px solid var(--border)" }}>
@@ -707,7 +651,6 @@ export default function RosterSync() {
                   <tr style={{ background: "var(--surface)", borderBottom: "2px solid var(--border)" }}>
                     <th style={{ textAlign: "left", padding: "10px 16px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Student</th>
                     <th style={{ textAlign: "left", padding: "10px 12px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Email</th>
-                    <th style={{ textAlign: "center", padding: "10px 12px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Section</th>
                     <th style={{ textAlign: "center", padding: "10px 12px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", width: 80 }}>Status</th>
                     <th style={{ textAlign: "center", padding: "10px 12px", width: 60 }}></th>
                   </tr>
@@ -724,9 +667,6 @@ export default function RosterSync() {
                       </td>
                       <td style={{ padding: "8px 12px", color: "var(--cyan)", fontSize: 12 }}>
                         {s.email}
-                      </td>
-                      <td style={{ textAlign: "center", padding: "8px 12px", fontSize: 12, color: "var(--text3)" }}>
-                        {s.section || "—"}
                       </td>
                       <td style={{ textAlign: "center", padding: "8px 12px" }}>
                         <span style={{

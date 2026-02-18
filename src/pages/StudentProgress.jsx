@@ -4,7 +4,6 @@ import { collection, getDocs, query, orderBy, doc, getDoc, setDoc } from "fireba
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
-import { getEffectiveDueDate } from "../lib/utils";
 
 const GRADE_TIERS = [
   { label: "Missing", value: 0, color: "var(--text3)", bg: "var(--surface2)" },
@@ -37,7 +36,7 @@ export default function StudentProgress() {
   const [view, setView] = useState("overview");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
-  const [sectionFilter, setSectionFilter] = useState("all");
+  const [sectionFilter] = useState("all");
   const [gradePopup, setGradePopup] = useState(null); // { studentUid, lessonId, x, y } or { studentUid, type: "overall", x, y }
   const [confirmComplete, setConfirmComplete] = useState(null); // { studentUid, lessonId, studentName, x, y }
   const [completingLesson, setCompletingLesson] = useState(false);
@@ -198,10 +197,7 @@ export default function StudentProgress() {
     const mc = getMCQuestions(lesson);
     const sa = getSAQuestions(lesson);
     const today = new Date().toISOString().split("T")[0];
-    const student = students.find(s => s.uid === studentUid);
-    const sectionId = student ? getStudentSectionId(student) : null;
-    const effectiveDueDate = getEffectiveDueDate(lesson, sectionId);
-    const isPastDue = effectiveDueDate && effectiveDueDate < today;
+    const isPastDue = lesson.dueDate && lesson.dueDate < today;
     const studentCompleted = progressData[studentUid]?.[lessonId]?._completed || false;
     const reflection = reflectionData[studentUid]?.[lessonId];
 
@@ -303,28 +299,6 @@ export default function StudentProgress() {
     };
   };
 
-  const getStudentSection = (student) => {
-    if (student.section) return student.section;
-    const enroll = enrollments[student.uid] || enrollments[student.email?.toLowerCase()];
-    return enroll?.section || "—";
-  };
-
-  // Resolve sectionId (key like "period-1") for per-section due date lookups
-  const getStudentSectionId = (student) => {
-    const enroll = enrollments[student.uid] || enrollments[student.email?.toLowerCase()];
-    if (enroll?.sectionId) return enroll.sectionId;
-    const sectionName = enroll?.section || student.section;
-    if (sectionName) {
-      const courseData = courses.find(c => c.id === selectedCourse);
-      if (courseData?.sections) {
-        for (const [key, sec] of Object.entries(courseData.sections)) {
-          if (sec.name === sectionName) return key;
-        }
-      }
-    }
-    return null;
-  };
-
   const gradeColor = (grade) => {
     if (grade === null || grade === undefined) return "var(--text3)";
     if (grade >= 80) return "var(--green)";
@@ -332,13 +306,7 @@ export default function StudentProgress() {
     return "var(--red)";
   };
 
-  const sections = [...new Set(
-    students.map((s) => getStudentSection(s)).filter((s) => s !== "—")
-  )];
-
-  const filteredStudents = sectionFilter === "all"
-    ? students
-    : students.filter((s) => getStudentSection(s) === sectionFilter);
+  const filteredStudents = students;
 
   // --- Toggle reflection for a student (manual override) ---
   const handleToggleReflection = async (e, studentUid, lessonId, currentlyValid) => {
@@ -712,7 +680,7 @@ export default function StudentProgress() {
           )}
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700 }}>{s.displayName}</div>
-            <div style={{ fontSize: 13, color: "var(--text3)" }}>{s.email} · {getStudentSection(s)}</div>
+            <div style={{ fontSize: 13, color: "var(--text3)" }}>{s.email}</div>
           </div>
           <div style={{ display: "flex", gap: 20, textAlign: "center" }}>
             <div>
@@ -1059,13 +1027,6 @@ export default function StudentProgress() {
                   </button>
                 ))}
               </div>
-              {sections.length > 0 && (
-                <select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 13 }}>
-                  <option value="all">All sections</option>
-                  {sections.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-              )}
             </div>
 
             {dataLoading ? (
@@ -1146,7 +1107,6 @@ export default function StudentProgress() {
                       <thead>
                         <tr style={{ background: "var(--surface)", borderBottom: "2px solid var(--border)" }}>
                           <th style={{ textAlign: "left", padding: "10px 16px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Student</th>
-                          <th style={{ textAlign: "center", padding: "10px 8px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Section</th>
                           <th style={{ textAlign: "center", padding: "10px 8px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Overall</th>
                           {lessons.map((l) => (
                             <th key={l.id} style={{
@@ -1188,7 +1148,6 @@ export default function StudentProgress() {
                                   </div>
                                 </div>
                               </td>
-                              <td style={{ textAlign: "center", padding: "10px 8px", fontSize: 12, color: "var(--text3)" }}>{getStudentSection(s)}</td>
                               <td style={{ textAlign: "center", padding: "10px 8px" }}>
                                 <GradeCell studentUid={s.uid} lessonId={null} style={{
                                   fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15,
