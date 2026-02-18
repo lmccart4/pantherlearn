@@ -70,12 +70,21 @@ service cloud.firestore {
       // Grades (teacher-graded entries + reflection gradebook)
       match /grades/{gradeId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if hasCourseAccess(courseId);
+        // Teachers can write any grade; students can only write their own reflection grades
+        allow write: if isCourseOwner(courseId)
+          || (isEnrolledStudent(courseId)
+              && gradeId.matches("reflection_" + request.auth.uid + "_.*")
+              && request.resource.data.studentId == request.auth.uid);
       }
       // Reflections (read by MyGrades + StudentProgress)
       match /reflections/{reflectionId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if hasCourseAccess(courseId);
+        // Teachers can write any reflection; students can only write their own
+        // Cloud Function uses admin SDK and bypasses these rules
+        allow write: if isCourseOwner(courseId)
+          || (isEnrolledStudent(courseId)
+              && reflectionId.matches(request.auth.uid + "_.*")
+              && request.resource.data.studentId == request.auth.uid);
       }
       match /chats/{chatId} {
         allow read: if isTeacher()
