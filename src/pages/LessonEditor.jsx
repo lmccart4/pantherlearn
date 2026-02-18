@@ -441,8 +441,6 @@ export default function LessonEditor() {
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonUnit, setLessonUnit] = useState("");
   const [lessonDueDate, setLessonDueDate] = useState("");
-  const [lessonDueDates, setLessonDueDates] = useState({});
-  const [showSectionDates, setShowSectionDates] = useState(false);
   const [lessonVisible, setLessonVisible] = useState(true);
   const [lessonOrder, setLessonOrder] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -484,8 +482,6 @@ export default function LessonEditor() {
       setLessonTitle(match.title || "");
       setLessonUnit(match.unit || "");
       setLessonDueDate(match.dueDate || "");
-      setLessonDueDates(match.dueDates || {});
-      setShowSectionDates(Object.keys(match.dueDates || {}).length > 0);
       setLessonVisible(match.visible !== false);
       setBlocks(match.blocks || []);
       setSaved(false);
@@ -500,8 +496,6 @@ export default function LessonEditor() {
     setLessonTitle(lesson.title || "");
     setLessonUnit(lesson.unit || "");
     setLessonDueDate(lesson.dueDate || "");
-    setLessonDueDates(lesson.dueDates || {});
-    setShowSectionDates(Object.keys(lesson.dueDates || {}).length > 0);
     setLessonVisible(lesson.visible !== false);
     setLessonOrder(lesson.order ?? null);
     setBlocks(lesson.blocks || []);
@@ -513,8 +507,6 @@ export default function LessonEditor() {
     setLessonTitle("New Lesson");
     setLessonUnit("");
     setLessonDueDate("");
-    setLessonDueDates({});
-    setShowSectionDates(false);
     setLessonVisible(true);
     setLessonOrder(null); // will be set to lessons.length on save
     setBlocks([]);
@@ -561,16 +553,10 @@ export default function LessonEditor() {
     try {
       const lessonId = isNew ? uid() : selectedLesson;
       const lessonRef = doc(db, "courses", selectedCourse, "lessons", lessonId);
-      // Clean dueDates: remove empty entries
-      const cleanDueDates = {};
-      for (const [k, v] of Object.entries(lessonDueDates)) {
-        if (v) cleanDueDates[k] = v;
-      }
       const data = {
         title: lessonTitle,
         unit: lessonUnit,
         dueDate: lessonDueDate || null,
-        dueDates: Object.keys(cleanDueDates).length > 0 ? cleanDueDates : null,
         visible: lessonVisible,
         blocks,
         updatedAt: new Date(),
@@ -786,28 +772,19 @@ export default function LessonEditor() {
                     {/* Lessons in this unit */}
                     {!isCollapsed && group.lessons.map((l) => {
                       const globalIndex = lessons.indexOf(l);
-                      const hasSectionDates = l.dueDates && Object.keys(l.dueDates).length > 0;
-                      const isPastDue = (() => {
-                        if (hasSectionDates) {
-                          // Past due if ANY section date has passed
-                          return Object.values(l.dueDates).some(d => new Date(d + "T23:59:59") < new Date());
-                        }
-                        return l.dueDate && new Date(l.dueDate + "T23:59:59") < new Date();
-                      })();
+                      const isPastDue = l.dueDate && new Date(l.dueDate + "T23:59:59") < new Date();
                       const isHidden = l.visible === false;
                       return (
                         <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 2, paddingLeft: hasUnit ? 12 : 0, opacity: isHidden ? 0.5 : 1 }}>
                           <button className={`top-nav-link ${selectedLesson === l.id ? "active" : ""}`}
                             style={{ textAlign: "left", fontSize: 12, flex: 1 }} onClick={() => loadLesson(l)}>
                             <span>{isHidden ? "🙈 " : ""}{l.title}</span>
-                            {(l.dueDate || hasSectionDates) && (
+                            {l.dueDate && (
                               <span style={{
                                 display: "block", fontSize: 10, marginTop: 1,
                                 color: isPastDue ? "var(--red)" : "var(--text3)",
                               }}>
-                                {hasSectionDates
-                                  ? "Due varies by section"
-                                  : `Due ${new Date(l.dueDate + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
+                                {`Due ${new Date(l.dueDate + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
                               </span>
                             )}
                           </button>
@@ -859,58 +836,6 @@ export default function LessonEditor() {
                 <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Due Date</label>
                 <input type="date" className="editor-input" value={lessonDueDate} onChange={(e) => { setLessonDueDate(e.target.value); setSaved(false); }}
                   style={{ width: 150, border: "1.5px solid var(--amber)" }} />
-                {/* Per-section due dates toggle */}
-                {(() => {
-                  const courseSections = courses.find(c => c.id === selectedCourse)?.sections;
-                  const sectionEntries = courseSections ? Object.entries(courseSections) : [];
-                  if (sectionEntries.length === 0) return null;
-                  return (
-                    <>
-                      <button
-                        onClick={() => setShowSectionDates(!showSectionDates)}
-                        style={{
-                          fontSize: 11, color: "var(--amber)", background: "none", border: "none",
-                          cursor: "pointer", padding: "4px 0", marginTop: 4, display: "block",
-                        }}
-                      >
-                        {showSectionDates ? "▼ Hide section dates" : "▶ Set per-section dates"}
-                      </button>
-                      {showSectionDates && (
-                        <div style={{
-                          marginTop: 6, padding: "8px 10px", background: "var(--surface2)",
-                          borderRadius: 8, display: "flex", flexDirection: "column", gap: 6,
-                        }}>
-                          {sectionEntries.map(([sectionId, section]) => (
-                            <div key={sectionId} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{ fontSize: 11, color: "var(--text2)", minWidth: 80 }}>
-                                {section.name}
-                              </span>
-                              <input
-                                type="date"
-                                className="editor-input"
-                                value={lessonDueDates[sectionId] || ""}
-                                onChange={(e) => {
-                                  const updated = { ...lessonDueDates };
-                                  if (e.target.value) {
-                                    updated[sectionId] = e.target.value;
-                                  } else {
-                                    delete updated[sectionId];
-                                  }
-                                  setLessonDueDates(updated);
-                                  setSaved(false);
-                                }}
-                                style={{ width: 140, fontSize: 12 }}
-                              />
-                            </div>
-                          ))}
-                          <div style={{ fontSize: 10, color: "var(--text3)", marginTop: 2 }}>
-                            Leave blank to use the default date above.
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
               </div>
             </div>
 
