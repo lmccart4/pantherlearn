@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
-import { getLevelInfo, BADGES } from "../lib/gamification";
+import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
 
 const GRADE_TIERS = [
   { label: "Missing", value: 0, color: "var(--text3)", bg: "var(--surface2)" },
@@ -38,6 +38,9 @@ export default function StudentProgress() {
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [sectionFilter, setSectionFilter] = useState("all");
   const [gradePopup, setGradePopup] = useState(null); // { studentUid, lessonId, x, y } or { studentUid, type: "overall", x, y }
+  const [confirmComplete, setConfirmComplete] = useState(null); // { studentUid, lessonId, studentName, x, y }
+  const [completingLesson, setCompletingLesson] = useState(false);
+  const [xpConfig, setXpConfig] = useState(null);
 
   // Fetch courses on mount
   useEffect(() => {
@@ -164,6 +167,13 @@ export default function StudentProgress() {
     };
     fetchAll();
   }, [selectedCourse]);
+
+  // Load XP config for the selected course
+  useEffect(() => {
+    if (selectedCourse) getXPConfig(selectedCourse).then(setXpConfig).catch(() => setXpConfig(null));
+  }, [selectedCourse]);
+
+  const getXPValue = (key) => xpConfig?.xpValues?.[key] ?? DEFAULT_XP_VALUES[key] ?? 0;
 
   if (userRole !== "teacher") {
     return (
@@ -358,6 +368,126 @@ export default function StudentProgress() {
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
   }, [gradePopup]);
+
+  // --- Manual lesson completion ---
+  const handleManualComplete = (e, studentUid, lessonId, studentName) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setConfirmComplete({ studentUid, lessonId, studentName, x: rect.left, y: rect.bottom + 8 });
+  };
+
+  const confirmManualComplete = async () => {
+    if (!confirmComplete || completingLesson) return;
+    const { studentUid, lessonId } = confirmComplete;
+    setCompletingLesson(true);
+    try {
+      // 1. Mark lesson as complete in progress doc
+      const progressRef = doc(db, "progress", studentUid, "courses", selectedCourse, "lessons", lessonId);
+      await setDoc(progressRef, {
+        completed: true,
+        completedAt: new Date(),
+        manuallyCompleted: true,
+        completedBy: "teacher",
+      }, { merge: true });
+
+      // 2. Award lesson_complete XP (same as student self-completion)
+      const baseXP = getXPValue("lesson_complete");
+      const xpResult = await awardXP(studentUid, baseXP, "lesson_complete", selectedCourse);
+
+      // 3. Increment lessonsCompleted + check badges
+      const currentGam = await getStudentGamification(studentUid, selectedCourse);
+      await updateStudentGamification(studentUid, {
+        lessonsCompleted: (currentGam.lessonsCompleted || 0) + 1,
+      }, selectedCourse);
+
+      // 4. Optimistically update local state
+      setProgressData((prev) => ({
+        ...prev,
+        [studentUid]: {
+          ...prev[studentUid],
+          [lessonId]: {
+            ...prev[studentUid]?.[lessonId],
+            _completed: true,
+            _completedAt: new Date(),
+          },
+        },
+      }));
+      setGamData((prev) => ({
+        ...prev,
+        [studentUid]: {
+          ...prev[studentUid],
+          totalXP: xpResult?.newTotal ?? ((prev[studentUid]?.totalXP || 0) + baseXP),
+          lessonsCompleted: (prev[studentUid]?.lessonsCompleted || 0) + 1,
+        },
+      }));
+
+      setConfirmComplete(null);
+    } catch (err) {
+      console.error("Failed to mark lesson complete:", err);
+      alert("Failed to mark lesson complete. Check console for details.");
+    }
+    setCompletingLesson(false);
+  };
+
+  useEffect(() => {
+    if (!confirmComplete) return;
+    const close = () => setConfirmComplete(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [confirmComplete]);
+
+  const renderConfirmComplete = () => {
+    if (!confirmComplete) return null;
+    const xpAmount = getXPValue("lesson_complete");
+    return (
+      <div style={{
+        position: "fixed",
+        left: Math.min(confirmComplete.x, window.innerWidth - 320),
+        top: Math.min(confirmComplete.y, window.innerHeight - 200),
+        width: 300,
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: 12,
+        padding: "16px 20px",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+        zIndex: 1000,
+      }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
+          Mark Lesson Complete?
+        </div>
+        <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 4 }}>
+          {confirmComplete.studentName}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 12 }}>
+          This will award <span style={{ color: "var(--amber)", fontWeight: 700 }}>{xpAmount} XP</span> for lesson completion.
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={confirmManualComplete}
+            disabled={completingLesson}
+            style={{
+              flex: 1, padding: "8px 16px", borderRadius: 8, border: "none",
+              background: completingLesson ? "var(--surface2)" : "var(--amber)",
+              color: completingLesson ? "var(--text3)" : "#1a1a1a",
+              fontWeight: 700, fontSize: 12, cursor: completingLesson ? "default" : "pointer",
+            }}
+          >
+            {completingLesson ? "Saving..." : "Confirm"}
+          </button>
+          <button
+            onClick={() => setConfirmComplete(null)}
+            style={{
+              padding: "8px 16px", borderRadius: 8,
+              border: "1px solid var(--border)", background: "transparent",
+              color: "var(--text)", fontWeight: 600, fontSize: 12, cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   // --- Grade Breakdown Popup ---
   const renderGradePopup = () => {
@@ -858,7 +988,18 @@ export default function StudentProgress() {
                           {completed ? (
                             <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600, background: "rgba(16,185,129,0.12)", color: "var(--green)" }}>✓</span>
                           ) : (
-                            <span style={{ color: "var(--text3)" }}>—</span>
+                            <span
+                              onClick={(e) => handleManualComplete(e, s.uid, lesson.id, s.displayName)}
+                              title="Mark as complete (+XP)"
+                              style={{
+                                color: "var(--amber)", cursor: "pointer", fontSize: 10,
+                                padding: "2px 6px", borderRadius: 4, fontWeight: 600,
+                                border: "1px dashed var(--amber)",
+                                background: "rgba(245,166,35,0.08)",
+                              }}
+                            >
+                              + Complete
+                            </span>
                           )}
                         </td>
                       );
@@ -1062,6 +1203,8 @@ export default function StudentProgress() {
 
       {/* Grade breakdown popup */}
       {renderGradePopup()}
+      {/* Manual completion confirmation popup */}
+      {renderConfirmComplete()}
     </div>
   );
 }
