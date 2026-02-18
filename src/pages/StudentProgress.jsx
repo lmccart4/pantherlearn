@@ -48,7 +48,7 @@ export default function StudentProgress() {
     const fetchCourses = async () => {
       const q = query(collection(db, "courses"), orderBy("order", "asc"));
       const snap = await getDocs(q);
-      const c = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const c = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden);
       setCourses(c);
       if (c.length > 0) setSelectedCourse(c[0].id);
       setLoading(false);

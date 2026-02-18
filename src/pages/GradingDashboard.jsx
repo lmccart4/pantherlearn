@@ -49,7 +49,7 @@ export default function GradingDashboard() {
     const fetchCourses = async () => {
       try {
         const snap = await getDocs(collection(db, "courses"));
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden);
         setCourses(list);
         if (list.length > 0) setSelectedCourse(list[0].id);
       } catch (err) {

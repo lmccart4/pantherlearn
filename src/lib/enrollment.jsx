@@ -81,13 +81,16 @@ export async function findCourseByEnrollCode(code) {
   );
   if (!snap.empty) {
     const courseDoc = snap.docs[0];
-    return { id: courseDoc.id, ...courseDoc.data(), matchedSectionId: null, matchedSectionName: null };
+    const data = courseDoc.data();
+    if (data.hidden) return null; // skip hidden courses
+    return { id: courseDoc.id, ...data, matchedSectionId: null, matchedSectionName: null };
   }
 
   // Backward compat: scan legacy section codes
   const coursesSnap = await getDocs(collection(db, "courses"));
   for (const courseDoc of coursesSnap.docs) {
     const data = courseDoc.data();
+    if (data.hidden) continue; // skip hidden courses
     if (data.sections) {
       for (const [sectionId, section] of Object.entries(data.sections)) {
         if (section.enrollCode === normalizedCode) {

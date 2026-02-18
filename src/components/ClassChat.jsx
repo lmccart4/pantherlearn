@@ -481,7 +481,7 @@ export default function ClassChat() {
     const fetchCourses = async () => {
       if (userRole === "teacher") {
         const snap = await getDocs(collection(db, "courses"));
-        const allCourses = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const allCourses = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden);
         setCourses(allCourses);
         if (allCourses.length > 0) setCourseId(allCourses[0].id);
       } else {
@@ -518,8 +518,9 @@ export default function ClassChat() {
           } catch (e) { /* course may not exist */ }
         }
 
-        setCourses(enrolled);
-        if (enrolled.length > 0) setCourseId(enrolled[0].id);
+        const visible = enrolled.filter((c) => !c.hidden);
+        setCourses(visible);
+        if (visible.length > 0) setCourseId(visible[0].id);
       }
     };
     fetchCourses();

@@ -35,7 +35,7 @@ export default function MyGrades() {
         const snap = await getDocs(q);
         const enrolled = snap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((c) => enrolledIds.has(c.id));
+          .filter((c) => !c.hidden && enrolledIds.has(c.id));
         setCourses(enrolled);
         if (enrolled.length > 0) setSelectedCourse(enrolled[0].id);
       } catch (err) {

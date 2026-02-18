@@ -29,7 +29,7 @@ export default function TeacherDashboard() {
     try {
       const q = query(collection(db, "courses"), orderBy("order", "asc"));
       const snapshot = await getDocs(q);
-      const all = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const all = snapshot.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden);
       setMyCourses(all.filter((c) => c.ownerUid === user.uid));
       setOtherCourses(all.filter((c) => c.ownerUid && c.ownerUid !== user.uid));
     } catch (err) {

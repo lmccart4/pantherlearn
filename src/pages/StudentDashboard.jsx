@@ -57,7 +57,7 @@ export default function StudentDashboard() {
       try {
         const q = query(collection(db, "courses"), orderBy("order", "asc"));
         const snapshot = await getDocs(q);
-        const coursesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const coursesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((c) => !c.hidden);
         setAllCourses(coursesData);
 
         // Get enrolled course IDs

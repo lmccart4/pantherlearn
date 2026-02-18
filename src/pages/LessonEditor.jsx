@@ -456,7 +456,7 @@ export default function LessonEditor() {
       const snapshot = await getDocs(query(collection(db, "courses"), orderBy("order", "asc")));
       const owned = snapshot.docs
         .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((c) => c.ownerUid === user?.uid);
+        .filter((c) => !c.hidden && c.ownerUid === user?.uid);
       setCourses(owned);
       setLoading(false);
     };
