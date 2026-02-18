@@ -11,8 +11,9 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
 
-  // Collect lessons with due dates that are relevant (overdue, today, tomorrow)
+  // Collect incomplete lessons with due dates that are relevant (overdue, today, tomorrow)
   const items = [];
+  let totalDueCount = 0;
   for (const [lessonId, lesson] of Object.entries(lessonMap)) {
     if (lesson.visible === false) continue;
     const dueDate = lesson.dueDate;
@@ -21,8 +22,10 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
     const isToday = dueDate === todayStr;
     const isTomorrow = dueDate === tomorrowStr;
     if (isPastDue || isToday || isTomorrow) {
+      totalDueCount++;
+      // Skip completed lessons — no need to show them
+      if (completedLessons.has(lessonId)) continue;
       const course = allCourses.find((c) => c.id === lesson.courseId);
-      const isComplete = completedLessons.has(lessonId);
       items.push({
         lessonId,
         title: lesson.title || "Untitled",
@@ -33,8 +36,7 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
         isPastDue,
         isToday,
         isTomorrow,
-        isComplete,
-        sortKey: isComplete ? 3 : isPastDue ? 0 : isToday ? 1 : 2,
+        sortKey: isPastDue ? 0 : isToday ? 1 : 2,
       });
     }
   }
@@ -42,7 +44,7 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
   // Sort: overdue first, then today, then tomorrow
   items.sort((a, b) => a.sortKey - b.sortKey || a.dueDate.localeCompare(b.dueDate));
 
-  const allDone = items.length > 0 && items.every((item) => item.isComplete);
+  const allDone = totalDueCount > 0 && items.length === 0;
 
   if (items.length === 0 || allDone) {
     return (
@@ -57,7 +59,7 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
           <div style={{ fontWeight: 700, fontSize: 15, color: "var(--green)" }}>All caught up!</div>
           <div style={{ fontSize: 12, color: "var(--text3)" }}>
             {allDone
-              ? `${items.length} lesson${items.length !== 1 ? "s" : ""} completed — nice work!`
+              ? `${totalDueCount} lesson${totalDueCount !== 1 ? "s" : ""} completed — nice work!`
               : "Nothing due today or tomorrow"}
           </div>
         </div>
@@ -84,16 +86,14 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
             <div style={{
               display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
               borderRadius: 8, background: "var(--surface2)", cursor: "pointer",
-              borderLeft: `3px solid ${item.isComplete ? "var(--green, #10b981)" : item.isPastDue ? "var(--red)" : item.isToday ? "var(--amber)" : "var(--text3)"}`,
+              borderLeft: `3px solid ${item.isPastDue ? "var(--red)" : item.isToday ? "var(--amber)" : "var(--text3)"}`,
               transition: "background 0.15s",
-              opacity: item.isComplete ? 0.65 : 1,
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
                   fontWeight: 600, fontSize: 13,
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  textDecoration: item.isComplete ? "line-through" : "none",
-                  color: item.isComplete ? "var(--text3)" : undefined,
+                  textDecoration: "none",
                 }}>
                   {item.title}
                 </div>
@@ -103,9 +103,9 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
               </div>
               <div style={{
                 fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
-                color: item.isComplete ? "var(--green, #10b981)" : item.isPastDue ? "var(--red)" : item.isToday ? "var(--amber)" : "var(--text3)",
+                color: item.isPastDue ? "var(--red)" : item.isToday ? "var(--amber)" : "var(--text3)",
               }}>
-                {item.isComplete ? "✅ Done" : item.isPastDue ? "⚠️ Overdue" : item.isToday ? "📌 Today" : "Tomorrow"}
+                {item.isPastDue ? "⚠️ Overdue" : item.isToday ? "📌 Today" : "Tomorrow"}
               </div>
             </div>
           </Link>
