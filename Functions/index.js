@@ -10,6 +10,45 @@ const db = admin.firestore();
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 /**
+ * Helper: call Gemini API with automatic retry on 429 (quota exceeded).
+ * Retries up to `maxRetries` times, respecting the server's suggested retryDelay.
+ */
+async function callGeminiWithRetry(url, body, maxRetries = 2) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const geminiResponse = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const data = await geminiResponse.json();
+
+    // If not a rate-limit error, return immediately
+    if (!data.error || data.error.code !== 429) {
+      return data;
+    }
+
+    // On last attempt, return the error as-is
+    if (attempt === maxRetries) {
+      return data;
+    }
+
+    // Extract retry delay from response (default 5s)
+    let waitMs = 5000;
+    const retryInfo = data.error.details?.find(
+      (d) => d["@type"] === "type.googleapis.com/google.rpc.RetryInfo"
+    );
+    if (retryInfo?.retryDelay) {
+      const seconds = parseFloat(retryInfo.retryDelay);
+      if (!isNaN(seconds)) waitMs = Math.min(seconds * 1000, 15000); // cap at 15s
+    }
+
+    console.log(`Gemini 429 — retrying in ${waitMs}ms (attempt ${attempt + 1}/${maxRetries})`);
+    await new Promise((r) => setTimeout(r, waitMs));
+  }
+}
+
+/**
  * Cloud Function: geminiChat
  *
  * Proxies chat requests to the Gemini API so your API key stays secret.
@@ -20,7 +59,7 @@ exports.geminiChat = onRequest(
     cors: true,
     secrets: [geminiApiKey],
     maxInstances: 20,
-    timeoutSeconds: 30,
+    timeoutSeconds: 60,
   },
   async (req, res) => {
     if (req.method !== "POST") {
@@ -74,36 +113,35 @@ exports.geminiChat = onRequest(
       parts: [{ text: msg.content }],
     }));
 
-    const model = "gemini-2.5-flash";
+    const model = "gemini-2.0-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
 
     try {
-      const geminiResponse = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemPrompt }],
-          },
-          contents: geminiContents,
-          generationConfig: {
-            maxOutputTokens: 500,
-            temperature: 0.7,
-          },
-          safetySettings: [
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          ],
-        }),
+      const data = await callGeminiWithRetry(url, {
+        system_instruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents: geminiContents,
+        generationConfig: {
+          maxOutputTokens: 500,
+          temperature: 0.7,
+        },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        ],
       });
-
-      const data = await geminiResponse.json();
 
       if (data.error) {
         console.error("Gemini API error:", data.error);
-        return res.status(502).json({ error: "AI service temporarily unavailable. Please try again." });
+        const isQuota = data.error.code === 429;
+        return res.status(isQuota ? 429 : 502).json({
+          error: isQuota
+            ? "The AI is very busy right now. Please wait a minute and try again."
+            : "AI service temporarily unavailable. Please try again.",
+        });
       }
 
       const assistantText =
@@ -168,7 +206,7 @@ exports.validateReflection = onRequest(
     cors: true,
     secrets: [geminiApiKey],
     maxInstances: 20,
-    timeoutSeconds: 15,
+    timeoutSeconds: 60,
   },
   async (req, res) => {
     if (req.method !== "POST") {
@@ -215,7 +253,7 @@ exports.validateReflection = onRequest(
     }
 
     // Use Gemini to validate
-    const model = "gemini-2.5-flash";
+    const model = "gemini-2.0-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
 
     const validationPrompt = `You are a teacher's assistant validating student reflections. The student just completed a lesson called "${(lessonTitle || "a class lesson").replace(/"/g, '\\"')}".
@@ -248,19 +286,14 @@ or
 {"valid": false, "feedback": "Brief encouraging message asking them to try again"}`;
 
     try {
-      const geminiResponse = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: validationPrompt }] }],
-          generationConfig: {
-            maxOutputTokens: 100,
-            temperature: 0.1,
-          },
-        }),
+      const data = await callGeminiWithRetry(url, {
+        contents: [{ role: "user", parts: [{ text: validationPrompt }] }],
+        generationConfig: {
+          maxOutputTokens: 100,
+          temperature: 0.1,
+        },
       });
 
-      const data = await geminiResponse.json();
       const responseText =
         data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
 
