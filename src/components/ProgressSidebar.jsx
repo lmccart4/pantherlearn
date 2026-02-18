@@ -1,7 +1,9 @@
 // src/components/ProgressSidebar.jsx
 import { useState, useEffect } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
-import { getStudentGamification, getLevelInfo, getXPConfig } from "../lib/gamification";
+import { getLevelInfo, getXPConfig } from "../lib/gamification";
 import { useTranslatedTexts, useTranslatedText } from "../hooks/useTranslatedText.jsx";
 import MultiplierBanner from "./MultiplierBanner";
 import StreakDisplay from "./StreakDisplay";
@@ -34,23 +36,37 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
   ]);
   const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
 
+  // Real-time listener for gamification data (updates live as XP is awarded)
   useEffect(() => {
     if (!user) return;
-    getStudentGamification(user.uid).then(setGamification);
+    const ref = courseId
+      ? doc(db, "courses", courseId, "gamification", user.uid)
+      : doc(db, "gamification", user.uid);
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        setGamification(snap.data());
+      } else {
+        setGamification({ totalXP: 0, currentStreak: 0, longestStreak: 0, streakFreezes: 0 });
+      }
+    }, (err) => {
+      console.error("Gamification listener error:", err);
+    });
+    return unsub;
+  }, [user, courseId]);
 
-    if (courseId) {
-      getXPConfig(courseId).then((config) => {
-        if (config.activeMultiplier) {
-          const expires = config.activeMultiplier.expiresAt?.toDate?.()
-            ? config.activeMultiplier.expiresAt.toDate()
-            : new Date(config.activeMultiplier.expiresAt);
-          if (expires > new Date()) {
-            setActiveMultiplierState(config.activeMultiplier);
-          }
+  useEffect(() => {
+    if (!user || !courseId) return;
+    getXPConfig(courseId).then((config) => {
+      if (config.activeMultiplier) {
+        const expires = config.activeMultiplier.expiresAt?.toDate?.()
+          ? config.activeMultiplier.expiresAt.toDate()
+          : new Date(config.activeMultiplier.expiresAt);
+        if (expires > new Date()) {
+          setActiveMultiplierState(config.activeMultiplier);
         }
-      }).catch(() => {});
-    }
-  }, [user, studentData, courseId]);
+      }
+    }).catch(() => {});
+  }, [user, courseId]);
 
   const level = gamification ? getLevelInfo(gamification.totalXP) : null;
   const translatedLevelName = useTranslatedText(level?.current?.name);
