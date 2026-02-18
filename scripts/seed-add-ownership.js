@@ -6,26 +6,12 @@
 //
 // ⚠️  Before running, set YOUR_UID below to your teacher UID from Firebase Auth.
 
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, updateDoc, query, where } from 'firebase/firestore';
-
-// ⬇️ PASTE YOUR FIREBASE CONFIG HERE ⬇️
-const firebaseConfig = {
-  apiKey: "AIzaSyAlxvGxLIBUrVO3WWmEcslFpSygeYVeHpY",
-  authDomain: "pantherlearn-d6f7c.firebaseapp.com",
-  projectId: "pantherlearn-d6f7c",
-  storageBucket: "pantherlearn-d6f7c.firebasestorage.app",
-  messagingSenderId: "293205883325",
-  appId: "1:293205883325:web:c0c21ece0b4fc26f673ad4",
-  measurementId: "G-5Y6BKF09HF"
-};
+import { collection, getDocs, doc, updateDoc, query, where } from 'firebase/firestore';
+import { db } from './firebase-config.js';
 
 // ⬇️ SET YOUR TEACHER UID HERE ⬇️
 // Find this in Firebase Console → Authentication → Users → copy your UID
 const MY_TEACHER_UID = "M2sNE8iH1aZ57L8z8Snp1Sj8cFD2";
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
 function generateCodePrefix(title) {
   const cleaned = title.toUpperCase().replace(/[^A-Z]/g, "");

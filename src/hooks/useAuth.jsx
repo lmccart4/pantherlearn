@@ -14,9 +14,9 @@ const AuthContext = createContext(null);
  * - Fewer than 3 digits before @ = teacher (e.g. lmccarthy@paps.net)
  */
 // Emails that don't follow the digit-count rule but are actually students
-const STUDENT_OVERRIDES = [
-  "jtolentinomoctezuma5@paps.net",
-];
+// Set VITE_STUDENT_OVERRIDES as a comma-separated list of emails in .env
+const STUDENT_OVERRIDES = (import.meta.env.VITE_STUDENT_OVERRIDES || "")
+  .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 
 function getRoleFromEmail(email) {
   if (!email) return null;
