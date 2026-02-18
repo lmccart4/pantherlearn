@@ -1,7 +1,7 @@
 // src/pages/LessonViewer.jsx
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import BlockRenderer from "../components/blocks/BlockRenderer";
@@ -100,6 +100,21 @@ export default function LessonViewer() {
     setRealChatLogs((prev) => ({ ...prev, [blockId]: messages }));
   }, [isPreviewActive]);
 
+  // Teacher: reset own progress so lesson can be demoed fresh
+  const resetMyProgress = async () => {
+    if (!user || !confirm("Reset your progress on this lesson? All your answers will be cleared.")) return;
+    try {
+      const progressRef = doc(db, "progress", user.uid, "courses", courseId, "lessons", lessonId);
+      await deleteDoc(progressRef);
+      setRealStudentData({});
+      setLessonCompleted(false);
+      studentDataRef.current = {};
+    } catch (err) {
+      console.error("Failed to reset progress:", err);
+      alert("Failed to reset. Check the console for details.");
+    }
+  };
+
   const translatedTitle = useTranslatedText(lesson?.title);
   const translatedUnit = useTranslatedText(lesson?.unit || lesson?.course);
 
@@ -163,9 +178,17 @@ export default function LessonViewer() {
           </Link>
         )}
 
-        {/* Preview launcher — only visible to teachers when NOT already previewing */}
+        {/* Teacher toolbar — preview launcher + reset button */}
         {userRole === "teacher" && !isPreview && (
-          <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+            <button
+              className="btn btn-secondary"
+              onClick={resetMyProgress}
+              style={{ fontSize: 13, padding: "8px 14px", color: "var(--red)", borderColor: "var(--red)" }}
+              title="Clear your own answers so you can demo this lesson fresh"
+            >
+              🔄 Reset My Progress
+            </button>
             <PreviewLauncher sourceLocation={{ courseId, lessonId }} />
           </div>
         )}

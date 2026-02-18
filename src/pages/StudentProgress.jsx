@@ -1,6 +1,6 @@
 // src/pages/StudentProgress.jsx
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
@@ -416,6 +416,30 @@ export default function StudentProgress() {
       alert("Failed to mark lesson complete. Check console for details.");
     }
     setCompletingLesson(false);
+  };
+
+  // Reset a student's progress on a specific lesson
+  const handleResetProgress = async (e, studentUid, lessonId, studentName) => {
+    e.stopPropagation();
+    const lessonTitle = lessons.find((l) => l.id === lessonId)?.title || lessonId;
+    if (!confirm(`Reset ${studentName}'s progress on "${lessonTitle}"?\n\nThis clears all their answers and completion status. XP already earned is not affected.`)) return;
+    try {
+      const progressRef = doc(db, "progress", studentUid, "courses", selectedCourse, "lessons", lessonId);
+      await deleteDoc(progressRef);
+      // Clear from local state
+      setProgressData((prev) => {
+        const updated = { ...prev };
+        if (updated[studentUid]) {
+          const studentData = { ...updated[studentUid] };
+          delete studentData[lessonId];
+          updated[studentUid] = studentData;
+        }
+        return updated;
+      });
+    } catch (err) {
+      console.error("Failed to reset progress:", err);
+      alert("Failed to reset progress. Check console for details.");
+    }
   };
 
   useEffect(() => {
@@ -976,24 +1000,38 @@ export default function StudentProgress() {
                     })()}
                     {(() => {
                       const completed = progressData[s.uid]?.[lesson.id]?._completed || false;
+                      const hasProgress = !!progressData[s.uid]?.[lesson.id];
                       return (
                         <td style={{ textAlign: "center", padding: "8px" }}>
-                          {completed ? (
-                            <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600, background: "rgba(16,185,129,0.12)", color: "var(--green)" }}>✓</span>
-                          ) : (
-                            <span
-                              onClick={(e) => handleManualComplete(e, s.uid, lesson.id, s.displayName)}
-                              title="Mark as complete (+XP)"
-                              style={{
-                                color: "var(--amber)", cursor: "pointer", fontSize: 10,
-                                padding: "2px 6px", borderRadius: 4, fontWeight: 600,
-                                border: "1px dashed var(--amber)",
-                                background: "rgba(245,166,35,0.08)",
-                              }}
-                            >
-                              + Complete
-                            </span>
-                          )}
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                            {completed ? (
+                              <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600, background: "rgba(16,185,129,0.12)", color: "var(--green)" }}>✓</span>
+                            ) : (
+                              <span
+                                onClick={(e) => handleManualComplete(e, s.uid, lesson.id, s.displayName)}
+                                title="Mark as complete (+XP)"
+                                style={{
+                                  color: "var(--amber)", cursor: "pointer", fontSize: 10,
+                                  padding: "2px 6px", borderRadius: 4, fontWeight: 600,
+                                  border: "1px dashed var(--amber)",
+                                  background: "rgba(245,166,35,0.08)",
+                                }}
+                              >
+                                + Complete
+                              </span>
+                            )}
+                            {hasProgress && (
+                              <span
+                                onClick={(e) => handleResetProgress(e, s.uid, lesson.id, s.displayName)}
+                                title="Reset progress"
+                                style={{ cursor: "pointer", fontSize: 11, opacity: 0.5, transition: "opacity 0.15s" }}
+                                onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                                onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
+                              >
+                                🔄
+                              </span>
+                            )}
+                          </div>
                         </td>
                       );
                     })()}
