@@ -21,6 +21,7 @@ export default function CoursePage() {
   const [mySection, setMySection] = useState(null);
   const [mySectionId, setMySectionId] = useState(null);
   const [collapsedUnits, setCollapsedUnits] = useState({});
+  const [completedLessons, setCompletedLessons] = useState(new Set());
   const isTeacher = userRole === "teacher";
 
   // Translate UI chrome
@@ -54,6 +55,22 @@ export default function CoursePage() {
           setLessons(lessonData);
         } catch (e) {
           console.warn("Could not fetch lessons:", e);
+        }
+
+        // Fetch student's lesson progress to show completion indicators
+        if (userRole !== "teacher" && user) {
+          try {
+            const progressSnap = await getDocs(
+              collection(db, "progress", user.uid, "courses", courseId, "lessons")
+            );
+            const completed = new Set();
+            progressSnap.forEach((d) => {
+              if (d.data().completed) completed.add(d.id);
+            });
+            setCompletedLessons(completed);
+          } catch (e) {
+            console.warn("Could not fetch lesson progress:", e);
+          }
         }
 
         // Fetch section-scoped leaderboard for students
@@ -216,6 +233,7 @@ export default function CoursePage() {
                         const tTitle = translatedLessonTexts?.[originalIndex * 2] ?? lesson.title;
                         const tUnit = translatedLessonTexts?.[originalIndex * 2 + 1] || "";
                         const qCount = (lesson.blocks || []).filter((b) => b.type === "question").length;
+                        const isCompleted = !isTeacher && completedLessons.has(lesson.id);
                         return (
                           <Link key={lesson.id} to={`/course/${courseId}/lesson/${lesson.id}`}
                             style={{ textDecoration: "none", color: "inherit" }}>
@@ -223,16 +241,24 @@ export default function CoursePage() {
                               display: "flex", alignItems: "center", gap: 16, cursor: "pointer",
                               animationDelay: `${i * 0.05}s`,
                               marginLeft: hasUnit ? 12 : 0,
+                              borderLeft: isCompleted ? "3px solid var(--green, #10b981)" : undefined,
                             }}>
                               <div style={{
-                                width: 36, height: 36, borderRadius: 8, background: "var(--surface2)",
+                                width: 36, height: 36, borderRadius: 8,
+                                background: isCompleted ? "rgba(16, 185, 129, 0.15)" : "var(--surface2)",
                                 display: "flex", alignItems: "center", justifyContent: "center",
-                                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--amber)",
+                                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14,
+                                color: isCompleted ? "var(--green, #10b981)" : "var(--amber)",
                               }}>
-                                {num}
+                                {isCompleted ? "✓" : num}
                               </div>
                               <div>
                                 <div style={{ fontWeight: 600, fontSize: 15 }} data-translatable>{tTitle}</div>
+                                {isCompleted && (
+                                  <div style={{ fontSize: 11, color: "var(--green, #10b981)", fontWeight: 600, marginTop: 1 }}>
+                                    Completed
+                                  </div>
+                                )}
                               </div>
                               <div style={{ marginLeft: "auto", textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
                                 <div style={{ color: "var(--text3)", fontSize: 13 }}>

@@ -2,7 +2,7 @@
 // Shows lessons due today, tomorrow, or overdue in a compact dashboard widget.
 import { Link } from "react-router-dom";
 
-export default function DueToday({ lessonMap, allCourses }) {
+export default function DueToday({ lessonMap, allCourses, completedLessons = new Set() }) {
   if (!lessonMap || Object.keys(lessonMap).length === 0) return null;
 
   const now = new Date();
@@ -21,6 +21,7 @@ export default function DueToday({ lessonMap, allCourses }) {
     const isTomorrow = dueDate === tomorrowStr;
     if (isPastDue || isToday || isTomorrow) {
       const course = allCourses.find((c) => c.id === lesson.courseId);
+      const isComplete = completedLessons.has(lessonId);
       items.push({
         lessonId,
         title: lesson.title || "Untitled",
@@ -31,7 +32,8 @@ export default function DueToday({ lessonMap, allCourses }) {
         isPastDue,
         isToday,
         isTomorrow,
-        sortKey: isPastDue ? 0 : isToday ? 1 : 2,
+        isComplete,
+        sortKey: isComplete ? 3 : isPastDue ? 0 : isToday ? 1 : 2,
       });
     }
   }
@@ -39,7 +41,9 @@ export default function DueToday({ lessonMap, allCourses }) {
   // Sort: overdue first, then today, then tomorrow
   items.sort((a, b) => a.sortKey - b.sortKey || a.dueDate.localeCompare(b.dueDate));
 
-  if (items.length === 0) {
+  const allDone = items.length > 0 && items.every((item) => item.isComplete);
+
+  if (items.length === 0 || allDone) {
     return (
       <div style={{
         flex: 1, padding: "14px 18px", borderRadius: 12,
@@ -50,7 +54,11 @@ export default function DueToday({ lessonMap, allCourses }) {
         <span style={{ fontSize: 24 }}>✅</span>
         <div>
           <div style={{ fontWeight: 700, fontSize: 15, color: "var(--green)" }}>All caught up!</div>
-          <div style={{ fontSize: 12, color: "var(--text3)" }}>Nothing due today or tomorrow</div>
+          <div style={{ fontSize: 12, color: "var(--text3)" }}>
+            {allDone
+              ? `${items.length} lesson${items.length !== 1 ? "s" : ""} completed — nice work!`
+              : "Nothing due today or tomorrow"}
+          </div>
         </div>
       </div>
     );
@@ -75,13 +83,16 @@ export default function DueToday({ lessonMap, allCourses }) {
             <div style={{
               display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
               borderRadius: 8, background: "var(--surface2)", cursor: "pointer",
-              borderLeft: `3px solid ${item.isPastDue ? "var(--red)" : item.isToday ? "var(--amber)" : "var(--text3)"}`,
+              borderLeft: `3px solid ${item.isComplete ? "var(--green, #10b981)" : item.isPastDue ? "var(--red)" : item.isToday ? "var(--amber)" : "var(--text3)"}`,
               transition: "background 0.15s",
+              opacity: item.isComplete ? 0.65 : 1,
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
                   fontWeight: 600, fontSize: 13,
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  textDecoration: item.isComplete ? "line-through" : "none",
+                  color: item.isComplete ? "var(--text3)" : undefined,
                 }}>
                   {item.title}
                 </div>
@@ -91,9 +102,9 @@ export default function DueToday({ lessonMap, allCourses }) {
               </div>
               <div style={{
                 fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
-                color: item.isPastDue ? "var(--red)" : item.isToday ? "var(--amber)" : "var(--text3)",
+                color: item.isComplete ? "var(--green, #10b981)" : item.isPastDue ? "var(--red)" : item.isToday ? "var(--amber)" : "var(--text3)",
               }}>
-                {item.isPastDue ? "⚠️ Overdue" : item.isToday ? "📌 Today" : "Tomorrow"}
+                {item.isComplete ? "✅ Done" : item.isPastDue ? "⚠️ Overdue" : item.isToday ? "📌 Today" : "Tomorrow"}
               </div>
             </div>
           </Link>

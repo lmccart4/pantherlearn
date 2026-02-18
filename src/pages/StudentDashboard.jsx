@@ -29,6 +29,7 @@ export default function StudentDashboard() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [lessonMap, setLessonMap] = useState({});
   const [activeMultiplier, setActiveMultiplier] = useState(null);
+  const [completedLessons, setCompletedLessons] = useState(new Set());
 
   const firstName = nickname || user?.displayName?.split(" ")[0] || "there";
 
@@ -129,6 +130,7 @@ export default function StudentDashboard() {
 
           // Fetch progress for enrolled courses (batch query per course)
           const progress = {};
+          const completedSet = new Set();
           for (const course of enrolledCourses) {
             const courseLessons = Object.entries(lessons)
               .filter(([_, l]) => l.courseId === course.id)
@@ -141,7 +143,10 @@ export default function StudentDashboard() {
               collection(db, "progress", user.uid, "courses", course.id, "lessons")
             );
             const progressByLesson = {};
-            allProgressSnap.forEach((d) => { progressByLesson[d.id] = d.data(); });
+            allProgressSnap.forEach((d) => {
+              progressByLesson[d.id] = d.data();
+              if (d.data().completed) completedSet.add(d.id);
+            });
 
             for (const lesson of courseLessons) {
               const questions = (lesson.blocks || []).filter((b) => b.type === "question");
@@ -167,6 +172,7 @@ export default function StudentDashboard() {
             };
           }
           setCourseProgress(progress);
+          setCompletedLessons(completedSet);
         }
       } catch (err) {
         console.error("Error fetching student dashboard:", err);
@@ -278,7 +284,7 @@ export default function StudentDashboard() {
           {/* Stats Row */}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "stretch" }}>
             {gamification && <StreakDisplay streak={gamification.currentStreak} />}
-            <DueToday lessonMap={lessonMap} allCourses={allCourses} />
+            <DueToday lessonMap={lessonMap} allCourses={allCourses} completedLessons={completedLessons} />
           </div>
         </div>
 
