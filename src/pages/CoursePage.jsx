@@ -7,10 +7,8 @@ import { useAuth } from "../hooks/useAuth";
 import TeamPanel from "../components/TeamPanel";
 import ManaPool from "../components/ManaPool";
 import { getLeaderboard } from "../lib/gamification";
-import { getEnrollment, getCourseSections } from "../lib/enrollment";
 import { resolveFirstName } from "../lib/displayName";
 import { useTranslatedText, useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
-import { getEffectiveDueDate } from "../lib/utils";
 
 export default function CoursePage() {
   const { courseId } = useParams();
@@ -19,8 +17,6 @@ export default function CoursePage() {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [leaderboard, setLeaderboard] = useState([]);
-  const [mySection, setMySection] = useState(null);
-  const [mySectionId, setMySectionId] = useState(null);
   const [collapsedUnits, setCollapsedUnits] = useState({});
   const [completedLessons, setCompletedLessons] = useState(new Set());
   const isTeacher = userRole === "teacher";
@@ -74,25 +70,10 @@ export default function CoursePage() {
           }
         }
 
-        // Fetch section-scoped leaderboard for students
+        // Fetch leaderboard for students
         if (userRole !== "teacher" && user) {
           try {
-            const enrollment = await getEnrollment(user.uid, courseId, user.email);
-            const section = enrollment?.section || null;
-            setMySection(section);
-
-            // Resolve sectionId: prefer enrollment.sectionId, then look up key from course sections map
-            let resolvedId = enrollment?.sectionId || null;
-            if (!resolvedId && section && courseDoc.exists()) {
-              const sections = courseDoc.data().sections || {};
-              // Find the key whose name matches the section display name
-              for (const [key, sec] of Object.entries(sections)) {
-                if (sec.name === section) { resolvedId = key; break; }
-              }
-            }
-            setMySectionId(resolvedId || section || null);
-
-            const lb = await getLeaderboard(courseId, section);
+            const lb = await getLeaderboard(courseId);
             setLeaderboard(lb);
           } catch (e) {
             console.warn("Could not load leaderboard:", e);
@@ -172,7 +153,7 @@ export default function CoursePage() {
         <TeamPanel courseId={courseId} />
 
         {/* Mana Pool (visible to all when enabled) */}
-        <ManaPool courseId={courseId} sectionId={mySectionId} />
+        <ManaPool courseId={courseId} />
 
         {/* Two-column layout for students: lessons + sidebar leaderboard */}
         <div style={{
@@ -266,7 +247,7 @@ export default function CoursePage() {
                                   {qCount} {ui(4, "questions")}
                                 </div>
                                 {(() => {
-                                  const effectiveDue = getEffectiveDueDate(lesson, isTeacher ? null : mySectionId);
+                                  const effectiveDue = lesson.dueDate;
                                   if (!effectiveDue) return null;
                                   const due = new Date(effectiveDue + "T23:59:59");
                                   const now = new Date();
@@ -305,13 +286,13 @@ export default function CoursePage() {
                   <div className="card" style={{ padding: "12px 16px", marginBottom: 12, textAlign: "center" }}>
                     <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 600, marginBottom: 4 }}>Your Rank</div>
                     <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, color: "var(--amber)" }}>#{myRank}</div>
-                    <div style={{ fontSize: 11, color: "var(--text3)" }}>of {leaderboard.length} in {mySection || "class"}</div>
+                    <div style={{ fontSize: 11, color: "var(--text3)" }}>of {leaderboard.length} in class</div>
                   </div>
                 ) : null;
               })()}
 
               <h3 style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600, color: "var(--text2)", marginBottom: 10 }}>
-                🏆 {mySection ? `${mySection} Leaderboard` : "Class Leaderboard"}
+                🏆 Class Leaderboard
               </h3>
               {leaderboard.length > 0 ? (
                 <div className="card" style={{ padding: 0, overflow: "hidden" }}>
