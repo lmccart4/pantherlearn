@@ -449,6 +449,8 @@ export default function LessonEditor() {
   const [collapsedUnits, setCollapsedUnits] = useState({});
   const [showJsonImport, setShowJsonImport] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
 
   // Fetch courses (only owned by current teacher)
   useEffect(() => {
@@ -645,6 +647,35 @@ export default function LessonEditor() {
     } catch (err) {
       alert("Invalid JSON: " + err.message);
     }
+  };
+
+  // Duplicate lesson to another course
+  const duplicateToCourse = async (targetCourseId) => {
+    if (!targetCourseId || !selectedLesson) return;
+    setDuplicating(true);
+    try {
+      // Count existing lessons in target course to set order
+      const targetLessonsSnap = await getDocs(collection(db, "courses", targetCourseId, "lessons"));
+      const newLessonId = uid();
+      // Copy blocks with fresh IDs so progress data stays separate
+      const freshBlocks = blocks.map((b) => ({ ...b, id: uid() }));
+      await setDoc(doc(db, "courses", targetCourseId, "lessons", newLessonId), {
+        title: lessonTitle,
+        unit: lessonUnit,
+        dueDate: null, // don't copy due date — different class may have different schedule
+        visible: false, // start hidden so teacher can review before publishing
+        blocks: freshBlocks,
+        order: targetLessonsSnap.size,
+        updatedAt: new Date(),
+      });
+      const targetCourse = courses.find((c) => c.id === targetCourseId);
+      alert(`✓ Duplicated "${lessonTitle}" to ${targetCourse?.title || targetCourseId}.\n\nThe copy is hidden by default — toggle it visible when ready.`);
+      setShowDuplicateModal(false);
+    } catch (err) {
+      console.error("Duplicate failed:", err);
+      alert("Failed to duplicate. Check the console for details.");
+    }
+    setDuplicating(false);
   };
 
   // Swap lesson order in sidebar and persist to Firestore
@@ -874,6 +905,16 @@ export default function LessonEditor() {
               >
                 📋 Paste JSON
               </button>
+              {selectedLesson && !selectedLesson.startsWith("new-") && courses.length > 1 && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowDuplicateModal(true)}
+                  title="Copy this lesson to another course"
+                  style={{ display: "flex", alignItems: "center", gap: 6 }}
+                >
+                  📑 Duplicate to...
+                </button>
+              )}
               <div style={{ flex: 1 }} />
               {selectedLesson && !selectedLesson.startsWith("new-") && (
                 <button
@@ -942,6 +983,44 @@ export default function LessonEditor() {
               <button className="btn btn-primary" onClick={handleJsonImport} disabled={!jsonInput.trim()}>
                 Import {jsonInput.trim() ? (() => { try { const p = JSON.parse(jsonInput); const b = Array.isArray(p) ? p : p.blocks; return b ? `(${b.length} blocks)` : ""; } catch { return ""; } })() : ""}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate to Course Modal */}
+      {showDuplicateModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 999,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }} onClick={() => setShowDuplicateModal(false)}>
+          <div style={{
+            background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+            padding: 28, width: 420, boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontFamily: "var(--font-display)", margin: "0 0 8px" }}>📑 Duplicate Lesson</h3>
+            <p style={{ color: "var(--text2)", fontSize: 13, margin: "0 0 20px" }}>
+              Copy <strong>"{lessonTitle}"</strong> to another course. The duplicate starts hidden so you can review it first.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {courses.filter((c) => c.id !== selectedCourse).map((c) => (
+                <button
+                  key={c.id}
+                  className="btn btn-secondary"
+                  disabled={duplicating}
+                  onClick={() => duplicateToCourse(c.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
+                    fontSize: 14, justifyContent: "flex-start",
+                  }}
+                >
+                  <span style={{ fontSize: 20 }}>{c.icon || "📚"}</span>
+                  <span>{c.title}</span>
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+              <button className="btn btn-secondary" onClick={() => setShowDuplicateModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
