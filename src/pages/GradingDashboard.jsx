@@ -193,7 +193,7 @@ export default function GradingDashboard() {
           const data = progressDoc.data();
           if (!data.answers) continue;
           Object.entries(data.answers).forEach(([blockId, answer]) => {
-            if (answer.needsGrading && answer.submitted) {
+            if (answer.needsGrading && answer.submitted && answer.writtenScore == null) {
               writtenResponses.push({
                 id: `${progressDoc.ref.path}-${blockId}`,
                 studentId: uid, lessonId, courseId: selectedCourse, blockId,
@@ -221,7 +221,7 @@ export default function GradingDashboard() {
             const data = d.data();
             if (!data.answers) return;
             Object.entries(data.answers).forEach(([blockId, answer]) => {
-              if (answer.needsGrading && answer.submitted) {
+              if (answer.needsGrading && answer.submitted && answer.writtenScore == null) {
                 writtenResponses.push({
                   id: `${d.ref.path}-${blockId}`,
                   studentId: uid, lessonId: d.id, courseId: selectedCourse, blockId,
