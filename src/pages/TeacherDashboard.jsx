@@ -21,10 +21,6 @@ export default function TeacherDashboard() {
   const [newIcon, setNewIcon] = useState("📚");
   const [creating, setCreating] = useState(false);
 
-  // Section management
-  const [managingSections, setManagingSections] = useState(null); // courseId
-  const [newSectionName, setNewSectionName] = useState("");
-  const [addingSection, setAddingSection] = useState(false);
   const [editingIcon, setEditingIcon] = useState(null); // courseId
 
   const firstName = nickname || user?.displayName?.split(" ")[0] || "there";
@@ -49,14 +45,14 @@ export default function TeacherDashboard() {
     if (!newTitle.trim() || creating) return;
     setCreating(true);
     try {
-      const newCourseRef = await addDoc(collection(db, "courses"), {
+      await addDoc(collection(db, "courses"), {
         title: newTitle.trim(),
         description: newDescription.trim(),
         icon: newIcon || "📚",
         order: myCourses.length + 1,
         ownerUid: user.uid,
         ownerEmail: user.email,
-        sections: {},
+        enrollCode: await generateEnrollCode(newTitle.trim()),
         createdAt: new Date(),
       });
       setShowCreateModal(false);
@@ -64,48 +60,11 @@ export default function TeacherDashboard() {
       setNewDescription("");
       setNewIcon("📚");
       await fetchCourses();
-      // Open section manager for the new course
-      setManagingSections(newCourseRef.id);
     } catch (err) {
       console.error("Failed to create course:", err);
       alert("Failed to create course. Please try again.");
     }
     setCreating(false);
-  };
-
-  // ============ SECTION MANAGEMENT ============
-  const handleAddSection = async (courseId) => {
-    if (!newSectionName.trim() || addingSection) return;
-    setAddingSection(true);
-    try {
-      const course = myCourses.find((c) => c.id === courseId);
-      const code = await generateEnrollCode(course?.title || "Course");
-      const sectionId = newSectionName.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-
-      const sections = { ...(course?.sections || {}) };
-      sections[sectionId] = { name: newSectionName.trim(), enrollCode: code };
-
-      await updateDoc(doc(db, "courses", courseId), { sections });
-      setNewSectionName("");
-      await fetchCourses();
-    } catch (err) {
-      console.error("Failed to add section:", err);
-      alert("Failed to add section. Please try again.");
-    }
-    setAddingSection(false);
-  };
-
-  const handleRemoveSection = async (courseId, sectionId) => {
-    const course = myCourses.find((c) => c.id === courseId);
-    if (!course) return;
-    const confirmed = window.confirm(
-      `Remove "${course.sections[sectionId]?.name}"? Students who used this code will still be enrolled, but new students won't be able to join with this code.`
-    );
-    if (!confirmed) return;
-    const sections = { ...(course.sections || {}) };
-    delete sections[sectionId];
-    await updateDoc(doc(db, "courses", courseId), { sections });
-    await fetchCourses();
   };
 
   // ============ FORK COURSE ============
@@ -125,7 +84,7 @@ export default function TeacherDashboard() {
         order: myCourses.length + 1,
         ownerUid: user.uid,
         ownerEmail: user.email,
-        sections: {},
+        enrollCode: await generateEnrollCode(`${course.title} (Copy)`),
         forkedFrom: course.id,
         forkedAt: new Date(),
         createdAt: new Date(),
@@ -149,7 +108,6 @@ export default function TeacherDashboard() {
       } catch (e) { /* no settings */ }
 
       await fetchCourses();
-      setManagingSections(newCourseRef.id);
     } catch (err) {
       console.error("Failed to fork course:", err);
       alert("Failed to copy course. Please try again.");
@@ -199,9 +157,7 @@ export default function TeacherDashboard() {
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
               {myCourses.map((course) => {
-                const isManaging = managingSections === course.id;
-                const sections = course.sections || {};
-                const sectionEntries = Object.entries(sections);
+                const displayCode = course.enrollCode || Object.values(course.sections || {})[0]?.enrollCode || "\u2014";
 
                 return (
                   <div key={course.id} className="card fade-in">
@@ -246,78 +202,17 @@ export default function TeacherDashboard() {
                       </div>
                     )}
 
-                    {/* Section enroll codes */}
-                    {sectionEntries.length > 0 ? (
-                      <div style={{
-                        marginTop: 12, padding: "10px 12px", background: "var(--surface2)",
-                        borderRadius: 8, fontSize: 12,
-                      }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                          <span style={{ color: "var(--text3)", fontWeight: 600 }}>Sections:</span>
-                          <button
-                            onClick={() => setManagingSections(isManaging ? null : course.id)}
-                            style={{ fontSize: 11, color: "var(--amber)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}
-                          >
-                            {isManaging ? "Done" : "Manage"}
-                          </button>
-                        </div>
-                        {sectionEntries.map(([id, sec]) => (
-                          <div key={id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0" }}>
-                            <span style={{ color: "var(--text2)" }}>{sec.name}</span>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{
-                                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13,
-                                color: "var(--amber)", letterSpacing: 1.5,
-                              }}>{sec.enrollCode}</span>
-                              {isManaging && (
-                                <button
-                                  onClick={() => handleRemoveSection(course.id, id)}
-                                  style={{ fontSize: 11, color: "var(--red)", background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}
-                                  title="Remove section"
-                                >✕</button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{
-                        marginTop: 12, padding: "10px 12px", background: "var(--surface2)",
-                        borderRadius: 8, fontSize: 12, textAlign: "center",
-                      }}>
-                        <div style={{ color: "var(--text3)", marginBottom: 6 }}>No sections yet</div>
-                        {!isManaging && (
-                          <button
-                            onClick={() => setManagingSections(course.id)}
-                            style={{ fontSize: 12, color: "var(--amber)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}
-                          >
-                            + Add sections
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Add section form */}
-                    {isManaging && (
-                      <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
-                        <input
-                          className="editor-input"
-                          placeholder="e.g. Period 3"
-                          value={newSectionName}
-                          onChange={(e) => setNewSectionName(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleAddSection(course.id)}
-                          style={{ flex: 1, fontSize: 12, padding: "6px 10px" }}
-                        />
-                        <button
-                          onClick={() => handleAddSection(course.id)}
-                          disabled={!newSectionName.trim() || addingSection}
-                          className="btn btn-primary"
-                          style={{ fontSize: 11, padding: "6px 12px", opacity: !newSectionName.trim() || addingSection ? 0.5 : 1 }}
-                        >
-                          {addingSection ? "..." : "+ Add"}
-                        </button>
-                      </div>
-                    )}
+                    {/* Enrollment code */}
+                    <div style={{
+                      marginTop: 12, padding: "10px 12px", background: "var(--surface2)",
+                      borderRadius: 8, fontSize: 12, display: "flex", justifyContent: "space-between", alignItems: "center",
+                    }}>
+                      <span style={{ color: "var(--text3)", fontWeight: 600 }}>Enroll Code:</span>
+                      <span style={{
+                        fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14,
+                        color: "var(--amber)", letterSpacing: 1.5,
+                      }}>{displayCode}</span>
+                    </div>
 
                     <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", gap: 14 }}>
                       <Link to={`/xp-controls/${course.id}`} style={{ fontSize: 13, color: "var(--amber)", textDecoration: "none", fontWeight: 600 }}>
