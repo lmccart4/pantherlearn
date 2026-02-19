@@ -122,12 +122,13 @@ export default function AvatarCreator() {
       if (existing) setAvatar(existing);
 
       // Fetch enrolled courses, then get course-specific gamification XP
+      // Note: getStudentEnrolledCourseIds returns a Set, not an Array
       let xp = 0;
       try {
-        const enrolledIds = await getStudentEnrolledCourseIds(user.uid);
-        if (enrolledIds.length > 0) {
-          // Use the primary (first) enrolled course, same as StudentDashboard
-          const gam = await getStudentGamification(user.uid, enrolledIds[0]);
+        const enrolledSet = await getStudentEnrolledCourseIds(user.uid);
+        if (enrolledSet.size > 0) {
+          const primaryCourseId = [...enrolledSet][0];
+          const gam = await getStudentGamification(user.uid, primaryCourseId);
           xp = gam.totalXP || 0;
         }
       } catch (e) {
