@@ -425,8 +425,36 @@ a:hover { color: var(--amber-bright); text-decoration: underline; }
 }
 .music-config-input:focus { border-color: var(--purple); }
 
-/* Responsive: hide on very small screens */
+/* --- Minimized Music Bar --- */
+.floating-music-minibar {
+  position: fixed; bottom: 24px; left: 24px; z-index: 9000;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 24px;
+  background: linear-gradient(135deg, rgba(176,142,255,0.12), rgba(96,165,250,0.06));
+  border: 1px solid rgba(176,142,255,0.25);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  animation: fmpSlideIn 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  max-width: 320px;
+}
+.fmm-track-name {
+  font-size: 12px; font-weight: 600; color: var(--purple);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1; min-width: 0; max-width: 140px;
+}
+.fmm-btn {
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(176,142,255,0.2);
+  background: rgba(176,142,255,0.08); color: var(--text2); cursor: pointer; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.fmm-btn:hover {
+  border-color: var(--purple); background: rgba(176,142,255,0.18); color: var(--purple);
+}
+
+/* Responsive: adjust on very small screens */
 @media (max-width: 480px) {
   .floating-music-btn { bottom: 16px; left: 16px; width: 44px; height: 44px; font-size: 18px; }
   .floating-music-panel { left: 12px; right: 12px; width: auto; bottom: 72px; }
+  .floating-music-minibar { left: 12px; right: 12px; max-width: none; bottom: 16px; }
 }

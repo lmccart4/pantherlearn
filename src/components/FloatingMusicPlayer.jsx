@@ -119,6 +119,7 @@ function MusicConfig({ courseId, tracks, onSave, onClose }) {
 export default function FloatingMusicPlayer() {
   const { user, userRole } = useAuth();
   const [open, setOpen] = useState(false);
+  const [minimized, setMinimized] = useState(false); // minimized = slim bar, music keeps playing
   const [showConfig, setShowConfig] = useState(false);
   const [tracks, setTracks] = useState([]);
   const [currentTrack, setCurrentTrack] = useState(0);
@@ -241,24 +242,65 @@ export default function FloatingMusicPlayer() {
 
   return (
     <>
-      {/* Floating music button — bottom left */}
-      <button
-        onClick={() => {
-          if (validTracks.length === 0 && userRole === "teacher") {
-            setOpen(true);
-            setShowConfig(true);
-          } else {
-            setOpen(!open);
-          }
-        }}
-        className="floating-music-btn"
-        style={{ transform: open ? "scale(0.9)" : "scale(1)" }}
-      >
-        {open ? "✕" : (isPlaying ? "🎵" : "🎶")}
-        {isPlaying && !open && (
-          <span className="floating-music-pulse" />
-        )}
-      </button>
+      {/* Hidden iframe — keeps music playing even when panel is closed/minimized */}
+      {isPlaying && videoId && (
+        <iframe
+          ref={iframeRef}
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&loop=1&playlist=${videoId}`}
+          title={track?.label || "Music"}
+          width="0"
+          height="0"
+          style={{ position: "absolute", top: -9999, left: -9999, border: "none", pointerEvents: "none" }}
+          allow="autoplay; encrypted-media"
+        />
+      )}
+
+      {/* Minimized bar — slim controls while music plays */}
+      {minimized && isPlaying && !open && (
+        <div className="floating-music-minibar">
+          <span className="floating-music-note-pulse" style={{ fontSize: 14 }}>♪</span>
+          <span className="fmm-track-name">
+            {track?.label || "Now Playing"}
+          </span>
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            {validTracks.length > 1 && (
+              <button className="fmm-btn" onClick={handlePrev} title="Previous">⏮</button>
+            )}
+            <button className="fmm-btn" onClick={handlePlayPause} title="Pause">⏸</button>
+            {validTracks.length > 1 && (
+              <button className="fmm-btn" onClick={handleNext} title="Next">⏭</button>
+            )}
+          </div>
+          <button
+            className="fmm-btn"
+            onClick={() => { setMinimized(false); setOpen(true); }}
+            title="Expand"
+            style={{ marginLeft: 2 }}
+          >↗</button>
+        </div>
+      )}
+
+      {/* Floating music button — bottom left (hidden when minimized bar is showing) */}
+      {!(minimized && isPlaying) && (
+        <button
+          onClick={() => {
+            if (validTracks.length === 0 && userRole === "teacher") {
+              setOpen(true);
+              setShowConfig(true);
+            } else {
+              setOpen(!open);
+              setMinimized(false);
+            }
+          }}
+          className="floating-music-btn"
+          style={{ transform: open ? "scale(0.9)" : "scale(1)" }}
+        >
+          {open ? "✕" : (isPlaying ? "🎵" : "🎶")}
+          {isPlaying && !open && (
+            <span className="floating-music-pulse" />
+          )}
+        </button>
+      )}
 
       {/* Music panel */}
       {open && (
@@ -308,17 +350,31 @@ export default function FloatingMusicPlayer() {
                     )}
                   </div>
                 </div>
-                {userRole === "teacher" && (
-                  <button
-                    onClick={() => setShowConfig(true)}
-                    title="Configure playlist"
-                    style={{
-                      width: 30, height: 30, borderRadius: 7, border: "1px solid var(--border)",
-                      background: "var(--bg)", color: "var(--text3)", cursor: "pointer", fontSize: 14,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                  >⚙️</button>
-                )}
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {/* Minimize button — only visible when music is playing */}
+                  {isPlaying && (
+                    <button
+                      onClick={() => { setMinimized(true); setOpen(false); }}
+                      title="Minimize — music keeps playing"
+                      style={{
+                        width: 30, height: 30, borderRadius: 7, border: "1px solid var(--border)",
+                        background: "var(--bg)", color: "var(--text3)", cursor: "pointer", fontSize: 14,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >▾</button>
+                  )}
+                  {userRole === "teacher" && (
+                    <button
+                      onClick={() => setShowConfig(true)}
+                      title="Configure playlist"
+                      style={{
+                        width: 30, height: 30, borderRadius: 7, border: "1px solid var(--border)",
+                        background: "var(--bg)", color: "var(--text3)", cursor: "pointer", fontSize: 14,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >⚙️</button>
+                  )}
+                </div>
               </div>
 
               {validTracks.length === 0 ? (
@@ -343,18 +399,16 @@ export default function FloatingMusicPlayer() {
                 </div>
               ) : (
                 <>
-                  {/* YouTube embed (small) */}
+                  {/* YouTube embed preview (visible in panel) */}
                   <div className="floating-music-embed">
                     {isPlaying && videoId ? (
-                      <iframe
-                        ref={iframeRef}
-                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&loop=1&playlist=${videoId}`}
-                        title={track?.label || "Music"}
-                        width="100%"
-                        height="60"
-                        style={{ border: "none", borderRadius: 8 }}
-                        allow="autoplay; encrypted-media"
-                      />
+                      <div style={{
+                        height: 60, display: "flex", alignItems: "center", justifyContent: "center",
+                        gap: 8, color: "var(--purple)", fontSize: 13, fontWeight: 600,
+                      }}>
+                        <span className="floating-music-note-pulse" style={{ fontSize: 18 }}>♪</span>
+                        Playing: {track?.label || "Track " + (currentTrack + 1)}
+                      </div>
                     ) : (
                       <div style={{
                         height: 60, display: "flex", alignItems: "center", justifyContent: "center",
