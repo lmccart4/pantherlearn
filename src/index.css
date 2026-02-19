@@ -555,3 +555,132 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
   .floating-music-panel { left: 12px; right: 12px; width: auto; bottom: 72px; }
   .floating-music-minibar { left: 12px; right: 12px; max-width: none; bottom: 16px; }
 }
+
+/* --- Annotation Overlay --- */
+.annotation-fab {
+  position: fixed; bottom: 90px; right: 24px; z-index: 9000;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), #3b82f6);
+  border: 2px solid rgba(34, 211, 238, 0.3);
+  box-shadow: 0 4px 20px rgba(34, 211, 238, 0.3);
+  cursor: pointer; font-size: 20px; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+}
+.annotation-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(34, 211, 238, 0.45);
+}
+.annotation-fab.active {
+  background: linear-gradient(135deg, var(--red), #dc2626);
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.35);
+}
+
+.annotation-badge {
+  position: fixed; bottom: 130px; right: 20px; z-index: 9000;
+  background: var(--amber); color: #000; font-size: 11px; font-weight: 700;
+  min-width: 20px; height: 20px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 5px; pointer-events: none;
+  font-family: var(--font-body);
+}
+
+.annotation-overlay {
+  position: fixed; inset: 0; z-index: 8999;
+  pointer-events: auto; overflow: hidden;
+}
+.annotation-canvas {
+  position: absolute; top: 0; left: 0;
+}
+
+.annotation-toolbar {
+  position: fixed; top: 72px; left: 50%; transform: translateX(-50%);
+  z-index: 9001;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px;
+  background: rgba(22, 26, 38, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: annotationSlideIn 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes annotationSlideIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.annotation-colors {
+  display: flex; align-items: center; gap: 5px;
+}
+.annotation-color-btn {
+  width: 24px; height: 24px; border-radius: 50%;
+  cursor: pointer; transition: all 0.15s; flex-shrink: 0; padding: 0;
+}
+.annotation-color-btn:hover { transform: scale(1.2); }
+.annotation-color-btn.active { transform: scale(1.25); }
+
+.annotation-sep {
+  width: 1px; height: 24px; background: var(--border); flex-shrink: 0;
+}
+
+.annotation-size {
+  display: flex; align-items: center; gap: 6px;
+}
+.annotation-size-slider {
+  width: 70px; height: 4px; accent-color: var(--amber); cursor: pointer;
+}
+.annotation-size-dot {
+  border-radius: 50%; flex-shrink: 0; transition: all 0.15s;
+}
+
+.annotation-tool-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: transparent;
+  color: var(--text2); cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.annotation-tool-btn:hover { border-color: var(--amber); color: var(--text); }
+.annotation-tool-btn.active {
+  border-color: var(--amber); background: var(--amber-dim);
+  color: var(--amber);
+}
+
+.annotation-action-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: transparent;
+  color: var(--text2); cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.annotation-action-btn:hover:not(:disabled) { border-color: var(--amber); color: var(--text); }
+.annotation-action-btn:disabled { opacity: 0.3; cursor: default; }
+.annotation-clear:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+
+.annotation-close-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1.5px solid rgba(239, 68, 68, 0.4); background: var(--red-dim);
+  color: var(--red); cursor: pointer; font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.annotation-close-btn:hover { background: rgba(239, 68, 68, 0.2); }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .annotation-fab { bottom: 80px; right: 16px; width: 46px; height: 46px; font-size: 18px; }
+  .annotation-badge { bottom: 118px; right: 12px; }
+  .annotation-toolbar {
+    top: auto; bottom: 140px; left: 12px; right: 12px;
+    transform: none; flex-wrap: wrap; justify-content: center;
+    padding: 8px 12px;
+  }
+  @keyframes annotationSlideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .annotation-color-btn { width: 22px; height: 22px; }
+  .annotation-size-slider { width: 50px; }
+}
