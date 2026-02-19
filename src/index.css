@@ -588,10 +588,10 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
 
 .annotation-overlay {
   position: fixed; inset: 0; z-index: 8999;
-  pointer-events: auto; overflow: hidden;
+  pointer-events: auto;
 }
 .annotation-canvas {
-  position: absolute; top: 0; left: 0;
+  display: block;
 }
 
 .annotation-toolbar {
