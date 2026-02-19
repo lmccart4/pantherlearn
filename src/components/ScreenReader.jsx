@@ -320,10 +320,45 @@ export default function ScreenReader() {
   // Don't render on non-lesson pages or if not logged in
   if (!user || !courseId || !lessonId) return null;
 
-  // Filter to English voices first, then others
-  const englishVoices = voices.filter((v) => v.lang.startsWith("en"));
-  const otherVoices = voices.filter((v) => !v.lang.startsWith("en"));
-  const sortedVoices = [...englishVoices, ...otherVoices];
+  // Curate to ~5 best English voices — prefer high-quality / natural ones
+  const curatedVoices = (() => {
+    const english = voices.filter((v) => v.lang.startsWith("en"));
+    if (english.length === 0) return voices.slice(0, 5);
+
+    // Preferred voice name fragments (order = priority). These cover the
+    // most common high-quality voices across Chrome, Safari, Edge, Firefox.
+    const preferred = [
+      "samantha", "daniel", "karen", "google us english", "google uk english",
+      "microsoft zira", "microsoft david", "microsoft mark",
+      "alex", "allison", "ava", "tom", "susan",
+    ];
+
+    const picked = [];
+    const usedNames = new Set();
+
+    // First pass: pick preferred voices in priority order
+    for (const pref of preferred) {
+      if (picked.length >= 5) break;
+      const match = english.find(
+        (v) => v.name.toLowerCase().includes(pref) && !usedNames.has(v.name)
+      );
+      if (match) {
+        picked.push(match);
+        usedNames.add(match.name);
+      }
+    }
+
+    // Fill remaining slots with any other English voices
+    for (const v of english) {
+      if (picked.length >= 5) break;
+      if (!usedNames.has(v.name)) {
+        picked.push(v);
+        usedNames.add(v.name);
+      }
+    }
+
+    return picked;
+  })();
 
   return (
     <>
@@ -411,7 +446,7 @@ export default function ScreenReader() {
               </div>
 
               {/* Voice selector */}
-              {sortedVoices.length > 0 && (
+              {curatedVoices.length > 0 && (
                 <div className="sr-option-row">
                   <label className="sr-label">Voice</label>
                   <select
@@ -419,7 +454,7 @@ export default function ScreenReader() {
                     value={selectedVoice}
                     onChange={(e) => handleVoiceChange(e.target.value)}
                   >
-                    {sortedVoices.map((v) => (
+                    {curatedVoices.map((v) => (
                       <option key={v.name} value={v.name}>
                         {v.name} ({v.lang})
                       </option>
