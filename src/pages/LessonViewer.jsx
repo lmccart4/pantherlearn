@@ -160,6 +160,10 @@ export default function LessonViewer() {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
       }
+      if (block.type === "sketch") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted]);

@@ -34,6 +34,7 @@ const BLOCK_TYPES = [
   { type: "simulation", label: "Simulation", icon: "🧪" },
   { type: "evidence_upload", label: "Evidence Upload", icon: "📷" },
   { type: "bar_chart", label: "Bar Chart", icon: "📊" },
+  { type: "sketch", label: "Sketch Canvas", icon: "✏️" },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -70,6 +71,7 @@ function defaultBlockData(typeInfo) {
     case "simulation": return { ...base, icon: "🧪", title: "Interactive Simulation", url: "", height: 500, observationPrompt: "" };
     case "evidence_upload": return { ...base, icon: "📷", title: "Upload Evidence", instructions: "", reflectionPrompt: "What did you observe? What did you learn?" };
     case "bar_chart": return { ...base, title: "Energy Bar Chart", barCount: 4, initialLabel: "Initial State", finalLabel: "Final State", deltaLabel: "" };
+    case "sketch": return { ...base, title: "Sketch", instructions: "", canvasHeight: 400 };
     default: return base;
   }
 }
@@ -427,6 +429,12 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
           <Field label="Title" value={block.title} onChange={(v) => update("title", v)} />
           <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline placeholder="Take a photo of your lab setup..." />
           <Field label="Reflection Prompt (optional)" value={block.reflectionPrompt} onChange={(v) => update("reflectionPrompt", v)} multiline placeholder="What did you observe?" />
+        </>);
+      case "sketch":
+        return (<>
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="e.g. Free Body Diagram" />
+          <Field label="Instructions (optional)" value={block.instructions} onChange={(v) => update("instructions", v)} multiline placeholder="Draw the forces acting on the block..." />
+          <Field label="Canvas Height (px)" value={block.canvasHeight || 400} onChange={(v) => update("canvasHeight", Math.max(200, Math.min(800, parseInt(v) || 400)))} small />
         </>);
       case "bar_chart":
         return (<>
