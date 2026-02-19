@@ -199,7 +199,27 @@ export const BADGES = [
   { id: "level_ten", icon: "🌿", name: "Journeyman", description: "Reach Level 10", rarity: "rare", hidden: false, check: (g) => getLevelInfo(g.totalXP || 0).current.level >= 10 },
   { id: "level_twenty", icon: "🔮", name: "Veteran", description: "Reach Level 20", rarity: "epic", hidden: false, check: (g) => getLevelInfo(g.totalXP || 0).current.level >= 20 },
   { id: "level_thirty_five", icon: "👑", name: "Panther Elite", description: "Reach Level 35 — the pinnacle", rarity: "legendary", hidden: false, check: (g) => getLevelInfo(g.totalXP || 0).current.level >= 35 },
-  // Hidden badges
+  // ─── New Uncommon Badges ───
+  { id: "twenty_lessons", icon: "📖", name: "Dedicated Learner", description: "Complete 20 lessons", rarity: "uncommon", hidden: false, check: (g) => (g.lessonsCompleted || 0) >= 20 },
+  { id: "fourteen_streak", icon: "🌟", name: "Two-Week Warrior", description: "Reach a 14-day streak", rarity: "uncommon", hidden: false, check: (g) => (g.currentStreak || 0) >= 14 },
+  { id: "two_hundred_questions", icon: "🧠", name: "Knowledge Seeker", description: "Answer 200 questions", rarity: "uncommon", hidden: false, check: (g) => (g.totalAnswered || 0) >= 200 },
+  { id: "fifty_correct", icon: "🎯", name: "Sharpshooter", description: "Get 50 questions correct", rarity: "uncommon", hidden: false, check: (g) => (g.totalCorrect || 0) >= 50 },
+  // ─── New Rare Badges ───
+  { id: "fifty_lessons", icon: "🏛️", name: "Academy Graduate", description: "Complete 50 lessons", rarity: "rare", hidden: false, check: (g) => (g.lessonsCompleted || 0) >= 50 },
+  { id: "two_hundred_correct", icon: "💎", name: "Diamond Mind", description: "Get 200 questions correct", rarity: "rare", hidden: false, check: (g) => (g.totalCorrect || 0) >= 200 },
+  { id: "level_fifteen", icon: "🛡️", name: "Guardian", description: "Reach Level 15", rarity: "rare", hidden: false, check: (g) => getLevelInfo(g.totalXP || 0).current.level >= 15 },
+  { id: "thousand_questions", icon: "🗿", name: "Monolith", description: "Answer 1,000 questions", rarity: "rare", hidden: false, check: (g) => (g.totalAnswered || 0) >= 1000 },
+  // ─── New Epic Badges ───
+  { id: "hundred_lessons", icon: "🌋", name: "Unstoppable Force", description: "Complete 100 lessons", rarity: "epic", hidden: false, check: (g) => (g.lessonsCompleted || 0) >= 100 },
+  { id: "five_hundred_correct", icon: "🔱", name: "Trident Master", description: "Get 500 questions correct", rarity: "epic", hidden: false, check: (g) => (g.totalCorrect || 0) >= 500 },
+  { id: "level_twenty_five", icon: "⚜️", name: "Commander", description: "Reach Level 25", rarity: "epic", hidden: false, check: (g) => getLevelInfo(g.totalXP || 0).current.level >= 25 },
+  { id: "sixty_streak", icon: "☄️", name: "Supernova", description: "Reach a 60-day streak", rarity: "epic", hidden: false, check: (g) => (g.currentStreak || 0) >= 60 },
+  // ─── New Legendary Badges ───
+  { id: "two_hundred_lessons", icon: "🏰", name: "Grand Scholar", description: "Complete 200 lessons", rarity: "legendary", hidden: false, check: (g) => (g.lessonsCompleted || 0) >= 200 },
+  { id: "thousand_correct", icon: "💫", name: "Transcendent", description: "Get 1,000 questions correct", rarity: "legendary", hidden: false, check: (g) => (g.totalCorrect || 0) >= 1000 },
+  { id: "level_forty", icon: "🐉", name: "Dragon", description: "Reach Level 40", rarity: "legendary", hidden: false, check: (g) => getLevelInfo(g.totalXP || 0).current.level >= 40 },
+  { id: "ninety_streak", icon: "🌌", name: "Eternal Flame", description: "Reach a 90-day streak", rarity: "legendary", hidden: false, check: (g) => (g.currentStreak || 0) >= 90 },
+  // ─── Hidden Badges ───
   { id: "night_owl", icon: "🦉", name: "Night Owl", description: "Complete a lesson after 9 PM", rarity: "rare", hidden: true, check: (g) => g.hasNightOwl === true },
   { id: "early_bird", icon: "🐦", name: "Early Bird", description: "Complete a lesson before 7 AM", rarity: "rare", hidden: true, check: (g) => g.hasEarlyBird === true },
   { id: "speed_demon", icon: "⚡", name: "Speed Demon", description: "Answer 10 questions correctly in under 2 minutes", rarity: "epic", hidden: true, check: (g) => g.hasSpeedDemon === true },
