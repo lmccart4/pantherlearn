@@ -20,7 +20,6 @@ import DataTableBlock from "./DataTableBlock";
 import SimulationBlock from "./SimulationBlock";
 import EvidenceUploadBlock from "./EvidenceUploadBlock";
 import BarChartBlock from "./BarChartBlock";
-import HighlightableBlock from "./HighlightableBlock";
 import ErrorBoundary from "./ErrorBoundary";
 
 const BLOCK_MAP = {
@@ -47,8 +46,6 @@ const BLOCK_MAP = {
   bar_chart: BarChartBlock,
 };
 
-const HIGHLIGHTABLE = new Set(["text", "callout", "definition", "activity", "objectives", "vocab_list"]);
-
 export default function BlockRenderer({ block, extraProps = {} }) {
   const Component = BLOCK_MAP[block.type];
   if (!Component) return null;
@@ -57,27 +54,9 @@ export default function BlockRenderer({ block, extraProps = {} }) {
     return <DividerBlock />;
   }
 
-  // Extract highlight props before passing the rest to the component
-  const { highlights, onHighlight, ...blockProps } = extraProps;
-
-  const rendered = (
+  return (
     <ErrorBoundary>
-      <Component block={block} {...blockProps} />
+      <Component block={block} {...extraProps} />
     </ErrorBoundary>
   );
-
-  // Wrap highlightable blocks when highlight props are provided
-  if (HIGHLIGHTABLE.has(block.type) && onHighlight) {
-    return (
-      <HighlightableBlock
-        blockId={block.id}
-        highlights={highlights || []}
-        onHighlight={onHighlight}
-      >
-        {rendered}
-      </HighlightableBlock>
-    );
-  }
-
-  return rendered;
 }
