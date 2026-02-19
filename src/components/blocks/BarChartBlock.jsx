@@ -15,6 +15,7 @@ const COLORS = {
     bar: "#557733",
     border: "#446622",
     label: "#446622",
+    valueText: "#c8e6a0",
   },
   delta: {
     bg: "rgba(51,51,204,0.10)",
@@ -22,6 +23,7 @@ const COLORS = {
     bar: "#5555ee",
     border: "#3333aa",
     label: "#5555ee",
+    valueText: "#b8b8ff",
   },
   final: {
     bg: "rgba(204,85,68,0.10)",
@@ -29,6 +31,7 @@ const COLORS = {
     bar: "#aa3322",
     border: "#882211",
     label: "#882211",
+    valueText: "#f5b8b0",
   },
 };
 
@@ -38,7 +41,6 @@ const defaultSection = (count = 4) =>
   Array.from({ length: count }, () => makeBar());
 
 export default function BarChartBlock({ block, studentData, onAnswer }) {
-  // Load saved state or initialize
   const saved = (studentData || {})[block.id] || {};
   const defaultCount = block.barCount || 4;
 
@@ -53,14 +55,12 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
   );
   const [deltaLabel, setDeltaLabel] = useState(() => saved.deltaLabel || "");
 
-  // Manual value entry (Ctrl/Cmd + click)
-  const [editingBar, setEditingBar] = useState(null); // "initial-0", "delta-0", "final-2" etc.
+  const [editingBar, setEditingBar] = useState(null);
   const [editingValue, setEditingValue] = useState("");
 
   const containerRef = useRef(null);
   const dragRef = useRef({ active: false, section: null, barIdx: null, el: null });
 
-  // Keep refs for saves
   const initialRef = useRef(initialBars);
   const deltaRef = useRef(deltaBars);
   const finalRef = useRef(finalBars);
@@ -68,7 +68,6 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
   deltaRef.current = deltaBars;
   finalRef.current = finalBars;
 
-  // Auto-save
   const performSave = useCallback(() => {
     if (!onAnswer) return;
     onAnswer(block.id, {
@@ -82,7 +81,6 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
 
   const { markDirty, saveNow } = useAutoSave(performSave);
 
-  // Helper: get all values across all sections for auto-scaling
   const allValues = [
     ...initialBars.map((b) => b.value),
     ...deltaBars.map((b) => b.value),
@@ -90,10 +88,9 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
   ];
   const maxAbs = Math.max(1, ...allValues.map(Math.abs));
 
-  // Bars fill max 75% of half-height so they stay within header/label bounds
-  const scaledPercent = (rawValue) => (Math.abs(rawValue) / maxAbs) * 75;
+  // Max 60% of half-height so bars stay well within visible bounds
+  const scaledPercent = (rawValue) => (Math.abs(rawValue) / maxAbs) * 60;
 
-  // Setters by section name
   const getSetter = (section) => {
     if (section === "initial") return setInitialBars;
     if (section === "delta") return setDeltaBars;
@@ -105,7 +102,6 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     return finalBars;
   };
 
-  // Map clientY to a raw value -100..+100
   const clientYToValue = (clientY, barColEl) => {
     const sectionEl = barColEl.closest("[data-section]");
     const wrapper = sectionEl?.querySelector(".bc-bars-wrapper");
@@ -117,7 +113,6 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     return Math.max(-100, Math.min(100, raw));
   };
 
-  // Commit manual value
   const commitManualValue = (section, barIdx, raw) => {
     const num = parseFloat(raw);
     if (isNaN(num)) { setEditingBar(null); setEditingValue(""); return; }
@@ -134,11 +129,9 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     setTimeout(() => saveNow(), 0);
   };
 
-  // Drag handlers
   const handlePointerDown = (e, section, barIdx) => {
-    if (e.target.tagName === "INPUT") return;
+    if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
 
-    // Ctrl/Cmd+click → manual entry
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
       e.stopPropagation();
@@ -192,7 +185,6 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     };
   }, [markDirty, saveNow]);
 
-  // Add / remove bar
   const addBar = (section) => {
     const setter = getSetter(section);
     setter((prev) => [...prev, makeBar()]);
@@ -201,7 +193,7 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
   const removeBar = (section, idx) => {
     const setter = getSetter(section);
     setter((prev) => {
-      if (prev.length <= 1) return prev; // keep at least 1
+      if (prev.length <= 1) return prev;
       const next = [...prev];
       next.splice(idx, 1);
       return next;
@@ -209,7 +201,6 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     markDirty();
   };
 
-  // Update bar label or subscript
   const updateBarField = (section, idx, field, value) => {
     const setter = getSetter(section);
     setter((prev) => {
@@ -220,7 +211,6 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     markDirty();
   };
 
-  // Render a single bar
   const renderBar = (bar, idx, section, color) => {
     const val = bar.value;
     const pct = scaledPercent(val);
@@ -236,6 +226,40 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
         onTouchStart={(e) => handlePointerDown(e, section, idx)}
         style={{ cursor: "ns-resize" }}
       >
+        {/* Label + subscript — positioned directly above the bar column */}
+        <div className="bc-label-container" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+          <div className="bc-label-group">
+            <input
+              type="text"
+              className="bc-label-main"
+              value={bar.label}
+              onChange={(e) => updateBarField(section, idx, "label", e.target.value)}
+              onBlur={saveNow}
+              placeholder="K"
+              style={{ borderColor: color.label }}
+            />
+            <input
+              type="text"
+              className="bc-label-sub"
+              value={bar.subscript}
+              onChange={(e) => updateBarField(section, idx, "subscript", e.target.value)}
+              onBlur={saveNow}
+              placeholder="sub"
+              style={{ borderColor: color.label }}
+            />
+          </div>
+          {getBars(section).length > 1 && (
+            <button
+              className="bc-remove-bar"
+              onClick={(e) => { e.stopPropagation(); removeBar(section, idx); }}
+              onMouseDown={(e) => e.stopPropagation()}
+              title="Remove this bar"
+            >
+              &times;
+            </button>
+          )}
+        </div>
+
         {/* The bar itself */}
         <div
           className="bc-bar"
@@ -247,7 +271,14 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
               ? { bottom: "50%", top: "auto" }
               : { top: "50%", bottom: "auto" }),
           }}
-        />
+        >
+          {/* Value number inside the bar */}
+          {val !== 0 && !isEditing && (
+            <span className="bc-bar-value" style={{ color: color.valueText }}>
+              {val}
+            </span>
+          )}
+        </div>
 
         {/* Manual value input overlay */}
         {isEditing && (
@@ -268,66 +299,14 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
             />
           </div>
         )}
-
-        {/* Value tooltip on the bar */}
-        {val !== 0 && !isEditing && (
-          <div
-            className="bc-value-tooltip"
-            style={{
-              ...(isPositive
-                ? { bottom: `calc(50% + ${pct}% + 4px)` }
-                : { top: `calc(50% + ${pct}% + 4px)` }),
-              color: color.bar,
-            }}
-          >
-            {val}
-          </div>
-        )}
-
-        {/* Label + subscript area */}
-        <div className="bc-label-container">
-          <div className="bc-label-group" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-            <input
-              type="text"
-              className="bc-label-main"
-              value={bar.label}
-              onChange={(e) => updateBarField(section, idx, "label", e.target.value)}
-              onBlur={saveNow}
-              placeholder="K"
-              style={{ borderColor: color.label }}
-            />
-            <input
-              type="text"
-              className="bc-label-sub"
-              value={bar.subscript}
-              onChange={(e) => updateBarField(section, idx, "subscript", e.target.value)}
-              onBlur={saveNow}
-              placeholder="sub"
-              style={{ borderColor: color.label }}
-            />
-          </div>
-          {/* Remove button */}
-          {getBars(section).length > 1 && (
-            <button
-              className="bc-remove-bar"
-              onClick={(e) => { e.stopPropagation(); removeBar(section, idx); }}
-              onMouseDown={(e) => e.stopPropagation()}
-              title="Remove this bar"
-            >
-              &times;
-            </button>
-          )}
-        </div>
       </div>
     );
   };
 
-  // Grid lines (10 horizontal)
   const gridLines = Array.from({ length: 11 }, (_, i) => (
     <div key={i} className="bc-grid-line" style={{ top: `${i * 10}%` }} />
   ));
 
-  // Render a section with its bars + add button
   const renderSection = (bars, section, color, headerContent, sectionClass, flexVal) => (
     <div
       className={`bc-section ${sectionClass}`}
@@ -342,10 +321,9 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     >
       {gridLines}
       <div className="bc-axis-line" />
-      <div className="bc-header-container">{headerContent}</div>
-      <div className="bc-bars-wrapper">
-        {bars.map((bar, i) => renderBar(bar, i, section, color))}
-        {/* Add bar button */}
+      <div className="bc-header-container">
+        {headerContent}
+        {/* Add bar button — in the header row */}
         {bars.length < 6 && (
           <button
             className="bc-add-bar"
@@ -356,6 +334,9 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
           </button>
         )}
       </div>
+      <div className="bc-bars-wrapper">
+        {bars.map((bar, i) => renderBar(bar, i, section, color))}
+      </div>
     </div>
   );
 
@@ -364,23 +345,16 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
       {block.title && <div className="bc-title">{block.title}</div>}
 
       <div className="bc-chart-container" style={{ userSelect: "none" }}>
-        {/* Initial State */}
         {renderSection(
-          initialBars,
-          "initial",
-          COLORS.initial,
+          initialBars, "initial", COLORS.initial,
           <div className="bc-header-box" style={{ backgroundColor: COLORS.initial.header }}>
             {block.initialLabel || "Initial State"}
           </div>,
-          "bc-section-initial",
-          4
+          "bc-section-initial", 4
         )}
 
-        {/* Delta */}
         {renderSection(
-          deltaBars,
-          "delta",
-          COLORS.delta,
+          deltaBars, "delta", COLORS.delta,
           <div className="bc-delta-header-group">
             <span className="bc-delta-symbol">&Delta;</span>
             <input
@@ -392,20 +366,15 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
               placeholder="Label"
             />
           </div>,
-          "bc-section-delta",
-          1.5
+          "bc-section-delta", 1.5
         )}
 
-        {/* Final State */}
         {renderSection(
-          finalBars,
-          "final",
-          COLORS.final,
+          finalBars, "final", COLORS.final,
           <div className="bc-header-box bc-header-final" style={{ backgroundColor: COLORS.final.header }}>
             {block.finalLabel || "Final State"}
           </div>,
-          "bc-section-final",
-          4
+          "bc-section-final", 4
         )}
       </div>
 
