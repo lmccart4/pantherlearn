@@ -431,13 +431,12 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
       case "bar_chart":
         return (<>
           <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="e.g. Energy Bar Chart" />
-          <Field label="Bars per Section" value={block.barCount || 4} onChange={(v) => update("barCount", Math.max(1, Math.min(6, parseInt(v) || 4)))} small />
           <div style={{ display: "flex", gap: 12 }}>
             <div style={{ flex: 1 }}><Field label="Initial State Label" value={block.initialLabel || ""} onChange={(v) => update("initialLabel", v)} placeholder="Initial State" /></div>
             <div style={{ flex: 1 }}><Field label="Final State Label" value={block.finalLabel || ""} onChange={(v) => update("finalLabel", v)} placeholder="Final State" /></div>
           </div>
           <p style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.5 }}>
-            Students drag bars up (positive) or down (negative) from the center axis. The Y-axis auto-scales so the tallest bar always fills the chart.
+            Students drag bars up or down, and can add/remove bars per section. Each bar has a label + subscript field (e.g. K<sub>E,i</sub>). Ctrl/Cmd+click a bar to type an exact value.
           </p>
         </>);
       default: return <p style={{ color: "var(--text3)" }}>Unknown block type</p>;
