@@ -106,7 +106,7 @@ export default function CoursePage() {
 
   return (
     <div className="page-container" style={{ padding: "48px 40px" }}>
-      <div style={{ maxWidth: isTeacher ? 700 : 1060, margin: "0 auto" }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <Link to="/" style={{ fontSize: 13, color: "var(--text3)", marginBottom: 16, display: "block" }} data-translatable>{ui(1, "← Back to Dashboard")}</Link>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
           <div style={{
@@ -145,14 +145,11 @@ export default function CoursePage() {
         {/* Mana Pool (visible to all when enabled) */}
         <ManaPool courseId={courseId} />
 
-        {/* Two-column layout for students: lessons + sidebar leaderboard */}
-        <div style={{
-          display: !isTeacher ? "grid" : "block",
-          gridTemplateColumns: !isTeacher ? "1fr 280px" : undefined,
-          gap: !isTeacher ? 24 : undefined,
-          alignItems: "start",
-        }}>
-          {/* Main column: Lessons */}
+        {/* Leaderboard — students only, full width above lessons */}
+        {!isTeacher && <Leaderboard courseId={courseId} />}
+
+        {/* Lessons */}
+        <div>
           <div>
             {lessons.length === 0 ? (
               <div className="card" style={{ textAlign: "center", padding: 60 }}>
@@ -244,6 +241,16 @@ export default function CoursePage() {
                                   const isPastDue = due < now;
                                   const isToday = effectiveDue === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
                                   const isSoon = !isPastDue && !isToday && (due - now) < 2 * 24 * 60 * 60 * 1000;
+
+                                  // Don't show stress-inducing warnings on completed lessons
+                                  if (isCompleted) {
+                                    return (
+                                      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)" }}>
+                                        Due {new Date(effectiveDue + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                      </div>
+                                    );
+                                  }
+
                                   return (
                                     <div style={{
                                       fontSize: 11, fontWeight: 600,
@@ -265,13 +272,6 @@ export default function CoursePage() {
               </div>
             )}
           </div>
-
-          {/* Sidebar: Leaderboard — students only */}
-          {!isTeacher && (
-            <div style={{ position: "sticky", top: 80 }}>
-              <Leaderboard courseId={courseId} />
-            </div>
-          )}
         </div>
       </div>
     </div>
