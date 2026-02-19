@@ -25,6 +25,7 @@ export default function LessonViewer() {
   const [lesson, setLesson] = useState(null);
   const [realStudentData, setRealStudentData] = useState({});
   const [realChatLogs, setRealChatLogs] = useState({});
+  const [highlights, setHighlights] = useState({});
   const [loading, setLoading] = useState(true);
   const [lessonCompleted, setLessonCompleted] = useState(false);
 
@@ -57,8 +58,10 @@ export default function LessonViewer() {
           );
           const progressDoc = await getDoc(progressRef);
           if (progressDoc.exists()) {
-            setRealStudentData(progressDoc.data().answers || {});
-            if (progressDoc.data().completed) setLessonCompleted(true);
+            const progData = progressDoc.data();
+            setRealStudentData(progData.answers || {});
+            if (progData.completed) setLessonCompleted(true);
+            if (progData.highlights) setHighlights(progData.highlights);
           }
         }
       } catch (err) {
@@ -112,6 +115,24 @@ export default function LessonViewer() {
     setRealChatLogs((prev) => ({ ...prev, [blockId]: messages }));
   }, [isPreviewActive]);
 
+  // Highlight persistence — debounced write to Firestore
+  const handleHighlight = useCallback(
+    (blockId, blockHighlights) => {
+      setHighlights((prev) => {
+        const updated = { ...prev, [blockId]: blockHighlights };
+        // Persist to Firestore
+        if (user && !isPreviewActive) {
+          const progressRef = doc(db, "progress", user.uid, "courses", courseId, "lessons", lessonId);
+          setDoc(progressRef, { highlights: updated }, { merge: true }).catch((err) =>
+            console.error("Failed to save highlights:", err)
+          );
+        }
+        return updated;
+      });
+    },
+    [user, courseId, lessonId, isPreviewActive]
+  );
+
   // Teacher: reset own progress so lesson can be demoed fresh
   const resetMyProgress = async () => {
     if (!user || !confirm("Reset your progress on this lesson? All your answers will be cleared.")) return;
@@ -119,6 +140,7 @@ export default function LessonViewer() {
       const progressRef = doc(db, "progress", user.uid, "courses", courseId, "lessons", lessonId);
       await deleteDoc(progressRef);
       setRealStudentData({});
+      setHighlights({});
       setLessonCompleted(false);
       studentDataRef.current = {};
     } catch (err) {
@@ -159,9 +181,15 @@ export default function LessonViewer() {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
       }
+      // Highlighting for text-content blocks (students only)
+      const highlightableTypes = ["text", "callout", "definition", "activity", "objectives", "vocab_list"];
+      if (highlightableTypes.includes(block.type) && isStudent) {
+        extraProps.highlights = highlights[block.id] || [];
+        extraProps.onHighlight = handleHighlight;
+      }
       return { block, extraProps };
     });
-  }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted]);
+  }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted, highlights, handleHighlight, isStudent]);
 
   if (loading) {
     return (
