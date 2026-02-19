@@ -361,7 +361,7 @@ a:hover { color: var(--amber-bright); text-decoration: underline; }
   background: var(--surface); border: 1px solid var(--border);
 }
 .floating-music-controls {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
   padding: 8px 14px 12px;
 }
 .fmc-btn {
@@ -371,6 +371,12 @@ a:hover { color: var(--amber-bright); text-decoration: underline; }
   transition: all 0.2s;
 }
 .fmc-btn:hover { border-color: var(--purple); background: rgba(176,142,255,0.08); }
+.fmc-mode { width: 32px; height: 32px; font-size: 13px; }
+.fmc-active {
+  border-color: var(--purple); color: var(--purple);
+  background: rgba(176,142,255,0.12);
+  box-shadow: 0 0 8px rgba(176,142,255,0.2);
+}
 .fmc-play {
   width: 46px; height: 46px; font-size: 18px;
   background: linear-gradient(135deg, rgba(176,142,255,0.15), rgba(96,165,250,0.08));

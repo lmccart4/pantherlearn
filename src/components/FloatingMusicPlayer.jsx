@@ -124,6 +124,8 @@ export default function FloatingMusicPlayer() {
   const [tracks, setTracks] = useState([]);
   const [currentTrack, setCurrentTrack] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [shuffle, setShuffle] = useState(false);
+  const [repeatMode, setRepeatMode] = useState("off"); // "off" → "one" → "all"
   const [courseId, setCourseId] = useState(null);
   const [courses, setCourses] = useState([]);
   const iframeRef = useRef(null);
@@ -228,16 +230,42 @@ export default function FloatingMusicPlayer() {
     setIsPlaying(!isPlaying);
   };
 
+  const pickNextIndex = (current, direction) => {
+    if (validTracks.length <= 1) return current;
+    if (shuffle) {
+      let next;
+      do { next = Math.floor(Math.random() * validTracks.length); } while (next === current && validTracks.length > 1);
+      return next;
+    }
+    if (direction === 1) return (current + 1) % validTracks.length;
+    return (current - 1 + validTracks.length) % validTracks.length;
+  };
+
   const handleNext = () => {
-    if (validTracks.length <= 1) return;
-    setCurrentTrack((prev) => (prev + 1) % validTracks.length);
+    if (validTracks.length <= 1 && repeatMode !== "one") return;
+    if (repeatMode === "one") {
+      // Re-trigger same track by toggling play
+      setIsPlaying(false);
+      setTimeout(() => setIsPlaying(true), 50);
+      return;
+    }
+    setCurrentTrack((prev) => pickNextIndex(prev, 1));
     setIsPlaying(true);
   };
 
   const handlePrev = () => {
-    if (validTracks.length <= 1) return;
-    setCurrentTrack((prev) => (prev - 1 + validTracks.length) % validTracks.length);
+    if (validTracks.length <= 1 && repeatMode !== "one") return;
+    if (repeatMode === "one") {
+      setIsPlaying(false);
+      setTimeout(() => setIsPlaying(true), 50);
+      return;
+    }
+    setCurrentTrack((prev) => pickNextIndex(prev, -1));
     setIsPlaying(true);
+  };
+
+  const cycleRepeat = () => {
+    setRepeatMode((prev) => prev === "off" ? "one" : prev === "one" ? "all" : "off");
   };
 
   return (
@@ -246,7 +274,7 @@ export default function FloatingMusicPlayer() {
       {isPlaying && videoId && (
         <iframe
           ref={iframeRef}
-          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&loop=1&playlist=${videoId}`}
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1${repeatMode === "one" ? "&loop=1&playlist=" + videoId : ""}`}
           title={track?.label || "Music"}
           width="0"
           height="0"
@@ -422,6 +450,11 @@ export default function FloatingMusicPlayer() {
 
                   {/* Controls */}
                   <div className="floating-music-controls">
+                    <button
+                      className={`fmc-btn fmc-mode${shuffle ? " fmc-active" : ""}`}
+                      onClick={() => setShuffle(!shuffle)}
+                      title={shuffle ? "Shuffle: On" : "Shuffle: Off"}
+                    >🔀</button>
                     {validTracks.length > 1 && (
                       <button className="fmc-btn" onClick={handlePrev} title="Previous">⏮</button>
                     )}
@@ -435,6 +468,13 @@ export default function FloatingMusicPlayer() {
                     {validTracks.length > 1 && (
                       <button className="fmc-btn" onClick={handleNext} title="Next">⏭</button>
                     )}
+                    <button
+                      className={`fmc-btn fmc-mode${repeatMode !== "off" ? " fmc-active" : ""}`}
+                      onClick={cycleRepeat}
+                      title={repeatMode === "off" ? "Repeat: Off" : repeatMode === "one" ? "Repeat: One" : "Repeat: All"}
+                    >
+                      {repeatMode === "one" ? "🔂" : "🔁"}
+                    </button>
                   </div>
 
                   {/* Track list */}
