@@ -47,7 +47,7 @@ export default function QuestionBlock({ block, studentData, onAnswer, courseId, 
     onAnswer(block.id, { answer: textAnswer, submitted: false, draft: true });
   }, [block.id, block.questionType, textAnswer, submitted, onAnswer]);
 
-  const { markDirty: markSADirty, saveNow: saveSANow, lastSaved: saLastSaved } = useAutoSave(performDraftSave);
+  const { markDirty: markSADirty, saveNow: saveSANow, clearDirty: clearSADirty, lastSaved: saLastSaved } = useAutoSave(performDraftSave);
 
   // Get XP value from config or fallback to defaults
   const getXPValue = (key) => {
@@ -89,6 +89,7 @@ export default function QuestionBlock({ block, studentData, onAnswer, courseId, 
 
   const handleSubmitSA = async () => {
     if (!textAnswer.trim()) return;
+    clearSADirty(); // Prevent stale draft from overwriting on unmount
     onAnswer(block.id, { answer: textAnswer, submitted: true, needsGrading: true, submittedAt: new Date().toISOString() });
     setSubmitted(true);
 

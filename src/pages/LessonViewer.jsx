@@ -1,5 +1,5 @@
 // src/pages/LessonViewer.jsx
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -63,12 +63,22 @@ export default function LessonViewer() {
     fetchLesson();
   }, [courseId, lessonId, user]);
 
+  // Track latest student data for guard checks without stale closures
+  const studentDataRef = useRef({});
+  useEffect(() => { studentDataRef.current = realStudentData; }, [realStudentData]);
+
   // FIX #18: Firestore write moved outside of state setter
   const handleAnswer = useCallback(
     async (blockId, data) => {
       if (isPreviewActive) {
         setRealStudentData((prev) => ({ ...prev, [blockId]: data }));
         return;
+      }
+
+      // Guard: prevent stale draft auto-saves from overwriting submitted answers
+      const existing = studentDataRef.current[blockId];
+      if (existing?.submitted && data.draft && !data.submitted) {
+        return; // silently discard stale draft saves
       }
 
       setRealStudentData((prev) => ({ ...prev, [blockId]: data }));
