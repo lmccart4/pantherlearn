@@ -40,12 +40,6 @@
 
 body {
   background: var(--bg);
-  background-image:
-    radial-gradient(ellipse 1000px 700px at 80% 10%, var(--ori-glow-purple), transparent),
-    radial-gradient(ellipse 800px 600px at 15% 80%, var(--ori-glow-teal), transparent),
-    radial-gradient(ellipse 600px 500px at 50% 100%, var(--ori-glow-gold), transparent),
-    radial-gradient(ellipse 400px 400px at 95% 60%, rgba(34,211,238,0.04), transparent),
-    radial-gradient(ellipse 500px 300px at 5% 30%, rgba(176,142,255,0.04), transparent);
   color: var(--text);
   font-family: var(--font-body);
   font-size: 16px;
@@ -53,52 +47,88 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
-/* Atmospheric edge mist */
+
+/* ─── Ori Landscape — CSS-painted atmospheric background ─── */
+/* Layer 1: Deep painted landscape with glowing tree silhouettes */
 body::before {
   content: '';
-  position: fixed; inset: 0; z-index: 1;
+  position: fixed; inset: 0; z-index: 0;
   pointer-events: none;
   background:
-    linear-gradient(to bottom, rgba(10,12,18,0.5) 0%, transparent 180px),
-    linear-gradient(to top, rgba(10,12,18,0.6) 0%, transparent 120px),
-    linear-gradient(to right, rgba(10,12,18,0.25) 0%, transparent 100px),
-    linear-gradient(to left, rgba(10,12,18,0.25) 0%, transparent 100px);
+    /* Sky — deep indigo to purple gradient */
+    linear-gradient(180deg,
+      rgba(8,6,28,1) 0%,
+      rgba(18,12,48,0.98) 15%,
+      rgba(28,18,72,0.9) 30%,
+      rgba(22,28,58,0.85) 45%,
+      rgba(12,22,42,0.9) 60%,
+      rgba(8,18,32,0.95) 75%,
+      rgba(6,12,18,1) 100%),
+    /* Ambient aurora glow — upper right */
+    radial-gradient(ellipse 900px 500px at 75% 15%,
+      rgba(176,142,255,0.18), transparent),
+    /* Spirit tree glow — center-left warm */
+    radial-gradient(ellipse 400px 600px at 30% 55%,
+      rgba(245,200,80,0.12), transparent),
+    /* Spirit tree glow — center-right cool */
+    radial-gradient(ellipse 350px 500px at 65% 50%,
+      rgba(34,211,238,0.09), transparent),
+    /* Ground mist — warm base */
+    radial-gradient(ellipse 100% 300px at 50% 95%,
+      rgba(176,142,255,0.1), transparent),
+    /* Distant mountain silhouette glow */
+    radial-gradient(ellipse 1200px 250px at 50% 65%,
+      rgba(13,180,180,0.06), transparent),
+    /* Moon/spirit-light — upper area */
+    radial-gradient(circle 120px at 72% 12%,
+      rgba(196,181,253,0.25), rgba(176,142,255,0.08) 50%, transparent),
+    /* Secondary spirit glow — far left */
+    radial-gradient(ellipse 300px 450px at 8% 60%,
+      rgba(52,216,168,0.07), transparent),
+    /* Warm accent — lower right */
+    radial-gradient(ellipse 500px 300px at 85% 80%,
+      rgba(245,166,35,0.06), transparent);
+  animation: landscapeBreathe 25s ease-in-out infinite alternate;
 }
-/* Floating firefly particles — warm layer */
+@keyframes landscapeBreathe {
+  0%   { opacity: 1; }
+  30%  { opacity: 0.92; }
+  60%  { opacity: 1; }
+  100% { opacity: 0.95; }
+}
+
+/* Layer 2: Flowing mist / fog — replaces firefly particles */
 body::after {
   content: '';
-  position: fixed; top: 0; left: 0;
-  width: 3px; height: 3px; border-radius: 50%;
-  z-index: 2; pointer-events: none; background: transparent;
-  box-shadow:
-    /* warm gold fireflies */
-    12vw 18vh 0 1.5px rgba(245,200,80,0.7),
-    78vw 55vh 0 1px rgba(245,200,80,0.5),
-    28vw 82vh 0 2px rgba(245,200,80,0.6),
-    62vw 12vh 0 1.5px rgba(245,200,80,0.55),
-    8vw 42vh 0 1px rgba(245,200,80,0.4),
-    88vw 72vh 0 1.5px rgba(245,200,80,0.5),
-    52vw 35vh 0 1px rgba(245,200,80,0.45),
-    95vw 8vh 0 1.5px rgba(245,200,80,0.4),
-    /* cool cyan fireflies */
-    42vw 28vh 0 1.5px rgba(34,211,238,0.55),
-    72vw 88vh 0 1px rgba(34,211,238,0.4),
-    18vw 62vh 0 1.5px rgba(34,211,238,0.45),
-    85vw 38vh 0 1px rgba(34,211,238,0.35),
-    /* purple spirit wisps */
-    35vw 75vh 0 2px rgba(176,142,255,0.5),
-    68vw 22vh 0 1.5px rgba(176,142,255,0.4),
-    5vw 92vh 0 1px rgba(176,142,255,0.35),
-    48vw 5vh 0 1.5px rgba(196,181,253,0.4);
-  animation: fireflyDrift 20s ease-in-out infinite alternate;
+  position: fixed; inset: 0;
+  z-index: 1; pointer-events: none;
+  background:
+    /* Low fog bank — bottom of screen */
+    radial-gradient(ellipse 120% 180px at 50% 100%,
+      rgba(176,142,255,0.08), rgba(13,180,180,0.04) 40%, transparent 70%),
+    /* Mid-level mist drift — left */
+    radial-gradient(ellipse 600px 250px at 15% 65%,
+      rgba(196,181,253,0.06), transparent),
+    /* Mid-level mist drift — right */
+    radial-gradient(ellipse 500px 200px at 80% 55%,
+      rgba(34,211,238,0.05), transparent),
+    /* Upper atmospheric haze */
+    radial-gradient(ellipse 800px 150px at 40% 25%,
+      rgba(176,142,255,0.04), transparent),
+    /* Ground-level creeping fog — left */
+    radial-gradient(ellipse 450px 120px at 20% 90%,
+      rgba(245,200,80,0.04), transparent),
+    /* Ground-level creeping fog — right */
+    radial-gradient(ellipse 400px 100px at 75% 85%,
+      rgba(52,216,168,0.04), transparent);
+  animation: mistDrift 30s ease-in-out infinite alternate;
 }
-@keyframes fireflyDrift {
-  0%   { transform: translate(0, 0) scale(1); opacity: 0.7; }
-  20%  { transform: translate(12px, -8px) scale(1.1); opacity: 1; }
-  40%  { transform: translate(-20px, 12px) scale(0.9); opacity: 0.6; }
-  60%  { transform: translate(15px, 5px) scale(1.15); opacity: 0.9; }
-  80%  { transform: translate(-8px, -15px) scale(0.95); opacity: 0.75; }
-  100% { transform: translate(18px, -10px) scale(1.05); opacity: 0.85; }
+@keyframes mistDrift {
+  0%   { transform: translateX(0) scaleX(1); opacity: 0.7; }
+  25%  { transform: translateX(30px) scaleX(1.03); opacity: 0.9; }
+  50%  { transform: translateX(-20px) scaleX(0.98); opacity: 0.75; }
+  75%  { transform: translateX(15px) scaleX(1.02); opacity: 0.85; }
+  100% { transform: translateX(-25px) scaleX(1); opacity: 0.8; }
 }
 
 a { color: var(--amber); text-decoration: none; transition: color 0.2s; }
@@ -181,50 +211,58 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
   margin-top: 62px; min-height: calc(100vh - 62px);
   position: relative; z-index: 3;
 }
-/* Second particle layer — parallax depth (slower, different colors) */
+/* Flowing mist layer 2 — slower, different drift direction (parallax depth) */
 .page-container::before {
   content: '';
-  position: fixed; top: 0; left: 0;
-  width: 2px; height: 2px; border-radius: 50%;
-  z-index: -1; pointer-events: none; background: transparent;
-  box-shadow:
-    32vw 18vh 0 2px rgba(196,181,253,0.4),
-    82vw 42vh 0 1.5px rgba(196,181,253,0.35),
-    55vw 68vh 0 2px rgba(52,216,168,0.35),
-    22vw 88vh 0 1.5px rgba(52,216,168,0.3),
-    72vw 52vh 0 2px rgba(245,200,80,0.35),
-    92vw 15vh 0 1.5px rgba(176,142,255,0.3),
-    15vw 35vh 0 2.5px rgba(34,211,238,0.3),
-    60vw 90vh 0 1.5px rgba(245,166,35,0.25),
-    45vw 8vh 0 2px rgba(176,142,255,0.35),
-    3vw 58vh 0 1.5px rgba(52,216,168,0.25);
-  animation: fireflyDriftSlow 30s ease-in-out infinite alternate;
+  position: fixed; inset: 0;
+  z-index: -1; pointer-events: none;
+  background:
+    /* Thick ground fog bank */
+    radial-gradient(ellipse 140% 220px at 50% 105%,
+      rgba(176,142,255,0.1), rgba(13,180,180,0.06) 30%, transparent 65%),
+    /* Drifting mist cloud — upper left */
+    radial-gradient(ellipse 700px 300px at 10% 30%,
+      rgba(196,181,253,0.07), transparent),
+    /* Drifting mist cloud — center */
+    radial-gradient(ellipse 550px 200px at 55% 45%,
+      rgba(34,211,238,0.04), transparent),
+    /* Spirit wisps — scattered glow points */
+    radial-gradient(circle 60px at 25% 40%, rgba(245,200,80,0.08), transparent),
+    radial-gradient(circle 45px at 70% 30%, rgba(34,211,238,0.07), transparent),
+    radial-gradient(circle 55px at 45% 70%, rgba(176,142,255,0.06), transparent),
+    radial-gradient(circle 40px at 85% 55%, rgba(52,216,168,0.06), transparent),
+    radial-gradient(circle 35px at 15% 75%, rgba(245,166,35,0.05), transparent);
+  animation: mistDriftSlow 40s ease-in-out infinite alternate;
 }
-@keyframes fireflyDriftSlow {
-  0%   { transform: translate(0, 0) scale(1); opacity: 0.5; }
-  25%  { transform: translate(25px, -15px) scale(1.2); opacity: 0.8; }
-  50%  { transform: translate(-18px, 10px) scale(0.85); opacity: 0.55; }
-  75%  { transform: translate(10px, -20px) scale(1.1); opacity: 0.75; }
-  100% { transform: translate(-12px, 18px) scale(1); opacity: 0.65; }
+@keyframes mistDriftSlow {
+  0%   { transform: translateX(0) translateY(0); opacity: 0.6; }
+  25%  { transform: translateX(-35px) translateY(10px); opacity: 0.85; }
+  50%  { transform: translateX(20px) translateY(-8px); opacity: 0.7; }
+  75%  { transform: translateX(-15px) translateY(15px); opacity: 0.9; }
+  100% { transform: translateX(25px) translateY(-5px); opacity: 0.75; }
 }
 
-/* ─── Animated ambient glow orbs ─── */
+/* ─── Animated ambient glow orbs — spirit tree light sources ─── */
 .page-container::after {
   content: '';
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   z-index: -2; pointer-events: none;
   background:
-    radial-gradient(circle 300px at 20% 30%, rgba(176,142,255,0.06), transparent),
-    radial-gradient(circle 250px at 80% 70%, rgba(34,211,238,0.05), transparent),
-    radial-gradient(circle 350px at 60% 20%, rgba(245,166,35,0.04), transparent),
-    radial-gradient(circle 200px at 40% 80%, rgba(52,216,168,0.04), transparent);
-  animation: auroraShift 15s ease-in-out infinite alternate;
+    /* Primary spirit tree glow — warm */
+    radial-gradient(circle 200px at 30% 50%, rgba(245,200,80,0.07), transparent),
+    /* Secondary spirit tree glow — cool */
+    radial-gradient(circle 180px at 68% 45%, rgba(34,211,238,0.06), transparent),
+    /* Canopy glow — upper */
+    radial-gradient(ellipse 400px 200px at 50% 20%, rgba(176,142,255,0.05), transparent),
+    /* Ground reflection */
+    radial-gradient(ellipse 600px 150px at 50% 90%, rgba(52,216,168,0.04), transparent);
+  animation: spiritTreeGlow 18s ease-in-out infinite alternate;
 }
-@keyframes auroraShift {
-  0%   { transform: translate(0, 0) scale(1); opacity: 0.7; }
-  33%  { transform: translate(40px, -20px) scale(1.05); opacity: 1; }
-  66%  { transform: translate(-30px, 15px) scale(0.95); opacity: 0.8; }
-  100% { transform: translate(20px, -25px) scale(1.02); opacity: 0.9; }
+@keyframes spiritTreeGlow {
+  0%   { transform: scale(1); opacity: 0.7; }
+  30%  { transform: scale(1.04); opacity: 1; }
+  60%  { transform: scale(0.97); opacity: 0.75; }
+  100% { transform: scale(1.02); opacity: 0.9; }
 }
 
 /* --- Buttons --- */
@@ -616,7 +654,7 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
 
 /* ─── Accessibility: Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {
-  body::after, .page-container::before, .page-container::after, .top-bar::after {
+  body::before, body::after, .page-container::before, .page-container::after, .top-bar::after {
     animation: none !important; opacity: 0.5 !important;
   }
   .notif-unread-dot, .announcement-banner.pinned { animation: none !important; }
