@@ -5,8 +5,13 @@
 // Ctrl/Cmd+click a bar to type an exact value. Each bar has label + subscript.
 // Students can dynamically add/remove bars in initial/final sections.
 // Values are unclamped — any number is allowed; the Y-axis rescales dynamically.
+// Labels rendered with KaTeX for proper math typesetting (K_{E,i} etc.).
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import katex from "katex";
+import "katex/dist/katex.min.css";
+// Note: KaTeX is ~260KB but only loaded when BarChartBlock is rendered
+// (it's already code-split via the LessonViewer lazy route).
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 
 const COLORS = {
@@ -49,6 +54,7 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
   const [deltaLabel, setDeltaLabel] = useState(() => saved.deltaLabel || "");
   const [editingBar, setEditingBar] = useState(null);
   const [editingValue, setEditingValue] = useState("");
+  const [editingLabel, setEditingLabel] = useState(null); // "section-idx" or null
 
   const containerRef = useRef(null);
   const dragRef = useRef({ active: false, section: null, barIdx: null, el: null });
@@ -157,25 +163,57 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     markDirty();
   };
 
+  // Build KaTeX HTML from label + subscript. E.g. label="K", sub="E,i" → "K_{E,i}"
+  const renderKatex = (label, subscript, color) => {
+    if (!label && !subscript) return null;
+    let tex = label || "\\;";
+    if (subscript) tex += `_{${subscript}}`;
+    try {
+      return { __html: katex.renderToString(tex, { throwOnError: false, displayMode: false }) };
+    } catch {
+      return { __html: label + (subscript ? `<sub>${subscript}</sub>` : "") };
+    }
+  };
+
   // --- Render label row (sits OUTSIDE chart-area so it doesn't offset the axis) ---
   const renderLabelRow = (bars, section, color, canRemove) => (
     <div className="bc-label-row">
       {bars.map((bar, idx) => {
         const editKey = `${section}-${idx}`;
+        const isEditing = editingLabel === editKey;
+        const hasContent = bar.label || bar.subscript;
+
         return (
           <div key={editKey} className="bc-label-cell" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-            <div className="bc-label-group">
-              <input type="text" className="bc-label-main" value={bar.label}
-                onChange={(e) => updateBarField(section, idx, "label", e.target.value)}
-                onBlur={saveNow} placeholder="K"
-                size={Math.max(1, bar.label.length || 1)}
-                style={{ color: color.label, width: `${Math.max(1.2, (bar.label.length || 1) * 0.85 + 0.4)}ch` }} />
-              <input type="text" className="bc-label-sub" value={bar.subscript}
-                onChange={(e) => updateBarField(section, idx, "subscript", e.target.value)}
-                onBlur={saveNow} placeholder="i"
-                size={Math.max(1, bar.subscript.length || 1)}
-                style={{ color: color.label, width: `${Math.max(1.2, (bar.subscript.length || 1) * 0.75 + 0.3)}ch` }} />
-            </div>
+            {isEditing ? (
+              /* Edit mode: two inline inputs */
+              <div className="bc-label-edit">
+                <input type="text" className="bc-label-input" value={bar.label}
+                  onChange={(e) => updateBarField(section, idx, "label", e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { setEditingLabel(null); saveNow(); } }}
+                  placeholder="label"
+                  autoFocus
+                  style={{ color: color.label }} />
+                <input type="text" className="bc-label-input bc-label-input-sub" value={bar.subscript}
+                  onChange={(e) => updateBarField(section, idx, "subscript", e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { setEditingLabel(null); saveNow(); } }}
+                  onBlur={() => { setEditingLabel(null); saveNow(); }}
+                  placeholder="sub"
+                  style={{ color: color.label }} />
+              </div>
+            ) : (
+              /* Display mode: KaTeX-rendered math, click to edit */
+              <div className="bc-label-display"
+                onClick={() => setEditingLabel(editKey)}
+                style={{ color: color.label }}
+              >
+                {hasContent ? (
+                  <span dangerouslySetInnerHTML={renderKatex(bar.label, bar.subscript, color)} />
+                ) : (
+                  <span className="bc-label-placeholder">+</span>
+                )}
+              </div>
+            )}
             {canRemove && bars.length > 1 && (
               <button className="bc-remove-bar"
                 onClick={(e) => { e.stopPropagation(); removeBar(section, idx); }}
