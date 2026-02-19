@@ -487,7 +487,7 @@ function OptionCard({ children, selected, locked, lockLevel, onClick, accent, on
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#0c0e14",
+    background: "transparent",
     color: "#e8e6f0",
     fontFamily: "'Nunito', sans-serif",
     padding: "20px",
@@ -521,7 +521,7 @@ const styles = {
     margin: "0 auto",
   },
   preview: {
-    background: "#161926",
+    background: "rgba(22,25,38,0.85)",
     border: "1px solid #2a2e42",
     borderRadius: 14,
     padding: 20,
@@ -580,7 +580,7 @@ const styles = {
     minWidth: 0,
   },
   section: {
-    background: "#161926",
+    background: "rgba(22,25,38,0.85)",
     border: "1px solid #2a2e42",
     borderRadius: 12,
     padding: 16,
