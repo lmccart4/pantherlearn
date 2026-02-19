@@ -19,7 +19,6 @@ import CalculatorBlock from "./CalculatorBlock";
 import DataTableBlock from "./DataTableBlock";
 import SimulationBlock from "./SimulationBlock";
 import EvidenceUploadBlock from "./EvidenceUploadBlock";
-import MusicBlock from "./MusicBlock";
 import ErrorBoundary from "./ErrorBoundary";
 
 const BLOCK_MAP = {
@@ -43,7 +42,6 @@ const BLOCK_MAP = {
   question: QuestionBlock,
   simulation: SimulationBlock,
   evidence_upload: EvidenceUploadBlock,
-  background_music: MusicBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {

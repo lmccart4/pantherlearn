@@ -33,7 +33,6 @@ const BLOCK_TYPES = [
   { type: "data_table", label: "Data Table", icon: "📊" },
   { type: "simulation", label: "Simulation", icon: "🧪" },
   { type: "evidence_upload", label: "Evidence Upload", icon: "📷" },
-  { type: "background_music", label: "Background Music", icon: "🎵" },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -69,7 +68,6 @@ function defaultBlockData(typeInfo) {
     case "data_table": return { ...base, preset: "momentum", title: "Momentum Data Table", trials: 1, labelA: "", labelB: "" };
     case "simulation": return { ...base, icon: "🧪", title: "Interactive Simulation", url: "", height: 500, observationPrompt: "" };
     case "evidence_upload": return { ...base, icon: "📷", title: "Upload Evidence", instructions: "", reflectionPrompt: "What did you observe? What did you learn?" };
-    case "background_music": return { ...base, icon: "🎵", title: "Background Music", tracks: [{ url: "", label: "" }] };
     default: return base;
   }
 }
@@ -427,28 +425,6 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
           <Field label="Title" value={block.title} onChange={(v) => update("title", v)} />
           <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline placeholder="Take a photo of your lab setup..." />
           <Field label="Reflection Prompt (optional)" value={block.reflectionPrompt} onChange={(v) => update("reflectionPrompt", v)} multiline placeholder="What did you observe?" />
-        </>);
-      case "background_music":
-        return (<>
-          <Field label="Icon" value={block.icon} onChange={(v) => update("icon", v)} small />
-          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="Study Music" />
-          <div className="editor-field">
-            <label>Tracks</label>
-            <p style={{ fontSize: 11, color: "var(--text3)", marginBottom: 8 }}>
-              Add YouTube or YouTube Music URLs. Students can play these in the background while working.
-            </p>
-            {(block.tracks || []).map((track, i) => (
-              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
-                <span style={{ color: "var(--text3)", fontSize: 12, minWidth: 20 }}>{i + 1}.</span>
-                <input className="editor-input" placeholder="Song name" value={track.label} style={{ flex: "0 0 30%" }}
-                  onChange={(e) => { const tracks = [...block.tracks]; tracks[i] = { ...tracks[i], label: e.target.value }; update("tracks", tracks); }} />
-                <input className="editor-input" placeholder="https://youtube.com/watch?v=... or music.youtube.com/..." value={track.url} style={{ flex: 1 }}
-                  onChange={(e) => { const tracks = [...block.tracks]; tracks[i] = { ...tracks[i], url: e.target.value }; update("tracks", tracks); }} />
-                <button className="editor-icon-btn" onClick={() => { const tracks = block.tracks.filter((_, j) => j !== i); update("tracks", tracks); }}>✕</button>
-              </div>
-            ))}
-            <button className="editor-add-btn" onClick={() => update("tracks", [...(block.tracks || []), { url: "", label: "" }])}>+ Add track</button>
-          </div>
         </>);
       default: return <p style={{ color: "var(--text3)" }}>Unknown block type</p>;
     }

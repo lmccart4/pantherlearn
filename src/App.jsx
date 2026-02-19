@@ -8,6 +8,7 @@ import { TranslationProvider } from "./contexts/TranslationContext";
 import { PreviewProvider } from "./contexts/PreviewContext";
 import PreviewBanner from "./components/PreviewBanner";
 import ClassChat from "./components/ClassChat";
+import FloatingMusicPlayer from "./components/FloatingMusicPlayer";
 
 // Lazy-loaded pages
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -90,6 +91,7 @@ function AppRoutes() {
         </Routes>
       </Suspense>
       {user && <ClassChat />}
+      {user && <FloatingMusicPlayer />}
     </PreviewProvider>
   );
 }
