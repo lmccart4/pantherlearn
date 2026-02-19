@@ -36,6 +36,8 @@ export default function TopBar() {
         {!isTeacher && <Link to="/my-grades" className={isActive("/my-grades")} data-translatable>📊 {ui(3, "My Grades")}</Link>}
         {isTeacher && <Link to="/editor" className={isActive("/editor")}>Editor</Link>}
         {isTeacher && <Link to="/grading" className={isActive("/grading")}>Grading</Link>}
+        {isTeacher && <Link to="/progress" className={isActive("/progress")}>Progress</Link>}
+        {isTeacher && <Link to="/rosters" className={isActive("/rosters")}>Rosters</Link>}
       </div>
 
       <div className="top-bar-right">

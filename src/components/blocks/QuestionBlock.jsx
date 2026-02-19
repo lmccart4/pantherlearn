@@ -27,7 +27,7 @@ export default function QuestionBlock({ block, studentData, onAnswer, courseId, 
     "Submit Response",       // 3
     "Type your answer here...", // 4
     "Explanation:",          // 5
-    "Submitted — awaiting teacher review", // 6
+    "Submitted — awaiting teacher review (usually graded within 1–2 days)", // 6
   ]);
   const ui = (i) => uiStrings?.[i];
 

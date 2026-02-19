@@ -195,7 +195,7 @@ export default function LessonViewer() {
 
         {/* Lesson hero */}
         <div style={{
-          marginBottom: 48, paddingBottom: 36, borderBottom: "1px solid var(--border)",
+          marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid var(--border)",
         }}>
           <div style={{
             fontSize: 12, fontWeight: 600, textTransform: "uppercase",

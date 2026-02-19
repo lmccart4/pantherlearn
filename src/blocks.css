@@ -90,6 +90,7 @@
 .section-header-block {
   display: flex; align-items: center; gap: 18px;
   padding: 40px 0 14px; border-bottom: 1px solid var(--border); margin-bottom: 10px;
+  scroll-margin-top: 80px;
 }
 .section-icon { font-size: 36px; }
 .section-title { font-family: var(--font-display); font-size: 32px; font-weight: 700; letter-spacing: -0.01em; }
@@ -118,7 +119,7 @@
   cursor: pointer; font-size: 17px; transition: all 0.2s; text-align: left; color: var(--text);
   font-family: var(--font-body);
 }
-.mc-option:hover:not(:disabled) { border-color: var(--amber); background: rgba(245, 166, 35, 0.04); }
+.mc-option:hover:not(:disabled) { border-color: var(--amber); background: rgba(245, 166, 35, 0.10); }
 .mc-option.selected { border-color: var(--amber); background: var(--amber-dim); }
 .mc-option.correct-answer { border-color: var(--green); background: var(--green-dim); }
 .mc-option.wrong-answer { border-color: var(--red); background: var(--red-dim); }

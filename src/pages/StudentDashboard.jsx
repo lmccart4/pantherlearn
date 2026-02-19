@@ -208,7 +208,7 @@ export default function StudentDashboard() {
 
         {/* Avatar — centered hero */}
         {avatar && (
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
             <Link to="/avatar" style={{ textDecoration: "none" }}>
               <div style={{
                 position: "relative",
