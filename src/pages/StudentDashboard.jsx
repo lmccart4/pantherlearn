@@ -298,7 +298,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Badges */}
-        {gamification && (gamification.badges || []).length > 0 && (
+        {gamification && (
           <div style={{ marginBottom: 32 }}>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: "var(--text2)", marginBottom: 14 }} data-translatable>
               {ui(0, "Badges")}
