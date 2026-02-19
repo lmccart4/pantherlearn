@@ -15,6 +15,7 @@ import NicknameEditor from "../components/NicknameEditor";
 import ManaPool from "../components/ManaPool";
 import DueToday from "../components/DueToday";
 import JoinCourse from "../components/JoinCourse";
+import AnnouncementBanner from "../components/AnnouncementBanner";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 export default function StudentDashboard() {
@@ -202,6 +203,11 @@ export default function StudentDashboard() {
   return (
     <div className="page-container" style={{ padding: "48px 40px" }}>
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
+
+        {/* Announcements for enrolled courses */}
+        {enrolledCourses.map((course) => (
+          <AnnouncementBanner key={`ann-${course.id}`} courseId={course.id} />
+        ))}
 
         {/* Active Multiplier Banner */}
         <MultiplierBanner activeMultiplier={activeMultiplier} />

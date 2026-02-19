@@ -4,6 +4,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { analyzeResponse } from "../../lib/aiDetection";
 import { compareToBaselines } from "../../lib/aiBaselines";
+import { createNotification } from "../../lib/notifications";
 
 const GRADE_TIERS = [
   { label: "Missing", value: 0, color: "var(--text3)", bg: "var(--surface2)" },
@@ -56,6 +57,22 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
       }, { merge: true });
 
       setSavedGrade(tier.value);
+
+      // Notify student that their response was graded
+      try {
+        const prompt = getBlockPrompt(item.lessonId, item.blockId);
+        const shortPrompt = prompt?.length > 50 ? prompt.slice(0, 50) + "…" : (prompt || "a question");
+        await createNotification(item.studentId, {
+          type: "grade_result",
+          title: `Response graded: ${tier.label}`,
+          body: `Your answer to "${shortPrompt}" received ${tier.label} (${Math.round(tier.value * 100)}%)`,
+          icon: "📝",
+          link: `/course/${item.courseId}/lesson/${item.lessonId}`,
+          courseId: item.courseId,
+        });
+      } catch (notifErr) {
+        console.warn("Could not send grade notification:", notifErr);
+      }
     } catch (err) {
       console.error("Failed to save grade:", err);
       alert("Failed to save grade. Please try again.");

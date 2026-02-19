@@ -11,11 +11,17 @@ import { useTranslatedText } from "../hooks/useTranslatedText.jsx";
 import { usePreview } from "../contexts/PreviewContext";
 import { usePreviewData } from "../hooks/usePreviewData";
 import PreviewLauncher from "../components/PreviewLauncher";
+import { useEngagementTimer, formatEngagementTime } from "../hooks/useEngagementTimer";
 
 export default function LessonViewer() {
   const { courseId, lessonId } = useParams();
   const { user, userRole, getToken } = useAuth();
   const { isPreview } = usePreview();
+  const isStudent = userRole === "student";
+  const { seconds: engagementSeconds } = useEngagementTimer(
+    isStudent ? courseId : null,
+    isStudent ? lessonId : null
+  );
   const [lesson, setLesson] = useState(null);
   const [realStudentData, setRealStudentData] = useState({});
   const [realChatLogs, setRealChatLogs] = useState({});
@@ -236,7 +242,7 @@ export default function LessonViewer() {
         )}
       </div>
 
-      <ProgressSidebar lesson={lesson} studentData={studentData} chatLogs={chatLogs} courseId={courseId} />
+      <ProgressSidebar lesson={lesson} studentData={studentData} chatLogs={chatLogs} courseId={courseId} engagementSeconds={engagementSeconds} />
     </div>
   );
 }

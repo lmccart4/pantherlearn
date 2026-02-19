@@ -1,15 +1,16 @@
 // src/components/blocks/QuestionBlock.jsx
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../../lib/gamification";
+import { awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES, getBloomLevel } from "../../lib/gamification";
 import { useTranslatedText, useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 
-export default function QuestionBlock({ block, studentData, onAnswer, courseId, lessonCompleted }) {
+export default function QuestionBlock({ block, studentData, onAnswer, courseId, lessonCompleted, allStudentData }) {
   const { user } = useAuth();
   const data = studentData[block.id] || {};
   const [selected, setSelected] = useState(data.answer ?? null);
   const [textAnswer, setTextAnswer] = useState(data.answer ?? "");
+  const [rankingOrder, setRankingOrder] = useState(data.answer || null);
   const [submitted, setSubmitted] = useState(data.submitted || false);
   const [xpToast, setXpToast] = useState(null);
   const [xpConfig, setXpConfig] = useState(null);
@@ -119,13 +120,79 @@ export default function QuestionBlock({ block, studentData, onAnswer, courseId, 
     pointerEvents: "none", zIndex: 10,
   };
 
+  // Difficulty badge for Bloom's taxonomy
+  const bloom = getBloomLevel(block.difficulty);
+  const diffBadge = block.difficulty ? (
+    <span style={{
+      fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, marginLeft: 8,
+      background: `color-mix(in srgb, ${bloom.color} 15%, transparent)`,
+      color: bloom.color, textTransform: "uppercase", letterSpacing: "0.04em",
+    }}>
+      {bloom.label}
+    </span>
+  ) : null;
+
+  // Ranking question handler
+  const handleSubmitRanking = async () => {
+    if (!rankingOrder || rankingOrder.length === 0) return;
+    // Score: count items in correct position
+    const correctItems = block.items || [];
+    let correctCount = 0;
+    rankingOrder.forEach((item, i) => {
+      if (item === correctItems[i]) correctCount++;
+    });
+    const score = correctCount / correctItems.length;
+    onAnswer(block.id, {
+      answer: rankingOrder,
+      submitted: true,
+      correct: score === 1,
+      partialScore: score,
+      submittedAt: new Date().toISOString(),
+    });
+    setSubmitted(true);
+
+    if (user) {
+      const baseXP = Math.round(getXPValue("mc_correct") * score * bloom.xpMult);
+      await awardXP(user.uid, baseXP, "ranking_question", courseId);
+      showXPToast(baseXP);
+    }
+  };
+
+  // Linked question handler (treated like short_answer)
+  const handleSubmitLinked = async () => {
+    if (!textAnswer.trim()) return;
+    onAnswer(block.id, { answer: textAnswer, submitted: true, needsGrading: true, submittedAt: new Date().toISOString() });
+    setSubmitted(true);
+
+    if (user) {
+      const baseXP = Math.round(getXPValue("short_answer") * bloom.xpMult);
+      await awardXP(user.uid, baseXP, "linked_question", courseId);
+      showXPToast(baseXP);
+    }
+  };
+
+  // Shuffle items for ranking (deterministic per block ID)
+  const getShuffledItems = () => {
+    if (rankingOrder) return rankingOrder;
+    const items = [...(block.items || [])];
+    // Simple seeded shuffle
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.abs(block.id.charCodeAt(i % block.id.length)) % (i + 1);
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    return items;
+  };
+
   if (block.questionType === "multiple_choice") {
     const isCorrect = submitted && selected === block.correctIndex;
     const locked = submitted && lessonCompleted;
     return (
       <div className={`question-block ${submitted ? (isCorrect ? "correct" : "incorrect") : ""}`} style={{ position: "relative" }}>
         {xpToast && <div style={xpToastStyle}>+{xpToast} XP</div>}
-        <div className="question-badge" data-translatable>{ui(0) || "Question"}</div>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div className="question-badge" data-translatable>{ui(0) || "Question"}</div>
+          {diffBadge}
+        </div>
         <p className="question-prompt" data-translatable>{translatedPrompt}</p>
         <div className="mc-options">
           {(translatedOptions || block.options).map((opt, i) => {
@@ -154,7 +221,10 @@ export default function QuestionBlock({ block, studentData, onAnswer, courseId, 
     return (
       <div className={`question-block ${submitted ? "submitted-sa" : ""}`} style={{ position: "relative" }}>
         {xpToast && <div style={xpToastStyle}>+{xpToast} XP</div>}
-        <div className="question-badge sa" data-translatable>{ui(1) || "Written Response"}</div>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div className="question-badge sa" data-translatable>{ui(1) || "Written Response"}</div>
+          {diffBadge}
+        </div>
         <p className="question-prompt" data-translatable>{translatedPrompt}</p>
         {!submitted ? (
           <>
@@ -215,5 +285,119 @@ export default function QuestionBlock({ block, studentData, onAnswer, courseId, 
       </div>
     );
   }
+  // ─── Ranking question ───
+  if (block.questionType === "ranking") {
+    const items = rankingOrder || getShuffledItems();
+    if (!rankingOrder) setRankingOrder(items);
+    const correctItems = block.items || [];
+
+    const moveItem = (fromIdx, toIdx) => {
+      if (submitted) return;
+      const newOrder = [...items];
+      const [moved] = newOrder.splice(fromIdx, 1);
+      newOrder.splice(toIdx, 0, moved);
+      setRankingOrder(newOrder);
+    };
+
+    return (
+      <div className={`question-block ${submitted ? "submitted-sa" : ""}`} style={{ position: "relative" }}>
+        {xpToast && <div style={xpToastStyle}>+{xpToast} XP</div>}
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div className="question-badge" style={{ background: "rgba(176,142,255,0.12)", color: "var(--purple)" }}>🔢 Ranking</div>
+          {diffBadge}
+        </div>
+        <p className="question-prompt" data-translatable>{translatedPrompt}</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+          {items.map((item, i) => {
+            const isCorrectPos = submitted && item === correctItems[i];
+            return (
+              <div key={`${item}-${i}`} style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+                background: submitted
+                  ? (isCorrectPos ? "rgba(52,216,168,0.08)" : "rgba(248,113,113,0.08)")
+                  : "var(--surface2)",
+                border: `1px solid ${submitted ? (isCorrectPos ? "var(--green)" : "var(--red)") : "var(--border)"}`,
+                borderRadius: 10, transition: "all 0.15s",
+              }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text3)", minWidth: 20 }}>{i + 1}.</span>
+                <span style={{ flex: 1, fontSize: 15 }}>{item}</span>
+                {!submitted && (
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button disabled={i === 0} onClick={() => moveItem(i, i - 1)}
+                      style={{ background: "none", border: "1px solid var(--border)", borderRadius: 6, cursor: i === 0 ? "default" : "pointer", padding: "2px 8px", color: "var(--text3)", opacity: i === 0 ? 0.3 : 1 }}>▲</button>
+                    <button disabled={i === items.length - 1} onClick={() => moveItem(i, i + 1)}
+                      style={{ background: "none", border: "1px solid var(--border)", borderRadius: 6, cursor: i === items.length - 1 ? "default" : "pointer", padding: "2px 8px", color: "var(--text3)", opacity: i === items.length - 1 ? 0.3 : 1 }}>▼</button>
+                  </div>
+                )}
+                {submitted && (isCorrectPos ? <span style={{ color: "var(--green)" }}>✓</span> : <span style={{ color: "var(--red)" }}>✗</span>)}
+              </div>
+            );
+          })}
+        </div>
+        {!submitted && <button className="btn btn-primary" onClick={handleSubmitRanking}>Submit Ranking</button>}
+        {submitted && (
+          <div style={{ fontSize: 13, color: "var(--text2)", marginTop: 8 }}>
+            Score: {Math.round((data.partialScore || 0) * 100)}% — {items.filter((item, i) => item === correctItems[i]).length}/{correctItems.length} items correct
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ─── Linked question (shows prior answer as context) ───
+  if (block.questionType === "linked") {
+    const linkedData = allStudentData ? allStudentData[block.linkedBlockId] : studentData[block.linkedBlockId];
+    const priorAnswer = linkedData?.answer;
+    const locked = submitted && lessonCompleted;
+
+    return (
+      <div className={`question-block ${submitted ? "submitted-sa" : ""}`} style={{ position: "relative" }}>
+        {xpToast && <div style={xpToastStyle}>+{xpToast} XP</div>}
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div className="question-badge" style={{ background: "rgba(96,165,250,0.12)", color: "var(--blue)" }}>🔗 Follow-Up</div>
+          {diffBadge}
+        </div>
+
+        {priorAnswer !== undefined && priorAnswer !== null && (
+          <div style={{
+            background: "var(--surface2)", borderRadius: 10, padding: "12px 16px", marginBottom: 12,
+            border: "1px solid var(--border)", fontSize: 13,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", marginBottom: 4 }}>Your previous answer:</div>
+            <div style={{ color: "var(--text2)" }}>
+              {typeof priorAnswer === "string" ? priorAnswer : JSON.stringify(priorAnswer)}
+            </div>
+          </div>
+        )}
+
+        <p className="question-prompt" data-translatable>{translatedPrompt}</p>
+        {!submitted ? (
+          <>
+            <textarea className="sa-input" rows={4} placeholder="Type your follow-up answer..."
+              value={textAnswer} onChange={(e) => setTextAnswer(e.target.value)} />
+            <button className="btn btn-primary" onClick={handleSubmitLinked} disabled={!textAnswer.trim()}>Submit Response</button>
+          </>
+        ) : (
+          <div className="sa-submitted">
+            <div className="sa-answer-display">{textAnswer}</div>
+            {data.writtenLabel ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+                <span style={{
+                  fontSize: 13, fontWeight: 700, padding: "4px 14px", borderRadius: 6,
+                  background: data.writtenScore >= 0.85 ? "rgba(52,216,168,0.12)" : "rgba(245,166,35,0.12)",
+                  color: data.writtenScore >= 0.85 ? "var(--green)" : "var(--amber)",
+                }}>
+                  ✓ Graded: {data.writtenLabel}
+                </span>
+              </div>
+            ) : (
+              <div className="sa-status">✓ Submitted — awaiting teacher review</div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return null;
 }

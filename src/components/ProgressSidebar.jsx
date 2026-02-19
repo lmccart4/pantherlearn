@@ -7,8 +7,9 @@ import { getLevelInfo, getXPConfig } from "../lib/gamification";
 import { useTranslatedTexts, useTranslatedText } from "../hooks/useTranslatedText.jsx";
 import MultiplierBanner from "./MultiplierBanner";
 import StreakDisplay from "./StreakDisplay";
+import { formatEngagementTime } from "../hooks/useEngagementTimer";
 
-export default function ProgressSidebar({ lesson, studentData, chatLogs, courseId }) {
+export default function ProgressSidebar({ lesson, studentData, chatLogs, courseId, engagementSeconds }) {
   const { user } = useAuth();
   const [gamification, setGamification] = useState(null);
   const [activeMultiplier, setActiveMultiplierState] = useState(null);
@@ -167,6 +168,18 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
           <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }} data-translatable>{ui(3, "messages sent")}</div>
         </div>
       </div>
+
+      {/* Engagement Time */}
+      {engagementSeconds > 0 && (
+        <div className="sidebar-section">
+          <div className="sidebar-label">⏱ Time Spent</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--text2)" }}>
+              {formatEngagementTime(engagementSeconds)}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sections nav */}
       <div className="sidebar-section">

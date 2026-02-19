@@ -6,6 +6,8 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { uid } from "../lib/utils";
 import { generateLessonBaselines } from "../lib/aiBaselines";
+import { fanOutNotification } from "../lib/notifications";
+import { generateQuestionSuggestion } from "../lib/aiQuestionGenerator";
 
 const BLOCK_TYPES = [
   { type: "section_header", label: "Section Header", icon: "📌" },
@@ -23,10 +25,14 @@ const BLOCK_TYPES = [
   { type: "chatbot", label: "AI Chatbot", icon: "🤖" },
   { type: "question", label: "Question (MC)", icon: "❓", questionType: "multiple_choice" },
   { type: "question", label: "Question (Written)", icon: "✏️", questionType: "short_answer" },
+  { type: "question", label: "Question (Ranking)", icon: "🔢", questionType: "ranking" },
+  { type: "question", label: "Question (Linked)", icon: "🔗", questionType: "linked" },
   { type: "sorting", label: "Sorting (Swipe)", icon: "🔀" },
   { type: "external_link", label: "External Link", icon: "🔗" },
   { type: "calculator", label: "Calculator", icon: "🧮" },
   { type: "data_table", label: "Data Table", icon: "📊" },
+  { type: "simulation", label: "Simulation", icon: "🧪" },
+  { type: "evidence_upload", label: "Evidence Upload", icon: "📷" },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -47,13 +53,21 @@ function defaultBlockData(typeInfo) {
     case "chatbot": return { ...base, icon: "🤖", title: "", starterMessage: "Hi! I'm ready to chat.", systemPrompt: "", instructions: "", placeholder: "Type a message..." };
     case "question":
       if (typeInfo.questionType === "multiple_choice") {
-        return { ...base, questionType: "multiple_choice", prompt: "", options: ["", "", "", ""], correctIndex: 0, explanation: "" };
+        return { ...base, questionType: "multiple_choice", prompt: "", difficulty: "understand", options: ["", "", "", ""], correctIndex: 0, explanation: "" };
       }
-      return { ...base, questionType: "short_answer", prompt: "" };
+      if (typeInfo.questionType === "ranking") {
+        return { ...base, questionType: "ranking", prompt: "", difficulty: "analyze", items: ["", "", ""] };
+      }
+      if (typeInfo.questionType === "linked") {
+        return { ...base, questionType: "linked", prompt: "", difficulty: "evaluate", linkedBlockId: "" };
+      }
+      return { ...base, questionType: "short_answer", prompt: "", difficulty: "understand" };
     case "sorting": return { ...base, icon: "🔀", title: "Sort It!", instructions: "", leftLabel: "Category A", rightLabel: "Category B", items: [{ text: "", correct: "left" }] };
     case "external_link": return { ...base, icon: "🔗", title: "", url: "", description: "", buttonLabel: "Open", openInNewTab: true };
     case "calculator": return { ...base, title: "", description: "", formula: "", showFormula: false, inputs: [{ name: "value1", label: "Value 1", unit: "" }], output: { label: "Result", unit: "", decimals: 2 } };
     case "data_table": return { ...base, preset: "momentum", title: "Momentum Data Table", trials: 1, labelA: "", labelB: "" };
+    case "simulation": return { ...base, icon: "🧪", title: "Interactive Simulation", url: "", height: 500, observationPrompt: "" };
+    case "evidence_upload": return { ...base, icon: "📷", title: "Upload Evidence", instructions: "", reflectionPrompt: "What did you observe? What did you learn?" };
     default: return base;
   }
 }
@@ -150,10 +164,24 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
           <Field label="Student Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline />
           <Field label="Input Placeholder" value={block.placeholder} onChange={(v) => update("placeholder", v)} />
         </>);
-      case "question":
+      case "question": {
+        const difficultySelect = (
+          <div className="editor-field">
+            <label>Difficulty (Bloom's Taxonomy)</label>
+            <select value={block.difficulty || "understand"} onChange={(e) => update("difficulty", e.target.value)} className="editor-select">
+              <option value="remember">🟢 Remember (0.75× XP)</option>
+              <option value="understand">🔵 Understand (1× XP)</option>
+              <option value="apply">🔷 Apply (1.25× XP)</option>
+              <option value="analyze">🟣 Analyze (1.5× XP)</option>
+              <option value="evaluate">🟡 Evaluate (1.75× XP)</option>
+              <option value="create">🔴 Create (2× XP)</option>
+            </select>
+          </div>
+        );
         if (block.questionType === "multiple_choice") {
           return (<>
             <Field label="Question Prompt" value={block.prompt} onChange={(v) => update("prompt", v)} multiline />
+            {difficultySelect}
             <div className="editor-field">
               <label>Options</label>
               {(block.options || []).map((opt, i) => (
@@ -169,7 +197,39 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
             <Field label="Explanation (shown after answering)" value={block.explanation} onChange={(v) => update("explanation", v)} multiline />
           </>);
         }
-        return <Field label="Question Prompt" value={block.prompt} onChange={(v) => update("prompt", v)} multiline />;
+        if (block.questionType === "ranking") {
+          return (<>
+            <Field label="Question Prompt" value={block.prompt} onChange={(v) => update("prompt", v)} multiline />
+            {difficultySelect}
+            <div className="editor-field">
+              <label>Items (in correct order — students will see them shuffled)</label>
+              {(block.items || []).map((item, i) => (
+                <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+                  <span style={{ color: "var(--text3)", fontSize: 12, minWidth: 20 }}>{i + 1}.</span>
+                  <input className="editor-input" value={item} placeholder={`Item ${i + 1}`}
+                    onChange={(e) => { const items = [...block.items]; items[i] = e.target.value; update("items", items); }} />
+                  <button className="editor-icon-btn" onClick={() => { const items = block.items.filter((_, j) => j !== i); update("items", items); }}>✕</button>
+                </div>
+              ))}
+              <button className="editor-add-btn" onClick={() => update("items", [...(block.items || []), ""])}>+ Add item</button>
+            </div>
+          </>);
+        }
+        if (block.questionType === "linked") {
+          return (<>
+            <Field label="Question Prompt" value={block.prompt} onChange={(v) => update("prompt", v)} multiline />
+            {difficultySelect}
+            <Field label="Linked Block ID (ID of a prior question block)" value={block.linkedBlockId || ""} onChange={(v) => update("linkedBlockId", v)} placeholder="Enter the block ID to reference" />
+            <p style={{ fontSize: 11, color: "var(--text3)", marginTop: -8, marginBottom: 8 }}>
+              Students will see their answer to the linked question as context before answering this follow-up.
+            </p>
+          </>);
+        }
+        return (<>
+          <Field label="Question Prompt" value={block.prompt} onChange={(v) => update("prompt", v)} multiline />
+          {difficultySelect}
+        </>);
+      }
       case "checklist":
         return (<>
           <Field label="Title (optional)" value={block.title} onChange={(v) => update("title", v)} />
@@ -351,6 +411,21 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
             Each trial creates a Before/After pair. Checked columns auto-calculate. System Totals auto-sum. Leave labels blank for defaults.
           </p>
         </>);
+      case "simulation":
+        return (<>
+          <Field label="Icon" value={block.icon} onChange={(v) => update("icon", v)} small />
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} />
+          <Field label="Simulation URL (e.g. PhET embed URL)" value={block.url} onChange={(v) => update("url", v)} placeholder="https://phet.colorado.edu/sims/html/..." />
+          <Field label="Height (px)" value={block.height} onChange={(v) => update("height", parseInt(v) || 500)} small />
+          <Field label="Observation Prompt (optional)" value={block.observationPrompt} onChange={(v) => update("observationPrompt", v)} multiline placeholder="What patterns do you notice?" />
+        </>);
+      case "evidence_upload":
+        return (<>
+          <Field label="Icon" value={block.icon} onChange={(v) => update("icon", v)} small />
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} />
+          <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline placeholder="Take a photo of your lab setup..." />
+          <Field label="Reflection Prompt (optional)" value={block.reflectionPrompt} onChange={(v) => update("reflectionPrompt", v)} multiline placeholder="What did you observe?" />
+        </>);
       default: return <p style={{ color: "var(--text3)" }}>Unknown block type</p>;
     }
   };
@@ -442,6 +517,7 @@ export default function LessonEditor() {
   const [lessonUnit, setLessonUnit] = useState("");
   const [lessonDueDate, setLessonDueDate] = useState("");
   const [lessonVisible, setLessonVisible] = useState(true);
+  const [prevVisible, setPrevVisible] = useState(null); // track saved visibility for notification
   const [lessonOrder, setLessonOrder] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -449,6 +525,8 @@ export default function LessonEditor() {
   const [collapsedUnits, setCollapsedUnits] = useState({});
   const [showJsonImport, setShowJsonImport] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState(null); // { block, rationale }
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
 
@@ -485,6 +563,7 @@ export default function LessonEditor() {
       setLessonUnit(match.unit || "");
       setLessonDueDate(match.dueDate || "");
       setLessonVisible(match.visible !== false);
+      setPrevVisible(match.visible !== false);
       setBlocks(match.blocks || []);
       setSaved(false);
     }
@@ -499,6 +578,7 @@ export default function LessonEditor() {
     setLessonUnit(lesson.unit || "");
     setLessonDueDate(lesson.dueDate || "");
     setLessonVisible(lesson.visible !== false);
+    setPrevVisible(lesson.visible !== false);
     setLessonOrder(lesson.order ?? null);
     setBlocks(lesson.blocks || []);
     setSaved(false);
@@ -510,6 +590,7 @@ export default function LessonEditor() {
     setLessonUnit("");
     setLessonDueDate("");
     setLessonVisible(true);
+    setPrevVisible(null); // new lesson, no prior state
     setLessonOrder(null); // will be set to lessons.length on save
     setBlocks([]);
     setSaved(false);
@@ -571,6 +652,23 @@ export default function LessonEditor() {
       if (isNew) setSelectedLesson(lessonId);
       setSaved(true);
       await refreshLessons();
+
+      // Notify students when a lesson becomes visible (hidden→visible)
+      if (lessonVisible && prevVisible === false) {
+        try {
+          const courseName = courses.find((c) => c.id === selectedCourse)?.title || "Course";
+          await fanOutNotification(selectedCourse, {
+            type: "new_lesson",
+            title: `📘 New lesson: ${lessonTitle || "Untitled"}`,
+            body: `A new lesson is available in ${courseName}`,
+            icon: "📘",
+            link: `/course/${selectedCourse}/lesson/${isNew ? lessonId : selectedLesson}`,
+          });
+        } catch (notifErr) {
+          console.warn("Could not send new-lesson notification:", notifErr);
+        }
+      }
+      setPrevVisible(lessonVisible);
 
       // Generate AI baselines for short-answer questions (runs in background)
       const hasWrittenQuestions = blocks.some(
@@ -915,6 +1013,29 @@ export default function LessonEditor() {
                   📑 Duplicate to...
                 </button>
               )}
+              <button
+                className="btn btn-secondary"
+                disabled={aiGenerating || blocks.length === 0}
+                onClick={async () => {
+                  setAiGenerating(true);
+                  try {
+                    const result = await generateQuestionSuggestion(lessonTitle, lessonUnit, blocks, getToken);
+                    setAiSuggestion({ block: result, rationale: result._aiRationale });
+                  } catch (err) {
+                    console.error("AI question generation failed:", err);
+                    alert("Failed to generate question: " + err.message);
+                  }
+                  setAiGenerating(false);
+                }}
+                title="Use AI to suggest a new question based on lesson content"
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  background: aiGenerating ? "var(--surface2)" : "linear-gradient(135deg, rgba(245,166,35,0.12), rgba(245,166,35,0.06))",
+                  borderColor: "rgba(245,166,35,0.3)", color: "var(--amber)",
+                }}
+              >
+                {aiGenerating ? "⏳ Analyzing..." : "✨ Suggest Question"}
+              </button>
               <div style={{ flex: 1 }} />
               {selectedLesson && !selectedLesson.startsWith("new-") && (
                 <button
@@ -949,6 +1070,130 @@ export default function LessonEditor() {
           </>
         )}
       </div>
+
+      {/* AI Question Suggestion Modal */}
+      {aiSuggestion && (
+        <div
+          onClick={() => setAiSuggestion(null)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--surface)", borderRadius: 16, padding: 28,
+              width: "100%", maxWidth: 560, border: "1px solid var(--border)",
+            }}
+          >
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+              ✨ AI-Suggested Question
+            </h2>
+
+            {/* Preview the question */}
+            <div style={{
+              background: "var(--bg)", borderRadius: 12, padding: 18, marginBottom: 16,
+              border: "1px solid var(--border)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 4,
+                  background: "rgba(245,166,35,0.12)", color: "var(--amber)", textTransform: "uppercase",
+                }}>
+                  {aiSuggestion.block.questionType === "multiple_choice" ? "MC" : aiSuggestion.block.questionType === "ranking" ? "Ranking" : "Written"}
+                </span>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 4,
+                  background: "rgba(96,165,250,0.12)", color: "var(--blue)", textTransform: "uppercase",
+                }}>
+                  {aiSuggestion.block.difficulty}
+                </span>
+              </div>
+              <p style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.5, marginBottom: 10 }}>
+                {aiSuggestion.block.prompt}
+              </p>
+              {aiSuggestion.block.questionType === "multiple_choice" && aiSuggestion.block.options && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {aiSuggestion.block.options.map((opt, i) => (
+                    <div key={i} style={{
+                      padding: "8px 14px", borderRadius: 8, fontSize: 14,
+                      background: i === aiSuggestion.block.correctIndex ? "rgba(52,216,168,0.1)" : "var(--surface2)",
+                      border: `1px solid ${i === aiSuggestion.block.correctIndex ? "var(--green)" : "var(--border)"}`,
+                      display: "flex", alignItems: "center", gap: 8,
+                    }}>
+                      <span style={{ fontWeight: 700, color: "var(--text3)" }}>{String.fromCharCode(65 + i)}</span>
+                      <span>{opt}</span>
+                      {i === aiSuggestion.block.correctIndex && <span style={{ marginLeft: "auto", color: "var(--green)" }}>✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {aiSuggestion.block.questionType === "ranking" && aiSuggestion.block.items && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {aiSuggestion.block.items.map((item, i) => (
+                    <div key={i} style={{ padding: "6px 14px", borderRadius: 8, background: "var(--surface2)", border: "1px solid var(--border)", fontSize: 14 }}>
+                      <span style={{ fontWeight: 700, color: "var(--text3)", marginRight: 8 }}>{i + 1}.</span> {item}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {aiSuggestion.block.explanation && (
+                <div style={{ marginTop: 10, fontSize: 13, color: "var(--text2)", fontStyle: "italic" }}>
+                  💡 {aiSuggestion.block.explanation}
+                </div>
+              )}
+            </div>
+
+            {/* AI rationale */}
+            {aiSuggestion.rationale && (
+              <div style={{
+                background: "rgba(245,166,35,0.06)", borderRadius: 10, padding: "12px 16px", marginBottom: 16,
+                border: "1px dashed rgba(245,166,35,0.2)", fontSize: 13, color: "var(--text2)",
+              }}>
+                <span style={{ fontWeight: 700, color: "var(--amber)", fontSize: 11 }}>🤖 AI RATIONALE:</span>{" "}
+                {aiSuggestion.rationale}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button className="btn btn-secondary" onClick={() => setAiSuggestion(null)} style={{ fontSize: 14 }}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={async () => {
+                  setAiSuggestion(null);
+                  setAiGenerating(true);
+                  try {
+                    const result = await generateQuestionSuggestion(lessonTitle, lessonUnit, blocks, getToken);
+                    setAiSuggestion({ block: result, rationale: result._aiRationale });
+                  } catch (err) {
+                    alert("Failed: " + err.message);
+                  }
+                  setAiGenerating(false);
+                }}
+                style={{ fontSize: 14 }}
+              >
+                🔄 Regenerate
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  const newBlock = { ...aiSuggestion.block };
+                  delete newBlock._aiRationale;
+                  setBlocks([...blocks, newBlock]);
+                  setSaved(false);
+                  setAiSuggestion(null);
+                }}
+                style={{ fontSize: 14 }}
+              >
+                ✅ Insert Question
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* JSON Import Modal */}
       {showJsonImport && (

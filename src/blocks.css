@@ -438,3 +438,30 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* --- Simulation Block --- */
+.simulation-block {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden;
+}
+.sim-header {
+  display: flex; align-items: center; gap: 10px; padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.sim-icon { font-size: 24px; }
+.sim-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+.sim-iframe-wrap {
+  background: #111; border-radius: 0;
+}
+.sim-observation {
+  padding: 16px 20px; border-top: 1px solid var(--border);
+}
+.sim-obs-label {
+  display: block; font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 6px;
+}
+
+/* --- Evidence Upload Block --- */
+.evidence-upload-block {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px 24px;
+}

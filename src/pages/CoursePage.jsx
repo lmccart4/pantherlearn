@@ -6,8 +6,7 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import TeamPanel from "../components/TeamPanel";
 import ManaPool from "../components/ManaPool";
-import { getLeaderboard } from "../lib/gamification";
-import { resolveFirstName } from "../lib/displayName";
+import Leaderboard from "../components/Leaderboard";
 import { useTranslatedText, useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 export default function CoursePage() {
@@ -16,7 +15,6 @@ export default function CoursePage() {
   const [course, setCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [leaderboard, setLeaderboard] = useState([]);
   const [collapsedUnits, setCollapsedUnits] = useState({});
   const [completedLessons, setCompletedLessons] = useState(new Set());
   const isTeacher = userRole === "teacher";
@@ -70,15 +68,7 @@ export default function CoursePage() {
           }
         }
 
-        // Fetch leaderboard for students
-        if (userRole !== "teacher" && user) {
-          try {
-            const lb = await getLeaderboard(courseId);
-            setLeaderboard(lb);
-          } catch (e) {
-            console.warn("Could not load leaderboard:", e);
-          }
-        }
+        // Leaderboard is now handled by the Leaderboard component
       } catch (err) {
         console.error("Error fetching course:", err);
       }
@@ -279,59 +269,7 @@ export default function CoursePage() {
           {/* Sidebar: Leaderboard — students only */}
           {!isTeacher && (
             <div style={{ position: "sticky", top: 80 }}>
-              {/* Rank card */}
-              {leaderboard.length > 0 && (() => {
-                const myRank = leaderboard.findIndex((e) => e.uid === user?.uid) + 1;
-                return myRank > 0 ? (
-                  <div className="card" style={{ padding: "12px 16px", marginBottom: 12, textAlign: "center" }}>
-                    <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 600, marginBottom: 4 }}>Your Rank</div>
-                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, color: "var(--amber)" }}>#{myRank}</div>
-                    <div style={{ fontSize: 11, color: "var(--text3)" }}>of {leaderboard.length} in class</div>
-                  </div>
-                ) : null;
-              })()}
-
-              <h3 style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600, color: "var(--text2)", marginBottom: 10 }}>
-                🏆 Class Leaderboard
-              </h3>
-              {leaderboard.length > 0 ? (
-                <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-                  {leaderboard.slice(0, 10).map((entry, i) => {
-                    const isMe = entry.uid === user?.uid;
-                    return (
-                      <div key={entry.uid} style={{
-                        display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-                        background: isMe ? "var(--amber-dim)" : "transparent",
-                        borderBottom: i < Math.min(leaderboard.length, 10) - 1 ? "1px solid var(--border)" : "none",
-                      }}>
-                        <div style={{
-                          width: 22, height: 22, borderRadius: "50%",
-                          background: i < 3 ? ["var(--amber)", "var(--text2)", "#cd7f32"][i] : "var(--surface2)",
-                          color: i < 3 ? "var(--bg)" : "var(--text3)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontWeight: 700, fontSize: 10, flexShrink: 0,
-                        }}>{i + 1}</div>
-                        {entry.photoURL ? (
-                          <img src={entry.photoURL} alt="" style={{ width: 26, height: 26, borderRadius: "50%", border: isMe ? "2px solid var(--amber)" : "2px solid var(--border)", flexShrink: 0 }} />
-                        ) : (
-                          <div style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--surface2)", border: "2px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--text3)", flexShrink: 0 }}>👤</div>
-                        )}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: isMe ? 700 : 500, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {resolveFirstName({ displayName: entry.displayName, nickname: entry.nickname, isTeacherViewing: false })}
-                            {isMe && <span style={{ color: "var(--amber)", fontSize: 10, marginLeft: 4 }}>You</span>}
-                          </div>
-                        </div>
-                        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, color: "var(--amber)", flexShrink: 0 }}>{entry.totalXP || 0}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="card" style={{ textAlign: "center", padding: 24, color: "var(--text3)", fontSize: 12 }}>
-                  Complete lessons to earn XP and climb the leaderboard! 🚀
-                </div>
-              )}
+              <Leaderboard courseId={courseId} />
             </div>
           )}
         </div>

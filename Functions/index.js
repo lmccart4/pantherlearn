@@ -349,3 +349,151 @@ or
     }
   }
 );
+
+/**
+ * Cloud Function: generateQuestion
+ *
+ * Uses Gemini to analyze lesson content and generate a suggested question.
+ * Identifies Bloom's taxonomy gaps and generates a question to fill them.
+ *
+ * Expected request body:
+ * {
+ *   lessonTitle: "Momentum Conservation",
+ *   lessonUnit: "Momentum",
+ *   blocks: [{ type, content, prompt, ... }]
+ * }
+ */
+exports.generateQuestion = onRequest(
+  {
+    cors: true,
+    secrets: [geminiApiKey],
+    maxInstances: 10,
+    timeoutSeconds: 60,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    // Verify Firebase Auth token — teachers only
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing authentication token" });
+    }
+
+    let uid;
+    try {
+      const token = authHeader.split("Bearer ")[1];
+      const decoded = await admin.auth().verifyIdToken(token);
+      uid = decoded.uid;
+    } catch (err) {
+      return res.status(401).json({ error: "Invalid authentication token" });
+    }
+
+    // Verify teacher role
+    const userDoc = await db.collection("users").doc(uid).get();
+    if (!userDoc.exists || userDoc.data().role !== "teacher") {
+      return res.status(403).json({ error: "Only teachers can generate questions" });
+    }
+
+    const { lessonTitle, lessonUnit, blocks } = req.body;
+    if (!blocks || !Array.isArray(blocks)) {
+      return res.status(400).json({ error: "Missing required fields: blocks" });
+    }
+
+    // Serialize lesson content for the prompt
+    const blockSummary = blocks.map((b) => {
+      switch (b.type) {
+        case "text": return `[Text] ${(b.content || "").slice(0, 200)}`;
+        case "definition": return `[Definition] ${b.term}: ${b.definition}`;
+        case "objectives": return `[Objectives] ${(b.items || []).join("; ")}`;
+        case "callout": return `[Callout] ${b.content}`;
+        case "question": {
+          const diff = b.difficulty || "understand";
+          if (b.questionType === "multiple_choice") {
+            return `[MC Question, ${diff}] ${b.prompt} | Options: ${(b.options || []).join(", ")}`;
+          }
+          if (b.questionType === "ranking") return `[Ranking Question, ${diff}] ${b.prompt}`;
+          if (b.questionType === "linked") return `[Linked Question, ${diff}] ${b.prompt}`;
+          return `[Written Question, ${diff}] ${b.prompt}`;
+        }
+        case "activity": return `[Activity] ${b.title}: ${b.instructions}`;
+        case "section_header": return `[Section] ${b.title}`;
+        case "vocab_list": return `[Vocab] ${(b.terms || []).map(t => `${t.term}=${t.definition}`).join("; ")}`;
+        default: return null;
+      }
+    }).filter(Boolean).join("\n");
+
+    const existingDifficulties = blocks
+      .filter((b) => b.type === "question")
+      .map((b) => b.difficulty || "understand");
+
+    const bloomLevels = ["remember", "understand", "apply", "analyze", "evaluate", "create"];
+    const covered = new Set(existingDifficulties);
+    const uncovered = bloomLevels.filter((l) => !covered.has(l));
+
+    const prompt = `You are a physics/science education expert. Analyze this lesson and generate ONE new question that would strengthen it.
+
+Lesson: "${lessonTitle || "Untitled"}" (Unit: ${lessonUnit || "General"})
+
+Lesson content:
+${blockSummary}
+
+Existing question Bloom's levels: ${existingDifficulties.join(", ") || "none"}
+Uncovered Bloom's levels: ${uncovered.join(", ") || "all covered"}
+
+Generate a question that:
+1. Fits naturally with the lesson content
+2. Preferably targets an uncovered Bloom's level (${uncovered[0] || "any"})
+3. Is pedagogically valuable and age-appropriate for high school students
+4. For MC questions, include 4 plausible options with one correct answer
+
+Return ONLY valid JSON (no markdown, no backticks):
+{
+  "questionType": "multiple_choice" | "short_answer" | "ranking",
+  "prompt": "The question text",
+  "difficulty": "remember" | "understand" | "apply" | "analyze" | "evaluate" | "create",
+  "options": ["A", "B", "C", "D"],
+  "correctIndex": 0,
+  "explanation": "Why the correct answer is right",
+  "items": ["item1", "item2", "item3"],
+  "rationale": "Brief explanation of why this question was chosen and what Bloom's level it targets"
+}
+
+Notes:
+- For "multiple_choice": include options, correctIndex, explanation
+- For "short_answer": omit options/correctIndex/items
+- For "ranking": include items (in correct order), omit options/correctIndex
+- Always include rationale`;
+
+    const model = "gemini-2.5-flash-lite";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
+
+    try {
+      const data = await callGeminiWithRetry(url, {
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: 800,
+          temperature: 0.4,
+          responseMimeType: "application/json",
+        },
+      });
+
+      if (data.error) {
+        console.error("Gemini API error (generateQuestion):", data.error);
+        return res.status(502).json({ error: "AI service temporarily unavailable" });
+      }
+
+      const responseText =
+        data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
+
+      const cleaned = responseText.replace(/```json|```/g, "").trim();
+      const question = JSON.parse(cleaned);
+
+      return res.json({ question });
+    } catch (err) {
+      console.error("Generate question error:", err);
+      return res.status(500).json({ error: "Failed to generate question" });
+    }
+  }
+);

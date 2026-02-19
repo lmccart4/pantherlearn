@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { logOut } from "../lib/firebase";
 import { resolveDisplayName } from "../lib/displayName";
 import LanguageSelector from "./LanguageSelector";
+import NotificationBell from "./NotificationBell";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 export default function TopBar() {
@@ -42,6 +43,7 @@ export default function TopBar() {
 
       <div className="top-bar-right">
         <LanguageSelector />
+        <NotificationBell />
         {user?.photoURL && <img src={user.photoURL} className="user-avatar" alt="" referrerPolicy="no-referrer" />}
         <span className="user-name">{displayedName}</span>
         <button className="sign-out-btn" onClick={logOut} data-translatable>{isTeacher ? "Sign out" : ui(2, "Sign out")}</button>

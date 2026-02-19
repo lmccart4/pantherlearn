@@ -25,12 +25,23 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isLoggedIn();
       allow write: if isOwner(uid) || isTeacher();
+
+      // Notifications: owner can read/write, teachers can create (for fan-out)
+      match /notifications/{notifId} {
+        allow read, write: if isOwner(uid);
+        allow create: if isTeacher();
+      }
     }
     match /courses/{courseId} {
       allow read: if isLoggedIn();
       allow create: if isTeacher();
       allow update, delete: if isCourseOwner(courseId);
       match /lessons/{lessonId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isCourseOwner(courseId);
+      }
+      // Announcements: enrolled students + teacher can read, course owner can write
+      match /announcements/{annId} {
         allow read: if hasCourseAccess(courseId);
         allow write: if isCourseOwner(courseId);
       }

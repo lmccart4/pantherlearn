@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, orderBy, doc, setDoc, addDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { generateEnrollCode } from "../lib/enrollment";
+import AnnouncementComposer from "../components/AnnouncementComposer";
 
 export default function TeacherDashboard() {
   const { user, nickname } = useAuth();
@@ -22,6 +23,7 @@ export default function TeacherDashboard() {
   const [creating, setCreating] = useState(false);
 
   const [editingIcon, setEditingIcon] = useState(null); // courseId
+  const [announceCourse, setAnnounceCourse] = useState(null); // { id, title } for composer modal
 
   const firstName = nickname || user?.displayName?.split(" ")[0] || "there";
 
@@ -214,7 +216,7 @@ export default function TeacherDashboard() {
                       }}>{displayCode}</span>
                     </div>
 
-                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", gap: 14 }}>
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", gap: 14, flexWrap: "wrap" }}>
                       <Link to={`/xp-controls/${course.id}`} style={{ fontSize: 13, color: "var(--amber)", textDecoration: "none", fontWeight: 600 }}>
                         ⚙️ XP Controls
                       </Link>
@@ -224,6 +226,12 @@ export default function TeacherDashboard() {
                       <Link to={`/mana/${course.id}`} style={{ fontSize: 13, color: "#8b5cf6", textDecoration: "none", fontWeight: 600 }}>
                         🔮 Mana
                       </Link>
+                      <button
+                        onClick={() => setAnnounceCourse({ id: course.id, title: course.title })}
+                        style={{ fontSize: 13, color: "var(--amber)", background: "none", border: "none", cursor: "pointer", fontWeight: 600, padding: 0 }}
+                      >
+                        📢 Announce
+                      </button>
                     </div>
                   </div>
                 );
@@ -284,6 +292,16 @@ export default function TeacherDashboard() {
           </div>
         )}
       </div>
+
+      {/* ============ ANNOUNCEMENT COMPOSER MODAL ============ */}
+      {announceCourse && (
+        <AnnouncementComposer
+          courseId={announceCourse.id}
+          courseTitle={announceCourse.title}
+          user={user}
+          onClose={() => setAnnounceCourse(null)}
+        />
+      )}
 
       {/* ============ CREATE COURSE MODAL ============ */}
       {showCreateModal && (

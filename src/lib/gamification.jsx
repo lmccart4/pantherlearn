@@ -5,6 +5,21 @@
 
 import { doc, getDoc, setDoc, collection, getDocs, query, where, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
+import { createNotification } from "./notifications";
+
+// ─── Bloom's Taxonomy / Question Difficulty Levels ───
+export const BLOOM_LEVELS = [
+  { key: "remember",    label: "Remember",    color: "var(--green)",  xpMult: 0.75 },
+  { key: "understand",  label: "Understand",  color: "var(--blue)",   xpMult: 1.0 },
+  { key: "apply",       label: "Apply",       color: "var(--cyan)",   xpMult: 1.25 },
+  { key: "analyze",     label: "Analyze",     color: "var(--purple)", xpMult: 1.5 },
+  { key: "evaluate",    label: "Evaluate",    color: "var(--amber)",  xpMult: 1.75 },
+  { key: "create",      label: "Create",      color: "var(--red)",    xpMult: 2.0 },
+];
+
+export function getBloomLevel(key) {
+  return BLOOM_LEVELS.find((b) => b.key === key) || BLOOM_LEVELS[1]; // default: "understand"
+}
 
 // ─── Default XP Values (used when no course-specific config exists) ───
 export const DEFAULT_XP_VALUES = {
@@ -489,7 +504,13 @@ export async function awardXP(uid, amount, source, courseId) {
     }
 
     const finalAmount = Math.round(amount * multiplier);
-    const newTotal = (data.totalXP || 0) + finalAmount;
+    const oldTotal = data.totalXP || 0;
+    const newTotal = oldTotal + finalAmount;
+
+    // Detect level-up
+    const oldLevel = getLevelInfo(oldTotal).current.level;
+    const newLevelInfo = getLevelInfo(newTotal);
+    const newLevel = newLevelInfo.current.level;
 
     // Track activity date for streaks (deduplicated per day)
     const today = new Date().toISOString().slice(0, 10);
@@ -519,7 +540,23 @@ export async function awardXP(uid, amount, source, courseId) {
       streakFreezes,
     }, { merge: true });
 
-    return { newTotal, awarded: finalAmount, multiplier, currentStreak };
+    // Send level-up notification if the student leveled up
+    if (newLevel > oldLevel) {
+      try {
+        await createNotification(uid, {
+          type: "level_up",
+          title: `🎉 Level Up! You're now Level ${newLevel}`,
+          body: `${newLevelInfo.current.tierIcon} ${newLevelInfo.current.tierName} — keep it up!`,
+          icon: "⬆️",
+          link: "/",
+          courseId: courseId || null,
+        });
+      } catch (notifErr) {
+        console.warn("Could not send level-up notification:", notifErr);
+      }
+    }
+
+    return { newTotal, awarded: finalAmount, multiplier, currentStreak, leveledUp: newLevel > oldLevel, newLevel };
   } catch (err) {
     console.error("Error awarding XP:", err);
     return null;
