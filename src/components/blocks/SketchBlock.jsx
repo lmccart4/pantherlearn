@@ -1,6 +1,5 @@
 // src/components/blocks/SketchBlock.jsx
 // Chrome Canvas-inspired sketching tool for physics lessons.
-// Students draw free-body diagrams, circuit diagrams, etc. directly in the lesson.
 // Tools: Pen, Marker, Eraser, Line, Shape (rect/ellipse/arrow), Text
 // Hold Shift while drawing with pen/marker for straight lines.
 // Strokes stored as structured data for compact storage and undo/redo.
@@ -25,9 +24,7 @@ const DRAW_TOOLS = [
 const SHAPES = ["rectangle", "ellipse", "arrow"];
 
 // ──────────────────────────────────────────────
-// Drawing helpers — used both during live draw
-// and during full-canvas replay. Using the SAME
-// path logic prevents the "stroke shifting" bug.
+// Drawing helpers
 // ──────────────────────────────────────────────
 
 function applyStrokeStyle(ctx, stroke) {
@@ -47,7 +44,6 @@ function applyStrokeStyle(ctx, stroke) {
   }
 }
 
-/** Draw a freehand stroke as simple lineTo segments (same as live drawing). */
 function drawFreehandPath(ctx, points) {
   if (!points || points.length < 2) return;
   ctx.beginPath();
@@ -58,7 +54,6 @@ function drawFreehandPath(ctx, points) {
   ctx.stroke();
 }
 
-/** Draw a straight line between two points. */
 function drawLinePath(ctx, p0, p1) {
   ctx.beginPath();
   ctx.moveTo(p0.x, p0.y);
@@ -66,28 +61,29 @@ function drawLinePath(ctx, p0, p1) {
   ctx.stroke();
 }
 
-/** Draw a shape (rectangle, ellipse, or arrow). */
 function drawShape(ctx, stroke) {
   const p0 = stroke.points[0];
   const p1 = stroke.points[stroke.points.length - 1];
   const shape = stroke.shape || "rectangle";
 
-  ctx.beginPath();
   if (shape === "rectangle") {
+    ctx.beginPath();
     ctx.strokeRect(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y);
   } else if (shape === "ellipse") {
     const cx = (p0.x + p1.x) / 2;
     const cy = (p0.y + p1.y) / 2;
     const rx = Math.abs(p1.x - p0.x) / 2;
     const ry = Math.abs(p1.y - p0.y) / 2;
-    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-    ctx.stroke();
+    if (rx > 0 && ry > 0) {
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
   } else if (shape === "arrow") {
-    // Line
+    ctx.beginPath();
     ctx.moveTo(p0.x, p0.y);
     ctx.lineTo(p1.x, p1.y);
     ctx.stroke();
-    // Arrowhead
     const angle = Math.atan2(p1.y - p0.y, p1.x - p0.x);
     const headLen = Math.max(12, stroke.size * 4);
     ctx.beginPath();
@@ -99,21 +95,20 @@ function drawShape(ctx, stroke) {
   }
 }
 
-/** Draw a text element. */
 function drawText(ctx, stroke) {
   if (!stroke.text) return;
   ctx.save();
   ctx.globalCompositeOperation = "source-over";
   ctx.globalAlpha = stroke.opacity ?? 1;
   ctx.fillStyle = stroke.color || "#000";
-  ctx.font = `${stroke.size ? Math.max(14, stroke.size * 3) : 18}px ${getComputedStyle(document.documentElement).getPropertyValue("--font-body").trim() || "system-ui, sans-serif"}`;
+  const fontSize = stroke.size ? Math.max(14, stroke.size * 3) : 18;
+  ctx.font = `${fontSize}px ${getComputedStyle(document.documentElement).getPropertyValue("--font-body").trim() || "system-ui, sans-serif"}`;
   ctx.textBaseline = "top";
-  // Wrap text in lines
   const maxWidth = stroke.textWidth || 200;
   const words = stroke.text.split(" ");
   let line = "";
   let y = stroke.points[0].y;
-  const lineHeight = (stroke.size ? Math.max(14, stroke.size * 3) : 18) * 1.3;
+  const lineHeight = fontSize * 1.3;
   for (const word of words) {
     const test = line + (line ? " " : "") + word;
     if (ctx.measureText(test).width > maxWidth && line) {
@@ -128,58 +123,30 @@ function drawText(ctx, stroke) {
   ctx.restore();
 }
 
-/** Draw any stroke (dispatcher). */
 function drawStroke(ctx, stroke) {
   if (!ctx || !stroke) return;
   ctx.save();
   applyStrokeStyle(ctx, stroke);
-
-  if (stroke.tool === "text") {
-    drawText(ctx, stroke);
-  } else if (stroke.tool === "shape") {
-    drawShape(ctx, stroke);
-  } else if (stroke.tool === "line" || stroke.isLine) {
-    if (stroke.points && stroke.points.length >= 2) {
+  if (stroke.tool === "text") drawText(ctx, stroke);
+  else if (stroke.tool === "shape") drawShape(ctx, stroke);
+  else if (stroke.tool === "line" || stroke.isLine) {
+    if (stroke.points?.length >= 2)
       drawLinePath(ctx, stroke.points[0], stroke.points[stroke.points.length - 1]);
-    }
-  } else {
-    // pen, marker, eraser — freehand
-    drawFreehandPath(ctx, stroke.points);
-  }
+  } else drawFreehandPath(ctx, stroke.points);
   ctx.restore();
 }
 
 function redrawCanvas(ctx, strokeList, width, height) {
   if (!ctx) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "source-over";
+  ctx.globalAlpha = 1;
   ctx.clearRect(0, 0, width || 4000, height || 4000);
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, width || 4000, height || 4000);
-  for (const stroke of strokeList) {
-    drawStroke(ctx, stroke);
-  }
+  ctx.restore();
+  for (const stroke of strokeList) drawStroke(ctx, stroke);
 }
-
-// Simple point-distance simplification — keeps shape accurate
-function simplifyStroke(stroke) {
-  if (stroke.tool !== "pen" && stroke.tool !== "marker" && stroke.tool !== "eraser") return stroke;
-  const pts = stroke.points;
-  if (!pts || pts.length <= 20) return stroke;
-
-  // Douglas-Peucker-ish: keep points that are more than threshold px from the line
-  const minDist = 1.5;
-  const kept = [pts[0]];
-  for (let i = 1; i < pts.length - 1; i++) {
-    const prev = kept[kept.length - 1];
-    const dx = pts[i].x - prev.x;
-    const dy = pts[i].y - prev.y;
-    if (Math.sqrt(dx * dx + dy * dy) >= minDist) {
-      kept.push(pts[i]);
-    }
-  }
-  kept.push(pts[pts.length - 1]);
-  return { ...stroke, points: kept };
-}
-
 
 // ──────────────────────────────────────────────
 // Component
@@ -200,16 +167,15 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
   const [color, setColor] = useState("#000000");
   const [brushSize, setBrushSize] = useState(3);
   const [activeShape, setActiveShape] = useState("rectangle");
-  const [isDrawing, setIsDrawing] = useState(false);
+  const [showShapePicker, setShowShapePicker] = useState(false);
 
-  // Text tool state
-  const [textInput, setTextInput] = useState(null); // { x, y } or null
+  const [textInput, setTextInput] = useState(null);
   const [textValue, setTextValue] = useState("");
   const textRef = useRef(null);
 
   useEffect(() => { strokesRef.current = strokes; }, [strokes]);
 
-  // Track shift key
+  // Track shift
   useEffect(() => {
     const down = (e) => { if (e.key === "Shift") shiftRef.current = true; };
     const up = (e) => { if (e.key === "Shift") shiftRef.current = false; };
@@ -221,15 +187,11 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
   // Auto-save
   const performSave = useCallback(() => {
     if (onAnswer) {
-      onAnswer(block.id, {
-        strokes: strokesRef.current,
-        savedAt: new Date().toISOString(),
-      });
+      onAnswer(block.id, { strokes: strokesRef.current, savedAt: new Date().toISOString() });
     }
   }, [onAnswer, block.id]);
   const { markDirty } = useAutoSave(performSave, { delay: 2000 });
 
-  // Get canvas dimensions helper
   const getDims = useCallback(() => {
     const container = containerRef.current;
     if (!container) return { width: 800, height: 400 };
@@ -237,41 +199,33 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
     return { width: rect.width, height: block.canvasHeight || 400 };
   }, [block.canvasHeight]);
 
-  // Init canvas
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
-
     const { width, height } = getDims();
     const dpr = window.devicePixelRatio || 1;
-
     canvas.width = width * dpr;
     canvas.height = height * dpr;
     canvas.style.width = width + "px";
     canvas.style.height = height + "px";
-
     const ctx = canvas.getContext("2d");
     ctx.scale(dpr, dpr);
     ctxRef.current = ctx;
-
     redrawCanvas(ctx, strokesRef.current, width, height);
   }, [getDims]);
 
   useEffect(() => { initCanvas(); }, [initCanvas]);
-
   useEffect(() => {
     window.addEventListener("resize", initCanvas);
     return () => window.removeEventListener("resize", initCanvas);
   }, [initCanvas]);
 
-  // Redraw helper
-  const doRedraw = useCallback((strokeList) => {
+  const doRedraw = useCallback((list) => {
     const { width, height } = getDims();
-    redrawCanvas(ctxRef.current, strokeList, width, height);
+    redrawCanvas(ctxRef.current, list, width, height);
   }, [getDims]);
 
-  // Coordinate helper
   function getCanvasPoint(e) {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -279,48 +233,36 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }
 
-  // Commit a stroke to the strokes array
-  const commitStroke = useCallback((newStroke) => {
-    setStrokes((prev) => {
-      const updated = [...prev, newStroke];
-      strokesRef.current = updated;
-      return updated;
-    });
+  // Commit stroke — updates state + ref synchronously enough for our needs
+  const commitStroke = useCallback((s) => {
+    const updated = [...strokesRef.current, s];
+    strokesRef.current = updated;
+    setStrokes(updated);
     setRedoStack([]);
     markDirty();
   }, [markDirty]);
 
-  // ── Text tool ──
+  // ── Text ──
   const commitText = useCallback(() => {
-    if (!textInput || !textValue.trim()) {
-      setTextInput(null);
-      setTextValue("");
-      return;
-    }
-    const fontSize = Math.max(14, brushSize * 3);
-    const newStroke = {
+    if (!textInput || !textValue.trim()) { setTextInput(null); setTextValue(""); return; }
+    const s = {
       tool: "text",
       points: [{ x: textInput.x, y: textInput.y }],
-      color,
-      size: brushSize,
-      opacity: 1,
+      color, size: brushSize, opacity: 1,
       text: textValue.trim(),
       textWidth: Math.min(getDims().width - textInput.x - 10, 400),
     };
-    commitStroke(newStroke);
+    commitStroke(s);
+    // Need a redraw because text is rendered to canvas only on commit
     doRedraw([...strokesRef.current]);
     setTextInput(null);
     setTextValue("");
   }, [textInput, textValue, color, brushSize, commitStroke, doRedraw, getDims]);
 
-  // Focus text input when it appears
-  useEffect(() => {
-    if (textInput && textRef.current) textRef.current.focus();
-  }, [textInput]);
+  useEffect(() => { if (textInput && textRef.current) textRef.current.focus(); }, [textInput]);
 
   // ── Pointer handlers ──
   const handlePointerDown = useCallback((e) => {
-    // Text tool — place text input
     if (tool === "text") {
       if (textInput) commitText();
       const pt = getCanvasPoint(e);
@@ -344,46 +286,39 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
     drawingRef.current = {
       points: [point],
       color: tool === "eraser" ? "#ffffff" : color,
-      size,
-      tool: tool === "shape" ? "shape" : (tool === "line" ? "line" : tool),
+      size, tool: tool === "shape" ? "shape" : tool === "line" ? "line" : tool,
       opacity,
       isLine: isShift && (tool === "pen" || tool === "marker"),
       shape: tool === "shape" ? activeShape : undefined,
       startPoint: point,
     };
-    setIsDrawing(true);
   }, [tool, color, brushSize, activeShape, textInput, commitText]);
 
   const handlePointerMove = useCallback((e) => {
-    if (!drawingRef.current || !ctxRef.current) return;
+    const d = drawingRef.current;
+    if (!d || !ctxRef.current) return;
     e.preventDefault();
 
     const point = getCanvasPoint(e);
-    const d = drawingRef.current;
 
-    // For line/shape tools or shift-constrained: show preview
+    // Line / shape / shift-line: preview by full redraw + overlay
     if (d.tool === "line" || d.tool === "shape" || d.isLine) {
       d.points = [d.startPoint, point];
-      // Redraw everything + preview
       doRedraw(strokesRef.current);
       const ctx = ctxRef.current;
       ctx.save();
       applyStrokeStyle(ctx, d);
-      if (d.tool === "shape") {
-        drawShape(ctx, d);
-      } else {
-        drawLinePath(ctx, d.startPoint, point);
-      }
+      if (d.tool === "shape") drawShape(ctx, d);
+      else drawLinePath(ctx, d.startPoint, point);
       ctx.restore();
       return;
     }
 
-    // Freehand — draw segment immediately
+    // Freehand: just append the segment — no full redraw needed
     d.points.push(point);
     const ctx = ctxRef.current;
     const pts = d.points;
     if (pts.length < 2) return;
-
     ctx.save();
     applyStrokeStyle(ctx, d);
     ctx.beginPath();
@@ -394,86 +329,78 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
   }, [doRedraw]);
 
   const handlePointerUp = useCallback((e) => {
-    if (!drawingRef.current) return;
+    const d = drawingRef.current;
+    if (!d) return;
     e.preventDefault();
     const canvas = canvasRef.current;
-    if (canvas) {
-      try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
-    }
-
-    const d = drawingRef.current;
+    if (canvas) { try { canvas.releasePointerCapture(e.pointerId); } catch (_) {} }
     drawingRef.current = null;
-    setIsDrawing(false);
 
     if (!d.points || d.points.length < 2) return;
 
-    // For line/shape/shift-line: only keep start and end points
-    let finalStroke;
+    // Build final stroke
+    let final;
     if (d.tool === "line" || d.tool === "shape" || d.isLine) {
-      finalStroke = { ...d, points: [d.startPoint, d.points[d.points.length - 1]] };
-      delete finalStroke.startPoint;
+      final = { ...d, points: [d.startPoint, d.points[d.points.length - 1]] };
     } else {
-      finalStroke = simplifyStroke(d);
-      delete finalStroke.startPoint;
+      // Keep ALL points — no simplification.
+      // This guarantees the saved stroke looks identical to what was drawn live.
+      final = { ...d };
     }
+    delete final.startPoint;
+    commitStroke(final);
 
-    commitStroke(finalStroke);
-    doRedraw([...strokesRef.current]);
+    // For line/shape/shift-line we need a final redraw because the preview
+    // was drawn on top of the existing canvas. For freehand we do NOT redraw
+    // because the live lineTo segments are already the correct final render.
+    if (d.tool === "line" || d.tool === "shape" || d.isLine) {
+      doRedraw(strokesRef.current);
+    }
   }, [commitStroke, doRedraw]);
 
-  // ── Undo/Redo/Clear ──
+  // ── Undo / Redo / Clear ──
   const handleUndo = useCallback(() => {
-    setStrokes((prev) => {
-      if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      setRedoStack((rs) => [...rs, last]);
-      const updated = prev.slice(0, -1);
-      strokesRef.current = updated;
-      doRedraw(updated);
-      markDirty();
-      return updated;
-    });
+    if (strokesRef.current.length === 0) return;
+    const last = strokesRef.current[strokesRef.current.length - 1];
+    const updated = strokesRef.current.slice(0, -1);
+    strokesRef.current = updated;
+    setStrokes(updated);
+    setRedoStack((rs) => [...rs, last]);
+    doRedraw(updated);
+    markDirty();
   }, [markDirty, doRedraw]);
 
   const handleRedo = useCallback(() => {
     setRedoStack((rs) => {
       if (rs.length === 0) return rs;
       const last = rs[rs.length - 1];
-      setStrokes((prev) => {
-        const updated = [...prev, last];
-        strokesRef.current = updated;
-        doRedraw(updated);
-        markDirty();
-        return updated;
-      });
+      const updated = [...strokesRef.current, last];
+      strokesRef.current = updated;
+      setStrokes(updated);
+      doRedraw(updated);
+      markDirty();
       return rs.slice(0, -1);
     });
   }, [markDirty, doRedraw]);
 
   const handleClear = useCallback(() => {
-    if (strokes.length === 0) return;
+    if (strokesRef.current.length === 0) return;
     if (!confirm("Clear the entire canvas? This cannot be undone.")) return;
+    strokesRef.current = [];
     setStrokes([]);
     setRedoStack([]);
-    strokesRef.current = [];
     doRedraw([]);
     markDirty();
-  }, [strokes.length, markDirty, doRedraw]);
+  }, [markDirty, doRedraw]);
 
-  // Cursor style
   const getCursor = () => {
     if (tool === "eraser") return "cell";
     if (tool === "text") return "text";
-    if (tool === "line" || tool === "shape") return "crosshair";
     return "crosshair";
   };
 
-  // Shape picker sub-menu
-  const [showShapePicker, setShowShapePicker] = useState(false);
-
   return (
     <div className="sketch-block">
-      {/* Title & Instructions */}
       {(block.title || block.instructions) && (
         <div className="sketch-header">
           {block.title && (
@@ -488,10 +415,8 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
         </div>
       )}
 
-      {/* Toolbar */}
       <div className="sketch-toolbar">
         <div className="sketch-toolbar-row">
-          {/* Tool buttons */}
           <div className="sketch-tool-group">
             {DRAW_TOOLS.map((t) => (
               <div key={t.id} style={{ position: "relative" }}>
@@ -510,18 +435,12 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
                     {t.id === "shape" ? activeShape.charAt(0).toUpperCase() + activeShape.slice(1) : t.label}
                   </span>
                 </button>
-                {/* Shape picker dropdown */}
                 {t.id === "shape" && showShapePicker && tool === "shape" && (
                   <div className="sketch-shape-picker">
                     {SHAPES.map((s) => (
-                      <button
-                        key={s}
+                      <button key={s}
                         className={`sketch-shape-option ${activeShape === s ? "active" : ""}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveShape(s);
-                          setShowShapePicker(false);
-                        }}
+                        onClick={(ev) => { ev.stopPropagation(); setActiveShape(s); setShowShapePicker(false); }}
                       >
                         {s === "rectangle" ? "▭" : s === "ellipse" ? "○" : "→"}{" "}
                         {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -535,11 +454,9 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
 
           <div className="sketch-divider" />
 
-          {/* Color swatches */}
           <div className="sketch-color-group">
             {COLORS.map((c) => (
-              <button
-                key={c}
+              <button key={c}
                 className={`sketch-color-btn ${color === c ? "active" : ""}`}
                 onClick={() => { setColor(c); if (tool === "eraser") setTool("pen"); }}
                 title={c}
@@ -551,9 +468,7 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
               />
             ))}
             <label className="sketch-color-custom" title="Custom color">
-              <input
-                type="color"
-                value={color}
+              <input type="color" value={color}
                 onChange={(e) => { setColor(e.target.value); if (tool === "eraser") setTool("pen"); }}
                 style={{ opacity: 0, position: "absolute", width: 0, height: 0 }}
               />
@@ -568,18 +483,14 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
 
           <div className="sketch-divider" />
 
-          {/* Brush size */}
           <div className="sketch-size-group">
             <span className="sketch-size-label">Size</span>
-            <input
-              type="range" min="1" max="20" value={brushSize}
+            <input type="range" min="1" max="20" value={brushSize}
               onChange={(e) => setBrushSize(Number(e.target.value))}
-              className="sketch-size-slider"
-            />
+              className="sketch-size-slider" />
             <span className="sketch-size-value">{brushSize}</span>
             <div className="sketch-size-preview" style={{
-              width: Math.min(brushSize * 1.5, 20),
-              height: Math.min(brushSize * 1.5, 20),
+              width: Math.min(brushSize * 1.5, 20), height: Math.min(brushSize * 1.5, 20),
               background: tool === "eraser" ? "var(--text3)" : color,
               opacity: tool === "marker" ? 0.4 : 1,
             }} />
@@ -587,39 +498,25 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
 
           <div className="sketch-divider" />
 
-          {/* Undo / Redo / Clear */}
           <div className="sketch-action-group">
             <button className="sketch-action-btn" onClick={handleUndo} disabled={strokes.length === 0} title="Undo">↩</button>
             <button className="sketch-action-btn" onClick={handleRedo} disabled={redoStack.length === 0} title="Redo">↪</button>
-            <button className="sketch-action-btn sketch-clear-btn" onClick={handleClear} disabled={strokes.length === 0} title="Clear canvas">🗑</button>
+            <button className="sketch-action-btn sketch-clear-btn" onClick={handleClear} disabled={strokes.length === 0} title="Clear">🗑</button>
           </div>
         </div>
       </div>
 
-      {/* Canvas */}
       <div className="sketch-canvas-container" ref={containerRef} style={{ position: "relative" }}>
-        <canvas
-          ref={canvasRef}
-          className="sketch-canvas"
+        <canvas ref={canvasRef} className="sketch-canvas"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={(e) => { if (drawingRef.current) handlePointerUp(e); }}
           style={{ touchAction: "none", cursor: getCursor() }}
         />
-        {/* Text input overlay */}
         {textInput && (
-          <div
-            style={{
-              position: "absolute",
-              left: textInput.x,
-              top: textInput.y,
-              zIndex: 10,
-            }}
-          >
-            <textarea
-              ref={textRef}
-              value={textValue}
+          <div style={{ position: "absolute", left: textInput.x, top: textInput.y, zIndex: 10 }}>
+            <textarea ref={textRef} value={textValue}
               onChange={(e) => setTextValue(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitText(); }
@@ -628,34 +525,22 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
               onBlur={commitText}
               placeholder="Type here..."
               style={{
-                minWidth: 120,
-                minHeight: 32,
-                padding: "4px 6px",
+                minWidth: 120, minHeight: 32, padding: "4px 6px",
                 fontSize: Math.max(14, brushSize * 3) + "px",
-                fontFamily: "inherit",
-                color: color,
-                background: "rgba(255,255,255,0.9)",
-                border: "2px solid var(--amber)",
-                borderRadius: 6,
-                outline: "none",
-                resize: "both",
-                lineHeight: 1.3,
+                fontFamily: "inherit", color, background: "rgba(255,255,255,0.9)",
+                border: "2px solid var(--amber)", borderRadius: 6,
+                outline: "none", resize: "both", lineHeight: 1.3,
               }}
             />
           </div>
         )}
       </div>
 
-      {/* Hint */}
       <div className="sketch-hint">
-        {tool === "pen" || tool === "marker"
-          ? "Hold Shift for straight line"
-          : tool === "text"
-          ? "Click to place text • Enter to confirm • Esc to cancel"
-          : tool === "line"
-          ? "Click and drag to draw a line"
-          : tool === "shape"
-          ? `Click and drag to draw ${activeShape}`
+        {tool === "pen" || tool === "marker" ? "Hold Shift for straight line"
+          : tool === "text" ? "Click to place text • Enter to confirm • Esc to cancel"
+          : tool === "line" ? "Click and drag to draw a line"
+          : tool === "shape" ? `Click and drag to draw ${activeShape}`
           : ""}
         {" • "}{strokes.length} stroke{strokes.length !== 1 ? "s" : ""} • Auto-saved
       </div>
