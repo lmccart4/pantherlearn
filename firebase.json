@@ -11,7 +11,7 @@
     ]
   },
   "functions": {
-    "source": "functions",
+    "source": "Functions",
     "runtime": "nodejs20"
   },
   "firestore": {

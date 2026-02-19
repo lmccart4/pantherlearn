@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { logOut } from "../lib/firebase";
 import { resolveDisplayName } from "../lib/displayName";
 import LanguageSelector from "./LanguageSelector";
+import NotificationBell from "./NotificationBell";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 export default function TopBar() {
@@ -36,10 +37,13 @@ export default function TopBar() {
         {!isTeacher && <Link to="/my-grades" className={isActive("/my-grades")} data-translatable>📊 {ui(3, "My Grades")}</Link>}
         {isTeacher && <Link to="/editor" className={isActive("/editor")}>Editor</Link>}
         {isTeacher && <Link to="/grading" className={isActive("/grading")}>Grading</Link>}
+        {isTeacher && <Link to="/progress" className={isActive("/progress")}>Progress</Link>}
+        {isTeacher && <Link to="/rosters" className={isActive("/rosters")}>Rosters</Link>}
       </div>
 
       <div className="top-bar-right">
         <LanguageSelector />
+        <NotificationBell />
         {user?.photoURL && <img src={user.photoURL} className="user-avatar" alt="" referrerPolicy="no-referrer" />}
         <span className="user-name">{displayedName}</span>
         <button className="sign-out-btn" onClick={logOut} data-translatable>{isTeacher ? "Sign out" : ui(2, "Sign out")}</button>

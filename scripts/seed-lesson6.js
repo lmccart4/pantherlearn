@@ -1,21 +1,8 @@
 // seed-lesson6.js
 // Run this from your pantherlearn directory: node seed-lesson6.js
 
-import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
-
-// ⬇️ PASTE YOUR FIREBASE CONFIG HERE (same as src/lib/firebase.jsx) ⬇️
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "pantherlearn-d6f7c.firebaseapp.com",
-  projectId: "pantherlearn-d6f7c",
-  storageBucket: "pantherlearn-d6f7c.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from './firebase-config.js';
 
 const lesson = {
   title: "Understanding Embeddings",

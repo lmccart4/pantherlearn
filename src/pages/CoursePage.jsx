@@ -6,9 +6,7 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import TeamPanel from "../components/TeamPanel";
 import ManaPool from "../components/ManaPool";
-import { getLeaderboard } from "../lib/gamification";
-import { getEnrollment, getCourseSections } from "../lib/enrollment";
-import { resolveFirstName } from "../lib/displayName";
+import Leaderboard from "../components/Leaderboard";
 import { useTranslatedText, useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 export default function CoursePage() {
@@ -17,10 +15,8 @@ export default function CoursePage() {
   const [course, setCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [mySection, setMySection] = useState(null);
-  const [mySectionId, setMySectionId] = useState(null);
   const [collapsedUnits, setCollapsedUnits] = useState({});
+  const [completedLessons, setCompletedLessons] = useState(new Set());
   const isTeacher = userRole === "teacher";
 
   // Translate UI chrome
@@ -56,30 +52,23 @@ export default function CoursePage() {
           console.warn("Could not fetch lessons:", e);
         }
 
-        // Fetch section-scoped leaderboard for students
+        // Fetch student's lesson progress to show completion indicators
         if (userRole !== "teacher" && user) {
           try {
-            const enrollment = await getEnrollment(user.uid, courseId, user.email);
-            const section = enrollment?.section || null;
-            setMySection(section);
-
-            // Resolve sectionId: prefer enrollment.sectionId, then look up key from course sections map
-            let resolvedId = enrollment?.sectionId || null;
-            if (!resolvedId && section && courseDoc.exists()) {
-              const sections = courseDoc.data().sections || {};
-              // Find the key whose name matches the section display name
-              for (const [key, sec] of Object.entries(sections)) {
-                if (sec.name === section) { resolvedId = key; break; }
-              }
-            }
-            setMySectionId(resolvedId || section || null);
-
-            const lb = await getLeaderboard(courseId, section);
-            setLeaderboard(lb);
+            const progressSnap = await getDocs(
+              collection(db, "progress", user.uid, "courses", courseId, "lessons")
+            );
+            const completed = new Set();
+            progressSnap.forEach((d) => {
+              if (d.data().completed) completed.add(d.id);
+            });
+            setCompletedLessons(completed);
           } catch (e) {
-            console.warn("Could not load leaderboard:", e);
+            console.warn("Could not fetch lesson progress:", e);
           }
         }
+
+        // Leaderboard is now handled by the Leaderboard component
       } catch (err) {
         console.error("Error fetching course:", err);
       }
@@ -117,7 +106,7 @@ export default function CoursePage() {
 
   return (
     <div className="page-container" style={{ padding: "48px 40px" }}>
-      <div style={{ maxWidth: isTeacher ? 700 : 1060, margin: "0 auto" }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <Link to="/" style={{ fontSize: 13, color: "var(--text3)", marginBottom: 16, display: "block" }} data-translatable>{ui(1, "← Back to Dashboard")}</Link>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
           <div style={{
@@ -154,16 +143,13 @@ export default function CoursePage() {
         <TeamPanel courseId={courseId} />
 
         {/* Mana Pool (visible to all when enabled) */}
-        <ManaPool courseId={courseId} sectionId={mySectionId} />
+        <ManaPool courseId={courseId} />
 
-        {/* Two-column layout for students: lessons + sidebar leaderboard */}
-        <div style={{
-          display: !isTeacher ? "grid" : "block",
-          gridTemplateColumns: !isTeacher ? "1fr 280px" : undefined,
-          gap: !isTeacher ? 24 : undefined,
-          alignItems: "start",
-        }}>
-          {/* Main column: Lessons */}
+        {/* Leaderboard — students only, full width above lessons */}
+        {!isTeacher && <Leaderboard courseId={courseId} />}
+
+        {/* Lessons */}
+        <div>
           <div>
             {lessons.length === 0 ? (
               <div className="card" style={{ textAlign: "center", padding: 60 }}>
@@ -216,6 +202,7 @@ export default function CoursePage() {
                         const tTitle = translatedLessonTexts?.[originalIndex * 2] ?? lesson.title;
                         const tUnit = translatedLessonTexts?.[originalIndex * 2 + 1] || "";
                         const qCount = (lesson.blocks || []).filter((b) => b.type === "question").length;
+                        const isCompleted = !isTeacher && completedLessons.has(lesson.id);
                         return (
                           <Link key={lesson.id} to={`/course/${courseId}/lesson/${lesson.id}`}
                             style={{ textDecoration: "none", color: "inherit" }}>
@@ -223,34 +210,54 @@ export default function CoursePage() {
                               display: "flex", alignItems: "center", gap: 16, cursor: "pointer",
                               animationDelay: `${i * 0.05}s`,
                               marginLeft: hasUnit ? 12 : 0,
+                              borderLeft: isCompleted ? "3px solid var(--green, #10b981)" : undefined,
                             }}>
                               <div style={{
-                                width: 36, height: 36, borderRadius: 8, background: "var(--surface2)",
+                                width: 36, height: 36, borderRadius: 8,
+                                background: isCompleted ? "rgba(16, 185, 129, 0.15)" : "var(--surface2)",
                                 display: "flex", alignItems: "center", justifyContent: "center",
-                                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--amber)",
+                                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14,
+                                color: isCompleted ? "var(--green, #10b981)" : "var(--amber)",
                               }}>
-                                {num}
+                                {isCompleted ? "✓" : num}
                               </div>
                               <div>
                                 <div style={{ fontWeight: 600, fontSize: 15 }} data-translatable>{tTitle}</div>
+                                {isCompleted && (
+                                  <div style={{ fontSize: 11, color: "var(--green, #10b981)", fontWeight: 600, marginTop: 1 }}>
+                                    Completed
+                                  </div>
+                                )}
                               </div>
                               <div style={{ marginLeft: "auto", textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
                                 <div style={{ color: "var(--text3)", fontSize: 13 }}>
                                   {qCount} {ui(4, "questions")}
                                 </div>
-                                {lesson.dueDate && (() => {
-                                  const due = new Date(lesson.dueDate + "T23:59:59");
+                                {(() => {
+                                  const effectiveDue = lesson.dueDate;
+                                  if (!effectiveDue) return null;
+                                  const due = new Date(effectiveDue + "T23:59:59");
                                   const now = new Date();
                                   const isPastDue = due < now;
-                                  const isToday = lesson.dueDate === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+                                  const isToday = effectiveDue === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
                                   const isSoon = !isPastDue && !isToday && (due - now) < 2 * 24 * 60 * 60 * 1000;
+
+                                  // Don't show stress-inducing warnings on completed lessons
+                                  if (isCompleted) {
+                                    return (
+                                      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)" }}>
+                                        Due {new Date(effectiveDue + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                      </div>
+                                    );
+                                  }
+
                                   return (
                                     <div style={{
                                       fontSize: 11, fontWeight: 600,
                                       color: isPastDue ? "var(--red)" : isToday ? "var(--amber)" : isSoon ? "var(--amber)" : "var(--text3)",
                                     }}>
                                       {isPastDue ? "⚠️ " : isToday ? "📌 " : ""}
-                                      Due {new Date(lesson.dueDate + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                      Due {new Date(effectiveDue + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                     </div>
                                   );
                                 })()}
@@ -265,65 +272,6 @@ export default function CoursePage() {
               </div>
             )}
           </div>
-
-          {/* Sidebar: Leaderboard — students only */}
-          {!isTeacher && (
-            <div style={{ position: "sticky", top: 80 }}>
-              {/* Rank card */}
-              {leaderboard.length > 0 && (() => {
-                const myRank = leaderboard.findIndex((e) => e.uid === user?.uid) + 1;
-                return myRank > 0 ? (
-                  <div className="card" style={{ padding: "12px 16px", marginBottom: 12, textAlign: "center" }}>
-                    <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 600, marginBottom: 4 }}>Your Rank</div>
-                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, color: "var(--amber)" }}>#{myRank}</div>
-                    <div style={{ fontSize: 11, color: "var(--text3)" }}>of {leaderboard.length} in {mySection || "class"}</div>
-                  </div>
-                ) : null;
-              })()}
-
-              <h3 style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600, color: "var(--text2)", marginBottom: 10 }}>
-                🏆 {mySection ? `${mySection} Leaderboard` : "Class Leaderboard"}
-              </h3>
-              {leaderboard.length > 0 ? (
-                <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-                  {leaderboard.slice(0, 10).map((entry, i) => {
-                    const isMe = entry.uid === user?.uid;
-                    return (
-                      <div key={entry.uid} style={{
-                        display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-                        background: isMe ? "var(--amber-dim)" : "transparent",
-                        borderBottom: i < Math.min(leaderboard.length, 10) - 1 ? "1px solid var(--border)" : "none",
-                      }}>
-                        <div style={{
-                          width: 22, height: 22, borderRadius: "50%",
-                          background: i < 3 ? ["var(--amber)", "var(--text2)", "#cd7f32"][i] : "var(--surface2)",
-                          color: i < 3 ? "var(--bg)" : "var(--text3)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontWeight: 700, fontSize: 10, flexShrink: 0,
-                        }}>{i + 1}</div>
-                        {entry.photoURL ? (
-                          <img src={entry.photoURL} alt="" style={{ width: 26, height: 26, borderRadius: "50%", border: isMe ? "2px solid var(--amber)" : "2px solid var(--border)", flexShrink: 0 }} />
-                        ) : (
-                          <div style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--surface2)", border: "2px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--text3)", flexShrink: 0 }}>👤</div>
-                        )}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: isMe ? 700 : 500, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {resolveFirstName({ displayName: entry.displayName, nickname: entry.nickname, isTeacherViewing: false })}
-                            {isMe && <span style={{ color: "var(--amber)", fontSize: 10, marginLeft: 4 }}>You</span>}
-                          </div>
-                        </div>
-                        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, color: "var(--amber)", flexShrink: 0 }}>{entry.totalXP || 0}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="card" style={{ textAlign: "center", padding: 24, color: "var(--text3)", fontSize: 12 }}>
-                  Complete lessons to earn XP and climb the leaderboard! 🚀
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>

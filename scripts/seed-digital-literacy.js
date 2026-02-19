@@ -2,28 +2,13 @@
 // Creates the Digital Literacy Period 3 course + 5 lessons
 // Run: node seed-digital-literacy.js
 //
-// ⬇️ PASTE YOUR FIREBASE CONFIG and TEACHER UID before running ⬇️
+// ⬇️ SET YOUR TEACHER UID before running ⬇️
 
-import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
-
-// ⬇️ PASTE YOUR FIREBASE CONFIG HERE (same as src/lib/firebase.jsx) ⬇️
-const firebaseConfig = {
-  apiKey: "AIzaSyAlxvGxLIBUrVO3WWmEcslFpSygeYVeHpY",
-  authDomain: "pantherlearn-d6f7c.firebaseapp.com",
-  projectId: "pantherlearn-d6f7c",
-  storageBucket: "pantherlearn-d6f7c.firebasestorage.app",
-  messagingSenderId: "293205883325",
-  appId: "1:293205883325:web:c0c21ece0b4fc26f673ad4",
-  measurementId: "G-5Y6BKF09HF"
-};
-
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from './firebase-config.js';
 
 // ⬇️ SET YOUR TEACHER UID HERE ⬇️
 const MY_TEACHER_UID = "M2sNE8iH1aZ57L8z8Snp1Sj8cFD2";
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
 // ═══════════════════════════════════════════════════════════════
 // COURSE DOCUMENT

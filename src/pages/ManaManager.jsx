@@ -1,5 +1,5 @@
 // src/pages/ManaManager.jsx
-// Teacher-only page for managing per-section mana pools.
+// Teacher-only page for managing course mana pool.
 // Route: /mana/:courseId
 
 import { useState, useEffect } from "react";
@@ -7,7 +7,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { getCourseSections } from "../lib/enrollment";
 import {
   getManaState, saveManaState, awardMana, deductMana,
   spendMana, applyDecay, startVote, endVote,
@@ -22,8 +21,6 @@ export default function ManaManager() {
 
   const [loading, setLoading] = useState(true);
   const [course, setCourse] = useState(null);
-  const [sections, setSections] = useState([]);
-  const [selectedSection, setSelectedSection] = useState(null);
   const [state, setState] = useState(null);
 
   // Award/deduct form
@@ -40,11 +37,6 @@ export default function ManaManager() {
     loadCourse();
   }, [courseId, userRole]);
 
-  // Load mana state when section changes
-  useEffect(() => {
-    if (selectedSection) loadMana();
-  }, [selectedSection]);
-
   async function loadCourse() {
     setLoading(true);
     try {
@@ -52,13 +44,7 @@ export default function ManaManager() {
       if (courseDoc.exists()) {
         const courseData = { id: courseDoc.id, ...courseDoc.data() };
         setCourse(courseData);
-        const secs = getCourseSections(courseData).sort((a, b) => {
-          const numA = parseInt(a.name.replace(/\D/g, "")) || 0;
-          const numB = parseInt(b.name.replace(/\D/g, "")) || 0;
-          return numA - numB;
-        });
-        setSections(secs);
-        if (secs.length > 0) setSelectedSection(secs[0].id);
+        await loadMana();
       }
     } catch (err) {
       console.error("Error loading course:", err);
@@ -67,9 +53,8 @@ export default function ManaManager() {
   }
 
   async function loadMana() {
-    if (!selectedSection) return;
     try {
-      const s = await getManaState(courseId, selectedSection);
+      const s = await getManaState(courseId);
       setState(s);
     } catch (err) {
       console.error("Error loading mana:", err);
@@ -79,15 +64,15 @@ export default function ManaManager() {
   async function handleToggleEnabled() {
     const updated = { ...state, enabled: !state.enabled };
     setState(updated);
-    await saveManaState(courseId, selectedSection, updated);
+    await saveManaState(courseId, undefined, updated);
   }
 
   async function handleAward() {
     if (!awardReason.trim()) return;
     if (isDeducting) {
-      await deductMana(courseId, selectedSection, awardAmount, awardReason.trim());
+      await deductMana(courseId, undefined, awardAmount, awardReason.trim());
     } else {
-      await awardMana(courseId, selectedSection, awardAmount, awardReason.trim(), "teacher");
+      await awardMana(courseId, undefined, awardAmount, awardReason.trim(), "teacher");
     }
     setAwardReason("");
     await loadMana();
@@ -95,16 +80,16 @@ export default function ManaManager() {
 
   async function handleQuickAward(amount, reason) {
     if (amount > 0) {
-      await awardMana(courseId, selectedSection, amount, reason, "teacher");
+      await awardMana(courseId, undefined, amount, reason, "teacher");
     } else {
-      await deductMana(courseId, selectedSection, Math.abs(amount), reason);
+      await deductMana(courseId, undefined, Math.abs(amount), reason);
     }
     await loadMana();
   }
 
   async function handleActivatePower(powerId) {
     try {
-      await spendMana(courseId, selectedSection, powerId);
+      await spendMana(courseId, undefined, powerId);
       await loadMana();
     } catch (err) {
       alert(err.message);
@@ -112,17 +97,17 @@ export default function ManaManager() {
   }
 
   async function handleStartVote(powerId) {
-    await startVote(courseId, selectedSection, powerId);
+    await startVote(courseId, undefined, powerId);
     await loadMana();
   }
 
   async function handleEndVote() {
-    await endVote(courseId, selectedSection);
+    await endVote(courseId);
     await loadMana();
   }
 
   async function handleApplyDecay() {
-    const result = await applyDecay(courseId, selectedSection);
+    const result = await applyDecay(courseId);
     if (result.decayed) {
       alert(`Decayed ${result.decayAmount} MP → ${result.newMP} MP remaining`);
     } else {
@@ -133,7 +118,7 @@ export default function ManaManager() {
 
   async function handleAddPower() {
     if (!newPower.name.trim()) return;
-    await addPower(courseId, selectedSection, newPower);
+    await addPower(courseId, undefined, newPower);
     setNewPower({ name: "", description: "", cost: 25, icon: "⚡" });
     setShowNewPower(false);
     await loadMana();
@@ -141,14 +126,14 @@ export default function ManaManager() {
 
   async function handleRemovePower(powerId) {
     if (!confirm("Remove this power?")) return;
-    await removePower(courseId, selectedSection, powerId);
+    await removePower(courseId, undefined, powerId);
     await loadMana();
   }
 
   async function handleResetToDefaults() {
     if (!confirm("Reset powers to defaults? Custom powers will be lost.")) return;
     const updated = { ...state, powers: DEFAULT_POWERS };
-    await saveManaState(courseId, selectedSection, updated);
+    await saveManaState(courseId, undefined, updated);
     await loadMana();
   }
 
@@ -156,23 +141,6 @@ export default function ManaManager() {
     return (
       <div className="page-container" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}>
         <div className="spinner" />
-      </div>
-    );
-  }
-
-  if (sections.length === 0) {
-    return (
-      <div className="page-container" style={{ padding: "48px 40px" }}>
-        <div style={{ maxWidth: 800, margin: "0 auto", textAlign: "center", paddingTop: 60 }}>
-          <p style={{ fontSize: 40, marginBottom: 12 }}>🔮</p>
-          <h2 style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}>No Sections Found</h2>
-          <p style={{ color: "var(--text2)", marginBottom: 20 }}>
-            Mana pools are per-section. Add sections to your course first (via enroll codes).
-          </p>
-          <button onClick={() => navigate(`/course/${courseId}`)} className="btn btn-primary">
-            ← Back to Course
-          </button>
-        </div>
       </div>
     );
   }
@@ -197,7 +165,7 @@ export default function ManaManager() {
     color: "var(--red)", cursor: "pointer", fontSize: 12, fontWeight: 600,
   };
 
-  const currentSectionName = sections.find((s) => s.id === selectedSection)?.name || selectedSection;
+  const poolLabel = course?.title || "Course";
 
   return (
     <div className="page-container" style={{ padding: "48px 40px" }}>
@@ -209,33 +177,8 @@ export default function ManaManager() {
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700 }}>🔮 Mana Pool</h1>
         </div>
         <p style={{ color: "var(--text2)", fontSize: 14, marginBottom: 20 }}>
-          {course?.title} — Manage mana per section
+          {course?.title} — Manage course mana pool
         </p>
-
-        {/* Section Selector */}
-        <div style={{
-          ...cardStyle, display: "flex", alignItems: "center", gap: 14,
-          background: `${glowColor}08`, borderColor: `${glowColor}33`,
-        }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text2)" }}>Section:</span>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {sections.map((sec) => (
-              <button
-                key={sec.id}
-                onClick={() => setSelectedSection(sec.id)}
-                style={{
-                  padding: "8px 18px", borderRadius: 8, border: "none", fontWeight: 600,
-                  fontSize: 14, cursor: "pointer",
-                  background: selectedSection === sec.id ? glowColor : "var(--surface2)",
-                  color: selectedSection === sec.id ? "#fff" : "var(--text2)",
-                  transition: "all 0.15s",
-                }}
-              >
-                {sec.name}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {!state ? (
           <div style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>Loading mana state...</div>
@@ -250,7 +193,7 @@ export default function ManaManager() {
                     onChange={handleToggleEnabled}
                     style={{ accentColor: glowColor, width: 18, height: 18 }}
                   />
-                  Mana Pool Enabled — {currentSectionName}
+                  Mana Pool Enabled
                 </label>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: glowColor }}>
                   {state.currentMP}<span style={{ fontSize: 14, color: "var(--text3)", fontWeight: 400 }}>/{MANA_CAP} MP</span>
@@ -421,8 +364,8 @@ export default function ManaManager() {
                   Apply Weekly Decay (10% above 50 MP)
                 </button>
                 <button onClick={async () => {
-                  if (!confirm(`Reset ${currentSectionName} mana to 0? History will be cleared.`)) return;
-                  await saveManaState(courseId, selectedSection, { ...state, currentMP: 0, history: [], votes: {}, activeVote: null });
+                  if (!confirm("Reset mana to 0? History will be cleared.")) return;
+                  await saveManaState(courseId, undefined, { ...state, currentMP: 0, history: [], votes: {}, activeVote: null });
                   await loadMana();
                 }} style={{ ...btnSecondary, color: "var(--red)", borderColor: "var(--red)" }}>
                   Reset Pool to 0
@@ -433,7 +376,7 @@ export default function ManaManager() {
             {/* History */}
             {(state?.history || []).length > 0 && (
               <div style={cardStyle}>
-                <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>📜 History — {currentSectionName}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>📜 History</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {(state.history || []).slice(0, 20).map((entry, i) => (
                     <div key={i} style={{

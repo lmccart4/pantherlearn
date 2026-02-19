@@ -1,7 +1,7 @@
 // src/pages/GradingDashboard.jsx
 // Optimized: lazy-loads data by course → section → lesson instead of fetching everything upfront.
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, where, doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import CourseOverview from "../components/grading/CourseOverview";
@@ -14,7 +14,7 @@ export default function GradingDashboard() {
   // Navigation state
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [selectedSection, setSelectedSection] = useState("all");
+  const [selectedSection] = useState("all");
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [activeTab, setActiveTab] = useState("written");
@@ -23,7 +23,7 @@ export default function GradingDashboard() {
   const [lessonMap, setLessonMap] = useState({});
   const [courseLessons, setCourseLessons] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
-  const [sections, setSections] = useState([]);
+  const [sections] = useState([]);
   const [studentMap, setStudentMap] = useState({});
   const [responses, setResponses] = useState([]);
   const [chatLogGroups, setChatLogGroups] = useState([]);
@@ -49,7 +49,7 @@ export default function GradingDashboard() {
     const fetchCourses = async () => {
       try {
         const snap = await getDocs(collection(db, "courses"));
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden);
         setCourses(list);
         if (list.length > 0) setSelectedCourse(list[0].id);
       } catch (err) {
@@ -69,40 +69,57 @@ export default function GradingDashboard() {
       setChatLogGroups([]);
       setSelectedLesson(null);
       setSelectedStudent(null);
-      setSelectedSection("all");
       setEnrollments([]);
 
       try {
-        // Fetch users for name lookup
-        const usersSnap = await getDocs(collection(db, "users"));
-        const users = {};
-        usersSnap.forEach((d) => {
-          const data = d.data();
-          users[d.id] = {
-            uid: d.id,
-            displayName: data.displayName || data.email || d.id,
-            email: data.email || "",
-            photoURL: data.photoURL || "",
-            role: data.role || "student",
-          };
-        });
-        setStudentMap(users);
-
-        // Fetch enrollments for THIS course only
-        const enrollSnap = await getDocs(collection(db, "enrollments"));
+        // Fetch enrollments for THIS course only (not all enrollments)
+        const enrollSnap = await getDocs(
+          query(collection(db, "enrollments"), where("courseId", "==", selectedCourse))
+        );
         const courseEnrollments = [];
+        const enrolledUids = new Set();
         enrollSnap.forEach((d) => {
           const data = d.data();
-          if (data.courseId === selectedCourse) {
-            const userMatch = data.uid ? users[data.uid] : null;
-            courseEnrollments.push({
-              uid: data.uid || data.email?.replace(/[.@]/g, "_"),
-              displayName: userMatch?.displayName || data.name || data.email || "Unknown",
-              email: data.email || userMatch?.email || "",
-              photoURL: userMatch?.photoURL || "",
-              section: data.section || "",
-              hasLoggedIn: !!userMatch,
-            });
+          const uid = data.uid || data.email?.replace(/[.@]/g, "_");
+          if (uid) enrolledUids.add(uid);
+          courseEnrollments.push({
+            uid,
+            displayName: data.name || data.email || "Unknown",
+            email: data.email || "",
+            photoURL: "",
+            section: data.section || "",
+            hasLoggedIn: false,
+          });
+        });
+
+        // Fetch only enrolled users (not ALL users in the system)
+        const users = {};
+        const uidBatches = [...enrolledUids];
+        for (let i = 0; i < uidBatches.length; i++) {
+          try {
+            const userDoc = await getDoc(doc(db, "users", uidBatches[i]));
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              users[userDoc.id] = {
+                uid: userDoc.id,
+                displayName: data.displayName || data.email || userDoc.id,
+                email: data.email || "",
+                photoURL: data.photoURL || "",
+                role: data.role || "student",
+              };
+            }
+          } catch (e) { /* user doc may not exist */ }
+        }
+        setStudentMap(users);
+
+        // Enrich enrollment data with user profile info
+        courseEnrollments.forEach((e) => {
+          const userMatch = users[e.uid];
+          if (userMatch) {
+            e.displayName = userMatch.displayName;
+            e.email = userMatch.email || e.email;
+            e.photoURL = userMatch.photoURL;
+            e.hasLoggedIn = true;
           }
         });
 
@@ -114,10 +131,6 @@ export default function GradingDashboard() {
           return true;
         });
         setEnrollments(deduped);
-
-        // Extract sections for this course
-        const sectionSet = [...new Set(deduped.map((e) => e.section).filter(Boolean))].sort();
-        setSections(sectionSet);
 
         // Fetch lessons for this course
         const lessonsSnap = await getDocs(
@@ -165,63 +178,60 @@ export default function GradingDashboard() {
       const writtenResponses = [];
 
       if (lessonId) {
-        // Fetch specific lesson responses — one getDoc per student (fast)
-        for (const uid of studentUids) {
-          try {
+        // Fetch specific lesson responses — parallel reads for all students
+        const results = await Promise.allSettled(
+          studentUids.map(async (uid) => {
             const progressRef = doc(db, "progress", uid, "courses", selectedCourse, "lessons", lessonId);
             const progressDoc = await getDoc(progressRef);
-            if (progressDoc.exists()) {
-              const data = progressDoc.data();
-              if (data.answers) {
-                Object.entries(data.answers).forEach(([blockId, answer]) => {
-                  if (answer.needsGrading && answer.submitted) {
-                    writtenResponses.push({
-                      id: `${progressDoc.ref.path}-${blockId}`,
-                      studentId: uid,
-                      lessonId,
-                      courseId: selectedCourse,
-                      blockId,
-                      answer: answer.answer,
-                      submittedAt: answer.submittedAt,
-                      writtenScore: answer.writtenScore ?? null,
-                      writtenLabel: answer.writtenLabel ?? null,
-                      path: progressDoc.ref.path,
-                    });
-                  }
-                });
-              }
+            return { uid, progressDoc };
+          })
+        );
+        for (const result of results) {
+          if (result.status !== "fulfilled") continue;
+          const { uid, progressDoc } = result.value;
+          if (!progressDoc.exists()) continue;
+          const data = progressDoc.data();
+          if (!data.answers) continue;
+          Object.entries(data.answers).forEach(([blockId, answer]) => {
+            if (answer.needsGrading && answer.submitted && answer.writtenScore == null) {
+              writtenResponses.push({
+                id: `${progressDoc.ref.path}-${blockId}`,
+                studentId: uid, lessonId, courseId: selectedCourse, blockId,
+                answer: answer.answer, submittedAt: answer.submittedAt,
+                writtenScore: answer.writtenScore ?? null, writtenLabel: answer.writtenLabel ?? null,
+                path: progressDoc.ref.path,
+              });
             }
-          } catch (e) { continue; }
+          });
         }
       } else {
-        // Fetch all lessons for this course per student
-        for (const uid of studentUids) {
-          try {
+        // Fetch all lessons per student — parallel batch queries
+        const results = await Promise.allSettled(
+          studentUids.map(async (uid) => {
             const lessonDocs = await getDocs(
               collection(db, "progress", uid, "courses", selectedCourse, "lessons")
             );
-            lessonDocs.forEach((d) => {
-              const data = d.data();
-              if (data.answers) {
-                Object.entries(data.answers).forEach(([blockId, answer]) => {
-                  if (answer.needsGrading && answer.submitted) {
-                    writtenResponses.push({
-                      id: `${d.ref.path}-${blockId}`,
-                      studentId: uid,
-                      lessonId: d.id,
-                      courseId: selectedCourse,
-                      blockId,
-                      answer: answer.answer,
-                      submittedAt: answer.submittedAt,
-                      writtenScore: answer.writtenScore ?? null,
-                      writtenLabel: answer.writtenLabel ?? null,
-                      path: d.ref.path,
-                    });
-                  }
+            return { uid, lessonDocs };
+          })
+        );
+        for (const result of results) {
+          if (result.status !== "fulfilled") continue;
+          const { uid, lessonDocs } = result.value;
+          lessonDocs.forEach((d) => {
+            const data = d.data();
+            if (!data.answers) return;
+            Object.entries(data.answers).forEach(([blockId, answer]) => {
+              if (answer.needsGrading && answer.submitted && answer.writtenScore == null) {
+                writtenResponses.push({
+                  id: `${d.ref.path}-${blockId}`,
+                  studentId: uid, lessonId: d.id, courseId: selectedCourse, blockId,
+                  answer: answer.answer, submittedAt: answer.submittedAt,
+                  writtenScore: answer.writtenScore ?? null, writtenLabel: answer.writtenLabel ?? null,
+                  path: d.ref.path,
                 });
               }
             });
-          } catch (e) { continue; }
+          });
         }
       }
       setResponses(writtenResponses);
@@ -368,21 +378,6 @@ export default function GradingDashboard() {
                   ))}
                 </div>
 
-                {/* Section filter */}
-                {sections.length > 0 && (
-                  <select
-                    value={selectedSection}
-                    onChange={(e) => { setSelectedSection(e.target.value); setSelectedLesson(null); setSelectedStudent(null); }}
-                    style={{
-                      padding: "6px 12px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                      border: "1px solid var(--border)", background: "var(--surface)",
-                      color: "var(--text)", cursor: "pointer", fontFamily: "var(--font-body)",
-                    }}
-                  >
-                    <option value="all">All sections</option>
-                    {sections.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                )}
               </div>
 
               {/* Content type tabs */}

@@ -143,6 +143,7 @@ function MessageView({ chat, user, courseId, onBack }) {
       }, { merge: true });
     } catch (err) {
       console.error("Send failed:", err);
+      setInput(text); // Restore message so the user doesn't lose it
     }
     setSending(false);
   };
@@ -249,11 +250,7 @@ function NewChatView({ courseId, user, userRole, onCreated, onBack }) {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        // Get all users (needed for name resolution and role checking)
-        const usersSnap = await getDocs(collection(db, "users"));
-        const allUsers = usersSnap.docs.map((d) => ({ uid: d.id, ...d.data() }));
-
-        // Try per-course enrollments subcollection first
+        // Collect enrolled UIDs from course enrollments (not all users)
         let enrolledUids = new Set();
         try {
           const enrollSubSnap = await getDocs(collection(db, "courses", courseId, "enrollments"));
@@ -264,38 +261,30 @@ function NewChatView({ courseId, user, userRole, onCreated, onBack }) {
           });
         } catch (e) { /* subcollection may not exist */ }
 
-        let enrolledStudents;
-
-        if (enrolledUids.size > 0) {
-          // Use subcollection results
-          enrolledStudents = allUsers.filter((u) =>
-            u.uid !== user.uid && u.role !== "teacher" && enrolledUids.has(u.uid)
+        // Fallback: check global enrollments collection
+        if (enrolledUids.size === 0) {
+          const enrollSnap = await getDocs(
+            query(collection(db, "enrollments"), where("courseId", "==", courseId))
           );
-        } else {
-          // Fallback: check enrolledCourses on user docs
-          enrolledStudents = allUsers.filter((u) => {
-            if (u.uid === user.uid) return false;
-            if (u.role === "teacher") return false;
-            const ec = u.enrolledCourses;
-            if (Array.isArray(ec)) return ec.includes(courseId);
-            if (ec && typeof ec === "object") return courseId in ec;
-            return false;
+          enrollSnap.docs.forEach((d) => {
+            const data = d.data();
+            if (data.uid) enrolledUids.add(data.uid);
+            if (data.studentUid) enrolledUids.add(data.studentUid);
           });
+        }
 
-          // Second fallback: check global enrollments collection
-          if (enrolledStudents.length === 0) {
-            const enrollSnap = await getDocs(
-              query(collection(db, "enrollments"), where("courseId", "==", courseId))
-            );
-            const fallbackUids = new Set();
-            enrollSnap.docs.forEach((d) => {
-              const data = d.data();
-              if (data.uid) fallbackUids.add(data.uid);
-              if (data.studentUid) fallbackUids.add(data.studentUid);
-            });
-            fallbackUids.delete(user.uid);
-            enrolledStudents = allUsers.filter((u) => fallbackUids.has(u.uid) && u.role !== "teacher");
-          }
+        enrolledUids.delete(user.uid);
+
+        // Fetch only the enrolled user docs (not ALL users)
+        const enrolledStudents = [];
+        for (const uid of enrolledUids) {
+          try {
+            const userDoc = await getDoc(doc(db, "users", uid));
+            if (userDoc.exists()) {
+              const data = { uid: userDoc.id, ...userDoc.data() };
+              if (data.role !== "teacher") enrolledStudents.push(data);
+            }
+          } catch (e) { /* user doc may not exist */ }
         }
 
         // Build final list
@@ -309,15 +298,9 @@ function NewChatView({ courseId, user, userRole, onCreated, onBack }) {
             if (ownerUid && ownerUid !== user.uid) {
               const existingUids = new Set(result.map((r) => r.uid));
               if (!existingUids.has(ownerUid)) {
-                const ownerUser = allUsers.find((u) => u.uid === ownerUid);
-                if (ownerUser) {
-                  result.push(ownerUser);
-                } else {
-                  // Owner not in allUsers (shouldn't happen, but fetch directly as fallback)
-                  const ownerDoc = await getDoc(doc(db, "users", ownerUid));
-                  if (ownerDoc.exists()) {
-                    result.push({ uid: ownerUid, ...ownerDoc.data() });
-                  }
+                const ownerDoc = await getDoc(doc(db, "users", ownerUid));
+                if (ownerDoc.exists()) {
+                  result.push({ uid: ownerUid, ...ownerDoc.data() });
                 }
               }
             }
@@ -498,7 +481,7 @@ export default function ClassChat() {
     const fetchCourses = async () => {
       if (userRole === "teacher") {
         const snap = await getDocs(collection(db, "courses"));
-        const allCourses = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const allCourses = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden);
         setCourses(allCourses);
         if (allCourses.length > 0) setCourseId(allCourses[0].id);
       } else {
@@ -535,8 +518,9 @@ export default function ClassChat() {
           } catch (e) { /* course may not exist */ }
         }
 
-        setCourses(enrolled);
-        if (enrolled.length > 0) setCourseId(enrolled[0].id);
+        const visible = enrolled.filter((c) => !c.hidden);
+        setCourses(visible);
+        if (visible.length > 0) setCourseId(visible[0].id);
       }
     };
     fetchCourses();

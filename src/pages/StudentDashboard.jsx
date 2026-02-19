@@ -2,7 +2,7 @@
 import { useAuth } from "../hooks/useAuth";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { getLevelInfo, getStudentGamification, getXPConfig } from "../lib/gamification";
 import { getStudentEnrolledCourseIds } from "../lib/enrollment";
@@ -15,6 +15,7 @@ import NicknameEditor from "../components/NicknameEditor";
 import ManaPool from "../components/ManaPool";
 import DueToday from "../components/DueToday";
 import JoinCourse from "../components/JoinCourse";
+import AnnouncementBanner from "../components/AnnouncementBanner";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 export default function StudentDashboard() {
@@ -29,6 +30,7 @@ export default function StudentDashboard() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [lessonMap, setLessonMap] = useState({});
   const [activeMultiplier, setActiveMultiplier] = useState(null);
+  const [completedLessons, setCompletedLessons] = useState(new Set());
 
   const firstName = nickname || user?.displayName?.split(" ")[0] || "there";
 
@@ -56,7 +58,7 @@ export default function StudentDashboard() {
       try {
         const q = query(collection(db, "courses"), orderBy("order", "asc"));
         const snapshot = await getDocs(q);
-        const coursesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const coursesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((c) => !c.hidden);
         setAllCourses(coursesData);
 
         // Get enrolled course IDs
@@ -127,8 +129,9 @@ export default function StudentDashboard() {
             } catch (e) { /* no config yet */ }
           }
 
-          // Fetch progress for enrolled courses
+          // Fetch progress for enrolled courses (batch query per course)
           const progress = {};
+          const completedSet = new Set();
           for (const course of enrolledCourses) {
             const courseLessons = Object.entries(lessons)
               .filter(([_, l]) => l.courseId === course.id)
@@ -136,13 +139,22 @@ export default function StudentDashboard() {
 
             let totalQuestions = 0, answeredQuestions = 0, correctQuestions = 0;
 
+            // Single query gets all lesson progress for this course
+            const allProgressSnap = await getDocs(
+              collection(db, "progress", user.uid, "courses", course.id, "lessons")
+            );
+            const progressByLesson = {};
+            allProgressSnap.forEach((d) => {
+              progressByLesson[d.id] = d.data();
+              if (d.data().completed) completedSet.add(d.id);
+            });
+
             for (const lesson of courseLessons) {
               const questions = (lesson.blocks || []).filter((b) => b.type === "question");
               totalQuestions += questions.length;
-              const progRef = doc(db, "progress", user.uid, "courses", course.id, "lessons", lesson.id);
-              const progDoc = await getDoc(progRef);
-              if (progDoc.exists()) {
-                const answers = progDoc.data().answers || {};
+              const progData = progressByLesson[lesson.id];
+              if (progData) {
+                const answers = progData.answers || {};
                 questions.forEach((qBlock) => {
                   if (answers[qBlock.id]?.submitted) {
                     answeredQuestions++;
@@ -161,6 +173,7 @@ export default function StudentDashboard() {
             };
           }
           setCourseProgress(progress);
+          setCompletedLessons(completedSet);
         }
       } catch (err) {
         console.error("Error fetching student dashboard:", err);
@@ -186,18 +199,22 @@ export default function StudentDashboard() {
 
   const level = gamification ? getLevelInfo(gamification.totalXP) : null;
   const enrolledCourses = allCourses.filter((c) => enrolledIds?.has(c.id));
-  const lockedCourses = allCourses.filter((c) => !enrolledIds?.has(c.id));
 
   return (
     <div className="page-container" style={{ padding: "48px 40px" }}>
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
+
+        {/* Announcements for enrolled courses */}
+        {enrolledCourses.map((course) => (
+          <AnnouncementBanner key={`ann-${course.id}`} courseId={course.id} />
+        ))}
 
         {/* Active Multiplier Banner */}
         <MultiplierBanner activeMultiplier={activeMultiplier} />
 
         {/* Avatar — centered hero */}
         {avatar && (
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
             <Link to="/avatar" style={{ textDecoration: "none" }}>
               <div style={{
                 position: "relative",
@@ -271,8 +288,12 @@ export default function StudentDashboard() {
 
           {/* Stats Row */}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "stretch" }}>
-            {gamification && <StreakDisplay streak={gamification.currentStreak} />}
-            <DueToday lessonMap={lessonMap} allCourses={allCourses} />
+            {gamification && <StreakDisplay
+              currentStreak={gamification.currentStreak || 0}
+              longestStreak={gamification.longestStreak || 0}
+              streakFreezes={gamification.streakFreezes || 0}
+            />}
+            <DueToday lessonMap={lessonMap} allCourses={allCourses} completedLessons={completedLessons} />
           </div>
         </div>
 
@@ -307,7 +328,7 @@ export default function StudentDashboard() {
             </button>
           </div>
 
-          {enrolledCourses.length === 0 && lockedCourses.length === 0 ? (
+          {enrolledCourses.length === 0 ? (
             <div className="card" style={{ textAlign: "center", padding: 60 }}>
               <p style={{ fontSize: 40, marginBottom: 12 }}>🔑</p>
               <p style={{ fontWeight: 600 }} data-translatable>{ui(3, "No courses yet")}</p>
@@ -355,32 +376,6 @@ export default function StudentDashboard() {
                 );
               })}
 
-              {lockedCourses.map((course) => (
-                <div
-                  key={course.id}
-                  className="card fade-in"
-                  style={{ cursor: "pointer", opacity: 0.6, position: "relative" }}
-                  onClick={() => setShowJoinModal(true)}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                    <div style={{
-                      fontSize: 28, width: 48, height: 48, borderRadius: 10, background: "var(--surface2)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>🔒</div>
-                    <div>
-                      <div className="card-title" style={{ fontSize: 16, marginBottom: 2 }}>{course.title}</div>
-                      <div className="card-subtitle">{course.description}</div>
-                    </div>
-                  </div>
-                  <div style={{
-                    background: "rgba(243,156,18,0.1)", border: "1px solid rgba(243,156,18,0.2)",
-                    borderRadius: 8, padding: "10px 14px", textAlign: "center",
-                    fontSize: 13, color: "var(--amber)", fontWeight: 600,
-                  }} data-translatable>
-                    {ui(6, "🔑 Enter enroll code to access this course")}
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </div>

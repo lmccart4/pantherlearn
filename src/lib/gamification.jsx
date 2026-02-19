@@ -5,6 +5,21 @@
 
 import { doc, getDoc, setDoc, collection, getDocs, query, where, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
+import { createNotification } from "./notifications";
+
+// ─── Bloom's Taxonomy / Question Difficulty Levels ───
+export const BLOOM_LEVELS = [
+  { key: "remember",    label: "Remember",    color: "var(--green)",  xpMult: 0.75 },
+  { key: "understand",  label: "Understand",  color: "var(--blue)",   xpMult: 1.0 },
+  { key: "apply",       label: "Apply",       color: "var(--cyan)",   xpMult: 1.25 },
+  { key: "analyze",     label: "Analyze",     color: "var(--purple)", xpMult: 1.5 },
+  { key: "evaluate",    label: "Evaluate",    color: "var(--amber)",  xpMult: 1.75 },
+  { key: "create",      label: "Create",      color: "var(--red)",    xpMult: 2.0 },
+];
+
+export function getBloomLevel(key) {
+  return BLOOM_LEVELS.find((b) => b.key === key) || BLOOM_LEVELS[1]; // default: "understand"
+}
 
 // ─── Default XP Values (used when no course-specific config exists) ───
 export const DEFAULT_XP_VALUES = {
@@ -489,7 +504,29 @@ export async function awardXP(uid, amount, source, courseId) {
     }
 
     const finalAmount = Math.round(amount * multiplier);
-    const newTotal = (data.totalXP || 0) + finalAmount;
+    const oldTotal = data.totalXP || 0;
+    const newTotal = oldTotal + finalAmount;
+
+    // Detect level-up
+    const oldLevel = getLevelInfo(oldTotal).current.level;
+    const newLevelInfo = getLevelInfo(newTotal);
+    const newLevel = newLevelInfo.current.level;
+
+    // Track activity date for streaks (deduplicated per day)
+    const today = new Date().toISOString().slice(0, 10);
+    const existingDates = data.activityDates || [];
+    const isNewDay = !existingDates.includes(today);
+    const updatedDates = isNewDay ? [...existingDates, today] : existingDates;
+
+    // Recalculate streak from activity dates
+    const currentStreak = calculateStreak(updatedDates);
+    const longestStreak = Math.max(currentStreak, data.longestStreak || 0);
+
+    // Award streak freezes: +1 for every 7-day streak milestone, max 3
+    let streakFreezes = data.streakFreezes || 0;
+    if (isNewDay && currentStreak > 0 && currentStreak % 7 === 0 && streakFreezes < 3) {
+      streakFreezes = Math.min(streakFreezes + 1, 3);
+    }
 
     await setDoc(ref, {
       ...data,
@@ -497,9 +534,29 @@ export async function awardXP(uid, amount, source, courseId) {
       lastXPSource: source,
       lastXPAmount: finalAmount,
       lastXPAt: new Date(),
+      activityDates: updatedDates,
+      currentStreak,
+      longestStreak,
+      streakFreezes,
     }, { merge: true });
 
-    return { newTotal, awarded: finalAmount, multiplier };
+    // Send level-up notification if the student leveled up
+    if (newLevel > oldLevel) {
+      try {
+        await createNotification(uid, {
+          type: "level_up",
+          title: `🎉 Level Up! You're now Level ${newLevel}`,
+          body: `${newLevelInfo.current.tierIcon} ${newLevelInfo.current.tierName} — keep it up!`,
+          icon: "⬆️",
+          link: "/",
+          courseId: courseId || null,
+        });
+      } catch (notifErr) {
+        console.warn("Could not send level-up notification:", notifErr);
+      }
+    }
+
+    return { newTotal, awarded: finalAmount, multiplier, currentStreak, leveledUp: newLevel > oldLevel, newLevel };
   } catch (err) {
     console.error("Error awarding XP:", err);
     return null;
@@ -605,28 +662,17 @@ export async function awardBehaviorXP(uid, behaviorReward, courseId) {
 }
 
 // ─── Leaderboard ───
-export async function getLeaderboard(courseId, sectionFilter = null, limit = 50) {
+export async function getLeaderboard(courseId, limit = 50) {
   try {
     const ref = courseId
       ? collection(db, "courses", courseId, "gamification")
       : collection(db, "gamification");
     const snap = await getDocs(ref);
 
-    // Get user docs to check roles and sections
+    // Get user docs to check roles
     const usersSnap = await getDocs(collection(db, "users"));
     const usersMap = {};
     usersSnap.forEach((d) => { usersMap[d.id] = d.data(); });
-
-     // Get enrollment docs to find each student's section
-    let enrollmentsByUid = {};
-    if (courseId) {
-      const enrollSnap = await getDocs(collection(db, "courses", courseId, "enrollments"));
-      enrollSnap.forEach((d) => {
-        const data = d.data();
-        const uid = d.id;
-        enrollmentsByUid[uid] = data;
-      });
-    }
 
     const entries = [];
     snap.forEach((d) => {
@@ -637,12 +683,6 @@ export async function getLeaderboard(courseId, sectionFilter = null, limit = 50)
       // Exclude teachers
       if (userData?.role === "teacher") return;
 
-      // Filter by section if specified
-      if (sectionFilter) {
-        const enrollment = enrollmentsByUid[uid];
-        if (!enrollment || enrollment.section !== sectionFilter) return;
-      }
-
       entries.push({
         uid,
         ...data,
@@ -650,7 +690,6 @@ export async function getLeaderboard(courseId, sectionFilter = null, limit = 50)
         displayName: data.displayName || userData?.displayName || userData?.name || null,
         nickname: data.nickname || userData?.nickname || null,
         photoURL: data.photoURL || userData?.photoURL || null,
-        section: enrollmentsByUid[uid]?.section || null,
       });
     });
 

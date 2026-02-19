@@ -7,6 +7,10 @@ export default function EmbedBlock({ block }) {
 
   if (!block.url) return null;
 
+  // Reject dangerous URL schemes
+  const url = block.url.trim();
+  if (/^(javascript|data|vbscript|blob):/i.test(url)) return null;
+
   return (
     <div style={{ margin: "24px 0" }}>
       <div style={{
@@ -16,12 +20,13 @@ export default function EmbedBlock({ block }) {
         background: "#fff",
       }}>
         <iframe
-          src={block.url}
+          src={url}
           title={translatedCaption || "Embedded content"}
           width="100%"
           height={height}
           style={{ border: "none", display: "block" }}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope"
           allowFullScreen
         />
       </div>

@@ -1,12 +1,15 @@
 // src/components/ProgressSidebar.jsx
 import { useState, useEffect } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
-import { getStudentGamification, getLevelInfo, getXPConfig } from "../lib/gamification";
+import { getLevelInfo, getXPConfig } from "../lib/gamification";
 import { useTranslatedTexts, useTranslatedText } from "../hooks/useTranslatedText.jsx";
 import MultiplierBanner from "./MultiplierBanner";
 import StreakDisplay from "./StreakDisplay";
+import { formatEngagementTime } from "../hooks/useEngagementTimer";
 
-export default function ProgressSidebar({ lesson, studentData, chatLogs, courseId }) {
+export default function ProgressSidebar({ lesson, studentData, chatLogs, courseId, engagementSeconds }) {
   const { user } = useAuth();
   const [gamification, setGamification] = useState(null);
   const [activeMultiplier, setActiveMultiplierState] = useState(null);
@@ -34,23 +37,37 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
   ]);
   const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
 
+  // Real-time listener for gamification data (updates live as XP is awarded)
   useEffect(() => {
     if (!user) return;
-    getStudentGamification(user.uid).then(setGamification);
+    const ref = courseId
+      ? doc(db, "courses", courseId, "gamification", user.uid)
+      : doc(db, "gamification", user.uid);
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        setGamification(snap.data());
+      } else {
+        setGamification({ totalXP: 0, currentStreak: 0, longestStreak: 0, streakFreezes: 0 });
+      }
+    }, (err) => {
+      console.error("Gamification listener error:", err);
+    });
+    return unsub;
+  }, [user, courseId]);
 
-    if (courseId) {
-      getXPConfig(courseId).then((config) => {
-        if (config.activeMultiplier) {
-          const expires = config.activeMultiplier.expiresAt?.toDate?.()
-            ? config.activeMultiplier.expiresAt.toDate()
-            : new Date(config.activeMultiplier.expiresAt);
-          if (expires > new Date()) {
-            setActiveMultiplierState(config.activeMultiplier);
-          }
+  useEffect(() => {
+    if (!user || !courseId) return;
+    getXPConfig(courseId).then((config) => {
+      if (config.activeMultiplier) {
+        const expires = config.activeMultiplier.expiresAt?.toDate?.()
+          ? config.activeMultiplier.expiresAt.toDate()
+          : new Date(config.activeMultiplier.expiresAt);
+        if (expires > new Date()) {
+          setActiveMultiplierState(config.activeMultiplier);
         }
-      }).catch(() => {});
-    }
-  }, [user, studentData, courseId]);
+      }
+    }).catch(() => {});
+  }, [user, courseId]);
 
   const level = gamification ? getLevelInfo(gamification.totalXP) : null;
   const translatedLevelName = useTranslatedText(level?.current?.name);
@@ -66,24 +83,42 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
             display: "flex", alignItems: "center", gap: 10, marginBottom: 8,
           }}>
             <div style={{
-              width: 34, height: 34, borderRadius: "50%",
-              background: "var(--amber-dim)", border: "2px solid var(--amber)",
+              width: 38, height: 38, borderRadius: "50%",
+              background: `${level.current.tierColor || "var(--amber)"}18`,
+              border: `2px solid ${level.current.tierColor || "var(--amber)"}`,
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--amber)",
+              fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14,
+              color: level.current.tierColor || "var(--amber)",
             }}>
-              {level.current.level}
+              {level.current.tierIcon || level.current.level}
             </div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 12 }} data-translatable>{translatedLevelName || level.current.name}</div>
-              <div style={{ fontSize: 11, color: "var(--text3)" }}>{gamification.totalXP} XP</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: level.current.tierColor || "var(--amber)" }} data-translatable>
+                {translatedLevelName || level.current.name}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text3)" }}>
+                {gamification.totalXP} XP
+              </div>
             </div>
           </div>
-          {level.next && (
-            <div style={{ width: "100%", height: 4, background: "var(--surface2)", borderRadius: 2 }}>
-              <div style={{
-                width: `${level.progress * 100}%`, height: "100%",
-                background: "var(--amber)", borderRadius: 2, transition: "width 0.3s",
-              }} />
+          {level.next ? (
+            <>
+              <div style={{ width: "100%", height: 6, background: "var(--surface2)", borderRadius: 3 }}>
+                <div style={{
+                  width: `${level.progress * 100}%`, height: "100%",
+                  background: `linear-gradient(90deg, ${level.current.tierColor || "var(--amber)"}, ${level.next.tierColor || "var(--amber)"})`,
+                  borderRadius: 3, transition: "width 0.3s",
+                }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: "var(--text3)" }}>
+                <span>Lv {level.current.level}</span>
+                <span>{level.xpInLevel} / {level.xpForNext} XP</span>
+                <span>Lv {level.next.level}</span>
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 10, color: "var(--text3)", textAlign: "center", marginTop: 2 }}>
+              Max level reached!
             </div>
           )}
         </div>
@@ -133,6 +168,18 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
           <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }} data-translatable>{ui(3, "messages sent")}</div>
         </div>
       </div>
+
+      {/* Engagement Time */}
+      {engagementSeconds > 0 && (
+        <div className="sidebar-section">
+          <div className="sidebar-label">⏱ Time Spent</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--text2)" }}>
+              {formatEngagementTime(engagementSeconds)}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sections nav */}
       <div className="sidebar-section">

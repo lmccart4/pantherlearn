@@ -2,7 +2,7 @@
 // Shows lessons due today, tomorrow, or overdue in a compact dashboard widget.
 import { Link } from "react-router-dom";
 
-export default function DueToday({ lessonMap, allCourses }) {
+export default function DueToday({ lessonMap, allCourses, completedLessons = new Set() }) {
   if (!lessonMap || Object.keys(lessonMap).length === 0) return null;
 
   const now = new Date();
@@ -11,15 +11,20 @@ export default function DueToday({ lessonMap, allCourses }) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
 
-  // Collect lessons with due dates that are relevant (overdue, today, tomorrow)
+  // Collect incomplete lessons with due dates that are relevant (overdue, today, tomorrow)
   const items = [];
+  let totalDueCount = 0;
   for (const [lessonId, lesson] of Object.entries(lessonMap)) {
-    if (!lesson.dueDate || lesson.visible === false) continue;
+    if (lesson.visible === false) continue;
     const dueDate = lesson.dueDate;
+    if (!dueDate) continue;
     const isPastDue = dueDate < todayStr;
     const isToday = dueDate === todayStr;
     const isTomorrow = dueDate === tomorrowStr;
     if (isPastDue || isToday || isTomorrow) {
+      totalDueCount++;
+      // Skip completed lessons — no need to show them
+      if (completedLessons.has(lessonId)) continue;
       const course = allCourses.find((c) => c.id === lesson.courseId);
       items.push({
         lessonId,
@@ -39,7 +44,9 @@ export default function DueToday({ lessonMap, allCourses }) {
   // Sort: overdue first, then today, then tomorrow
   items.sort((a, b) => a.sortKey - b.sortKey || a.dueDate.localeCompare(b.dueDate));
 
-  if (items.length === 0) {
+  const allDone = totalDueCount > 0 && items.length === 0;
+
+  if (items.length === 0 || allDone) {
     return (
       <div style={{
         flex: 1, padding: "14px 18px", borderRadius: 12,
@@ -50,7 +57,11 @@ export default function DueToday({ lessonMap, allCourses }) {
         <span style={{ fontSize: 24 }}>✅</span>
         <div>
           <div style={{ fontWeight: 700, fontSize: 15, color: "var(--green)" }}>All caught up!</div>
-          <div style={{ fontSize: 12, color: "var(--text3)" }}>Nothing due today or tomorrow</div>
+          <div style={{ fontSize: 12, color: "var(--text3)" }}>
+            {allDone
+              ? `${totalDueCount} lesson${totalDueCount !== 1 ? "s" : ""} completed — nice work!`
+              : "Nothing due today or tomorrow"}
+          </div>
         </div>
       </div>
     );
@@ -82,6 +93,7 @@ export default function DueToday({ lessonMap, allCourses }) {
                 <div style={{
                   fontWeight: 600, fontSize: 13,
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  textDecoration: "none",
                 }}>
                   {item.title}
                 </div>

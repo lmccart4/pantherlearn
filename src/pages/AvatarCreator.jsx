@@ -9,6 +9,9 @@ import {
   getAvatar, saveAvatar, getUnlockedItems,
 } from "../lib/avatar";
 import { getStudentGamification, getLevelInfo } from "../lib/gamification";
+import { getStudentEnrolledCourseIds } from "../lib/enrollment";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { db } from "../lib/firebase";
 import PixelAvatar, { PixelPet, AvatarWithPet } from "../components/PixelAvatar";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
@@ -114,14 +117,28 @@ export default function AvatarCreator() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [existing, gam] = await Promise.all([
-        getAvatar(user.uid),
-        getStudentGamification(user.uid),
-      ]);
-      const xp = gam.totalXP || 0;
+      // Load avatar
+      const existing = await getAvatar(user.uid);
+      if (existing) setAvatar(existing);
+
+      // Fetch enrolled courses, then get course-specific gamification XP
+      // Note: getStudentEnrolledCourseIds returns a Set, not an Array
+      let xp = 0;
+      try {
+        const enrolledSet = await getStudentEnrolledCourseIds(user.uid);
+        if (enrolledSet.size > 0) {
+          const primaryCourseId = [...enrolledSet][0];
+          const gam = await getStudentGamification(user.uid, primaryCourseId);
+          xp = gam.totalXP || 0;
+        }
+      } catch (e) {
+        // Fallback to global gamification doc
+        const gam = await getStudentGamification(user.uid);
+        xp = gam.totalXP || 0;
+      }
+
       setTotalXP(xp);
       setUnlocked(getUnlockedItems(xp));
-      if (existing) setAvatar(existing);
       setLoaded(true);
     })();
   }, [user]);
@@ -170,8 +187,22 @@ export default function AvatarCreator() {
         <div style={styles.header}>
           <h1 style={styles.title} data-translatable>⚔️ {ui(0, "Character Creator")}</h1>
           <p style={styles.subtitle} data-translatable>
-            {ui(1, "Level")} {level} — {levelInfo.current.name} • {totalXP} XP
+            {levelInfo.current.tierIcon} {ui(1, "Level")} {level} — {levelInfo.current.name} • {totalXP} XP
           </p>
+          {/* XP Progress Bar */}
+          <div style={styles.xpBarWrap}>
+            <div style={styles.xpBarLabels}>
+              <span data-translatable>Lv {level}</span>
+              <span data-translatable>{levelInfo.xpIntoLevel} / {levelInfo.xpForNext} XP</span>
+              <span data-translatable>{levelInfo.next ? `Lv ${level + 1}` : "MAX"}</span>
+            </div>
+            <div style={styles.xpBarTrack}>
+              <div style={{
+                ...styles.xpBarFill,
+                width: `${Math.min(levelInfo.progress * 100, 100)}%`,
+              }} />
+            </div>
+          </div>
         </div>
 
         <div style={styles.grid}>
@@ -487,7 +518,7 @@ function OptionCard({ children, selected, locked, lockLevel, onClick, accent, on
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#0c0e14",
+    background: "transparent",
     color: "#e8e6f0",
     fontFamily: "'Nunito', sans-serif",
     padding: "20px",
@@ -511,7 +542,21 @@ const styles = {
   },
   header: { textAlign: "center", marginBottom: 24 },
   title: { fontSize: 24, fontWeight: 900, color: "#8b5cf6", marginBottom: 4 },
-  subtitle: { fontSize: 14, color: "#9896a8" },
+  subtitle: { fontSize: 14, color: "#9896a8", marginBottom: 10 },
+  xpBarWrap: { maxWidth: 380, margin: "0 auto" },
+  xpBarLabels: {
+    display: "flex", justifyContent: "space-between", fontSize: 11,
+    color: "#9896a8", marginBottom: 4, fontWeight: 700,
+  },
+  xpBarTrack: {
+    height: 10, background: "#1e2235", borderRadius: 5,
+    border: "1px solid #2a2e42", overflow: "hidden",
+  },
+  xpBarFill: {
+    height: "100%", borderRadius: 5,
+    background: "linear-gradient(90deg, #8b5cf6, #a78bfa)",
+    transition: "width 0.4s ease",
+  },
   grid: {
     display: "grid",
     gridTemplateColumns: "440px 1fr",
@@ -521,7 +566,7 @@ const styles = {
     margin: "0 auto",
   },
   preview: {
-    background: "#161926",
+    background: "rgba(22,25,38,0.85)",
     border: "1px solid #2a2e42",
     borderRadius: 14,
     padding: 20,
@@ -580,7 +625,7 @@ const styles = {
     minWidth: 0,
   },
   section: {
-    background: "#161926",
+    background: "rgba(22,25,38,0.85)",
     border: "1px solid #2a2e42",
     borderRadius: 12,
     padding: 16,

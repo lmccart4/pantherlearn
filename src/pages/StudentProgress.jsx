@@ -1,9 +1,10 @@
 // src/pages/StudentProgress.jsx
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
-import { getLevelInfo, BADGES } from "../lib/gamification";
+import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
+import StreakDisplay from "../components/StreakDisplay";
 
 const GRADE_TIERS = [
   { label: "Missing", value: 0, color: "var(--text3)", bg: "var(--surface2)" },
@@ -36,8 +37,11 @@ export default function StudentProgress() {
   const [view, setView] = useState("overview");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
-  const [sectionFilter, setSectionFilter] = useState("all");
+  const [sectionFilter] = useState("all");
   const [gradePopup, setGradePopup] = useState(null); // { studentUid, lessonId, x, y } or { studentUid, type: "overall", x, y }
+  const [confirmComplete, setConfirmComplete] = useState(null); // { studentUid, lessonId, studentName, x, y }
+  const [completingLesson, setCompletingLesson] = useState(false);
+  const [xpConfig, setXpConfig] = useState(null);
 
   // Fetch courses on mount
   useEffect(() => {
@@ -45,7 +49,7 @@ export default function StudentProgress() {
     const fetchCourses = async () => {
       const q = query(collection(db, "courses"), orderBy("order", "asc"));
       const snap = await getDocs(q);
-      const c = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const c = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden);
       setCourses(c);
       if (c.length > 0) setSelectedCourse(c[0].id);
       setLoading(false);
@@ -164,6 +168,13 @@ export default function StudentProgress() {
     };
     fetchAll();
   }, [selectedCourse]);
+
+  // Load XP config for the selected course
+  useEffect(() => {
+    if (selectedCourse) getXPConfig(selectedCourse).then(setXpConfig).catch(() => setXpConfig(null));
+  }, [selectedCourse]);
+
+  const getXPValue = (key) => xpConfig?.xpValues?.[key] ?? DEFAULT_XP_VALUES[key] ?? 0;
 
   if (userRole !== "teacher") {
     return (
@@ -289,12 +300,6 @@ export default function StudentProgress() {
     };
   };
 
-  const getStudentSection = (student) => {
-    if (student.section) return student.section;
-    const enroll = enrollments[student.uid] || enrollments[student.email?.toLowerCase()];
-    return enroll?.section || "—";
-  };
-
   const gradeColor = (grade) => {
     if (grade === null || grade === undefined) return "var(--text3)";
     if (grade >= 80) return "var(--green)";
@@ -302,13 +307,7 @@ export default function StudentProgress() {
     return "var(--red)";
   };
 
-  const sections = [...new Set(
-    students.map((s) => getStudentSection(s)).filter((s) => s !== "—")
-  )];
-
-  const filteredStudents = sectionFilter === "all"
-    ? students
-    : students.filter((s) => getStudentSection(s) === sectionFilter);
+  const filteredStudents = students;
 
   // --- Toggle reflection for a student (manual override) ---
   const handleToggleReflection = async (e, studentUid, lessonId, currentlyValid) => {
@@ -358,6 +357,150 @@ export default function StudentProgress() {
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
   }, [gradePopup]);
+
+  // --- Manual lesson completion ---
+  const handleManualComplete = (e, studentUid, lessonId, studentName) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setConfirmComplete({ studentUid, lessonId, studentName, x: rect.left, y: rect.bottom + 8 });
+  };
+
+  const confirmManualComplete = async () => {
+    if (!confirmComplete || completingLesson) return;
+    const { studentUid, lessonId } = confirmComplete;
+    setCompletingLesson(true);
+    try {
+      // 1. Mark lesson as complete in progress doc
+      const progressRef = doc(db, "progress", studentUid, "courses", selectedCourse, "lessons", lessonId);
+      await setDoc(progressRef, {
+        completed: true,
+        completedAt: new Date(),
+        manuallyCompleted: true,
+        completedBy: "teacher",
+      }, { merge: true });
+
+      // 2. Award lesson_complete XP (same as student self-completion)
+      const baseXP = getXPValue("lesson_complete");
+      const xpResult = await awardXP(studentUid, baseXP, "lesson_complete", selectedCourse);
+
+      // 3. Increment lessonsCompleted + check badges
+      const currentGam = await getStudentGamification(studentUid, selectedCourse);
+      await updateStudentGamification(studentUid, {
+        lessonsCompleted: (currentGam.lessonsCompleted || 0) + 1,
+      }, selectedCourse);
+
+      // 4. Optimistically update local state
+      setProgressData((prev) => ({
+        ...prev,
+        [studentUid]: {
+          ...prev[studentUid],
+          [lessonId]: {
+            ...prev[studentUid]?.[lessonId],
+            _completed: true,
+            _completedAt: new Date(),
+          },
+        },
+      }));
+      setGamData((prev) => ({
+        ...prev,
+        [studentUid]: {
+          ...prev[studentUid],
+          totalXP: xpResult?.newTotal ?? ((prev[studentUid]?.totalXP || 0) + baseXP),
+          lessonsCompleted: (prev[studentUid]?.lessonsCompleted || 0) + 1,
+        },
+      }));
+
+      setConfirmComplete(null);
+    } catch (err) {
+      console.error("Failed to mark lesson complete:", err);
+      alert("Failed to mark lesson complete. Check console for details.");
+    }
+    setCompletingLesson(false);
+  };
+
+  // Reset a student's progress on a specific lesson
+  const handleResetProgress = async (e, studentUid, lessonId, studentName) => {
+    e.stopPropagation();
+    const lessonTitle = lessons.find((l) => l.id === lessonId)?.title || lessonId;
+    if (!confirm(`Reset ${studentName}'s progress on "${lessonTitle}"?\n\nThis clears all their answers and completion status. XP already earned is not affected.`)) return;
+    try {
+      const progressRef = doc(db, "progress", studentUid, "courses", selectedCourse, "lessons", lessonId);
+      await deleteDoc(progressRef);
+      // Clear from local state
+      setProgressData((prev) => {
+        const updated = { ...prev };
+        if (updated[studentUid]) {
+          const studentData = { ...updated[studentUid] };
+          delete studentData[lessonId];
+          updated[studentUid] = studentData;
+        }
+        return updated;
+      });
+    } catch (err) {
+      console.error("Failed to reset progress:", err);
+      alert("Failed to reset progress. Check console for details.");
+    }
+  };
+
+  useEffect(() => {
+    if (!confirmComplete) return;
+    const close = () => setConfirmComplete(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [confirmComplete]);
+
+  const renderConfirmComplete = () => {
+    if (!confirmComplete) return null;
+    const xpAmount = getXPValue("lesson_complete");
+    return (
+      <div style={{
+        position: "fixed",
+        left: Math.min(confirmComplete.x, window.innerWidth - 320),
+        top: Math.min(confirmComplete.y, window.innerHeight - 200),
+        width: 300,
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: 12,
+        padding: "16px 20px",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+        zIndex: 1000,
+      }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
+          Mark Lesson Complete?
+        </div>
+        <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 4 }}>
+          {confirmComplete.studentName}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 12 }}>
+          This will award <span style={{ color: "var(--amber)", fontWeight: 700 }}>{xpAmount} XP</span> for lesson completion.
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={confirmManualComplete}
+            disabled={completingLesson}
+            style={{
+              flex: 1, padding: "8px 16px", borderRadius: 8, border: "none",
+              background: completingLesson ? "var(--surface2)" : "var(--amber)",
+              color: completingLesson ? "var(--text3)" : "#1a1a1a",
+              fontWeight: 700, fontSize: 12, cursor: completingLesson ? "default" : "pointer",
+            }}
+          >
+            {completingLesson ? "Saving..." : "Confirm"}
+          </button>
+          <button
+            onClick={() => setConfirmComplete(null)}
+            style={{
+              padding: "8px 16px", borderRadius: 8,
+              border: "1px solid var(--border)", background: "transparent",
+              color: "var(--text)", fontWeight: 600, fontSize: 12, cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   // --- Grade Breakdown Popup ---
   const renderGradePopup = () => {
@@ -562,7 +705,7 @@ export default function StudentProgress() {
           )}
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700 }}>{s.displayName}</div>
-            <div style={{ fontSize: 13, color: "var(--text3)" }}>{s.email} · {getStudentSection(s)}</div>
+            <div style={{ fontSize: 13, color: "var(--text3)" }}>{s.email}</div>
           </div>
           <div style={{ display: "flex", gap: 20, textAlign: "center" }}>
             <div>
@@ -573,9 +716,13 @@ export default function StudentProgress() {
               <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--amber)" }}>{gam.totalXP || 0}</div>
               <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.06em" }}>XP</div>
             </div>
-            <div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--red)" }}>{gam.currentStreak || 0}d</div>
-              <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.06em" }}>Streak</div>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <StreakDisplay
+                currentStreak={gam.currentStreak || 0}
+                longestStreak={gam.longestStreak || 0}
+                streakFreezes={gam.streakFreezes || 0}
+                compact
+              />
             </div>
             <div>
               <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--cyan)" }}>Lv{level.current.level}</div>
@@ -853,13 +1000,38 @@ export default function StudentProgress() {
                     })()}
                     {(() => {
                       const completed = progressData[s.uid]?.[lesson.id]?._completed || false;
+                      const hasProgress = !!progressData[s.uid]?.[lesson.id];
                       return (
                         <td style={{ textAlign: "center", padding: "8px" }}>
-                          {completed ? (
-                            <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600, background: "rgba(16,185,129,0.12)", color: "var(--green)" }}>✓</span>
-                          ) : (
-                            <span style={{ color: "var(--text3)" }}>—</span>
-                          )}
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                            {completed ? (
+                              <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600, background: "rgba(16,185,129,0.12)", color: "var(--green)" }}>✓</span>
+                            ) : (
+                              <span
+                                onClick={(e) => handleManualComplete(e, s.uid, lesson.id, s.displayName)}
+                                title="Mark as complete (+XP)"
+                                style={{
+                                  color: "var(--amber)", cursor: "pointer", fontSize: 10,
+                                  padding: "2px 6px", borderRadius: 4, fontWeight: 600,
+                                  border: "1px dashed var(--amber)",
+                                  background: "rgba(245,166,35,0.08)",
+                                }}
+                              >
+                                + Complete
+                              </span>
+                            )}
+                            {hasProgress && (
+                              <span
+                                onClick={(e) => handleResetProgress(e, s.uid, lesson.id, s.displayName)}
+                                title="Reset progress"
+                                style={{ cursor: "pointer", fontSize: 11, opacity: 0.5, transition: "opacity 0.15s" }}
+                                onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                                onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
+                              >
+                                🔄
+                              </span>
+                            )}
+                          </div>
                         </td>
                       );
                     })()}
@@ -898,13 +1070,6 @@ export default function StudentProgress() {
                   </button>
                 ))}
               </div>
-              {sections.length > 0 && (
-                <select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 13 }}>
-                  <option value="all">All sections</option>
-                  {sections.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-              )}
             </div>
 
             {dataLoading ? (
@@ -985,7 +1150,6 @@ export default function StudentProgress() {
                       <thead>
                         <tr style={{ background: "var(--surface)", borderBottom: "2px solid var(--border)" }}>
                           <th style={{ textAlign: "left", padding: "10px 16px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Student</th>
-                          <th style={{ textAlign: "center", padding: "10px 8px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Section</th>
                           <th style={{ textAlign: "center", padding: "10px 8px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Overall</th>
                           {lessons.map((l) => (
                             <th key={l.id} style={{
@@ -1027,7 +1191,6 @@ export default function StudentProgress() {
                                   </div>
                                 </div>
                               </td>
-                              <td style={{ textAlign: "center", padding: "10px 8px", fontSize: 12, color: "var(--text3)" }}>{getStudentSection(s)}</td>
                               <td style={{ textAlign: "center", padding: "10px 8px" }}>
                                 <GradeCell studentUid={s.uid} lessonId={null} style={{
                                   fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15,
@@ -1062,6 +1225,8 @@ export default function StudentProgress() {
 
       {/* Grade breakdown popup */}
       {renderGradePopup()}
+      {/* Manual completion confirmation popup */}
+      {renderConfirmComplete()}
     </div>
   );
 }

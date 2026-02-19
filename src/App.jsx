@@ -8,6 +8,7 @@ import { TranslationProvider } from "./contexts/TranslationContext";
 import { PreviewProvider } from "./contexts/PreviewContext";
 import PreviewBanner from "./components/PreviewBanner";
 import ClassChat from "./components/ClassChat";
+import FloatingMusicPlayer from "./components/FloatingMusicPlayer";
 
 // Lazy-loaded pages
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -25,8 +26,7 @@ const BossBattle = lazy(() => import("./pages/BossBattle"));
 const AvatarCreator = lazy(() => import("./pages/AvatarCreator"));
 const MyGrades = lazy(() => import("./pages/MyGrades"));
 
-// Reuse PantherPrep's existing translate Cloud Function
-const TRANSLATE_URL = "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
+const TRANSLATE_URL = import.meta.env.VITE_TRANSLATE_URL || "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
 
 const LoadingSpinner = () => (
   <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
@@ -68,6 +68,18 @@ function AppRoutes() {
 
   return (
     <PreviewProvider>
+      {/* Ambient background video — loops silently behind all content */}
+      <video
+        className="bg-atmosphere-video"
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden="true"
+      >
+        <source src="/bg-atmosphere.mp4" type="video/mp4" />
+      </video>
+      <div className="bg-atmosphere-overlay" aria-hidden="true" />
       <ScrollToTop />
       <PreviewBanner />
       <Suspense fallback={<LoadingSpinner />}>
@@ -91,6 +103,7 @@ function AppRoutes() {
         </Routes>
       </Suspense>
       {user && <ClassChat />}
+      {user && <FloatingMusicPlayer />}
     </PreviewProvider>
   );
 }

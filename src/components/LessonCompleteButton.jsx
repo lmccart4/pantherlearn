@@ -7,9 +7,8 @@ import { useAuth } from "../hooks/useAuth";
 import { awardXP, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
-// Update this to your Cloud Function URL
 const VALIDATE_REFLECTION_URL =
-  "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/validateReflection";
+  import.meta.env.VITE_VALIDATE_REFLECTION_URL || "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/validateReflection";
 
 export default function LessonCompleteButton({ lesson, studentData, chatLogs, user, courseId, lessonId }) {
   const navigate = useNavigate();

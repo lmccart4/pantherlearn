@@ -2,21 +2,8 @@
 // Updates Digital Literacy lesson unit fields to "Lesson 1", "Lesson 2", etc.
 // Run: node fix-dl-units.js
 
-import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, updateDoc } from 'firebase/firestore';
-
-// ⬇️ PASTE YOUR FIREBASE CONFIG HERE ⬇️
-const firebaseConfig = {
-  apiKey: "AIzaSyAlxvGxLIBUrVO3WWmEcslFpSygeYVeHpY",
-  authDomain: "pantherlearn-d6f7c.firebaseapp.com",
-  projectId: "pantherlearn-d6f7c",
-  storageBucket: "pantherlearn-d6f7c.firebasestorage.app",
-  messagingSenderId: "293205883325",
-  appId: "1:293205883325:web:c0c21ece0b4fc26f673ad4"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from './firebase-config.js';
 
 const updates = [
   { slug: "ai-is-everywhere", unit: "Lesson 1" },

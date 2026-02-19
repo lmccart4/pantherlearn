@@ -17,6 +17,9 @@ import SortingBlock from "./SortingBlock";
 import ExternalLinkBlock from "./ExternalLinkBlock";
 import CalculatorBlock from "./CalculatorBlock";
 import DataTableBlock from "./DataTableBlock";
+import SimulationBlock from "./SimulationBlock";
+import EvidenceUploadBlock from "./EvidenceUploadBlock";
+import BarChartBlock from "./BarChartBlock";
 import ErrorBoundary from "./ErrorBoundary";
 
 const BLOCK_MAP = {
@@ -38,6 +41,9 @@ const BLOCK_MAP = {
   data_table: DataTableBlock,
   chatbot: ChatbotBlock,
   question: QuestionBlock,
+  simulation: SimulationBlock,
+  evidence_upload: EvidenceUploadBlock,
+  bar_chart: BarChartBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {

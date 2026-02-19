@@ -1,7 +1,7 @@
 // src/pages/LessonViewer.jsx
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import BlockRenderer from "../components/blocks/BlockRenderer";
@@ -11,11 +11,17 @@ import { useTranslatedText } from "../hooks/useTranslatedText.jsx";
 import { usePreview } from "../contexts/PreviewContext";
 import { usePreviewData } from "../hooks/usePreviewData";
 import PreviewLauncher from "../components/PreviewLauncher";
+import { useEngagementTimer, formatEngagementTime } from "../hooks/useEngagementTimer";
 
 export default function LessonViewer() {
   const { courseId, lessonId } = useParams();
   const { user, userRole, getToken } = useAuth();
   const { isPreview } = usePreview();
+  const isStudent = userRole === "student";
+  const { seconds: engagementSeconds } = useEngagementTimer(
+    isStudent ? courseId : null,
+    isStudent ? lessonId : null
+  );
   const [lesson, setLesson] = useState(null);
   const [realStudentData, setRealStudentData] = useState({});
   const [realChatLogs, setRealChatLogs] = useState({});
@@ -63,11 +69,11 @@ export default function LessonViewer() {
     fetchLesson();
   }, [courseId, lessonId, user]);
 
-  // Track latest student data for guard checks without stale closures
+  // Track latest student data for Firestore writes without stale closures
   const studentDataRef = useRef({});
   useEffect(() => { studentDataRef.current = realStudentData; }, [realStudentData]);
 
-  // FIX #18: Firestore write moved outside of state setter
+
   const handleAnswer = useCallback(
     async (blockId, data) => {
       if (isPreviewActive) {
@@ -75,23 +81,28 @@ export default function LessonViewer() {
         return;
       }
 
-      // Guard: prevent stale draft auto-saves from overwriting submitted answers
+      // Guard: never overwrite a submitted answer with a draft
       const existing = studentDataRef.current[blockId];
       if (existing?.submitted && data.draft && !data.submitted) {
         return; // silently discard stale draft saves
       }
 
-      setRealStudentData((prev) => ({ ...prev, [blockId]: data }));
+      setRealStudentData((prev) => {
+        const updated = { ...prev, [blockId]: data };
+        studentDataRef.current = updated;
+        return updated;
+      });
 
-      // Persist to Firestore after state update, not inside the setter
+      // Persist to Firestore outside of the state setter
       if (user) {
-        const progressRef = doc(
-          db, "progress", user.uid, "courses", courseId, "lessons", lessonId
-        );
-        setRealStudentData((current) => {
-          setDoc(progressRef, { answers: current, lastUpdated: new Date() }, { merge: true });
-          return current;
-        });
+        try {
+          const progressRef = doc(
+            db, "progress", user.uid, "courses", courseId, "lessons", lessonId
+          );
+          await setDoc(progressRef, { answers: studentDataRef.current, lastUpdated: new Date() }, { merge: true });
+        } catch (err) {
+          console.error("Failed to save answer:", err);
+        }
       }
     },
     [user, courseId, lessonId, isPreviewActive]
@@ -101,6 +112,21 @@ export default function LessonViewer() {
     if (isPreviewActive) return;
     setRealChatLogs((prev) => ({ ...prev, [blockId]: messages }));
   }, [isPreviewActive]);
+
+  // Teacher: reset own progress so lesson can be demoed fresh
+  const resetMyProgress = async () => {
+    if (!user || !confirm("Reset your progress on this lesson? All your answers will be cleared.")) return;
+    try {
+      const progressRef = doc(db, "progress", user.uid, "courses", courseId, "lessons", lessonId);
+      await deleteDoc(progressRef);
+      setRealStudentData({});
+      setLessonCompleted(false);
+      studentDataRef.current = {};
+    } catch (err) {
+      console.error("Failed to reset progress:", err);
+      alert("Failed to reset. Check the console for details.");
+    }
+  };
 
   const translatedTitle = useTranslatedText(lesson?.title);
   const translatedUnit = useTranslatedText(lesson?.unit || lesson?.course);
@@ -129,6 +155,10 @@ export default function LessonViewer() {
       if (block.type === "data_table") {
         extraProps.lessonId = lessonId;
         extraProps.courseId = courseId;
+      }
+      if (block.type === "bar_chart") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
       }
       return { block, extraProps };
     });
@@ -165,16 +195,24 @@ export default function LessonViewer() {
           </Link>
         )}
 
-        {/* Preview launcher — only visible to teachers when NOT already previewing */}
+        {/* Teacher toolbar — preview launcher + reset button */}
         {userRole === "teacher" && !isPreview && (
-          <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+            <button
+              className="btn btn-secondary"
+              onClick={resetMyProgress}
+              style={{ fontSize: 13, padding: "8px 14px", color: "var(--red)", borderColor: "var(--red)" }}
+              title="Clear your own answers so you can demo this lesson fresh"
+            >
+              🔄 Reset My Progress
+            </button>
             <PreviewLauncher sourceLocation={{ courseId, lessonId }} />
           </div>
         )}
 
         {/* Lesson hero */}
         <div style={{
-          marginBottom: 48, paddingBottom: 36, borderBottom: "1px solid var(--border)",
+          marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid var(--border)",
         }}>
           <div style={{
             fontSize: 12, fontWeight: 600, textTransform: "uppercase",
@@ -215,7 +253,7 @@ export default function LessonViewer() {
         )}
       </div>
 
-      <ProgressSidebar lesson={lesson} studentData={studentData} chatLogs={chatLogs} courseId={courseId} />
+      <ProgressSidebar lesson={lesson} studentData={studentData} chatLogs={chatLogs} courseId={courseId} engagementSeconds={engagementSeconds} />
     </div>
   );
 }

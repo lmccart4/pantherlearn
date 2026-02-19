@@ -54,14 +54,13 @@ export async function getTeam(courseId, teamId) {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
-export async function createTeam(courseId, { name, color, members = [], section = "" }) {
+export async function createTeam(courseId, { name, color, members = [] }) {
   const teamId = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + Date.now().toString(36);
   const ref = doc(db, "courses", courseId, "teams", teamId);
   const teamData = {
     name,
     color: color || TEAM_COLORS[0].id,
     members, // array of { uid, displayName, email, photoURL }
-    section, // period/section this team belongs to (empty = unassigned)
     teamXP: 0,
     createdAt: new Date(),
   };
@@ -160,7 +159,7 @@ export async function getTeamLeaderboard(courseId) {
 
 // ─── Auto-generate balanced teams ───
 
-export async function autoAssignTeams(courseId, students, teamSize = 4, teamNames = null, section = "") {
+export async function autoAssignTeams(courseId, students, teamSize = 4, teamNames = null) {
   // Shuffle students randomly
   const shuffled = [...students].sort(() => Math.random() - 0.5);
 
@@ -173,7 +172,7 @@ export async function autoAssignTeams(courseId, students, teamSize = 4, teamName
     const name = teamNames?.[i] || defaultNames[i] || `Team ${i + 1}`;
     const color = TEAM_COLORS[i % TEAM_COLORS.length].id;
 
-    const team = await createTeam(courseId, { name, color, members, section });
+    const team = await createTeam(courseId, { name, color, members });
     teams.push(team);
   }
 
