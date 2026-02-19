@@ -9,6 +9,9 @@ import {
   getAvatar, saveAvatar, getUnlockedItems,
 } from "../lib/avatar";
 import { getStudentGamification, getLevelInfo } from "../lib/gamification";
+import { getStudentEnrolledCourseIds } from "../lib/enrollment";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { db } from "../lib/firebase";
 import PixelAvatar, { PixelPet, AvatarWithPet } from "../components/PixelAvatar";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
@@ -114,14 +117,27 @@ export default function AvatarCreator() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [existing, gam] = await Promise.all([
-        getAvatar(user.uid),
-        getStudentGamification(user.uid),
-      ]);
-      const xp = gam.totalXP || 0;
+      // Load avatar
+      const existing = await getAvatar(user.uid);
+      if (existing) setAvatar(existing);
+
+      // Fetch enrolled courses, then get course-specific gamification XP
+      let xp = 0;
+      try {
+        const enrolledIds = await getStudentEnrolledCourseIds(user.uid);
+        if (enrolledIds.length > 0) {
+          // Use the primary (first) enrolled course, same as StudentDashboard
+          const gam = await getStudentGamification(user.uid, enrolledIds[0]);
+          xp = gam.totalXP || 0;
+        }
+      } catch (e) {
+        // Fallback to global gamification doc
+        const gam = await getStudentGamification(user.uid);
+        xp = gam.totalXP || 0;
+      }
+
       setTotalXP(xp);
       setUnlocked(getUnlockedItems(xp));
-      if (existing) setAvatar(existing);
       setLoaded(true);
     })();
   }, [user]);
