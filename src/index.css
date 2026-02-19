@@ -40,25 +40,36 @@
 
 body {
   background: var(--bg);
-  background-image:
-    /* Ambient aurora glow — upper right */
-    radial-gradient(ellipse 900px 500px at 80% 10%, rgba(176,142,255,0.09), transparent),
-    /* Spirit glow — center-left warm */
-    radial-gradient(ellipse 600px 500px at 20% 60%, rgba(245,200,80,0.05), transparent),
-    /* Spirit glow — center-right cool */
-    radial-gradient(ellipse 500px 400px at 70% 50%, rgba(34,211,238,0.04), transparent),
-    /* Moon glow — upper area */
-    radial-gradient(circle 150px at 75% 8%, rgba(196,181,253,0.12), transparent),
-    /* Ground warmth — bottom */
-    radial-gradient(ellipse 100% 250px at 50% 100%, rgba(176,142,255,0.05), transparent),
-    /* Secondary glow — far left */
-    radial-gradient(ellipse 400px 350px at 5% 40%, rgba(52,216,168,0.035), transparent);
   color: var(--text);
   font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.7;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Ambient Video Background ─── */
+.bg-atmosphere-video {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 100vw; min-height: 100vh;
+  width: auto; height: auto;
+  object-fit: cover;
+  z-index: -2;
+  pointer-events: none;
+  opacity: 0.35;
+}
+.bg-atmosphere-overlay {
+  position: fixed; inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    /* Dark vignette — darkens edges for focus on center content */
+    radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, rgba(10,12,18,0.7) 100%),
+    /* Top edge fade into solid */
+    linear-gradient(to bottom, rgba(10,12,18,0.6) 0%, transparent 150px),
+    /* Bottom edge fade */
+    linear-gradient(to top, rgba(10,12,18,0.5) 0%, transparent 100px);
 }
 
 a { color: var(--amber); text-decoration: none; transition: color 0.2s; }
@@ -531,6 +542,7 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
 
 /* ─── Accessibility: Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {
+  .bg-atmosphere-video { display: none; }
   .top-bar::after { animation: none !important; opacity: 0.5 !important; }
   .notif-unread-dot, .announcement-banner.pinned { animation: none !important; }
   .card, .btn, .top-nav-link, .activity-block, .definition-block,

@@ -68,6 +68,18 @@ function AppRoutes() {
 
   return (
     <PreviewProvider>
+      {/* Ambient background video — loops silently behind all content */}
+      <video
+        className="bg-atmosphere-video"
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden="true"
+      >
+        <source src="/bg-atmosphere.mp4" type="video/mp4" />
+      </video>
+      <div className="bg-atmosphere-overlay" aria-hidden="true" />
       <ScrollToTop />
       <PreviewBanner />
       <Suspense fallback={<LoadingSpinner />}>
