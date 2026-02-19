@@ -1,6 +1,9 @@
 // src/components/AnnotationOverlay.jsx
 // Site-wide annotation overlay — transparent drawing layer on top of lesson pages.
-// Three modes: off → drawing (canvas captures input) → minimized (annotations visible, clicks pass through)
+// Three modes:
+//   off     = FAB visible, no canvas
+//   full    = canvas captures events + toolbar visible (full editing experience)
+//   compact = canvas still captures events (drawing works!) but toolbar hidden — only FAB visible
 // Students can draw/annotate anywhere on the page in various pen colors.
 // Annotations persist per-lesson to Firestore.
 
@@ -59,10 +62,6 @@ function redrawCanvas(ctx, strokeList, width, height) {
 }
 
 // ── Component ──
-// mode: "off" | "drawing" | "minimized"
-//   off       = FAB visible, no canvas
-//   drawing   = canvas captures events, toolbar visible
-//   minimized = canvas visible (pointer-events: none), toolbar hidden, page interactive
 
 export default function AnnotationOverlay() {
   const { user } = useAuth();
@@ -72,7 +71,7 @@ export default function AnnotationOverlay() {
   const courseId = match?.[1];
   const lessonId = match?.[2];
 
-  const [mode, setMode] = useState("off"); // "off" | "drawing" | "minimized"
+  const [mode, setMode] = useState("off"); // "off" | "full" | "compact"
   const [strokes, setStrokes] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [tool, setTool] = useState("pen");
@@ -89,7 +88,7 @@ export default function AnnotationOverlay() {
   const dprRef = useRef(window.devicePixelRatio || 1);
   const lessonKeyRef = useRef("");
 
-  const canvasVisible = mode === "drawing" || mode === "minimized";
+  const isActive = mode === "full" || mode === "compact"; // canvas is active in both
 
   useEffect(() => { strokesRef.current = strokes; }, [strokes]);
 
@@ -140,10 +139,10 @@ export default function AnnotationOverlay() {
     })();
   }, [user, courseId, lessonId]);
 
-  // ── Canvas sizing — active whenever canvas is visible ──
+  // ── Canvas sizing — active whenever canvas is on screen ──
 
   useEffect(() => {
-    if (!canvasVisible) return;
+    if (!isActive) return;
     const update = () => {
       const w = Math.max(document.documentElement.scrollWidth, window.innerWidth);
       const h = Math.min(Math.max(document.documentElement.scrollHeight, window.innerHeight), 16384);
@@ -154,12 +153,12 @@ export default function AnnotationOverlay() {
     observer.observe(document.documentElement);
     window.addEventListener("resize", update);
     return () => { observer.disconnect(); window.removeEventListener("resize", update); };
-  }, [canvasVisible]);
+  }, [isActive]);
 
   // ── Canvas init ──
 
   useEffect(() => {
-    if (!canvasVisible || !canvasSize.width || !canvasSize.height) return;
+    if (!isActive || !canvasSize.width || !canvasSize.height) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
@@ -173,12 +172,12 @@ export default function AnnotationOverlay() {
     ctxRef.current = ctx;
 
     redrawCanvas(ctx, strokesRef.current, canvasSize.width, canvasSize.height);
-  }, [canvasVisible, canvasSize]);
+  }, [isActive, canvasSize]);
 
   // ── Scroll tracking ──
 
   useEffect(() => {
-    if (!canvasVisible) return;
+    if (!isActive) return;
     const onScroll = () => {
       scrollRef.current = { x: window.scrollX, y: window.scrollY };
       const canvas = canvasRef.current;
@@ -189,25 +188,29 @@ export default function AnnotationOverlay() {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [canvasVisible]);
+  }, [isActive]);
 
-  // ── Keyboard shortcuts ──
+  // ── Keyboard shortcuts (work in both full & compact) ──
 
   useEffect(() => {
+    if (!isActive) return;
     const onKey = (e) => {
-      if (e.key === "Escape" && mode === "drawing") {
-        setMode("minimized");
-        saveNow();
+      if (e.key === "Escape") {
+        if (mode === "full") {
+          setMode("compact");
+        } else {
+          setMode("off");
+          saveNow();
+        }
         return;
       }
-      if (mode !== "drawing") return;
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key === "z" && !e.shiftKey) { e.preventDefault(); handleUndo(); }
       if (mod && e.key === "z" && e.shiftKey) { e.preventDefault(); handleRedo(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mode]);
+  }, [isActive, mode]);
 
   // ── Coordinate helper ──
 
@@ -225,7 +228,7 @@ export default function AnnotationOverlay() {
     markDirty();
   }, [markDirty]);
 
-  // ── Pointer handlers ──
+  // ── Pointer handlers (active in both full & compact) ──
 
   const handlePointerDown = useCallback((e) => {
     e.preventDefault();
@@ -276,7 +279,7 @@ export default function AnnotationOverlay() {
     commitStroke(d);
   }, [commitStroke]);
 
-  // ── Wheel → scroll passthrough (only in drawing mode) ──
+  // ── Wheel → scroll passthrough ──
 
   const handleWheel = useCallback((e) => {
     e.preventDefault();
@@ -323,24 +326,18 @@ export default function AnnotationOverlay() {
 
   const handleFabClick = useCallback(() => {
     if (mode === "off") {
-      setMode("drawing");
-    } else if (mode === "drawing") {
-      // Minimize — keep annotations visible but stop blocking
-      setMode("minimized");
-      saveNow();
+      setMode("full");
+    } else if (mode === "compact") {
+      // Re-open toolbar
+      setMode("full");
     } else {
-      // minimized → drawing (resume)
-      setMode("drawing");
+      // full → compact: hide toolbar but keep drawing active
+      setMode("compact");
     }
-  }, [mode, saveNow]);
+  }, [mode]);
 
   const handleClose = useCallback(() => {
     setMode("off");
-    saveNow();
-  }, [saveNow]);
-
-  const handleMinimize = useCallback(() => {
-    setMode("minimized");
     saveNow();
   }, [saveNow]);
 
@@ -355,42 +352,39 @@ export default function AnnotationOverlay() {
     <>
       {/* FAB button — always visible on lesson pages */}
       <button
-        className={`annotation-fab ${mode === "drawing" ? "active" : ""} ${mode === "minimized" ? "minimized" : ""}`}
+        className={`annotation-fab ${mode === "full" ? "active" : ""} ${mode === "compact" ? "compact" : ""}`}
         onClick={handleFabClick}
         title={
           mode === "off" ? "Annotate this page"
-          : mode === "drawing" ? "Minimize annotations"
-          : "Resume drawing"
+          : mode === "full" ? "Hide toolbar (keep drawing)"
+          : "Show toolbar"
         }
       >
-        {mode === "off" ? "🖊" : mode === "drawing" ? "▾" : "🖊"}
+        {mode === "off" ? "🖊" : mode === "full" ? "▾" : "🖊"}
       </button>
 
-      {/* Canvas overlay — visible in both drawing and minimized modes */}
-      {canvasVisible && (
-        <div
-          className={`annotation-overlay ${mode === "minimized" ? "minimized" : ""}`}
-          onWheel={mode === "drawing" ? handleWheel : undefined}
-        >
+      {/* Canvas overlay — active in both full & compact */}
+      {isActive && (
+        <div className="annotation-overlay" onWheel={handleWheel}>
           <canvas
             ref={canvasRef}
             className="annotation-canvas"
             style={{
               width: canvasSize.width,
               height: canvasSize.height,
-              touchAction: mode === "drawing" ? "none" : "auto",
-              cursor: mode === "drawing" ? (tool === "eraser" ? "cell" : "crosshair") : "default",
+              touchAction: "none",
+              cursor: tool === "eraser" ? "cell" : "crosshair",
             }}
-            onPointerDown={mode === "drawing" ? handlePointerDown : undefined}
-            onPointerMove={mode === "drawing" ? handlePointerMove : undefined}
-            onPointerUp={mode === "drawing" ? handlePointerUp : undefined}
-            onPointerLeave={mode === "drawing" ? ((e) => { if (drawingRef.current) handlePointerUp(e); }) : undefined}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={(e) => { if (drawingRef.current) handlePointerUp(e); }}
           />
         </div>
       )}
 
-      {/* Toolbar — only in drawing mode */}
-      {mode === "drawing" && (
+      {/* Toolbar — only in full mode */}
+      {mode === "full" && (
         <div className="annotation-toolbar">
           {/* Colors */}
           <div className="annotation-colors">
@@ -449,26 +443,8 @@ export default function AnnotationOverlay() {
 
           <div className="annotation-sep" />
 
-          {/* Minimize */}
-          <button className="annotation-minimize-btn" onClick={handleMinimize} title="Minimize — keep annotations visible but interact with page">▾</button>
-
-          {/* Close */}
-          <button className="annotation-close-btn" onClick={handleClose} title="Hide annotations">✕</button>
-        </div>
-      )}
-
-      {/* Minimized indicator bar */}
-      {mode === "minimized" && (
-        <div className="annotation-minimized-bar">
-          <span className="annotation-minimized-label">
-            🖊 Annotations visible ({strokes.length})
-          </span>
-          <button className="annotation-minimized-action" onClick={() => setMode("drawing")} title="Resume drawing">
-            Draw
-          </button>
-          <button className="annotation-minimized-action" onClick={handleClose} title="Hide annotations">
-            Hide
-          </button>
+          {/* Close — fully deactivate */}
+          <button className="annotation-close-btn" onClick={handleClose} title="Close annotations">✕</button>
         </div>
       )}
 
