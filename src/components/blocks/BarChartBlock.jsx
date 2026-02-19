@@ -4,6 +4,7 @@
 // Students drag bars up/down; tallest bar auto-scales to fill the chart area.
 // Ctrl/Cmd+click a bar to type an exact value. Each bar has label + subscript.
 // Students can dynamically add/remove bars in initial/final sections.
+// Values are unclamped — any number is allowed; the Y-axis rescales dynamically.
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
@@ -14,7 +15,7 @@ const COLORS = {
     header: "#88cc55",
     bar: "#557733",
     border: "#446622",
-    label: "#446622",
+    label: "#557733",
     valueText: "#d0eeb0",
   },
   delta: {
@@ -30,7 +31,7 @@ const COLORS = {
     header: "#cc5544",
     bar: "#aa3322",
     border: "#882211",
-    label: "#882211",
+    label: "#aa3322",
     valueText: "#f5c0b8",
   },
 };
@@ -71,36 +72,41 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
 
   const { markDirty, saveNow } = useAutoSave(performSave);
 
-  // --- Auto-scale ---
+  // --- Auto-scale (no fixed limits — any value works) ---
   const allValues = [
     ...initialBars.map((b) => b.value),
     ...deltaBars.map((b) => b.value),
     ...finalBars.map((b) => b.value),
   ];
   const maxAbs = Math.max(1, ...allValues.map(Math.abs));
-  // Max 42% of the full chart-area height (= 84% of a half). This keeps the
-  // tallest bar clearly within the visible area with room for the value label.
+  // Tallest bar fills 42% of full chart height (= 84% of half). Keeps room
+  // for the value label inside the bar and prevents overflow.
   const scaledPercent = (rawValue) => (Math.abs(rawValue) / maxAbs) * 42;
 
   const getSetter = (s) => (s === "initial" ? setInitialBars : s === "delta" ? setDeltaBars : setFinalBars);
   const getBars = (s) => (s === "initial" ? initialBars : s === "delta" ? deltaBars : finalBars);
 
-  // Map pointer Y to raw value. The ".bc-chart-area" div is the coordinate
-  // reference: its vertical midpoint is the zero-line.
+  // Map pointer Y → raw value. Uses the ".bc-chart-area" as coordinate
+  // reference so the midpoint always matches the drawn axis line.
+  // The drag range maps the full chart-area half-height to the current maxAbs,
+  // so the user can always drag beyond existing values to increase the scale.
   const clientYToValue = (clientY, barColEl) => {
     const area = barColEl.closest(".bc-chart-area");
     if (!area) return 0;
     const rect = area.getBoundingClientRect();
     const axisY = rect.top + rect.height / 2;
     const halfH = rect.height / 2;
-    return Math.max(-100, Math.min(100, ((axisY - clientY) / halfH) * 100));
+    // No clamping — allow any value. Scale so current maxAbs fills 42% of half.
+    // Dragging to the very edge = maxAbs / 0.42 ≈ 2.38× current max.
+    const raw = ((axisY - clientY) / halfH) * (maxAbs / 0.42);
+    return Math.round(raw);
   };
 
   const commitManualValue = (section, barIdx, raw) => {
     const num = parseFloat(raw);
     if (isNaN(num)) { setEditingBar(null); setEditingValue(""); return; }
-    const clamped = Math.max(-100, Math.min(100, Math.round(num)));
-    getSetter(section)((prev) => { const n = [...prev]; n[barIdx] = { ...n[barIdx], value: clamped }; return n; });
+    const rounded = Math.round(num);
+    getSetter(section)((prev) => { const n = [...prev]; n[barIdx] = { ...n[barIdx], value: rounded }; return n; });
     markDirty();
     setEditingBar(null);
     setEditingValue("");
@@ -118,7 +124,7 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     e.preventDefault();
     dragRef.current = { active: true, section, barIdx, el: e.currentTarget };
     const cY = e.touches ? e.touches[0].clientY : e.clientY;
-    const val = Math.round(clientYToValue(cY, e.currentTarget));
+    const val = clientYToValue(cY, e.currentTarget);
     getSetter(section)((prev) => { const n = [...prev]; n[barIdx] = { ...n[barIdx], value: val }; return n; });
     markDirty();
   };
@@ -127,7 +133,7 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     const move = (e) => {
       if (!dragRef.current.active) return;
       const cY = e.touches ? e.touches[0].clientY : e.clientY;
-      const val = Math.round(clientYToValue(cY, dragRef.current.el));
+      const val = clientYToValue(cY, dragRef.current.el);
       getSetter(dragRef.current.section)((prev) => {
         const n = [...prev]; n[dragRef.current.barIdx] = { ...n[dragRef.current.barIdx], value: val }; return n;
       });
@@ -151,8 +157,34 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     markDirty();
   };
 
-  // --- Render a single bar ---
-  const renderBar = (bar, idx, section, color, canRemove) => {
+  // --- Render label row (sits OUTSIDE chart-area so it doesn't offset the axis) ---
+  const renderLabelRow = (bars, section, color, canRemove) => (
+    <div className="bc-label-row">
+      {bars.map((bar, idx) => {
+        const editKey = `${section}-${idx}`;
+        return (
+          <div key={editKey} className="bc-label-cell" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+            <div className="bc-label-group">
+              <input type="text" className="bc-label-main" value={bar.label}
+                onChange={(e) => updateBarField(section, idx, "label", e.target.value)}
+                onBlur={saveNow} placeholder="K" style={{ color: color.label }} />
+              <input type="text" className="bc-label-sub" value={bar.subscript}
+                onChange={(e) => updateBarField(section, idx, "subscript", e.target.value)}
+                onBlur={saveNow} placeholder="i" style={{ color: color.label }} />
+            </div>
+            {canRemove && bars.length > 1 && (
+              <button className="bc-remove-bar"
+                onClick={(e) => { e.stopPropagation(); removeBar(section, idx); }}
+                onMouseDown={(e) => e.stopPropagation()} title="Remove bar">&times;</button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // --- Render a single bar column (just the draggable bar, no label) ---
+  const renderBarCol = (bar, idx, section, color) => {
     const val = bar.value;
     const pct = scaledPercent(val);
     const isPos = val >= 0;
@@ -160,58 +192,38 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     const isEditing = editingBar === editKey;
 
     return (
-      <div key={editKey} className="bc-bar-slot">
-        {/* Label row above the chart area */}
-        <div className="bc-label-cell" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-          <div className="bc-label-group">
-            <input type="text" className="bc-label-main" value={bar.label}
-              onChange={(e) => updateBarField(section, idx, "label", e.target.value)}
-              onBlur={saveNow} placeholder="K" style={{ borderColor: color.label }} />
-            <input type="text" className="bc-label-sub" value={bar.subscript}
-              onChange={(e) => updateBarField(section, idx, "subscript", e.target.value)}
-              onBlur={saveNow} placeholder="sub" style={{ borderColor: color.label }} />
-          </div>
-          {canRemove && getBars(section).length > 1 && (
-            <button className="bc-remove-bar"
-              onClick={(e) => { e.stopPropagation(); removeBar(section, idx); }}
-              onMouseDown={(e) => e.stopPropagation()} title="Remove bar">&times;</button>
+      <div key={editKey} className="bc-bar-col"
+        onMouseDown={(e) => handlePointerDown(e, section, idx)}
+        onTouchStart={(e) => handlePointerDown(e, section, idx)}
+      >
+        {/* The bar rectangle */}
+        <div className="bc-bar" style={{
+          backgroundColor: color.bar,
+          borderColor: color.border,
+          height: `${pct}%`,
+          ...(isPos ? { bottom: "50%", top: "auto" } : { top: "50%", bottom: "auto" }),
+        }}>
+          {val !== 0 && !isEditing && (
+            <span className="bc-bar-value" style={{
+              color: color.valueText,
+              ...(isPos ? { top: 2 } : { bottom: 2 }),
+            }}>{val}</span>
           )}
         </div>
 
-        {/* Draggable area (fills the chart-area height) */}
-        <div className="bc-drag-zone"
-          onMouseDown={(e) => handlePointerDown(e, section, idx)}
-          onTouchStart={(e) => handlePointerDown(e, section, idx)}
-        >
-          {/* The bar rectangle */}
-          <div className="bc-bar" style={{
-            backgroundColor: color.bar,
-            borderColor: color.border,
-            height: `${pct}%`,
-            ...(isPos ? { bottom: "50%", top: "auto" } : { top: "50%", bottom: "auto" }),
-          }}>
-            {val !== 0 && !isEditing && (
-              <span className="bc-bar-value" style={{
-                color: color.valueText,
-                ...(isPos ? { top: 2 } : { bottom: 2 }),
-              }}>{val}</span>
-            )}
+        {/* Manual input overlay */}
+        {isEditing && (
+          <div className="bc-value-input-container">
+            <input type="number" className="bc-value-input" value={editingValue}
+              onChange={(e) => setEditingValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitManualValue(section, idx, editingValue);
+                if (e.key === "Escape") { setEditingBar(null); setEditingValue(""); }
+              }}
+              onBlur={() => commitManualValue(section, idx, editingValue)}
+              autoFocus onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} />
           </div>
-
-          {/* Manual input overlay */}
-          {isEditing && (
-            <div className="bc-value-input-container">
-              <input type="number" className="bc-value-input" value={editingValue}
-                onChange={(e) => setEditingValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") commitManualValue(section, idx, editingValue);
-                  if (e.key === "Escape") { setEditingBar(null); setEditingValue(""); }
-                }}
-                onBlur={() => commitManualValue(section, idx, editingValue)}
-                autoFocus onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} />
-            </div>
-          )}
-        </div>
+        )}
       </div>
     );
   };
@@ -230,8 +242,10 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
         )}
       </div>
 
-      {/* Label row (one cell per bar) */}
-      {/* Chart area — contains grid, axis, and bars */}
+      {/* Label row — OUTSIDE chart-area so bars align with axis */}
+      {renderLabelRow(bars, section, color, showAddBtn)}
+
+      {/* Chart area — grid + axis + bars only, no labels */}
       <div className="bc-chart-area" data-section={section}>
         {/* Grid lines */}
         {Array.from({ length: 11 }, (_, i) => (
@@ -240,9 +254,9 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
         {/* Axis */}
         <div className="bc-axis-line" />
 
-        {/* Bar slots */}
+        {/* Bar columns */}
         <div className="bc-bar-row">
-          {bars.map((bar, i) => renderBar(bar, i, section, color, showAddBtn))}
+          {bars.map((bar, i) => renderBarCol(bar, i, section, color))}
         </div>
       </div>
     </div>

@@ -512,9 +512,9 @@
   font-family: var(--font-display); font-size: 20px; font-weight: 700;
   padding: 16px 20px; border-bottom: 1px solid var(--border);
 }
-/* Outer flex container holding all 3 sections side by side */
-.bc-container { display: flex; width: 100%; background: var(--surface2); }
-/* Each section: header on top, chart area below */
+/* Fixed overall height for the 3-section container */
+.bc-container { display: flex; width: 100%; height: 460px; background: var(--surface2); }
+/* Each section: header → labels → chart-area (column) */
 .bc-section { display: flex; flex-direction: column; min-width: 0; }
 /* Header row — section title + optional add button */
 .bc-header-row {
@@ -543,7 +543,44 @@
   transition: all 0.2s; flex-shrink: 0;
 }
 .bc-add-bar:hover { border-color: var(--amber); color: var(--amber); background: rgba(245,166,35,0.1); }
-/* Chart area — the coordinate system for bars. Fixed height, position:relative. */
+
+/* ---- Label row — sits BETWEEN header and chart-area ---- */
+.bc-label-row {
+  display: flex; justify-content: space-evenly; align-items: flex-end;
+  flex-shrink: 0; padding: 0 0 3px; gap: 0;
+}
+.bc-label-cell {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 0; min-width: 0; position: relative;
+}
+.bc-label-group {
+  display: inline-flex; align-items: baseline; justify-content: center;
+  cursor: text; background: var(--surface); border-radius: 4px;
+  border: 1.5px solid var(--border); overflow: hidden;
+}
+.bc-label-main {
+  width: 24px; padding: 3px 2px; border: none;
+  text-align: center; font-weight: 700; font-size: 13px; outline: none;
+  background: transparent; font-family: var(--font-body);
+  line-height: 1.1;
+}
+.bc-label-sub {
+  width: 18px; padding: 3px 1px 3px 0; border: none;
+  border-left: 1px solid var(--border);
+  text-align: center; font-size: 10px; outline: none;
+  background: transparent; color: var(--text2); font-family: var(--font-body);
+  font-style: italic; line-height: 1.1;
+}
+.bc-label-group:focus-within { border-color: var(--amber); }
+.bc-remove-bar {
+  display: none; position: absolute; top: -6px; right: 2px;
+  width: 14px; height: 14px; border-radius: 50%; border: none;
+  background: rgba(248,113,113,0.85); color: #fff; font-size: 10px; line-height: 1;
+  cursor: pointer; padding: 0; font-weight: 700; z-index: 60;
+}
+.bc-label-cell:hover .bc-remove-bar { display: inline-flex; align-items: center; justify-content: center; }
+
+/* ---- Chart area — ONLY grid + axis + bars, no labels ---- */
 .bc-chart-area {
   position: relative; flex: 1; width: 100%; min-height: 0;
 }
@@ -552,61 +589,29 @@
   position: absolute; left: 0; right: 0; height: 1px;
   background: rgba(156,163,175,0.15); pointer-events: none; z-index: 1;
 }
-/* Zero axis — solid line across each section */
+/* Zero axis */
 .bc-axis-line {
   position: absolute; top: 50%; left: 0; width: 100%; height: 3px;
   background: rgba(255,255,255,0.65); transform: translateY(-50%);
   z-index: 5; pointer-events: none;
 }
-/* Row of bar slots inside chart area */
+/* Row of bar columns filling the chart area */
 .bc-bar-row {
   position: absolute; inset: 0; display: flex; justify-content: space-evenly;
   align-items: stretch; z-index: 10;
 }
-/* Each bar slot: label on top, drag zone fills rest */
-.bc-bar-slot {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  min-width: 0; cursor: ns-resize;
+/* Each bar column — full height, cursor for dragging */
+.bc-bar-col {
+  flex: 1; position: relative; min-width: 0; cursor: ns-resize;
 }
-/* Label cell above the bar area */
-.bc-label-cell {
-  flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
-  gap: 1px; padding: 2px 0; z-index: 50;
-}
-.bc-label-group {
-  display: flex; align-items: baseline; justify-content: center; cursor: text;
-}
-.bc-label-main {
-  width: 26px; padding: 2px 1px; border-radius: 4px 0 0 4px;
-  border: 2px solid; border-right: none;
-  text-align: right; font-weight: 700; font-size: 13px; outline: none;
-  background: var(--surface); color: var(--text); font-family: var(--font-body);
-}
-.bc-label-sub {
-  width: 28px; padding: 2px 1px; border-radius: 0 4px 4px 0;
-  border: 2px solid; border-left: 1px solid var(--border);
-  text-align: left; font-size: 9px; outline: none;
-  background: var(--surface); color: var(--text2); font-family: var(--font-body);
-  font-style: italic;
-}
-.bc-label-main:focus, .bc-label-sub:focus { border-color: var(--amber) !important; }
-.bc-remove-bar {
-  display: none; width: 14px; height: 14px; border-radius: 50%; border: none;
-  background: rgba(248,113,113,0.75); color: #fff; font-size: 10px; line-height: 1;
-  cursor: pointer; padding: 0; font-weight: 700;
-}
-.bc-bar-slot:hover .bc-remove-bar { display: inline-flex; align-items: center; justify-content: center; }
-/* Drag zone — fills remaining height, holds the bar */
-.bc-drag-zone {
-  flex: 1; position: relative; width: 100%; min-height: 0;
-}
-/* The bar itself — positioned within drag-zone */
+/* The bar rectangle — positioned from the 50% axis line */
 .bc-bar {
-  position: absolute; left: 12%; right: 12%; width: 76%;
-  top: 50%; height: 0; pointer-events: none;
+  position: absolute; left: 14%; right: 14%; width: auto;
+  pointer-events: none;
   border: 2px solid; border-radius: 3px;
   transition: height 0.04s linear;
 }
+.bc-section-delta .bc-bar { left: 20%; right: 20%; }
 /* Value inside the bar */
 .bc-bar-value {
   position: absolute; width: 100%; text-align: center;
@@ -634,15 +639,11 @@
   padding: 8px 20px; font-size: 12px; color: var(--text3);
   text-align: center; border-top: 1px solid var(--border);
 }
-/* Set a fixed overall height */
-.bc-container { height: 440px; }
-/* Delta section: single bar, no add button */
-.bc-section-delta .bc-bar { left: 20%; right: 20%; width: 60%; }
 @media (max-width: 768px) {
-  .bc-container { height: 340px; }
+  .bc-container { height: 360px; }
   .bc-header-box { font-size: 11px; padding: 4px 10px; }
-  .bc-label-main { font-size: 11px; width: 22px; }
-  .bc-label-sub { font-size: 8px; width: 24px; }
+  .bc-label-main { font-size: 11px; width: 20px; }
+  .bc-label-sub { font-size: 8px; width: 16px; }
   .bc-hint { font-size: 10px; }
 }
 
