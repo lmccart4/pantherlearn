@@ -80,6 +80,12 @@ export default function LessonViewer() {
         return;
       }
 
+      // Guard: never overwrite a submitted answer with a draft
+      const existing = studentDataRef.current[blockId];
+      if (existing?.submitted && data.draft && !data.submitted) {
+        return; // silently discard stale draft saves
+      }
+
       setRealStudentData((prev) => {
         const updated = { ...prev, [blockId]: data };
         studentDataRef.current = updated;

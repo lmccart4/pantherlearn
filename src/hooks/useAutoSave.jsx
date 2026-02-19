@@ -63,6 +63,16 @@ export default function useAutoSave(saveFn, { delay = 30000 } = {}) {
     doSave();
   }, [doSave]);
 
+  // Clear dirty flag without saving (e.g. when a question is officially submitted
+  // and the draft auto-save should not fire on unmount)
+  const clearDirty = useCallback(() => {
+    dirtyRef.current = false;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
   // Save on page unload (tab close, refresh, navigate away)
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -97,5 +107,5 @@ export default function useAutoSave(saveFn, { delay = 30000 } = {}) {
     };
   }, [doSave]);
 
-  return { markDirty, saveNow, lastSaved, saving };
+  return { markDirty, saveNow, clearDirty, lastSaved, saving };
 }
