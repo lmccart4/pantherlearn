@@ -26,7 +26,7 @@ export default function EmbedBlock({ block }) {
           height={height}
           style={{ border: "none", display: "block" }}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope"
           allowFullScreen
         />
       </div>
