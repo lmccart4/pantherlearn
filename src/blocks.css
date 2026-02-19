@@ -21,6 +21,10 @@
   background: var(--surface); border-left: 4px solid var(--purple); border-radius: 0 var(--radius) var(--radius) 0;
   padding: 20px 24px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.2), inset 4px 0 16px rgba(176, 142, 255, 0.04);
+  transition: box-shadow 0.4s ease;
+}
+.definition-block:hover {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2), inset 4px 0 24px rgba(176, 142, 255, 0.06);
 }
 .def-term { font-weight: 700; font-size: 20px; color: var(--purple); margin-bottom: 6px; }
 .def-text { font-size: 17px; color: var(--text2); line-height: 1.7; }
@@ -60,9 +64,12 @@
 .activity-block {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
   box-shadow: 0 2px 12px rgba(0,0,0,0.2);
-  transition: border-color 0.3s;
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.activity-block:hover { border-color: var(--border-glow); }
+.activity-block:hover {
+  border-color: rgba(176,142,255,0.15);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25), inset 0 0 20px rgba(176,142,255,0.02);
+}
 .activity-header {
   display: flex; align-items: center; gap: 12px; padding: 16px 24px;
   background: var(--surface2); border-bottom: 1px solid var(--border);
@@ -89,21 +96,29 @@
 /* --- Section Header --- */
 .section-header-block {
   display: flex; align-items: center; gap: 18px;
-  padding: 40px 0 14px; border-bottom: 1px solid var(--border); margin-bottom: 10px;
-  scroll-margin-top: 80px;
+  padding: 40px 0 14px; border-bottom: none; margin-bottom: 10px;
+  scroll-margin-top: 80px; position: relative;
+}
+.section-header-block::after {
+  content: ''; display: block; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(176,142,255,0.2), rgba(34,211,238,0.12) 50%, transparent);
 }
 .section-icon { font-size: 36px; }
-.section-title { font-family: var(--font-display); font-size: 32px; font-weight: 700; letter-spacing: -0.01em; }
+.section-title {
+  font-family: var(--font-display); font-size: 32px; font-weight: 700; letter-spacing: -0.01em;
+  text-shadow: 0 0 24px rgba(176,142,255,0.08);
+}
 .section-subtitle { font-size: 16px; color: var(--text3); margin-top: 3px; }
 
 /* --- Question Block --- */
 .question-block {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 28px; transition: border-color 0.3s;
+  padding: 28px; transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   box-shadow: 0 2px 12px rgba(0,0,0,0.2);
 }
-.question-block.correct { border-color: rgba(52, 216, 168, 0.3); box-shadow: 0 0 20px rgba(52, 216, 168, 0.06); }
-.question-block.incorrect { border-color: rgba(248, 113, 113, 0.3); box-shadow: 0 0 20px rgba(248, 113, 113, 0.06); }
+.question-block.correct { border-color: rgba(52, 216, 168, 0.3); box-shadow: 0 0 24px rgba(52, 216, 168, 0.08), inset 0 0 30px rgba(52, 216, 168, 0.03); }
+.question-block.incorrect { border-color: rgba(248, 113, 113, 0.3); box-shadow: 0 0 24px rgba(248, 113, 113, 0.08), inset 0 0 30px rgba(248, 113, 113, 0.03); }
 .question-badge {
   display: inline-block; font-size: 13px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.08em; padding: 4px 12px; border-radius: 6px;
@@ -148,7 +163,7 @@
   font-size: 17px; resize: vertical; margin-bottom: 14px; line-height: 1.7;
   transition: border-color 0.2s;
 }
-.sa-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 12px rgba(96, 165, 250, 0.1); }
+.sa-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 16px rgba(96, 165, 250, 0.12), 0 0 4px rgba(96, 165, 250, 0.06); }
 .sa-answer-display {
   background: var(--bg); padding: 16px 20px; border-radius: 10px;
   font-size: 17px; line-height: 1.7; margin-bottom: 10px;
@@ -210,7 +225,7 @@
   background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 16px;
   transition: border-color 0.2s;
 }
-.chatbot-input:focus { outline: none; border-color: var(--amber); box-shadow: 0 0 12px rgba(245, 166, 35, 0.08); }
+.chatbot-input:focus { outline: none; border-color: var(--amber); box-shadow: 0 0 16px rgba(245, 166, 35, 0.1), 0 0 4px rgba(245, 166, 35, 0.05); }
 .chatbot-send {
   width: 44px; height: 44px; border-radius: 10px; border: none;
   background: linear-gradient(135deg, var(--amber), #fb923c); color: var(--bg); cursor: pointer;
@@ -392,11 +407,12 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 24px 28px;
-  transition: border-color 0.3s;
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   box-shadow: 0 2px 12px rgba(0,0,0,0.2);
 }
 .external-link-block:hover {
   border-color: var(--cyan);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25), inset 0 0 20px rgba(34,211,238,0.02);
 }
 .external-link-header {
   display: flex;
