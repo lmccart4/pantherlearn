@@ -167,10 +167,14 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
             <div className="bc-label-group">
               <input type="text" className="bc-label-main" value={bar.label}
                 onChange={(e) => updateBarField(section, idx, "label", e.target.value)}
-                onBlur={saveNow} placeholder="K" style={{ color: color.label }} />
+                onBlur={saveNow} placeholder="K"
+                size={Math.max(1, bar.label.length || 1)}
+                style={{ color: color.label, width: `${Math.max(1.2, (bar.label.length || 1) * 0.85 + 0.4)}ch` }} />
               <input type="text" className="bc-label-sub" value={bar.subscript}
                 onChange={(e) => updateBarField(section, idx, "subscript", e.target.value)}
-                onBlur={saveNow} placeholder="i" style={{ color: color.label }} />
+                onBlur={saveNow} placeholder="i"
+                size={Math.max(1, bar.subscript.length || 1)}
+                style={{ color: color.label, width: `${Math.max(1.2, (bar.subscript.length || 1) * 0.75 + 0.3)}ch` }} />
             </div>
             {canRemove && bars.length > 1 && (
               <button className="bc-remove-bar"
