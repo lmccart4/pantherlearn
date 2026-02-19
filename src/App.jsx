@@ -10,6 +10,7 @@ import PreviewBanner from "./components/PreviewBanner";
 import ClassChat from "./components/ClassChat";
 import FloatingMusicPlayer from "./components/FloatingMusicPlayer";
 import AnnotationOverlay from "./components/AnnotationOverlay";
+import ScreenReader from "./components/ScreenReader";
 
 // Lazy-loaded pages
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -106,6 +107,7 @@ function AppRoutes() {
       {user && <ClassChat />}
       {user && <FloatingMusicPlayer />}
       {user && <AnnotationOverlay />}
+      {user && <ScreenReader />}
     </PreviewProvider>
   );
 }
