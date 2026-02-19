@@ -4,8 +4,11 @@
 //   off     = FAB visible, no canvas
 //   full    = canvas captures events + toolbar visible (full editing experience)
 //   compact = canvas still captures events (drawing works!) but toolbar hidden — only FAB visible
-// Students can draw/annotate anywhere on the page in various pen colors.
-// Annotations persist per-lesson to Firestore.
+//
+// PERFORMANCE: Canvas is viewport-sized (not document-sized) to keep the backing
+// store small. Strokes are stored in document-relative coords and translated by
+// -scrollX/-scrollY when drawn. On scroll we do a full viewport redraw. This keeps
+// the canvas buffer ~1440×900 instead of ~1440×8000+, eliminating GPU lag.
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -51,14 +54,22 @@ function drawStroke(ctx, stroke) {
   ctx.restore();
 }
 
-function redrawCanvas(ctx, strokeList, width, height) {
+// Redraw all strokes onto the viewport-sized canvas.
+// scrollX/scrollY = current page scroll position.
+// All stroke coords are in document space, so we translate by -scroll.
+function redrawCanvas(ctx, strokeList, w, h, scrollX, scrollY) {
   if (!ctx) return;
   ctx.save();
   ctx.globalCompositeOperation = "source-over";
   ctx.globalAlpha = 1;
-  ctx.clearRect(0, 0, width || 16384, height || 16384);
+  ctx.clearRect(0, 0, w, h);
   ctx.restore();
+
+  // Translate so document-space strokes render in viewport space
+  ctx.save();
+  ctx.translate(-scrollX, -scrollY);
   for (const stroke of strokeList) drawStroke(ctx, stroke);
+  ctx.restore();
 }
 
 // ── Component ──
@@ -77,18 +88,17 @@ export default function AnnotationOverlay() {
   const [tool, setTool] = useState("pen");
   const [color, setColor] = useState("#ef4444");
   const [brushSize, setBrushSize] = useState(3);
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [loaded, setLoaded] = useState(false);
 
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
   const strokesRef = useRef([]);
   const drawingRef = useRef(null);
-  const scrollRef = useRef({ x: 0, y: 0 });
   const dprRef = useRef(window.devicePixelRatio || 1);
   const lessonKeyRef = useRef("");
+  const rafRef = useRef(null);
 
-  const isActive = mode === "full" || mode === "compact"; // canvas is active in both
+  const isActive = mode === "full" || mode === "compact";
 
   useEffect(() => { strokesRef.current = strokes; }, [strokes]);
 
@@ -139,69 +149,73 @@ export default function AnnotationOverlay() {
     })();
   }, [user, courseId, lessonId]);
 
-  // ── Canvas sizing — active whenever canvas is on screen ──
+  // ── Canvas init — viewport-sized ──
 
-  useEffect(() => {
-    if (!isActive) return;
-    const update = () => {
-      const w = Math.max(document.documentElement.scrollWidth, window.innerWidth);
-      const h = Math.min(Math.max(document.documentElement.scrollHeight, window.innerHeight), 16384);
-      setCanvasSize({ width: w, height: h });
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(document.documentElement);
-    window.addEventListener("resize", update);
-    return () => { observer.disconnect(); window.removeEventListener("resize", update); };
-  }, [isActive]);
-
-  // ── Canvas init ──
-
-  useEffect(() => {
-    if (!isActive || !canvasSize.width || !canvasSize.height) return;
+  const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
     dprRef.current = dpr;
 
-    canvas.width = canvasSize.width * dpr;
-    canvas.height = canvasSize.height * dpr;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
 
     const ctx = canvas.getContext("2d");
     ctx.scale(dpr, dpr);
     ctxRef.current = ctx;
 
-    redrawCanvas(ctx, strokesRef.current, canvasSize.width, canvasSize.height);
-  }, [isActive, canvasSize]);
+    redrawCanvas(ctx, strokesRef.current, w, h, window.scrollX, window.scrollY);
+  }, []);
 
-  // ── Scroll tracking ──
+  useEffect(() => {
+    if (!isActive) return;
+    initCanvas();
+    window.addEventListener("resize", initCanvas);
+    return () => window.removeEventListener("resize", initCanvas);
+  }, [isActive, initCanvas]);
+
+  // ── Scroll → redraw visible strokes ──
+
+  const doViewportRedraw = useCallback(() => {
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    redrawCanvas(ctx, strokesRef.current, w, h, window.scrollX, window.scrollY);
+
+    // Also re-draw the in-progress stroke if actively drawing
+    const d = drawingRef.current;
+    if (d && d.points.length >= 2) {
+      ctx.save();
+      ctx.translate(-window.scrollX, -window.scrollY);
+      drawStroke(ctx, d);
+      ctx.restore();
+    }
+  }, []);
 
   useEffect(() => {
     if (!isActive) return;
     const onScroll = () => {
-      scrollRef.current = { x: window.scrollX, y: window.scrollY };
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.style.transform = `translate(${-window.scrollX}px, ${-window.scrollY}px)`;
-      }
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(doViewportRedraw);
     };
-    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [isActive]);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [isActive, doViewportRedraw]);
 
-  // ── Keyboard shortcuts (work in both full & compact) ──
+  // ── Keyboard shortcuts ──
 
   useEffect(() => {
     if (!isActive) return;
     const onKey = (e) => {
       if (e.key === "Escape") {
-        if (mode === "full") {
-          setMode("compact");
-        } else {
-          setMode("off");
-          saveNow();
-        }
+        if (mode === "full") setMode("compact");
+        else { setMode("off"); saveNow(); }
         return;
       }
       const mod = e.metaKey || e.ctrlKey;
@@ -212,7 +226,7 @@ export default function AnnotationOverlay() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isActive, mode]);
 
-  // ── Coordinate helper ──
+  // ── Coordinate helper — always document-relative ──
 
   function getDocPoint(e) {
     return { x: e.clientX + window.scrollX, y: e.clientY + window.scrollY };
@@ -228,7 +242,7 @@ export default function AnnotationOverlay() {
     markDirty();
   }, [markDirty]);
 
-  // ── Pointer handlers (active in both full & compact) ──
+  // ── Pointer handlers ──
 
   const handlePointerDown = useCallback((e) => {
     e.preventDefault();
@@ -255,14 +269,18 @@ export default function AnnotationOverlay() {
     const point = getDocPoint(e);
     d.points.push(point);
 
+    // Draw just the new segment in viewport space
     const ctx = ctxRef.current;
     const pts = d.points;
     if (pts.length < 2) return;
+
+    const sx = window.scrollX;
+    const sy = window.scrollY;
     ctx.save();
     applyStrokeStyle(ctx, d);
     ctx.beginPath();
-    ctx.moveTo(pts[pts.length - 2].x, pts[pts.length - 2].y);
-    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+    ctx.moveTo(pts[pts.length - 2].x - sx, pts[pts.length - 2].y - sy);
+    ctx.lineTo(pts[pts.length - 1].x - sx, pts[pts.length - 1].y - sy);
     ctx.stroke();
     ctx.restore();
   }, []);
@@ -277,6 +295,7 @@ export default function AnnotationOverlay() {
 
     if (!d.points || d.points.length < 2) return;
     commitStroke(d);
+    // No redraw needed — live lineTo segments are the correct render
   }, [commitStroke]);
 
   // ── Wheel → scroll passthrough ──
@@ -295,9 +314,9 @@ export default function AnnotationOverlay() {
     strokesRef.current = updated;
     setStrokes(updated);
     setRedoStack((rs) => [...rs, last]);
-    redrawCanvas(ctxRef.current, updated, canvasSize.width, canvasSize.height);
+    doViewportRedraw();
     markDirty();
-  }, [markDirty, canvasSize]);
+  }, [markDirty, doViewportRedraw]);
 
   const handleRedo = useCallback(() => {
     setRedoStack((rs) => {
@@ -306,11 +325,11 @@ export default function AnnotationOverlay() {
       const updated = [...strokesRef.current, last];
       strokesRef.current = updated;
       setStrokes(updated);
-      redrawCanvas(ctxRef.current, updated, canvasSize.width, canvasSize.height);
+      doViewportRedraw();
       markDirty();
       return rs.slice(0, -1);
     });
-  }, [markDirty, canvasSize]);
+  }, [markDirty, doViewportRedraw]);
 
   const handleClear = useCallback(() => {
     if (strokesRef.current.length === 0) return;
@@ -318,22 +337,16 @@ export default function AnnotationOverlay() {
     strokesRef.current = [];
     setStrokes([]);
     setRedoStack([]);
-    redrawCanvas(ctxRef.current, [], canvasSize.width, canvasSize.height);
+    doViewportRedraw();
     markDirty();
-  }, [markDirty, canvasSize]);
+  }, [markDirty, doViewportRedraw]);
 
   // ── Mode transitions ──
 
   const handleFabClick = useCallback(() => {
-    if (mode === "off") {
-      setMode("full");
-    } else if (mode === "compact") {
-      // Re-open toolbar
-      setMode("full");
-    } else {
-      // full → compact: hide toolbar but keep drawing active
-      setMode("compact");
-    }
+    if (mode === "off") setMode("full");
+    else if (mode === "compact") setMode("full");
+    else setMode("compact"); // full → compact
   }, [mode]);
 
   const handleClose = useCallback(() => {
@@ -363,15 +376,15 @@ export default function AnnotationOverlay() {
         {mode === "off" ? "🖊" : mode === "full" ? "▾" : "🖊"}
       </button>
 
-      {/* Canvas overlay — active in both full & compact */}
+      {/* Canvas overlay — viewport-sized, fixed position */}
       {isActive && (
         <div className="annotation-overlay" onWheel={handleWheel}>
           <canvas
             ref={canvasRef}
             className="annotation-canvas"
             style={{
-              width: canvasSize.width,
-              height: canvasSize.height,
+              width: "100%",
+              height: "100%",
               touchAction: "none",
               cursor: tool === "eraser" ? "cell" : "crosshair",
             }}
@@ -386,7 +399,6 @@ export default function AnnotationOverlay() {
       {/* Toolbar — only in full mode */}
       {mode === "full" && (
         <div className="annotation-toolbar">
-          {/* Colors */}
           <div className="annotation-colors">
             {COLORS.map((c) => (
               <button
@@ -408,7 +420,6 @@ export default function AnnotationOverlay() {
 
           <div className="annotation-sep" />
 
-          {/* Brush size */}
           <div className="annotation-size">
             <input
               type="range" min="1" max="20" value={brushSize}
@@ -424,7 +435,6 @@ export default function AnnotationOverlay() {
 
           <div className="annotation-sep" />
 
-          {/* Tools */}
           <button
             className={`annotation-tool-btn ${tool === "pen" ? "active" : ""}`}
             onClick={() => setTool("pen")} title="Pen"
@@ -436,14 +446,12 @@ export default function AnnotationOverlay() {
 
           <div className="annotation-sep" />
 
-          {/* Actions */}
           <button className="annotation-action-btn" onClick={handleUndo} disabled={strokes.length === 0} title="Undo">↩</button>
           <button className="annotation-action-btn" onClick={handleRedo} disabled={redoStack.length === 0} title="Redo">↪</button>
           <button className="annotation-action-btn annotation-clear" onClick={handleClear} disabled={strokes.length === 0} title="Clear all">🗑</button>
 
           <div className="annotation-sep" />
 
-          {/* Close — fully deactivate */}
           <button className="annotation-close-btn" onClick={handleClose} title="Close annotations">✕</button>
         </div>
       )}
