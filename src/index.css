@@ -668,6 +668,55 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
 }
 .annotation-close-btn:hover { background: rgba(239, 68, 68, 0.2); }
 
+/* Minimized mode — annotations visible, clicks pass through */
+.annotation-overlay.minimized {
+  pointer-events: none;
+}
+.annotation-fab.minimized {
+  background: linear-gradient(135deg, var(--green), #059669);
+  border-color: rgba(52, 216, 168, 0.35);
+  box-shadow: 0 4px 20px rgba(52, 216, 168, 0.3);
+}
+.annotation-fab.minimized:hover {
+  box-shadow: 0 6px 28px rgba(52, 216, 168, 0.45);
+}
+.annotation-minimize-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1.5px solid rgba(52, 216, 168, 0.4); background: var(--green-dim);
+  color: var(--green); cursor: pointer; font-size: 16px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.annotation-minimize-btn:hover { background: rgba(52, 216, 168, 0.15); }
+
+.annotation-minimized-bar {
+  position: fixed; top: 72px; left: 50%; transform: translateX(-50%);
+  z-index: 9001;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 16px;
+  background: rgba(22, 26, 38, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(52, 216, 168, 0.25);
+  border-radius: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  animation: annotationSlideIn 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.annotation-minimized-label {
+  font-size: 13px; font-weight: 600; color: var(--green);
+  white-space: nowrap;
+}
+.annotation-minimized-action {
+  padding: 4px 12px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text2); font-family: var(--font-body);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s;
+}
+.annotation-minimized-action:hover {
+  border-color: var(--amber); color: var(--amber);
+  background: var(--amber-dim);
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .annotation-fab { bottom: 80px; right: 16px; width: 46px; height: 46px; font-size: 18px; }
@@ -683,4 +732,8 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
   }
   .annotation-color-btn { width: 22px; height: 22px; }
   .annotation-size-slider { width: 50px; }
+  .annotation-minimized-bar {
+    top: auto; bottom: 140px; left: 12px; right: 12px;
+    transform: none;
+  }
 }
