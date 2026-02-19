@@ -854,3 +854,126 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
   .screen-reader-fab { bottom: 80px; left: 16px; width: 46px; height: 46px; font-size: 18px; }
   .screen-reader-panel { left: 12px; right: 12px; width: auto; bottom: 138px; }
 }
+
+/* --- Bug Reporter / Feedback Widget --- */
+.bug-reporter-fab {
+  position: fixed; bottom: 156px; right: 24px; z-index: 9000;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+  cursor: pointer; font-size: 20px; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+}
+.bug-reporter-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(139, 92, 246, 0.45);
+}
+.bug-reporter-fab.active {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.35);
+}
+
+.bug-reporter-panel {
+  position: fixed; bottom: 220px; right: 24px; z-index: 9001;
+  width: 340px;
+  background: rgba(22, 26, 38, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: brSlideIn 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes brSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.br-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.br-header-title {
+  font-family: var(--font-display); font-weight: 700; font-size: 15px;
+  color: var(--text);
+}
+
+.br-type-selector {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 12px 16px 8px;
+}
+.br-type-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 10px;
+  border: 1.5px solid var(--border); background: transparent;
+  color: var(--text2); cursor: pointer; font-size: 13px; font-weight: 500;
+  transition: all 0.15s; text-align: left;
+  font-family: var(--font-body);
+}
+.br-type-btn:hover {
+  border-color: #8b5cf6; color: var(--text); background: rgba(139, 92, 246, 0.06);
+}
+.br-type-btn.active {
+  border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1);
+  color: #c4b5fd; font-weight: 600;
+}
+
+.br-body { padding: 8px 16px 16px; }
+
+.br-textarea {
+  width: 100%; padding: 10px 12px; border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--surface); color: var(--text);
+  font-size: 13px; font-family: var(--font-body);
+  resize: vertical; min-height: 80px; max-height: 200px;
+  outline: none; transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.br-textarea:focus { border-color: #8b5cf6; }
+.br-textarea::placeholder { color: var(--text3); }
+
+.br-char-count {
+  text-align: right; font-size: 10px; color: var(--text3); margin-top: 4px;
+}
+
+.br-page-info {
+  font-size: 11px; color: var(--text3); margin-top: 8px;
+  padding: 6px 8px; border-radius: 6px;
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.br-error {
+  margin-top: 8px; padding: 8px 10px; border-radius: 8px;
+  background: var(--red-dim); border: 1px solid rgba(248, 113, 113, 0.3);
+  color: var(--red); font-size: 12px; font-weight: 500;
+}
+
+.br-submit-btn {
+  width: 100%; margin-top: 12px; padding: 10px 0;
+  border-radius: 10px; border: none;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: #fff; font-weight: 700; font-size: 13px;
+  font-family: var(--font-body);
+  cursor: pointer; transition: all 0.15s;
+}
+.br-submit-btn:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+}
+.br-submit-btn:disabled { opacity: 0.5; cursor: default; }
+
+.br-success {
+  padding: 30px 20px; text-align: center;
+  color: var(--text2); font-size: 13px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .bug-reporter-fab { bottom: 146px; right: 16px; width: 46px; height: 46px; font-size: 18px; }
+  .bug-reporter-panel { left: 12px; right: 12px; width: auto; bottom: 204px; }
+}

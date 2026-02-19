@@ -8,6 +8,9 @@ const db = admin.firestore();
 // Store your Gemini API key as a Firebase secret (never in code!)
 // Set it with: firebase functions:secrets:set GEMINI_API_KEY
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
+// Google Apps Script URL for feedback/bug report sheet
+// Set with: firebase functions:secrets:set FEEDBACK_SHEET_URL
+const feedbackSheetUrl = defineSecret("FEEDBACK_SHEET_URL");
 
 /**
  * Helper: call Gemini API with automatic retry on 429 (quota exceeded).
@@ -495,5 +498,105 @@ Notes:
       console.error("Generate question error:", err);
       return res.status(500).json({ error: "Failed to generate question" });
     }
+  }
+);
+
+/**
+ * Cloud Function: submitFeedback
+ *
+ * Receives bug reports, feature requests, and feedback from authenticated users.
+ * Forwards to a Google Apps Script web app that appends rows to a Google Sheet.
+ * Also saves to Firestore as a backup.
+ */
+exports.submitFeedback = onRequest(
+  {
+    cors: true,
+    secrets: [feedbackSheetUrl],
+    maxInstances: 10,
+    timeoutSeconds: 30,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    // Verify Firebase Auth token
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing authentication token" });
+    }
+
+    let uid, email, displayName;
+    try {
+      const token = authHeader.split("Bearer ")[1];
+      const decoded = await admin.auth().verifyIdToken(token);
+      uid = decoded.uid;
+      email = decoded.email || "";
+      displayName = decoded.name || "";
+    } catch (err) {
+      return res.status(401).json({ error: "Invalid authentication token" });
+    }
+
+    const { type, description, pageUrl, userAgent } = req.body;
+
+    if (!type || !description) {
+      return res.status(400).json({ error: "Missing required fields: type, description" });
+    }
+
+    const validTypes = ["bug", "feature", "feedback"];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ error: "Invalid type" });
+    }
+
+    // Look up user role from Firestore
+    let userRole = "unknown";
+    try {
+      const userDoc = await db.collection("users").doc(uid).get();
+      if (userDoc.exists) {
+        userRole = userDoc.data().role || "unknown";
+        if (!displayName) displayName = userDoc.data().displayName || userDoc.data().name || "";
+      }
+    } catch (e) { /* ignore */ }
+
+    const payload = {
+      timestamp: new Date().toISOString(),
+      type,
+      description: description.slice(0, 2000),
+      pageUrl: pageUrl || "",
+      email,
+      displayName,
+      userRole,
+      uid,
+      userAgent: (userAgent || "").slice(0, 500),
+    };
+
+    // Forward to Google Apps Script
+    try {
+      const sheetUrl = feedbackSheetUrl.value();
+      if (sheetUrl) {
+        const sheetResponse = await fetch(sheetUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!sheetResponse.ok) {
+          console.error("Apps Script error:", sheetResponse.status);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to send to Google Sheet:", err);
+    }
+
+    // Save to Firestore as backup
+    try {
+      await db.collection("feedback").add({
+        ...payload,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (err) {
+      console.error("Failed to save feedback to Firestore:", err);
+    }
+
+    return res.json({ success: true });
   }
 );
