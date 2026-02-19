@@ -149,6 +149,10 @@ export default function LessonViewer() {
         extraProps.lessonId = lessonId;
         extraProps.courseId = courseId;
       }
+      if (block.type === "bar_chart") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted]);

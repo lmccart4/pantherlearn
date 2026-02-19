@@ -33,6 +33,7 @@ const BLOCK_TYPES = [
   { type: "data_table", label: "Data Table", icon: "📊" },
   { type: "simulation", label: "Simulation", icon: "🧪" },
   { type: "evidence_upload", label: "Evidence Upload", icon: "📷" },
+  { type: "bar_chart", label: "Bar Chart", icon: "📊" },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -68,6 +69,7 @@ function defaultBlockData(typeInfo) {
     case "data_table": return { ...base, preset: "momentum", title: "Momentum Data Table", trials: 1, labelA: "", labelB: "" };
     case "simulation": return { ...base, icon: "🧪", title: "Interactive Simulation", url: "", height: 500, observationPrompt: "" };
     case "evidence_upload": return { ...base, icon: "📷", title: "Upload Evidence", instructions: "", reflectionPrompt: "What did you observe? What did you learn?" };
+    case "bar_chart": return { ...base, title: "Energy Bar Chart", barCount: 4, initialLabel: "Initial State", finalLabel: "Final State", deltaLabel: "" };
     default: return base;
   }
 }
@@ -425,6 +427,18 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
           <Field label="Title" value={block.title} onChange={(v) => update("title", v)} />
           <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline placeholder="Take a photo of your lab setup..." />
           <Field label="Reflection Prompt (optional)" value={block.reflectionPrompt} onChange={(v) => update("reflectionPrompt", v)} multiline placeholder="What did you observe?" />
+        </>);
+      case "bar_chart":
+        return (<>
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="e.g. Energy Bar Chart" />
+          <Field label="Bars per Section" value={block.barCount || 4} onChange={(v) => update("barCount", Math.max(1, Math.min(6, parseInt(v) || 4)))} small />
+          <div style={{ display: "flex", gap: 12 }}>
+            <div style={{ flex: 1 }}><Field label="Initial State Label" value={block.initialLabel || ""} onChange={(v) => update("initialLabel", v)} placeholder="Initial State" /></div>
+            <div style={{ flex: 1 }}><Field label="Final State Label" value={block.finalLabel || ""} onChange={(v) => update("finalLabel", v)} placeholder="Final State" /></div>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.5 }}>
+            Students drag bars up (positive) or down (negative) from the center axis. The Y-axis auto-scales so the tallest bar always fills the chart.
+          </p>
         </>);
       default: return <p style={{ color: "var(--text3)" }}>Unknown block type</p>;
     }
