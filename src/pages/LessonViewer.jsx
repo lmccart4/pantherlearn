@@ -234,14 +234,11 @@ export default function LessonViewer() {
 
         {/* Blocks */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {blocksWithProps.map(({ block, extraProps }) => {
-            const el = <BlockRenderer key={block.id} block={block} extraProps={extraProps} />;
-
-            if (block.type === "section_header") {
-              return <div key={block.id} id={block.id}>{el}</div>;
-            }
-            return el;
-          })}
+          {blocksWithProps.map(({ block, extraProps }) => (
+            <div key={block.id} id={block.type === "section_header" ? block.id : undefined} data-block-id={block.id}>
+              <BlockRenderer block={block} extraProps={extraProps} />
+            </div>
+          ))}
         </div>
 
         {/* Complete Lesson — students and teacher preview */}
