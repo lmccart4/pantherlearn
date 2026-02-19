@@ -46,6 +46,10 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
   );
   const [deltaLabel, setDeltaLabel] = useState(() => saved.deltaLabel || "");
 
+  // Manual value entry (Ctrl/Cmd + click)
+  const [editingBar, setEditingBar] = useState(null);
+  const [editingValue, setEditingValue] = useState("");
+
   const containerRef = useRef(null);
   const dragRef = useRef({ active: false, barIndex: null });
   const valuesRef = useRef(values);
@@ -87,9 +91,36 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     return Math.max(-100, Math.min(100, raw));
   };
 
+  // Commit a manually typed bar value
+  const commitManualValue = (barIndex, raw) => {
+    const num = parseFloat(raw);
+    if (isNaN(num)) return; // ignore non-numeric input
+    const clamped = Math.max(-100, Math.min(100, num));
+    setValues((prev) => {
+      const next = [...prev];
+      next[barIndex] = Math.round(clamped);
+      return next;
+    });
+    markDirty();
+    setEditingBar(null);
+    setEditingValue("");
+    // Save immediately after manual entry
+    setTimeout(() => saveNow(), 0);
+  };
+
   // Drag handlers
   const handlePointerDown = (e, barIndex) => {
     if (e.target.tagName === "INPUT") return;
+
+    // Ctrl+click (Windows/Linux) or Cmd+click (Mac) → manual entry
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      setEditingBar(barIndex);
+      setEditingValue(String(values[barIndex]));
+      return;
+    }
+
     e.preventDefault();
     dragRef.current = { active: true, barIndex, el: e.currentTarget };
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -143,6 +174,7 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     const val = values[index];
     const pct = scaledPercent(val);
     const isPositive = val >= 0;
+    const isEditing = editingBar === index;
 
     return (
       <div
@@ -163,6 +195,41 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
               : { top: "50%", bottom: "auto" }),
           }}
         />
+        {/* Manual value input overlay — shown on Ctrl/Cmd+click */}
+        {isEditing && (
+          <div className="bc-value-input-container">
+            <input
+              type="number"
+              className="bc-value-input"
+              value={editingValue}
+              onChange={(e) => setEditingValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitManualValue(index, editingValue);
+                if (e.key === "Escape") { setEditingBar(null); setEditingValue(""); }
+              }}
+              onBlur={() => commitManualValue(index, editingValue)}
+              autoFocus
+              min={-100}
+              max={100}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+        {/* Value tooltip — shows current value on the bar */}
+        {val !== 0 && !isEditing && (
+          <div
+            className="bc-value-tooltip"
+            style={{
+              ...(isPositive
+                ? { bottom: `calc(50% + ${pct}% + 4px)` }
+                : { top: `calc(50% + ${pct}% + 4px)` }),
+              color: color.bar,
+            }}
+          >
+            {val}
+          </div>
+        )}
         {showLabel && (
           <div className="bc-label-container">
             <input
@@ -278,6 +345,10 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="bc-hint">
+        Drag bars up or down &bull; Ctrl+click (&#8984;+click on Mac) a bar to type an exact value
       </div>
     </div>
   );

@@ -573,9 +573,36 @@
   box-shadow: 1px 1px 3px rgba(0,0,0,0.2); cursor: text;
 }
 .bc-label-input:focus { border-color: var(--amber); }
+.bc-value-input-container {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 60;
+}
+.bc-value-input {
+  width: 64px; padding: 6px 4px; border-radius: 8px;
+  border: 2px solid var(--amber); background: var(--surface);
+  color: var(--text); font-family: var(--font-body); font-size: 16px;
+  font-weight: 700; text-align: center; outline: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 12px rgba(245,166,35,0.2);
+}
+.bc-value-input:focus { border-color: var(--amber); }
+/* Hide number input spinners */
+.bc-value-input::-webkit-outer-spin-button,
+.bc-value-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.bc-value-input[type=number] { -moz-appearance: textfield; }
+.bc-value-tooltip {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-size: 11px; font-weight: 700; pointer-events: none;
+  z-index: 20; opacity: 0.8; white-space: nowrap;
+  text-shadow: 0 0 4px rgba(0,0,0,0.6);
+}
+.bc-hint {
+  padding: 8px 20px; font-size: 12px; color: var(--text3);
+  text-align: center; border-top: 1px solid var(--border);
+}
 @media (max-width: 768px) {
   .bc-chart-container { height: 320px; }
   .bc-header-box { font-size: 11px; padding: 4px 10px; }
   .bc-label-input { font-size: 10px; }
+  .bc-hint { font-size: 10px; }
 }
 
