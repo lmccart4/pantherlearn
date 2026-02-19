@@ -9,6 +9,7 @@ import { PreviewProvider } from "./contexts/PreviewContext";
 import PreviewBanner from "./components/PreviewBanner";
 import ClassChat from "./components/ClassChat";
 import FloatingMusicPlayer from "./components/FloatingMusicPlayer";
+import AnnotationOverlay from "./components/AnnotationOverlay";
 
 // Lazy-loaded pages
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -104,6 +105,7 @@ function AppRoutes() {
       </Suspense>
       {user && <ClassChat />}
       {user && <FloatingMusicPlayer />}
+      {user && <AnnotationOverlay />}
     </PreviewProvider>
   );
 }
