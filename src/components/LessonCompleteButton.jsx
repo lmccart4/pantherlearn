@@ -6,6 +6,7 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { awardXP, getXPConfig, DEFAULT_XP_VALUES, getStudentGamification, updateStudentGamification } from "../lib/gamification";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
+import { useTelemetryContext } from "../contexts/TelemetryContext";
 
 const VALIDATE_REFLECTION_URL =
   import.meta.env.VITE_VALIDATE_REFLECTION_URL || "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/validateReflection";
@@ -13,6 +14,7 @@ const VALIDATE_REFLECTION_URL =
 export default function LessonCompleteButton({ lesson, studentData, chatLogs, user, courseId, lessonId }) {
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const { trackEvent } = useTelemetryContext();
   const [completing, setCompleting] = useState(false);
   const [lessonCompleted, setLessonCompleted] = useState(false);
   const [xpConfig, setXpConfig] = useState(null);
@@ -174,6 +176,7 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
         }
 
         setAlreadyReflected(true);
+        trackEvent("reflection_submitted");
         // Auto-proceed after a brief pause to show the success message
         setTimeout(() => {
           setShowReflection(false);
@@ -249,6 +252,7 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
           completed: true,
         }, { merge: true });
         setLessonCompleted(true);
+        trackEvent("lesson_completed");
 
         try {
           const baseXP = getXPValue("lesson_complete");

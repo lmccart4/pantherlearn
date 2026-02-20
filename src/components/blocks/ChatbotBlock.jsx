@@ -4,6 +4,7 @@ import { renderMarkdown } from "../../lib/utils";
 import { sendChatMessage } from "../../lib/api";
 import { useTranslatedText, useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
 import { usePreview } from "../../contexts/PreviewContext";
+import { useTelemetryContext } from "../../contexts/TelemetryContext";
 
 export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLog }) {
   const [messages, setMessages] = useState([
@@ -15,6 +16,7 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
   const { isPreview } = usePreview();
+  const { trackEvent } = useTelemetryContext();
 
   // Translate static block content
   const translatedTitle = useTranslatedText(block.title);
@@ -82,6 +84,7 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
       const assistantMsg = { role: "assistant", content: responseText };
       setMessages((prev) => [...prev, assistantMsg]);
       if (onLog) onLog(block.id, [...newMessages, assistantMsg]);
+      trackEvent("chat_message", { blockId: block.id });
     } catch (err) {
       const errorMsg = err.message.includes("Slow down")
         ? err.message

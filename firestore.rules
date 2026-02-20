@@ -138,6 +138,11 @@ service cloud.firestore {
       allow read: if isOwner(uid) || isTeacher();
       allow write: if isOwner(uid) || isTeacher();
     }
+    // Telemetry buckets (daily engagement metrics per student per course)
+    match /telemetry/{uid}/{document=**} {
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid) || isTeacher();
+    }
     match /enrollments/{enrollmentId} {
       allow read: if isLoggedIn();
       allow write: if isTeacher()
