@@ -41,6 +41,8 @@ export default function StudentProgress() {
   const [gradePopup, setGradePopup] = useState(null); // { studentUid, lessonId, x, y } or { studentUid, type: "overall", x, y }
   const [confirmComplete, setConfirmComplete] = useState(null); // { studentUid, lessonId, studentName, x, y }
   const [completingLesson, setCompletingLesson] = useState(false);
+  const [confirmResetXP, setConfirmResetXP] = useState(null); // { studentUid, studentName }
+  const [resettingXP, setResettingXP] = useState(false);
   const [xpConfig, setXpConfig] = useState(null);
 
   // Fetch courses on mount
@@ -442,6 +444,55 @@ export default function StudentProgress() {
     }
   };
 
+  // Reset a student's XP (and optionally badges/level)
+  const handleResetXP = async () => {
+    if (!confirmResetXP || resettingXP) return;
+    const { studentUid } = confirmResetXP;
+    setResettingXP(true);
+    try {
+      const gamRef = doc(db, "courses", selectedCourse, "gamification", studentUid);
+      await setDoc(gamRef, {
+        totalXP: 0,
+        badges: [],
+        badgesXPCredited: [],
+        lessonsCompleted: 0,
+        totalAnswered: 0,
+        totalCorrect: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        streakFreezes: 0,
+        activityDates: [],
+        perkUsage: {},
+        resetAt: new Date(),
+        resetBy: "teacher",
+      });
+
+      // Update local state
+      setGamData((prev) => ({
+        ...prev,
+        [studentUid]: {
+          totalXP: 0,
+          badges: [],
+          badgesXPCredited: [],
+          lessonsCompleted: 0,
+          totalAnswered: 0,
+          totalCorrect: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          streakFreezes: 0,
+          activityDates: [],
+          perkUsage: {},
+        },
+      }));
+
+      setConfirmResetXP(null);
+    } catch (err) {
+      console.error("Failed to reset XP:", err);
+      alert("Failed to reset XP. Please try again.");
+    }
+    setResettingXP(false);
+  };
+
   useEffect(() => {
     if (!confirmComplete) return;
     const close = () => setConfirmComplete(null);
@@ -497,6 +548,69 @@ export default function StudentProgress() {
           >
             Cancel
           </button>
+        </div>
+      </div>
+    );
+  };
+
+  // --- Reset XP Confirmation Popup ---
+  const renderConfirmResetXP = () => {
+    if (!confirmResetXP) return null;
+    const gam = gamData[confirmResetXP.studentUid] || {};
+    return (
+      <div style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }} onClick={() => setConfirmResetXP(null)}>
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+          padding: "24px 28px", maxWidth: 380, width: "90%",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+        }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ fontSize: 28, textAlign: "center", marginBottom: 8 }}>⚠️</div>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, textAlign: "center", marginBottom: 8 }}>
+            Reset XP & Progress?
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text2)", textAlign: "center", marginBottom: 16, lineHeight: 1.6 }}>
+            This will reset <strong>{confirmResetXP.studentName}</strong>'s gamification data:
+          </div>
+          <div style={{
+            background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8,
+            padding: "12px 16px", marginBottom: 16, fontSize: 12, color: "var(--text2)",
+            display: "flex", flexDirection: "column", gap: 4,
+          }}>
+            <div>⚡ XP: <strong style={{ color: "var(--amber)" }}>{gam.totalXP || 0}</strong> → <strong>0</strong></div>
+            <div>🏆 Badges: <strong>{(gam.badges || []).length}</strong> → <strong>0</strong></div>
+            <div>🔥 Streak: <strong>{gam.currentStreak || 0}</strong> → <strong>0</strong></div>
+            <div>📚 Lessons completed: <strong>{gam.lessonsCompleted || 0}</strong> → <strong>0</strong></div>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text3)", textAlign: "center", marginBottom: 16, fontStyle: "italic" }}>
+            This cannot be undone. Lesson answers and grades are not affected.
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={handleResetXP}
+              disabled={resettingXP}
+              style={{
+                flex: 1, padding: "10px 16px", borderRadius: 8, border: "none",
+                background: resettingXP ? "var(--surface2)" : "var(--red)",
+                color: resettingXP ? "var(--text3)" : "#fff",
+                fontWeight: 700, fontSize: 13, cursor: resettingXP ? "default" : "pointer",
+              }}
+            >
+              {resettingXP ? "Resetting..." : "Reset Everything"}
+            </button>
+            <button
+              onClick={() => setConfirmResetXP(null)}
+              style={{
+                padding: "10px 16px", borderRadius: 8,
+                border: "1px solid var(--border)", background: "transparent",
+                color: "var(--text)", fontWeight: 600, fontSize: 13, cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -728,6 +842,23 @@ export default function StudentProgress() {
               <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--cyan)" }}>Lv{level.current.level}</div>
               <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.06em" }}>{level.current.name}</div>
             </div>
+            {(gam.totalXP > 0 || (gam.badges || []).length > 0) && (
+              <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: 16 }}>
+                <button
+                  onClick={() => setConfirmResetXP({ studentUid: s.uid, studentName: s.displayName })}
+                  style={{
+                    fontSize: 11, fontWeight: 600, padding: "6px 12px", borderRadius: 6,
+                    border: "1px solid var(--border)", background: "transparent",
+                    color: "var(--text3)", cursor: "pointer", transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--red)"; e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.background = "rgba(239,68,68,0.08)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text3)"; e.currentTarget.style.background = "transparent"; }}
+                  title="Reset XP, badges, and streaks"
+                >
+                  Reset XP
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1227,6 +1358,8 @@ export default function StudentProgress() {
       {renderGradePopup()}
       {/* Manual completion confirmation popup */}
       {renderConfirmComplete()}
+      {/* Reset XP confirmation modal */}
+      {renderConfirmResetXP()}
     </div>
   );
 }
