@@ -27,6 +27,7 @@ export default function GradingDashboard() {
   const [studentMap, setStudentMap] = useState({});
   const [responses, setResponses] = useState([]);
   const [chatLogGroups, setChatLogGroups] = useState([]);
+  const [classChatCount, setClassChatCount] = useState(0);
 
   // Loading state
   const [loadingCourses, setLoadingCourses] = useState(true);
@@ -150,6 +151,14 @@ export default function GradingDashboard() {
         });
         setLessonMap((prev) => ({ ...prev, ...lessons }));
         setCourseLessons(lessonsList);
+
+        // Fetch ClassChat conversation count for the "Student Messages" stat card
+        try {
+          const chatsSnap = await getDocs(collection(db, "courses", selectedCourse, "chats"));
+          setClassChatCount(chatsSnap.size);
+        } catch (e) {
+          setClassChatCount(0);
+        }
       } catch (err) {
         console.error("Error fetching course data:", err);
       }
@@ -427,6 +436,7 @@ export default function GradingDashboard() {
                 activeTab={activeTab}
                 setSelectedLesson={handleSelectLesson}
                 setSelectedStudent={setSelectedStudent}
+                classChatCount={classChatCount}
                 helpers={helpers}
               />
             )}

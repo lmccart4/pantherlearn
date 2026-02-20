@@ -5,7 +5,7 @@ import ChatLogCard from "./ChatLogCard";
 import WrittenResponseCard from "./WrittenResponseCard";
 import SearchSortBar from "./SearchSortBar";
 
-export default function CourseOverview({ courseResponses, courseLogs, activeTab, setSelectedLesson, setSelectedStudent, helpers }) {
+export default function CourseOverview({ courseResponses, courseLogs, activeTab, setSelectedLesson, setSelectedStudent, classChatCount, helpers }) {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("recent");
@@ -46,7 +46,7 @@ export default function CourseOverview({ courseResponses, courseLogs, activeTab,
         {[
           { label: "Written Responses", value: totalWritten, color: "var(--amber)", icon: "✏️" },
           { label: "Chat Conversations", value: totalConversations, color: "var(--cyan)", icon: "💬" },
-          { label: "Student Messages", value: totalMessages, color: "var(--green)", icon: "📨", link: "/messages" },
+          { label: "Student Messages", value: classChatCount || 0, color: "var(--green)", icon: "📨", link: "/messages" },
         ].map((stat) => (
           <div key={stat.label} className="card"
             onClick={stat.link ? () => navigate(stat.link) : undefined}
