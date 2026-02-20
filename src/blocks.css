@@ -773,7 +773,7 @@
 
 /* Canvas */
 .sketch-canvas-container {
-  position: relative; background: #ffffff;
+  position: relative; background: #ffffff; overflow: visible;
 }
 .sketch-canvas {
   display: block; width: 100%;
