@@ -8,8 +8,9 @@ const db = admin.firestore();
 // Store API keys as Firebase secrets (never in code!)
 // Set with: firebase functions:secrets:set <SECRET_NAME>
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
-const openaiApiKey = defineSecret("OPENAI_API_KEY");
-const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
+// Optional: set these to enable multi-provider baselines for AI plagiarism detection
+// firebase functions:secrets:set OPENAI_API_KEY
+// firebase functions:secrets:set ANTHROPIC_API_KEY
 // Google Apps Script URL for feedback/bug report sheet
 // Set with: firebase functions:secrets:set FEEDBACK_SHEET_URL
 const feedbackSheetUrl = defineSecret("FEEDBACK_SHEET_URL");
@@ -629,7 +630,7 @@ exports.submitFeedback = onRequest(
 exports.generateBaselines = onRequest(
   {
     cors: true,
-    secrets: [geminiApiKey, openaiApiKey, anthropicApiKey],
+    secrets: [geminiApiKey],
     maxInstances: 10,
     timeoutSeconds: 90,
   },
@@ -682,9 +683,9 @@ exports.generateBaselines = onRequest(
         return { provider: "gemini", text };
       })(),
 
-      // OpenAI
+      // OpenAI (optional — set via: firebase functions:secrets:set OPENAI_API_KEY)
       (async () => {
-        const key = openaiApiKey.value();
+        const key = process.env.OPENAI_API_KEY;
         if (!key) throw new Error("No OpenAI key configured");
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -705,9 +706,9 @@ exports.generateBaselines = onRequest(
         return { provider: "openai", text };
       })(),
 
-      // Anthropic
+      // Anthropic (optional — set via: firebase functions:secrets:set ANTHROPIC_API_KEY)
       (async () => {
-        const key = anthropicApiKey.value();
+        const key = process.env.ANTHROPIC_API_KEY;
         if (!key) throw new Error("No Anthropic key configured");
         const response = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
