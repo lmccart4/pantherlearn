@@ -61,6 +61,11 @@ service cloud.firestore {
         allow read: if hasCourseAccess(courseId);
         allow write: if isCourseOwner(courseId);
       }
+      match /guessWhoGames/{gameId} {
+        allow read: if hasCourseAccess(courseId);
+        allow create: if hasCourseAccess(courseId);
+        allow update: if hasCourseAccess(courseId);
+      }
       match /gamification/{uid} {
         allow read: if hasCourseAccess(courseId);
         allow write: if isOwner(uid) || isCourseOwner(courseId);

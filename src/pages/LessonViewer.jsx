@@ -164,6 +164,10 @@ export default function LessonViewer() {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
       }
+      if (block.type === "guess_who") {
+        extraProps.courseId = courseId;
+        extraProps.lessonId = lessonId;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted]);
