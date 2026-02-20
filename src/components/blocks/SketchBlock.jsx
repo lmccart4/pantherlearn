@@ -9,7 +9,7 @@ import useAutoSave from "../../hooks/useAutoSave.jsx";
 
 const COLORS = [
   "#000000", "#ffffff", "#ef4444", "#f59e0b",
-  "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899",
+  "#22c55e", "#3b82f6",
 ];
 
 const DRAW_TOOLS = [
