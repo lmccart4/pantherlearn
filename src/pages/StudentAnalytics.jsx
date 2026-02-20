@@ -393,7 +393,7 @@ export default function StudentAnalytics() {
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -989,7 +989,7 @@ function EngagementScoresTab({ analytics, telemetryData }) {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }
 

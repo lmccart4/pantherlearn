@@ -40,6 +40,7 @@ export default function NicknameEditor({ currentNickname, onSave }) {
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Enter nickname..."
+          aria-label="Nickname"
           maxLength={20}
           autoFocus
           style={{
@@ -61,6 +62,7 @@ export default function NicknameEditor({ currentNickname, onSave }) {
         </button>
         <button
           onClick={() => { setEditing(false); setValue(currentNickname || ""); }}
+          aria-label="Cancel editing nickname"
           style={{
             padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)",
             background: "transparent", color: "var(--text3)", fontSize: 12, cursor: "pointer",

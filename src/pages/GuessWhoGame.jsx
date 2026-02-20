@@ -573,7 +573,7 @@ export default function GuessWhoGame() {
           </div>
         </Modal>
       )}
-    </div>
+    </main>
   );
 }
 
@@ -614,7 +614,7 @@ function SecretReveal({ label, character, isWinner }) {
       <div style={{ fontSize: 11, color: isWinner ? "var(--green)" : "var(--text3)" }}>
         {label} {isWinner ? "🏆" : ""}
       </div>
-    </main>
+    </div>
   );
 }
 

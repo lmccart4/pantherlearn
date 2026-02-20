@@ -421,7 +421,7 @@ export default function MessageCenter() {
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -604,6 +604,6 @@ function ConversationCard({
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

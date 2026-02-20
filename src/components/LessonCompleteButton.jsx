@@ -1,5 +1,5 @@
 // src/components/LessonCompleteButton.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -197,6 +197,29 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
   };
 
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+  const modalRef = useRef(null);
+
+  // Focus trap for reflection modal
+  const handleModalKeyDown = useCallback((e) => {
+    if (e.key === "Escape") {
+      setShowSkipConfirm(true);
+      return;
+    }
+    if (e.key !== "Tab") return;
+    const modal = modalRef.current;
+    if (!modal) return;
+    const focusable = modal.querySelectorAll('button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }, []);
 
   const handleSkipReflection = async () => {
     // Save a 0/100 gradebook entry
@@ -328,11 +351,12 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
 
       {/* Reflection Modal */}
       {showReflection && (
-        <div style={modalOverlay} onClick={(e) => e.target === e.currentTarget && setShowSkipConfirm(true)}>
-          <div style={modalBox}>
+        <div style={modalOverlay} onClick={(e) => e.target === e.currentTarget && setShowSkipConfirm(true)}
+          role="dialog" aria-modal="true" aria-labelledby="reflection-title" onKeyDown={handleModalKeyDown}>
+          <div style={modalBox} ref={modalRef}>
             <div style={{ textAlign: "center", marginBottom: 20 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>💭</div>
-              <h2 style={{
+              <h2 id="reflection-title" style={{
                 fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700,
                 color: "var(--text, #fff)", marginBottom: 6,
               }}>
@@ -351,6 +375,7 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
                 setReflectionValid(false);
               }}
               placeholder={ui(4, "Write your reflection here...")}
+              aria-label="Reflection"
               rows={5}
               style={{
                 width: "100%", padding: "14px 16px", borderRadius: 10,
