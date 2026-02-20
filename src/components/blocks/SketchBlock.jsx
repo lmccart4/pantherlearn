@@ -374,15 +374,24 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
     points: stroke.points.map((p) => ({ x: p.x + dx, y: p.y + dy })),
   });
 
+  // ── Text placement via click (separate from pointer draw events) ──
+  const handleCanvasClick = useCallback((e) => {
+    if (tool !== "text") return;
+    // If there's already an active text input, commit it first
+    if (textInput) commitText();
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setTextInput({ x, y });
+    setTextValue("");
+  }, [tool, textInput, commitText]);
+
   // ── Pointer handlers ──
   const handlePointerDown = useCallback((e) => {
-    if (tool === "text") {
-      if (textInput) commitText();
-      const pt = getCanvasPoint(e);
-      setTextInput({ x: pt.x, y: pt.y });
-      setTextValue("");
-      return;
-    }
+    // Text tool is handled by onClick instead
+    if (tool === "text") return;
 
     e.preventDefault();
     const canvas = canvasRef.current;
@@ -423,7 +432,7 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
       shape: tool === "shape" ? activeShape : undefined,
       startPoint: point,
     };
-  }, [tool, color, brushSize, activeShape, textInput, commitText, doRedraw, drawSelectionHighlight]);
+  }, [tool, color, brushSize, activeShape, doRedraw, drawSelectionHighlight]);
 
   const handlePointerMove = useCallback((e) => {
     // Move tool dragging
@@ -675,6 +684,7 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
 
       <div className="sketch-canvas-container" ref={containerRef} style={{ position: "relative" }}>
         <canvas ref={canvasRef} className="sketch-canvas"
+          onClick={handleCanvasClick}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
