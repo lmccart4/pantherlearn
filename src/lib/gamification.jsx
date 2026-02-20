@@ -30,6 +30,12 @@ export const DEFAULT_XP_VALUES = {
   lesson_complete: 50,
   perfect_lesson: 100,
   streak_bonus: 25,
+  // Written response XP (awarded when teacher grades)
+  written_refining: 50,
+  written_developing: 40,
+  written_approaching: 30,
+  written_emerging: 20,
+  written_missing: 0,
 };
 
 // ─── Default Behavior Rewards ───
@@ -224,6 +230,15 @@ export const BADGES = [
   { id: "early_bird", icon: "🐦", name: "Early Bird", description: "Complete a lesson before 7 AM", rarity: "rare", hidden: true, check: (g) => g.hasEarlyBird === true },
   { id: "speed_demon", icon: "⚡", name: "Speed Demon", description: "Answer 10 questions correctly in under 2 minutes", rarity: "epic", hidden: true, check: (g) => g.hasSpeedDemon === true },
 ];
+
+// ─── Badge XP Rewards (by rarity) ───
+export const BADGE_XP_REWARDS = {
+  common: 25,
+  uncommon: 50,
+  rare: 100,
+  epic: 200,
+  legendary: 500,
+};
 
 // ─── Rarity Colors ───
 export const RARITY_COLORS = {
@@ -652,8 +667,20 @@ export async function updateStudentGamification(uid, updates, courseId) {
   });
   merged.badges = earnedBadges;
 
+  // Award XP for newly earned badges (scales by rarity)
+  let badgeXPAwarded = 0;
+  const credited = merged.badgesXPCredited || [];
+  for (const badge of newBadges) {
+    badgeXPAwarded += BADGE_XP_REWARDS[badge.rarity] || 0;
+    credited.push(badge.id);
+  }
+  if (badgeXPAwarded > 0) {
+    merged.totalXP = (merged.totalXP || 0) + badgeXPAwarded;
+    merged.badgesXPCredited = credited;
+  }
+
   await setDoc(ref, { ...merged, lastUpdated: new Date() }, { merge: true });
-  return { gamification: merged, newBadges };
+  return { gamification: merged, newBadges, badgeXPAwarded };
 }
 
 // ─── Get Student Gamification Data ───
@@ -674,6 +701,39 @@ export async function getStudentGamification(uid, courseId) {
 // ─── Get XP Config (alias for loadXPConfig, used by Dashboard) ───
 export async function getXPConfig(courseId) {
   return loadXPConfig(courseId);
+}
+
+// ─── Retroactive Badge XP ───
+// Awards XP for badges a student already earned but didn't get XP for.
+// Tracks which badges have been XP-credited in `badgesXPCredited` array.
+export async function retroactiveBadgeXP(uid, courseId) {
+  const ref = courseId
+    ? doc(db, "courses", courseId, "gamification", uid)
+    : doc(db, "gamification", uid);
+  const data = await getStudentGamification(uid, courseId);
+  const badges = data.badges || [];
+  const credited = data.badgesXPCredited || [];
+  let totalAwarded = 0;
+  const newlyCredited = [];
+
+  for (const badgeId of badges) {
+    if (credited.includes(badgeId)) continue; // already credited
+    const badge = BADGES.find((b) => b.id === badgeId);
+    if (!badge) continue;
+    const xp = BADGE_XP_REWARDS[badge.rarity] || 0;
+    totalAwarded += xp;
+    newlyCredited.push(badgeId);
+  }
+
+  if (newlyCredited.length > 0) {
+    await setDoc(ref, {
+      totalXP: (data.totalXP || 0) + totalAwarded,
+      badgesXPCredited: [...credited, ...newlyCredited],
+      lastUpdated: new Date(),
+    }, { merge: true });
+  }
+
+  return { awarded: totalAwarded, badges: newlyCredited };
 }
 
 // ─── Award Behavior XP (from teacher roster) ───

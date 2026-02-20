@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { getLevelInfo, getStudentGamification, getXPConfig } from "../lib/gamification";
+import { getLevelInfo, getStudentGamification, getXPConfig, retroactiveBadgeXP } from "../lib/gamification";
 import { getStudentEnrolledCourseIds } from "../lib/enrollment";
 import { getAvatar, generateRandomAvatar } from "../lib/avatar";
 import { AvatarWithPet } from "../components/PixelAvatar";
@@ -95,7 +95,16 @@ export default function StudentDashboard() {
           const enrolledCourses = coursesData.filter((c) => enrolledSet.has(c.id));
           const primaryCourseId = enrolledCourses[0]?.id;
 
-          const gData = await getStudentGamification(user.uid, primaryCourseId);
+          let gData = await getStudentGamification(user.uid, primaryCourseId);
+
+          // Retroactive badge XP — credits XP for badges earned before this feature
+          try {
+            const retro = await retroactiveBadgeXP(user.uid, primaryCourseId);
+            if (retro.awarded > 0) {
+              gData = await getStudentGamification(user.uid, primaryCourseId);
+            }
+          } catch (e) { /* ignore */ }
+
           setGamification(gData);
 
           // Fetch avatar
