@@ -31,6 +31,7 @@ const AvatarCreator = lazy(() => import("./pages/AvatarCreator"));
 const MyGrades = lazy(() => import("./pages/MyGrades"));
 const MessageCenter = lazy(() => import("./pages/MessageCenter"));
 const GuessWhoGame = lazy(() => import("./pages/GuessWhoGame"));
+const StudentAnalytics = lazy(() => import("./pages/StudentAnalytics"));
 
 const TRANSLATE_URL = import.meta.env.VITE_TRANSLATE_URL || "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
 
@@ -106,6 +107,7 @@ function AppRoutes() {
             <Route path="/avatar" element={<AvatarCreator />} />
             <Route path="/my-grades" element={<MyGrades />} />
             <Route path="/messages" element={<MessageCenter />} />
+            <Route path="/analytics" element={<StudentAnalytics />} />
             <Route path="/guess-who/:courseId/:gameId" element={<GuessWhoGame />} />
           </Route>
         </Routes>
