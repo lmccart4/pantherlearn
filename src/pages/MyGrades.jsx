@@ -1,6 +1,6 @@
 // src/pages/MyGrades.jsx
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, where, doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getStudentEnrolledCourseIds } from "../lib/enrollment";
@@ -76,15 +76,18 @@ export default function MyGrades() {
         await Promise.all(promises);
         setProgressData(progress);
 
-        // Reflections
+        // Reflections — query only this student's reflections (enforced by Firestore rules)
         const refMap = {};
         try {
-          const refsSnap = await getDocs(collection(db, "courses", selectedCourse, "reflections"));
+          const refsSnap = await getDocs(
+            query(
+              collection(db, "courses", selectedCourse, "reflections"),
+              where("studentId", "==", user.uid)
+            )
+          );
           refsSnap.forEach((d) => {
             const data = d.data();
-            if (data.studentId === user.uid) {
-              refMap[data.lessonId] = data;
-            }
+            refMap[data.lessonId] = data;
           });
         } catch (e) { /* no reflections yet */ }
         setReflections(refMap);
