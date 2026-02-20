@@ -163,6 +163,14 @@ export default function LessonViewer() {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
       }
+      if (block.type === "evidence_upload") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+      }
+      if (block.type === "simulation") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+      }
       if (block.type === "guess_who") {
         extraProps.courseId = courseId;
         extraProps.lessonId = lessonId;
