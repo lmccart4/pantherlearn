@@ -105,12 +105,15 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
 
   return (
     <div className="chatbot-block">
-      <div className="chatbot-header" onClick={() => setExpanded(!expanded)}>
+      <div className="chatbot-header" onClick={() => setExpanded(!expanded)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(!expanded); } }}
+        role="button" tabIndex={0} aria-expanded={expanded}
+        aria-label={`${translatedTitle || block.title} chat, ${expanded ? "collapse" : "expand"}`}>
         <div className="chatbot-header-left">
           <span className="chatbot-icon">{block.icon}</span>
           <h3 className="chatbot-title" data-translatable>{translatedTitle}</h3>
         </div>
-        <span className="chatbot-toggle">{expanded ? "▾" : "▸"}</span>
+        <span className="chatbot-toggle" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
       </div>
 
       {expanded && (
@@ -126,7 +129,7 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
             </div>
           )}
 
-          <div className="chatbot-conversation">
+          <div className="chatbot-conversation" role="log" aria-label="Chat conversation">
             {messages.map((msg, i) => (
               <div key={i} className={`chat-message ${msg.role}`}>
                 <div className="chat-avatar">{msg.role === "assistant" ? "🤖" : "👤"}</div>
@@ -156,9 +159,10 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={ui(2, block.placeholder || "Type a message...")}
+              aria-label={`Message ${translatedTitle || block.title}`}
               disabled={loading}
             />
-            <button className="chatbot-send" onClick={sendMessage} disabled={!input.trim() || loading}>
+            <button className="chatbot-send" onClick={sendMessage} disabled={!input.trim() || loading} aria-label="Send message">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13" />
                 <polygon points="22 2 15 22 11 13 2 9 22 2" />

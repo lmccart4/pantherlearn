@@ -1197,7 +1197,7 @@ export default function StudentProgress() {
 
   // =================== MAIN RENDER ===================
   return (
-    <div className="page-container" style={{ padding: "48px 40px" }}>
+    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
           Student Progress
@@ -1379,6 +1379,6 @@ export default function StudentProgress() {
       {renderConfirmComplete()}
       {/* Reset XP confirmation modal */}
       {renderConfirmResetXP()}
-    </div>
+    </main>
   );
 }

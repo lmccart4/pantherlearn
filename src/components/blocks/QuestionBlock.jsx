@@ -201,24 +201,28 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
           {diffBadge}
         </div>
         <p className="question-prompt" data-translatable>{translatedPrompt}</p>
-        <div className="mc-options">
+        <div className="mc-options" role="radiogroup" aria-label={translatedPrompt || block.prompt}>
           {(translatedOptions || block.options).map((opt, i) => {
             let cls = "mc-option";
             if (submitted && i === block.correctIndex) cls += " correct-answer";
             if (submitted && i === selected && i !== block.correctIndex) cls += " wrong-answer";
             if (!submitted && i === selected) cls += " selected";
             return (
-              <button key={i} className={cls} onClick={() => !submitted && setSelected(i)} disabled={submitted}>
+              <button key={i} className={cls} onClick={() => !submitted && setSelected(i)} disabled={submitted}
+                role="radio" aria-checked={i === selected}>
                 <span className="option-letter">{String.fromCharCode(65 + i)}</span>
                 <span className="option-text">{opt}</span>
-                {submitted && i === block.correctIndex && <span className="check-icon">✓</span>}
-                {submitted && i === selected && i !== block.correctIndex && <span className="x-icon">✗</span>}
+                {submitted && i === block.correctIndex && <span className="check-icon">✓ Correct</span>}
+                {submitted && i === selected && i !== block.correctIndex && <span className="x-icon">✗ Incorrect</span>}
               </button>
             );
           })}
         </div>
         {!submitted && <button className="btn btn-primary" onClick={handleSubmitMC} disabled={selected === null} data-translatable>{ui(2) || "Submit Answer"}</button>}
         {submitted && block.explanation && <div className="explanation" data-translatable><strong>{ui(5) || "Explanation:"}</strong> {translatedExplanation}</div>}
+        <div aria-live="polite" className="sr-only">
+          {submitted && (isCorrect ? "Correct answer!" : `Incorrect. The correct answer is ${String.fromCharCode(65 + block.correctIndex)}.`)}
+        </div>
       </div>
     );
   }
@@ -236,6 +240,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
         {!submitted ? (
           <>
             <textarea className="sa-input" rows={4} placeholder={ui(4) || "Type your answer here..."}
+              aria-label={translatedPrompt || block.prompt}
               value={textAnswer}
               onChange={(e) => { setTextAnswer(e.target.value); markSADirty(); }}
               onBlur={saveSANow}
@@ -335,9 +340,9 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
                 <span style={{ flex: 1, fontSize: 15 }}>{item}</span>
                 {!submitted && (
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button disabled={i === 0} onClick={() => moveItem(i, i - 1)}
+                    <button disabled={i === 0} onClick={() => moveItem(i, i - 1)} aria-label={`Move ${item} up`}
                       style={{ background: "none", border: "1px solid var(--border)", borderRadius: 6, cursor: i === 0 ? "default" : "pointer", padding: "2px 8px", color: "var(--text3)", opacity: i === 0 ? 0.3 : 1 }}>▲</button>
-                    <button disabled={i === items.length - 1} onClick={() => moveItem(i, i + 1)}
+                    <button disabled={i === items.length - 1} onClick={() => moveItem(i, i + 1)} aria-label={`Move ${item} down`}
                       style={{ background: "none", border: "1px solid var(--border)", borderRadius: 6, cursor: i === items.length - 1 ? "default" : "pointer", padding: "2px 8px", color: "var(--text3)", opacity: i === items.length - 1 ? 0.3 : 1 }}>▼</button>
                   </div>
                 )}
@@ -386,6 +391,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
         {!submitted ? (
           <>
             <textarea className="sa-input" rows={4} placeholder="Type your follow-up answer..."
+              aria-label={translatedPrompt || block.prompt}
               value={textAnswer} onChange={(e) => setTextAnswer(e.target.value)} />
             <button className="btn btn-primary" onClick={handleSubmitLinked} disabled={!textAnswer.trim()}>Submit Response</button>
           </>

@@ -204,7 +204,7 @@ export default function LessonViewer() {
   return (
     <TelemetryProvider courseId={telemetryCourseId} lessonId={telemetryLessonId}>
       <div className="lesson-layout">
-        <div className="lesson-content">
+        <main className="lesson-content" id="main-content">
           {/* Back to course — students only */}
           {userRole !== "teacher" && !isPreview && (
             <Link to={`/course/${courseId}`} style={{
@@ -269,7 +269,7 @@ export default function LessonViewer() {
               lessonId={lessonId}
             />
           )}
-        </div>
+        </main>
 
         <ProgressSidebar lesson={lesson} studentData={studentData} chatLogs={chatLogs} courseId={courseId} engagementSeconds={engagementSeconds} />
       </div>

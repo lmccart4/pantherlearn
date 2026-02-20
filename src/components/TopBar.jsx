@@ -28,10 +28,10 @@ export default function TopBar() {
   const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
 
   return (
-    <div className="top-bar">
+    <header className="top-bar">
       <Link to="/" className="top-brand" style={{ textDecoration: "none" }}>PantherLearn</Link>
 
-      <div className="top-nav-links">
+      <nav aria-label="Main navigation" className="top-nav-links">
         <Link to="/" className={isActive("/")} data-translatable>{isTeacher ? "Dashboard" : ui(0, "Dashboard")}</Link>
         <Link to="/avatar" className={isActive("/avatar")} data-translatable>{isTeacher ? "Character" : `⚔️ ${ui(1, "Character")}`}</Link>
         {!isTeacher && <Link to="/my-grades" className={isActive("/my-grades")} data-translatable>📊 {ui(3, "My Grades")}</Link>}
@@ -41,7 +41,7 @@ export default function TopBar() {
         {isTeacher && <Link to="/analytics" className={isActive("/analytics")}>Analytics</Link>}
         {isTeacher && <Link to="/rosters" className={isActive("/rosters")}>Rosters</Link>}
         {isTeacher && <Link to="/messages" className={isActive("/messages")}>Messages</Link>}
-      </div>
+      </nav>
 
       <div className="top-bar-right">
         <LanguageSelector />
@@ -50,6 +50,6 @@ export default function TopBar() {
         <span className="user-name">{displayedName}</span>
         <button className="sign-out-btn" onClick={logOut} data-translatable>{isTeacher ? "Sign out" : ui(2, "Sign out")}</button>
       </div>
-    </div>
+    </header>
   );
 }

@@ -540,13 +540,35 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
   border-color: var(--purple); background: rgba(176,142,255,0.18); color: var(--purple);
 }
 
+/* ─── Accessibility: Skip-to-content ─── */
+.skip-to-content {
+  position: absolute; top: -100px; left: 16px; z-index: 9999;
+  padding: 12px 24px; background: var(--amber); color: var(--bg);
+  font-weight: 700; font-size: 16px; border-radius: 0 0 10px 10px;
+  text-decoration: none;
+}
+.skip-to-content:focus { top: 0; }
+
+/* ─── Accessibility: Screen-reader-only ─── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* ─── Accessibility: Focus Indicators ─── */
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
 /* ─── Accessibility: Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {
   .bg-atmosphere-video { display: none; }
-  .top-bar::after { animation: none !important; opacity: 0.5 !important; }
-  .notif-unread-dot, .announcement-banner.pinned { animation: none !important; }
-  .card, .btn, .top-nav-link, .activity-block, .definition-block,
-  .question-block, .external-link-block { transition-duration: 0.01ms !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Responsive: adjust on very small screens */

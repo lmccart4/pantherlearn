@@ -20,6 +20,9 @@ export default function LanguageSelector() {
     <div ref={ref} style={{ position: "relative" }}>
       <button
         onClick={() => setOpen(!open)}
+        aria-label="Language selector"
+        aria-expanded={open}
+        aria-haspopup="listbox"
         style={{
           display: "flex", alignItems: "center", gap: 6,
           padding: "6px 12px", borderRadius: 8,
@@ -39,7 +42,11 @@ export default function LanguageSelector() {
       </button>
 
       {open && (
-        <div style={{
+        <div role="listbox" aria-label="Select language"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") { setOpen(false); ref.current?.querySelector("button")?.focus(); }
+          }}
+          style={{
           position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 1000,
           minWidth: 220, maxHeight: 380, overflowY: "auto",
           background: "var(--surface)", border: "1px solid var(--border)",
@@ -54,13 +61,15 @@ export default function LanguageSelector() {
             }
           `}</style>
           {languages.map((lang) => (
-            <div
+            <button
               key={lang.code}
+              role="option"
+              aria-selected={lang.code === language}
               onClick={() => { setLanguage(lang.code); setOpen(false); }}
               style={{
-                display: "flex", alignItems: "center", gap: 10,
+                display: "flex", alignItems: "center", gap: 10, width: "100%",
                 padding: "9px 11px", borderRadius: 7, cursor: "pointer",
-                transition: "background 0.12s",
+                transition: "background 0.12s", border: "none", textAlign: "left",
                 background: lang.code === language ? "var(--amber-dim)" : "transparent",
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = lang.code === language ? "var(--amber-dim)" : "rgba(255,255,255,0.05)"}
@@ -72,9 +81,9 @@ export default function LanguageSelector() {
                 <span style={{ fontSize: 11, color: "var(--text3)" }}>{lang.name}</span>
               </div>
               {lang.code === language && (
-                <span style={{ color: "var(--amber)", fontSize: 14 }}>✓</span>
+                <span style={{ color: "var(--amber)", fontSize: 14 }} aria-hidden="true">✓</span>
               )}
-            </div>
+            </button>
           ))}
         </div>
       )}

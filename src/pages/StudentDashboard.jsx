@@ -210,7 +210,7 @@ export default function StudentDashboard() {
   const enrolledCourses = allCourses.filter((c) => enrolledIds?.has(c.id));
 
   return (
-    <div className="page-container" style={{ padding: "48px 40px" }}>
+    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
 
         {/* Announcements for enrolled courses */}
@@ -398,6 +398,6 @@ export default function StudentDashboard() {
           onClose={() => setShowJoinModal(false)}
         />
       )}
-    </div>
+    </main>
   );
 }

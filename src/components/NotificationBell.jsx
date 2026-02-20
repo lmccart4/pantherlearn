@@ -65,7 +65,9 @@ export default function NotificationBell() {
       <button
         className="notif-bell-btn"
         onClick={() => setOpen(!open)}
-        aria-label="Notifications"
+        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+        aria-expanded={open}
+        aria-haspopup="true"
       >
         🔔
         {unreadCount > 0 && (
@@ -74,7 +76,8 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="notif-dropdown">
+        <div className="notif-dropdown" role="menu" aria-label="Notifications"
+          onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
           <div className="notif-header">
             <span className="notif-header-title">Notifications</span>
             {unreadCount > 0 && (

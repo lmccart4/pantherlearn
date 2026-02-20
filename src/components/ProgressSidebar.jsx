@@ -73,7 +73,7 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
   const translatedLevelName = useTranslatedText(level?.current?.name);
 
   return (
-    <div className="progress-sidebar">
+    <aside className="progress-sidebar" aria-label="Lesson progress">
       <MultiplierBanner activeMultiplier={activeMultiplier} compact />
 
       {/* Level & XP */}
@@ -193,6 +193,6 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
           ))}
         </div>
       </div>
-    </div>
+    </aside>
   );
 }

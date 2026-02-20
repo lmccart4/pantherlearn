@@ -434,7 +434,7 @@ export default function RosterSync() {
   const courseName = courses.find((c) => c.id === selectedCourse)?.title || "";
 
   return (
-    <div className="page-container" style={{ padding: "48px 40px" }}>
+    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
           Roster
@@ -707,6 +707,6 @@ export default function RosterSync() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }
