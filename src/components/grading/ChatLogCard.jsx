@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { renderMarkdown } from "../../lib/utils";
 
-export default function ChatLogCard({ log, helpers }) {
+export default function ChatLogCard({ log, helpers, onSelectStudent }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { getStudentName, getStudentEmail, getStudentPhoto, getLessonTitle } = helpers;
 
@@ -41,7 +41,10 @@ export default function ChatLogCard({ log, helpers }) {
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-            <span style={{ fontWeight: 600, fontSize: 14 }}>{getStudentName(log.studentId)}</span>
+            <span
+              style={{ fontWeight: 600, fontSize: 14, cursor: onSelectStudent ? "pointer" : "default", color: "var(--text)" }}
+              onClick={(e) => { if (onSelectStudent) { e.stopPropagation(); onSelectStudent(log.studentId, log.lessonId); } }}
+            >{getStudentName(log.studentId)}</span>
             <span style={{ fontSize: 11, color: "var(--text3)", padding: "1px 8px", background: "var(--surface2)", borderRadius: 4 }}>
               {log.messageCount} {log.messageCount === 1 ? "message" : "messages"}
             </span>
