@@ -424,10 +424,20 @@ export default function StudentProgress() {
   const handleResetProgress = async (e, studentUid, lessonId, studentName) => {
     e.stopPropagation();
     const lessonTitle = lessons.find((l) => l.id === lessonId)?.title || lessonId;
-    if (!confirm(`Reset ${studentName}'s progress on "${lessonTitle}"?\n\nThis clears all their answers and completion status. XP already earned is not affected.`)) return;
+    if (!confirm(`Reset ${studentName}'s progress on "${lessonTitle}"?\n\nThis clears all their answers, completion status, and reflection. XP already earned is not affected.`)) return;
     try {
       const progressRef = doc(db, "progress", studentUid, "courses", selectedCourse, "lessons", lessonId);
       await deleteDoc(progressRef);
+
+      // Also clear reflection if one exists
+      try {
+        const reflRef = doc(db, "courses", selectedCourse, "reflections", `${studentUid}_${lessonId}`);
+        await deleteDoc(reflRef);
+      } catch (reflErr) {
+        // Reflection may not exist — that's fine
+        console.warn("Could not delete reflection:", reflErr);
+      }
+
       // Clear from local state
       setProgressData((prev) => {
         const updated = { ...prev };
@@ -435,6 +445,15 @@ export default function StudentProgress() {
           const studentData = { ...updated[studentUid] };
           delete studentData[lessonId];
           updated[studentUid] = studentData;
+        }
+        return updated;
+      });
+      setReflectionData((prev) => {
+        const updated = { ...prev };
+        if (updated[studentUid]) {
+          const studentReflections = { ...updated[studentUid] };
+          delete studentReflections[lessonId];
+          updated[studentUid] = studentReflections;
         }
         return updated;
       });
