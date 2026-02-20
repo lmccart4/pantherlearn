@@ -1,10 +1,12 @@
 // src/components/grading/CourseOverview.jsx
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ChatLogCard from "./ChatLogCard";
 import WrittenResponseCard from "./WrittenResponseCard";
 import SearchSortBar from "./SearchSortBar";
 
 export default function CourseOverview({ courseResponses, courseLogs, activeTab, setSelectedLesson, setSelectedStudent, helpers }) {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("recent");
   const { getStudentName, getStudentEmail, getLessonTitle } = helpers;
@@ -44,12 +46,24 @@ export default function CourseOverview({ courseResponses, courseLogs, activeTab,
         {[
           { label: "Written Responses", value: totalWritten, color: "var(--amber)", icon: "✏️" },
           { label: "Chat Conversations", value: totalConversations, color: "var(--cyan)", icon: "💬" },
-          { label: "Student Messages", value: totalMessages, color: "var(--green)", icon: "📨" },
+          { label: "Student Messages", value: totalMessages, color: "var(--green)", icon: "📨", link: "/messages" },
         ].map((stat) => (
-          <div key={stat.label} className="card" style={{ textAlign: "center", padding: "16px 12px" }}>
+          <div key={stat.label} className="card"
+            onClick={stat.link ? () => navigate(stat.link) : undefined}
+            style={{
+              textAlign: "center", padding: "16px 12px",
+              cursor: stat.link ? "pointer" : "default",
+              transition: "border-color 0.2s",
+            }}
+            onMouseEnter={stat.link ? (e) => { e.currentTarget.style.borderColor = stat.color; } : undefined}
+            onMouseLeave={stat.link ? (e) => { e.currentTarget.style.borderColor = "var(--border)"; } : undefined}
+          >
             <div style={{ fontSize: 18, marginBottom: 4 }}>{stat.icon}</div>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: stat.color }}>{stat.value}</div>
             <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>{stat.label}</div>
+            {stat.link && (
+              <div style={{ fontSize: 10, color: stat.color, marginTop: 4, fontWeight: 600 }}>View all →</div>
+            )}
           </div>
         ))}
       </div>
