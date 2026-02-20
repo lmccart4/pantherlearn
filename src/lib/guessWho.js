@@ -14,46 +14,46 @@ import { createNotification } from "./notifications";
 // ─── Default Characters (40 AI-generated faces) ───
 // Images are static assets at /games/guess-who/face-NN.jpg (200×200)
 export const DEFAULT_CHARACTERS = [
-  { id: "c00", name: "Marcus", imageUrl: "/games/guess-who/face-00.jpg" },
-  { id: "c01", name: "Elena", imageUrl: "/games/guess-who/face-01.jpg" },
-  { id: "c02", name: "Jun", imageUrl: "/games/guess-who/face-02.jpg" },
-  { id: "c03", name: "Kenji", imageUrl: "/games/guess-who/face-03.jpg" },
-  { id: "c04", name: "Amara", imageUrl: "/games/guess-who/face-04.jpg" },
-  { id: "c05", name: "Devon", imageUrl: "/games/guess-who/face-05.jpg" },
-  { id: "c06", name: "Linda", imageUrl: "/games/guess-who/face-06.jpg" },
-  { id: "c07", name: "Sofia", imageUrl: "/games/guess-who/face-07.jpg" },
-  { id: "c08", name: "Ruby", imageUrl: "/games/guess-who/face-08.jpg" },
-  { id: "c09", name: "Claire", imageUrl: "/games/guess-who/face-09.jpg" },
-  { id: "c10", name: "Maya", imageUrl: "/games/guess-who/face-10.jpg" },
-  { id: "c11", name: "Priya", imageUrl: "/games/guess-who/face-11.jpg" },
-  { id: "c12", name: "Victor", imageUrl: "/games/guess-who/face-12.jpg" },
-  { id: "c13", name: "Helen", imageUrl: "/games/guess-who/face-13.jpg" },
-  { id: "c14", name: "Aisha", imageUrl: "/games/guess-who/face-14.jpg" },
-  { id: "c15", name: "Layla", imageUrl: "/games/guess-who/face-15.jpg" },
-  { id: "c16", name: "Nadia", imageUrl: "/games/guess-who/face-16.jpg" },
-  { id: "c17", name: "Rosa", imageUrl: "/games/guess-who/face-17.jpg" },
-  { id: "c18", name: "Grace", imageUrl: "/games/guess-who/face-18.jpg" },
-  { id: "c19", name: "Darius", imageUrl: "/games/guess-who/face-19.jpg" },
-  { id: "c20", name: "Tyrell", imageUrl: "/games/guess-who/face-20.jpg" },
-  { id: "c21", name: "Ava", imageUrl: "/games/guess-who/face-21.jpg" },
-  { id: "c22", name: "Jordan", imageUrl: "/games/guess-who/face-22.jpg" },
-  { id: "c23", name: "Miguel", imageUrl: "/games/guess-who/face-23.jpg" },
-  { id: "c24", name: "Zara", imageUrl: "/games/guess-who/face-24.jpg" },
-  { id: "c25", name: "Oliver", imageUrl: "/games/guess-who/face-25.jpg" },
-  { id: "c26", name: "Jasmine", imageUrl: "/games/guess-who/face-26.jpg" },
-  { id: "c27", name: "Carlos", imageUrl: "/games/guess-who/face-27.jpg" },
-  { id: "c28", name: "Curly", imageUrl: "/games/guess-who/face-28.jpg" },
-  { id: "c29", name: "Sasha", imageUrl: "/games/guess-who/face-29.jpg" },
-  { id: "c30", name: "Bianca", imageUrl: "/games/guess-who/face-30.jpg" },
-  { id: "c31", name: "Nathan", imageUrl: "/games/guess-who/face-31.jpg" },
-  { id: "c32", name: "Tamara", imageUrl: "/games/guess-who/face-32.jpg" },
-  { id: "c33", name: "Derek", imageUrl: "/games/guess-who/face-33.jpg" },
-  { id: "c34", name: "Leah", imageUrl: "/games/guess-who/face-34.jpg" },
-  { id: "c35", name: "Ahmed", imageUrl: "/games/guess-who/face-35.jpg" },
-  { id: "c36", name: "Ryan", imageUrl: "/games/guess-who/face-36.jpg" },
-  { id: "c37", name: "Walter", imageUrl: "/games/guess-who/face-37.jpg" },
-  { id: "c38", name: "Mei", imageUrl: "/games/guess-who/face-38.jpg" },
-  { id: "c39", name: "Corinne", imageUrl: "/games/guess-who/face-39.jpg" },
+  { id: "c00", name: "Walter", imageUrl: "/games/guess-who/face-00.jpg" },   // older white man, white beard
+  { id: "c01", name: "Elena", imageUrl: "/games/guess-who/face-01.jpg" },    // young Black woman, long straight hair
+  { id: "c02", name: "Mei", imageUrl: "/games/guess-who/face-02.jpg" },      // middle-aged Asian woman, short dark hair
+  { id: "c03", name: "Liam", imageUrl: "/games/guess-who/face-03.jpg" },     // young white man, curly brown hair
+  { id: "c04", name: "Kenji", imageUrl: "/games/guess-who/face-04.jpg" },    // man with facial tattoos
+  { id: "c05", name: "Sofia", imageUrl: "/games/guess-who/face-05.jpg" },    // young Latina woman, wavy highlighted hair
+  { id: "c06", name: "Marcus", imageUrl: "/games/guess-who/face-06.jpg" },   // Black man, muscular
+  { id: "c07", name: "Oliver", imageUrl: "/games/guess-who/face-07.jpg" },   // white man, beard, smiling
+  { id: "c08", name: "Devon", imageUrl: "/games/guess-who/face-08.jpg" },    // young Black man, heavyset
+  { id: "c09", name: "Claire", imageUrl: "/games/guess-who/face-09.jpg" },   // young white woman, brown wavy hair
+  { id: "c10", name: "Maya", imageUrl: "/games/guess-who/face-10.jpg" },     // young white woman, chest tattoo
+  { id: "c11", name: "Jun", imageUrl: "/games/guess-who/face-11.jpg" },      // young Asian man, short black hair
+  { id: "c12", name: "Priya", imageUrl: "/games/guess-who/face-12.jpg" },    // South Asian woman, dark hair
+  { id: "c13", name: "Ruby", imageUrl: "/games/guess-who/face-13.jpg" },     // young white woman, red curly hair
+  { id: "c14", name: "Nadia", imageUrl: "/games/guess-who/face-14.jpg" },    // Asian/Pacific Islander woman
+  { id: "c15", name: "Gary", imageUrl: "/games/guess-who/face-15.jpg" },     // older white man, balding
+  { id: "c16", name: "Linda", imageUrl: "/games/guess-who/face-16.jpg" },    // older Asian woman, gray-streaked hair
+  { id: "c17", name: "Rosa", imageUrl: "/games/guess-who/face-17.jpg" },     // older Black woman, gray curly hair
+  { id: "c18", name: "Grace", imageUrl: "/games/guess-who/face-18.jpg" },    // young white woman, long brown hair
+  { id: "c19", name: "Darius", imageUrl: "/games/guess-who/face-19.jpg" },   // Black man with facial tattoos, beard
+  { id: "c20", name: "Brody", imageUrl: "/games/guess-who/face-20.jpg" },    // white man, curly hair, big beard
+  { id: "c21", name: "Ava", imageUrl: "/games/guess-who/face-21.jpg" },      // young Latina woman, blue top
+  { id: "c22", name: "Jordan", imageUrl: "/games/guess-who/face-22.jpg" },   // young white woman, dark curly hair
+  { id: "c23", name: "Andre", imageUrl: "/games/guess-who/face-23.jpg" },    // Black man, short beard
+  { id: "c24", name: "Helen", imageUrl: "/games/guess-who/face-24.jpg" },    // older Asian woman, short dark hair
+  { id: "c25", name: "Zara", imageUrl: "/games/guess-who/face-25.jpg" },     // young Black woman, very short hair
+  { id: "c26", name: "Jasmine", imageUrl: "/games/guess-who/face-26.jpg" },  // young Black woman, long wavy hair
+  { id: "c27", name: "Carlos", imageUrl: "/games/guess-who/face-27.jpg" },   // man with facial tattoos, short dark hair
+  { id: "c28", name: "Victor", imageUrl: "/games/guess-who/face-28.jpg" },   // older Black man with facial tattoos
+  { id: "c29", name: "Sasha", imageUrl: "/games/guess-who/face-29.jpg" },    // older Asian woman, gray short hair
+  { id: "c30", name: "Raj", imageUrl: "/games/guess-who/face-30.jpg" },      // South Asian man, dark hair
+  { id: "c31", name: "Nathan", imageUrl: "/games/guess-who/face-31.jpg" },   // young mixed-race man, henley
+  { id: "c32", name: "Tamara", imageUrl: "/games/guess-who/face-32.jpg" },   // Asian/Pacific Islander woman
+  { id: "c33", name: "Layla", imageUrl: "/games/guess-who/face-33.jpg" },    // young Latina/Middle Eastern woman
+  { id: "c34", name: "Leah", imageUrl: "/games/guess-who/face-34.jpg" },     // young South Asian/Latina woman
+  { id: "c35", name: "Bianca", imageUrl: "/games/guess-who/face-35.jpg" },   // young blonde woman with facial tattoos
+  { id: "c36", name: "Dorothy", imageUrl: "/games/guess-who/face-36.jpg" },  // older white woman, gray hair
+  { id: "c37", name: "Derek", imageUrl: "/games/guess-who/face-37.jpg" },    // man with long curly dark hair
+  { id: "c38", name: "Corinne", imageUrl: "/games/guess-who/face-38.jpg" },  // older Asian woman, white/gray hair
+  { id: "c39", name: "Marco", imageUrl: "/games/guess-who/face-39.jpg" },    // young white/Latino man, curly brown hair
 ];
 
 // ─── Helper: pick a random character ID ───
