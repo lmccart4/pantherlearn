@@ -150,6 +150,16 @@ export default function MessageCenter() {
     return "Direct Message";
   };
 
+  // Get all participant names for clear display (e.g., "Kenely → Mr. McCarthy")
+  const getChatParticipants = (chat) => {
+    const names = (chat.members || []).map((uid) => {
+      const name = chat.memberNames?.[uid] || studentMap[uid]?.displayName || uid.slice(0, 8);
+      const isTeacherMember = uid === user?.uid;
+      return { uid, name, isTeacher: isTeacherMember };
+    });
+    return names;
+  };
+
   const getChatIcon = (chat) => {
     if (chat.type === "dm") return "👤";
     if (chat.type === "team") return "⚔️";
@@ -393,6 +403,7 @@ export default function MessageCenter() {
                               messages={messages[chat.id] || null}
                               loadingMessages={loadingMessages === chat.id}
                               getChatDisplayName={getChatDisplayName}
+                              getChatParticipants={getChatParticipants}
                               getChatIcon={getChatIcon}
                               formatTime={formatTime}
                               formatMessageTime={formatMessageTime}
@@ -417,7 +428,7 @@ export default function MessageCenter() {
 // ─── Conversation Card ───
 function ConversationCard({
   chat, user, isExpanded, onToggle, messages, loadingMessages,
-  getChatDisplayName, getChatIcon, formatTime, formatMessageTime,
+  getChatDisplayName, getChatParticipants, getChatIcon, formatTime, formatMessageTime,
   getStudentPhoto, sectionMap,
 }) {
   const endRef = useRef(null);
@@ -429,13 +440,46 @@ function ConversationCard({
   }, [isExpanded, messages]);
 
   const memberCount = (chat.members || []).length;
-  const otherMembers = (chat.members || []).filter((uid) => uid !== user?.uid);
-  const displayName = getChatDisplayName(chat);
   const icon = getChatIcon(chat);
   const lastTime = chat.lastMessageAt ? formatTime(chat.lastMessageAt) : "";
+  const participants = getChatParticipants(chat);
 
-  // Get member list for group chats
-  const memberNames = otherMembers.map((uid) => chat.memberNames?.[uid] || uid.slice(0, 8)).join(", ");
+  // Build participant display for DMs: "Student Name ↔ Teacher Name"
+  // For groups: show group name with all members listed below
+  const renderParticipantNames = () => {
+    if (chat.type === "dm") {
+      const student = participants.find((p) => !p.isTeacher);
+      const teacher = participants.find((p) => p.isTeacher);
+      if (student && teacher) {
+        return (
+          <span>
+            <span style={{ fontWeight: 600, color: "var(--text)" }}>{student.name}</span>
+            <span style={{ color: "var(--text3)", margin: "0 6px", fontSize: 12 }}>↔</span>
+            <span style={{ fontWeight: 600, color: "var(--amber)" }}>{teacher.name}</span>
+          </span>
+        );
+      }
+      // DM between two students (no teacher)
+      return (
+        <span>
+          {participants.map((p, i) => (
+            <span key={p.uid}>
+              {i > 0 && <span style={{ color: "var(--text3)", margin: "0 6px", fontSize: 12 }}>↔</span>}
+              <span style={{ fontWeight: 600, color: "var(--text)" }}>{p.name}</span>
+            </span>
+          ))}
+        </span>
+      );
+    }
+    // Group / team chat
+    return <span style={{ fontWeight: 600, color: "var(--text)" }}>{getChatDisplayName(chat)}</span>;
+  };
+
+  // All member names for group chats
+  const allMemberNames = participants.map((p) => {
+    const label = p.isTeacher ? `${p.name} (Teacher)` : p.name;
+    return label;
+  }).join(", ");
 
   return (
     <div style={{ borderBottom: "1px solid var(--border)" }}>
@@ -454,8 +498,8 @@ function ConversationCard({
 
         {/* Main info */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-            <span style={{ fontWeight: 600, fontSize: 14, color: "var(--text)" }}>{displayName}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2, fontSize: 14 }}>
+            {renderParticipantNames()}
             {chat.type !== "dm" && (
               <span style={{
                 fontSize: 11, color: "var(--text3)", padding: "1px 8px",
@@ -470,7 +514,7 @@ function ConversationCard({
               fontSize: 11, color: "var(--text3)", marginBottom: 4,
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
             }}>
-              {memberNames}
+              {allMemberNames}
             </div>
           )}
           {!isExpanded && chat.lastMessage && (
@@ -504,6 +548,8 @@ function ConversationCard({
           }}>
             <span>
               {chat.type === "dm" ? "Direct message" : `${memberCount} members`}
+              {" · "}
+              {allMemberNames}
               {chat.createdAt && ` · Started ${formatTime(chat.createdAt)}`}
             </span>
             <span>
