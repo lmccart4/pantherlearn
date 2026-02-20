@@ -253,16 +253,6 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
   },
-  saveBtn: {
-    padding: "8px 20px",
-    borderRadius: 8,
-    border: "none",
-    background: "linear-gradient(135deg, var(--cyan, #06b6d4), var(--blue, #3b82f6))",
-    color: "white",
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
   savedTag: {
     fontSize: 11,
     color: "var(--green, #10b981)",
@@ -316,7 +306,7 @@ export default function DataTableBlock({ block, lessonId, courseId }) {
     }, { merge: true });
   }, [user, lessonId, courseId, block, data, sections]);
 
-  const { markDirty, saveNow, lastSaved, saving } = useAutoSave(performSave);
+  const { markDirty, saveNow, lastSaved } = useAutoSave(performSave);
 
   // Load saved data
   useEffect(() => {
@@ -428,20 +418,14 @@ export default function DataTableBlock({ block, lessonId, courseId }) {
         </table>
       </div>
 
-      {/* Footer with save status */}
-      <div style={styles.footer}>
-        <button onClick={saveNow} style={styles.saveBtn}
-          disabled={saving}
-          onMouseOver={(e) => e.target.style.opacity = "0.9"}
-          onMouseOut={(e) => e.target.style.opacity = "1"}>
-          {saving ? "Saving..." : "Save Data"}
-        </button>
-        {lastSaved && (
+      {/* Footer with auto-save status */}
+      {lastSaved && (
+        <div style={styles.footer}>
           <span style={styles.savedTag}>
             ✓ Auto-saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
