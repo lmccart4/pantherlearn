@@ -2,105 +2,18 @@
 // Generates "canonical" AI responses for short-answer questions at lesson-creation time.
 // These baselines are stored on the block and used during grading to detect copy-paste from AI.
 //
-// Uses the same sendChatMessage API that chatbot blocks use (routed through your backend),
-// plus optional direct calls to other providers if API keys are configured.
+// All AI generation is done server-side via the generateBaselines Cloud Function.
+// API keys are NEVER exposed to the frontend.
 
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 // ═══════════════════════════════════════════
-// PROVIDER CONFIGS
+// CLOUD FUNCTION URL
 // ═══════════════════════════════════════════
 
-// Each provider generates a response to the same prompt so we can compare
-// student answers against multiple AI "voices"
-const BASELINE_SYSTEM_PROMPT = `You are a student completing a classroom assignment. Answer the question directly and thoroughly. Write naturally as if you are a knowledgeable student — do not include disclaimers, caveats, or mention that you are an AI. Just answer the question.`;
-
-/**
- * Generate a baseline AI response using the app's existing chat API.
- * This goes through your Firebase backend / Cloud Function.
- */
-async function generateViaAppAPI(prompt, getToken) {
-  try {
-    // Dynamic import to avoid circular deps
-    const { sendChatMessage } = await import("./api");
-    const authToken = await getToken();
-    const response = await sendChatMessage({
-      authToken,
-      courseId: "__baseline__",
-      lessonId: "__baseline__",
-      blockId: "__baseline__",
-      systemPrompt: BASELINE_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: prompt }],
-    });
-    return { provider: "gemini", text: response };
-  } catch (err) {
-    console.warn("Baseline generation via app API failed:", err.message);
-    return null;
-  }
-}
-
-/**
- * Generate a baseline via OpenAI-compatible endpoint.
- * Uses VITE_OPENAI_API_KEY env var if available.
- */
-async function generateViaOpenAI(prompt) {
-  const apiKey = import.meta.env?.VITE_OPENAI_API_KEY;
-  if (!apiKey) return null;
-
-  try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: BASELINE_SYSTEM_PROMPT },
-          { role: "user", content: prompt },
-        ],
-        max_tokens: 1000,
-        temperature: 0.7,
-      }),
-    });
-    const data = await res.json();
-    return { provider: "openai", text: data.choices?.[0]?.message?.content || "" };
-  } catch (err) {
-    console.warn("OpenAI baseline failed:", err.message);
-    return null;
-  }
-}
-
-/**
- * Generate a baseline via Anthropic.
- * Uses VITE_ANTHROPIC_API_KEY env var if available.
- */
-async function generateViaAnthropic(prompt) {
-  const apiKey = import.meta.env?.VITE_ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
-
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system: BASELINE_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    const data = await res.json();
-    return { provider: "anthropic", text: data.content?.[0]?.text || "" };
-  } catch (err) {
-    console.warn("Anthropic baseline failed:", err.message);
-    return null;
-  }
-}
+const BASELINES_URL =
+  import.meta.env.VITE_BASELINES_URL || "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/generateBaselines";
 
 // ═══════════════════════════════════════════
 // MAIN GENERATION FUNCTION
@@ -108,28 +21,38 @@ async function generateViaAnthropic(prompt) {
 
 /**
  * Generate AI baselines for a short-answer question.
- * Tries multiple providers and returns all successful responses.
+ * Calls the generateBaselines Cloud Function which handles all provider API keys server-side.
  *
  * @param {string} prompt - The question prompt
- * @param {function} getToken - Auth token getter (for app API)
+ * @param {function} getToken - Auth token getter (for Cloud Function auth)
  * @returns {Array<{provider: string, text: string, generatedAt: string}>}
  */
 export async function generateBaselines(prompt, getToken) {
   if (!prompt || prompt.trim().length < 10) return [];
 
-  // Run all providers in parallel — each one that fails returns null
-  const results = await Promise.all([
-    generateViaAppAPI(prompt, getToken),
-    generateViaOpenAI(prompt),
-    generateViaAnthropic(prompt),
-  ]);
+  try {
+    const authToken = await getToken();
+    const response = await fetch(BASELINES_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ prompt }),
+    });
 
-  return results
-    .filter((r) => r && r.text && r.text.length > 20)
-    .map((r) => ({
-      ...r,
-      generatedAt: new Date().toISOString(),
-    }));
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.warn("Baseline generation failed:", data.error);
+      return [];
+    }
+
+    return (data.baselines || []).filter((r) => r && r.text && r.text.length > 20);
+  } catch (err) {
+    console.warn("Baseline generation failed:", err.message);
+    return [];
+  }
 }
 
 /**
@@ -184,6 +107,8 @@ export async function generateLessonBaselines(courseId, lessonId, blocks, getTok
 // ═══════════════════════════════════════════
 // SIMILARITY COMPARISON (used at grading time)
 // ═══════════════════════════════════════════
+// Note: These are pure math functions — no API keys needed.
+// They run entirely in the browser during grading.
 
 /**
  * Build a word frequency vector (bag of words) from text.
