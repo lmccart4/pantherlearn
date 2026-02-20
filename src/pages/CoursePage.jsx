@@ -105,7 +105,7 @@ export default function CoursePage() {
   if (!course) return <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}><h2 data-translatable>{ui(0, "Course not found")}</h2></div>;
 
   return (
-    <div className="page-container" style={{ padding: "48px 40px" }}>
+    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <Link to="/" style={{ fontSize: 13, color: "var(--text3)", marginBottom: 16, display: "block" }} data-translatable>{ui(1, "← Back to Dashboard")}</Link>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
@@ -274,6 +274,6 @@ export default function CoursePage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

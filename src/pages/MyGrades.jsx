@@ -224,7 +224,7 @@ export default function MyGrades() {
   }
 
   return (
-    <div className="page-container" style={{ padding: "48px 40px" }}>
+    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
       <div style={{ maxWidth: 800, margin: "0 auto" }}>
 
         {/* Header */}
@@ -441,6 +441,6 @@ export default function MyGrades() {
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 }

@@ -296,7 +296,7 @@ export default function BossBattle() {
     }, 0) + customQuestions.length;
 
     return (
-      <div className="page-container" style={{ padding: "48px 40px" }}>
+      <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
             <button onClick={() => navigate(`/course/${courseId}`)} style={btnS}>← Back</button>
@@ -897,7 +897,7 @@ export default function BossBattle() {
           ? <button onClick={() => setPhase("setup")} style={btnP("#8b5cf6")}>⚔️ Set Up Battle</button>
           : <button onClick={() => navigate(`/course/${courseId}`)} style={{ ...btnS, color: "rgba(255,255,255,0.6)", borderColor: "rgba(255,255,255,0.2)" }} data-translatable>← {ui(33, "Back to Course")}</button>
         }
-      </div>
+      </main>
       <style>{BATTLE_CSS}</style>
     </div>
   );

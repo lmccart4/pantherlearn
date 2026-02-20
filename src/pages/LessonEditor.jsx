@@ -916,7 +916,7 @@ export default function LessonEditor() {
   }
 
   return (
-    <div className="page-container" style={{ display: "flex", height: "calc(100vh - 62px)" }}>
+    <main id="main-content" className="page-container" style={{ display: "flex", height: "calc(100vh - 62px)" }}>
       {/* Left sidebar: course/lesson picker */}
       <div style={{
         width: 260, borderRight: "1px solid var(--border)", padding: 20,
@@ -1345,6 +1345,6 @@ export default function LessonEditor() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }

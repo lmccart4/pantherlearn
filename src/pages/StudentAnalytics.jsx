@@ -341,7 +341,7 @@ export default function StudentAnalytics() {
   ];
 
   return (
-    <div className="page-container" style={{ padding: "48px 40px" }}>
+    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
@@ -989,7 +989,7 @@ function EngagementScoresTab({ analytics, telemetryData }) {
           </table>
         </div>
       )}
-    </div>
+    </main>
   );
 }
 

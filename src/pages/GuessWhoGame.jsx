@@ -163,7 +163,7 @@ export default function GuessWhoGame() {
   };
 
   return (
-    <div className="page-container" style={{ paddingTop: 80, maxWidth: 1200, margin: "0 auto" }}>
+    <main id="main-content" className="page-container" style={{ paddingTop: 80, maxWidth: 1200, margin: "0 auto" }}>
       {/* Top Bar */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -614,7 +614,7 @@ function SecretReveal({ label, character, isWinner }) {
       <div style={{ fontSize: 11, color: isWinner ? "var(--green)" : "var(--text3)" }}>
         {label} {isWinner ? "🏆" : ""}
       </div>
-    </div>
+    </main>
   );
 }
 
