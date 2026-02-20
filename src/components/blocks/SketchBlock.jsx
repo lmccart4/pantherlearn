@@ -13,6 +13,7 @@ const COLORS = [
 ];
 
 const DRAW_TOOLS = [
+  { id: "move", label: "Move", icon: "✋" },
   { id: "pen", label: "Pen", icon: "✏️" },
   { id: "marker", label: "Marker", icon: "🖍️" },
   { id: "eraser", label: "Eraser", icon: "◻️" },
@@ -149,6 +150,83 @@ function redrawCanvas(ctx, strokeList, width, height) {
 }
 
 // ──────────────────────────────────────────────
+// Hit-testing for move tool
+// ──────────────────────────────────────────────
+
+function distToSegment(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+  let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+function hitTestStroke(stroke, px, py, threshold = 12) {
+  if (!stroke.points || stroke.points.length === 0) return false;
+  const t = stroke.tool;
+
+  if (t === "text") {
+    const p = stroke.points[0];
+    const fontSize = stroke.size ? Math.max(14, stroke.size * 3) : 18;
+    const w = stroke.textWidth || 200;
+    const h = fontSize * 2;
+    return px >= p.x - 4 && px <= p.x + w + 4 && py >= p.y - 4 && py <= p.y + h + 4;
+  }
+
+  if (t === "shape") {
+    const p0 = stroke.points[0];
+    const p1 = stroke.points[stroke.points.length - 1];
+    const shape = stroke.shape || "rectangle";
+    if (shape === "rectangle") {
+      const minX = Math.min(p0.x, p1.x), maxX = Math.max(p0.x, p1.x);
+      const minY = Math.min(p0.y, p1.y), maxY = Math.max(p0.y, p1.y);
+      // Hit if near any edge
+      const nearLeft = Math.abs(px - minX) < threshold && py >= minY - threshold && py <= maxY + threshold;
+      const nearRight = Math.abs(px - maxX) < threshold && py >= minY - threshold && py <= maxY + threshold;
+      const nearTop = Math.abs(py - minY) < threshold && px >= minX - threshold && px <= maxX + threshold;
+      const nearBottom = Math.abs(py - maxY) < threshold && px >= minX - threshold && px <= maxX + threshold;
+      // Also hit if inside the rectangle
+      const inside = px >= minX && px <= maxX && py >= minY && py <= maxY;
+      return nearLeft || nearRight || nearTop || nearBottom || inside;
+    }
+    if (shape === "ellipse") {
+      const cx = (p0.x + p1.x) / 2, cy = (p0.y + p1.y) / 2;
+      const rx = Math.abs(p1.x - p0.x) / 2, ry = Math.abs(p1.y - p0.y) / 2;
+      if (rx < 1 || ry < 1) return false;
+      const norm = ((px - cx) / (rx + threshold)) ** 2 + ((py - cy) / (ry + threshold)) ** 2;
+      return norm <= 1;
+    }
+    if (shape === "arrow") {
+      return distToSegment(px, py, p0.x, p0.y, p1.x, p1.y) < threshold;
+    }
+  }
+
+  if (t === "line" || stroke.isLine) {
+    if (stroke.points.length >= 2) {
+      const p0 = stroke.points[0], p1 = stroke.points[stroke.points.length - 1];
+      return distToSegment(px, py, p0.x, p0.y, p1.x, p1.y) < threshold;
+    }
+  }
+
+  // Freehand: check distance to any segment
+  for (let i = 1; i < stroke.points.length; i++) {
+    const a = stroke.points[i - 1], b = stroke.points[i];
+    if (distToSegment(px, py, a.x, a.y, b.x, b.y) < threshold) return true;
+  }
+  return false;
+}
+
+function findTopmostStroke(strokes, px, py) {
+  // Search from top (last drawn) to bottom
+  for (let i = strokes.length - 1; i >= 0; i--) {
+    if (strokes[i].tool === "eraser") continue;
+    if (hitTestStroke(strokes[i], px, py)) return i;
+  }
+  return -1;
+}
+
+// ──────────────────────────────────────────────
 // Component
 // ──────────────────────────────────────────────
 
@@ -172,6 +250,8 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
   const [textInput, setTextInput] = useState(null);
   const [textValue, setTextValue] = useState("");
   const textRef = useRef(null);
+  const moveRef = useRef(null); // { strokeIdx, lastPoint }
+  const [selectedIdx, setSelectedIdx] = useState(-1);
 
   useEffect(() => { strokesRef.current = strokes; }, [strokes]);
 
@@ -227,9 +307,9 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
   }, [getDims]);
 
   function getCanvasPoint(e) {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
+    const container = containerRef.current;
+    if (!container) return { x: 0, y: 0 };
+    const rect = container.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }
 
@@ -261,6 +341,39 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
 
   useEffect(() => { if (textInput && textRef.current) textRef.current.focus(); }, [textInput]);
 
+  // ── Move helpers ──
+  const drawSelectionHighlight = useCallback((ctx, stroke) => {
+    if (!stroke || !stroke.points || stroke.points.length === 0) return;
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = "#3b82f6";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    // Compute bounding box of the stroke
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const p of stroke.points) {
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    }
+    if (stroke.tool === "text") {
+      const fontSize = stroke.size ? Math.max(14, stroke.size * 3) : 18;
+      maxX = Math.max(maxX, minX + (stroke.textWidth || 200));
+      maxY = Math.max(maxY, minY + fontSize * 2);
+    }
+    const pad = 6;
+    ctx.strokeRect(minX - pad, minY - pad, (maxX - minX) + pad * 2, (maxY - minY) + pad * 2);
+    ctx.setLineDash([]);
+    ctx.restore();
+  }, []);
+
+  const offsetStrokePoints = (stroke, dx, dy) => ({
+    ...stroke,
+    points: stroke.points.map((p) => ({ x: p.x + dx, y: p.y + dy })),
+  });
+
   // ── Pointer handlers ──
   const handlePointerDown = useCallback((e) => {
     if (tool === "text") {
@@ -277,6 +390,24 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
     canvas.setPointerCapture(e.pointerId);
 
     const point = getCanvasPoint(e);
+
+    // Move tool: find and start dragging a stroke
+    if (tool === "move") {
+      const idx = findTopmostStroke(strokesRef.current, point.x, point.y);
+      if (idx >= 0) {
+        moveRef.current = { strokeIdx: idx, lastPoint: point };
+        setSelectedIdx(idx);
+        // Draw selection highlight
+        doRedraw(strokesRef.current);
+        drawSelectionHighlight(ctxRef.current, strokesRef.current[idx]);
+      } else {
+        setSelectedIdx(-1);
+        moveRef.current = null;
+      }
+      return;
+    }
+
+    setSelectedIdx(-1);
     const isShift = shiftRef.current;
     const opacity = tool === "marker" ? 0.4 : 1;
     const size = tool === "eraser" ? Math.max(brushSize * 3, 15)
@@ -292,9 +423,29 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
       shape: tool === "shape" ? activeShape : undefined,
       startPoint: point,
     };
-  }, [tool, color, brushSize, activeShape, textInput, commitText]);
+  }, [tool, color, brushSize, activeShape, textInput, commitText, doRedraw, drawSelectionHighlight]);
 
   const handlePointerMove = useCallback((e) => {
+    // Move tool dragging
+    if (moveRef.current && tool === "move") {
+      e.preventDefault();
+      const point = getCanvasPoint(e);
+      const { strokeIdx, lastPoint } = moveRef.current;
+      const dx = point.x - lastPoint.x;
+      const dy = point.y - lastPoint.y;
+      if (dx === 0 && dy === 0) return;
+
+      const updated = [...strokesRef.current];
+      updated[strokeIdx] = offsetStrokePoints(updated[strokeIdx], dx, dy);
+      strokesRef.current = updated;
+      setStrokes(updated);
+      moveRef.current.lastPoint = point;
+
+      doRedraw(updated);
+      drawSelectionHighlight(ctxRef.current, updated[strokeIdx]);
+      return;
+    }
+
     const d = drawingRef.current;
     if (!d || !ctxRef.current) return;
     e.preventDefault();
@@ -326,9 +477,23 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
     ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
     ctx.stroke();
     ctx.restore();
-  }, [doRedraw]);
+  }, [tool, doRedraw, drawSelectionHighlight]);
 
   const handlePointerUp = useCallback((e) => {
+    // Move tool: finish dragging
+    if (moveRef.current && tool === "move") {
+      e.preventDefault();
+      const canvas = canvasRef.current;
+      if (canvas) { try { canvas.releasePointerCapture(e.pointerId); } catch (_) {} }
+      moveRef.current = null;
+      markDirty();
+      doRedraw(strokesRef.current);
+      if (selectedIdx >= 0 && strokesRef.current[selectedIdx]) {
+        drawSelectionHighlight(ctxRef.current, strokesRef.current[selectedIdx]);
+      }
+      return;
+    }
+
     const d = drawingRef.current;
     if (!d) return;
     e.preventDefault();
@@ -356,7 +521,7 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
     if (d.tool === "line" || d.tool === "shape" || d.isLine) {
       doRedraw(strokesRef.current);
     }
-  }, [commitStroke, doRedraw]);
+  }, [tool, selectedIdx, commitStroke, doRedraw, markDirty, drawSelectionHighlight]);
 
   // ── Undo / Redo / Clear ──
   const handleUndo = useCallback(() => {
@@ -394,6 +559,7 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
   }, [markDirty, doRedraw]);
 
   const getCursor = () => {
+    if (tool === "move") return moveRef.current ? "grabbing" : "grab";
     if (tool === "eraser") return "cell";
     if (tool === "text") return "text";
     return "crosshair";
@@ -425,6 +591,7 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
                   onClick={() => {
                     if (textInput) commitText();
                     setTool(t.id);
+                    if (t.id !== "move") { setSelectedIdx(-1); doRedraw(strokesRef.current); }
                     if (t.id === "shape") setShowShapePicker((v) => !v);
                     else setShowShapePicker(false);
                   }}
@@ -515,7 +682,11 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
           style={{ touchAction: "none", cursor: getCursor() }}
         />
         {textInput && (
-          <div style={{ position: "absolute", left: textInput.x, top: textInput.y, zIndex: 10 }}>
+          <div
+            style={{ position: "absolute", left: textInput.x, top: textInput.y, zIndex: 20 }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <textarea ref={textRef} value={textValue}
               onChange={(e) => setTextValue(e.target.value)}
               onKeyDown={(e) => {
@@ -525,11 +696,13 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
               onBlur={commitText}
               placeholder="Type here..."
               style={{
-                minWidth: 120, minHeight: 32, padding: "4px 6px",
+                minWidth: 150, minHeight: 36, padding: "6px 8px",
                 fontSize: Math.max(14, brushSize * 3) + "px",
-                fontFamily: "inherit", color, background: "rgba(255,255,255,0.9)",
+                fontFamily: "inherit", color: color === "#ffffff" ? "#000000" : color,
+                background: "rgba(255,255,255,0.95)",
                 border: "2px solid var(--amber)", borderRadius: 6,
                 outline: "none", resize: "both", lineHeight: 1.3,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
               }}
             />
           </div>
@@ -537,7 +710,8 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
       </div>
 
       <div className="sketch-hint">
-        {tool === "pen" || tool === "marker" ? "Hold Shift for straight line"
+        {tool === "move" ? "Click a stroke to select, then drag to move it"
+          : tool === "pen" || tool === "marker" ? "Hold Shift for straight line"
           : tool === "text" ? "Click to place text • Enter to confirm • Esc to cancel"
           : tool === "line" ? "Click and drag to draw a line"
           : tool === "shape" ? `Click and drag to draw ${activeShape}`
