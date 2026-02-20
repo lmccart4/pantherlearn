@@ -408,7 +408,7 @@ export function subscribeToGame(courseId, gameId, callback) {
 }
 
 // ─── Get games for a specific block (for challenge board) ───
-export function subscribeToBlockGames(courseId, blockId, callback) {
+export function subscribeToBlockGames(courseId, blockId, callback, onError) {
   const q = query(
     collection(db, "courses", courseId, "guessWhoGames"),
     where("blockId", "==", blockId),
@@ -418,5 +418,8 @@ export function subscribeToBlockGames(courseId, blockId, callback) {
   return onSnapshot(q, (snap) => {
     const games = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     callback(games);
+  }, (error) => {
+    console.error("Guess Who games listener error:", error);
+    if (onError) onError(error);
   });
 }
