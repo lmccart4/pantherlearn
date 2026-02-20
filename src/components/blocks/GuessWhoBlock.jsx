@@ -22,6 +22,7 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
   const [classmates, setClassmates] = useState([]);
   const [showDirectPicker, setShowDirectPicker] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState(null);
 
   const isTeacher = userRole === "teacher";
 
@@ -33,7 +34,17 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
   // Subscribe to games for this block
   useEffect(() => {
     if (!courseId || !block.id) return;
-    const unsub = subscribeToBlockGames(courseId, block.id, setGames);
+    const unsub = subscribeToBlockGames(courseId, block.id, (data) => {
+      setGames(data);
+      setError(null);
+    }, (err) => {
+      console.error("Games subscription error:", err);
+      if (err.message?.includes("index")) {
+        setError("Firestore index needed — check browser console for a link to create it.");
+      } else {
+        setError(err.message || "Failed to load games");
+      }
+    });
     return () => unsub();
   }, [courseId, block.id]);
 
@@ -97,8 +108,9 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
   const handleCreateOpen = async () => {
     if (creating || !user) return;
     setCreating(true);
+    setError(null);
     try {
-      const gameId = await createChallenge({
+      await createChallenge({
         courseId, blockId: block.id, lessonId,
         challengerUid: user.uid, challengerName: user.displayName || "Anonymous",
         characters,
@@ -106,9 +118,9 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
         xpForWin: block.xpForWin || 50,
         xpForPlay: block.xpForPlay || 10,
       });
-      console.log("Created open challenge:", gameId);
     } catch (e) {
       console.error("Failed to create challenge:", e);
+      setError(e.message || "Failed to create challenge. Check console for details.");
     }
     setCreating(false);
   };
@@ -117,6 +129,7 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
     if (creating || !user) return;
     setCreating(true);
     setShowDirectPicker(false);
+    setError(null);
     try {
       await createChallenge({
         courseId, blockId: block.id, lessonId,
@@ -130,6 +143,7 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
       });
     } catch (e) {
       console.error("Failed to create direct challenge:", e);
+      setError(e.message || "Failed to create challenge. Check console for details.");
     }
     setCreating(false);
   };
@@ -240,6 +254,17 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
           )}
         </div>
       </div>
+
+      {/* Error display */}
+      {error && (
+        <div style={{
+          marginBottom: 12, padding: "8px 12px", borderRadius: 8,
+          background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+          color: "var(--red)", fontSize: 12,
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {/* Direct Challenges to Me */}
       {directToMe.length > 0 && (
