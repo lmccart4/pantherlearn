@@ -45,6 +45,7 @@ export default function StudentAnalytics() {
   const [students, setStudents] = useState([]);
   const [progressData, setProgressData] = useState({});
   const [gamData, setGamData] = useState({});
+  const [telemetryData, setTelemetryData] = useState({});
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [tab, setTab] = useState("engagement");
@@ -142,6 +143,43 @@ export default function StudentAnalytics() {
         );
         await Promise.all(gamPromises);
         setGamData(gam);
+
+        // Telemetry summaries (engagement scores from daily buckets)
+        const telem = {};
+        const telemPromises = enrolledStudents.filter((s) => s.hasLoggedIn).map((s) =>
+          getDoc(doc(db, "telemetry", s.uid, "courses", selectedCourse, "summary", "latest"))
+            .then((telemDoc) => { telem[s.uid] = telemDoc.exists() ? telemDoc.data() : null; })
+            .catch(() => { telem[s.uid] = null; })
+        );
+        await Promise.all(telemPromises);
+
+        // Also fetch the past 14 days of daily buckets for sparklines
+        const today = new Date();
+        const dayKeys = [];
+        for (let i = 0; i < 14; i++) {
+          const d = new Date(today);
+          d.setDate(d.getDate() - i);
+          dayKeys.push(
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+          );
+        }
+        const dailyBuckets = {};
+        const dailyPromises = [];
+        for (const s of enrolledStudents.filter((s) => s.hasLoggedIn)) {
+          dailyBuckets[s.uid] = {};
+          for (const dayKey of dayKeys) {
+            dailyPromises.push(
+              getDoc(doc(db, "telemetry", s.uid, "courses", selectedCourse, "days", dayKey))
+                .then((dayDoc) => {
+                  if (dayDoc.exists()) dailyBuckets[s.uid][dayKey] = dayDoc.data();
+                })
+                .catch(() => {})
+            );
+          }
+        }
+        await Promise.all(dailyPromises);
+
+        setTelemetryData({ summaries: telem, daily: dailyBuckets, dayKeys });
 
       } catch (err) {
         console.error("Analytics data error:", err);
@@ -295,6 +333,7 @@ export default function StudentAnalytics() {
 
   const TABS = [
     { id: "engagement", label: "Engagement", icon: "⏱️" },
+    { id: "scores", label: "Engagement Scores", icon: "🧠" },
     { id: "completion", label: "Completion", icon: "✅" },
     { id: "difficulty", label: "Question Difficulty", icon: "🎯" },
     { id: "at-risk", label: "At-Risk Students", icon: "⚠️" },
@@ -346,6 +385,7 @@ export default function StudentAnalytics() {
         ) : (
           <>
             {tab === "engagement" && <EngagementTab analytics={analytics} progressData={progressData} />}
+            {tab === "scores" && <EngagementScoresTab analytics={analytics} telemetryData={telemetryData} />}
             {tab === "completion" && <CompletionTab analytics={analytics} progressData={progressData} />}
             {tab === "difficulty" && <DifficultyTab analytics={analytics} />}
             {tab === "at-risk" && <AtRiskTab analytics={analytics} />}
@@ -740,6 +780,215 @@ function DistributionTab({ analytics }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// TAB: Engagement Scores (Telemetry Buckets)
+// ═══════════════════════════════════════════════
+
+function EngagementScoresTab({ analytics, telemetryData }) {
+  const { activeStudents } = analytics;
+  const summaries = telemetryData?.summaries || {};
+  const daily = telemetryData?.daily || {};
+  const dayKeys = telemetryData?.dayKeys || [];
+
+  // Students with scores, sorted by ES descending
+  const scored = activeStudents.map((s) => {
+    const summary = summaries[s.uid];
+    return {
+      ...s,
+      es: summary?.weeklyES ?? null,
+      risk: summary?.riskLevel || null,
+      daysActive: summary?.daysActive || 0,
+      totalActive: summary?.totalActiveTime || 0,
+      totalQuestions: summary?.totalQuestions || 0,
+      accuracy: summary?.accuracy ?? null,
+      chatUsed: summary?.chatEngagement || false,
+      components: summary?.components || null,
+    };
+  }).sort((a, b) => (b.es ?? -1) - (a.es ?? -1));
+
+  const hasData = scored.some((s) => s.es !== null);
+
+  // Class-level stats
+  const esValues = scored.filter((s) => s.es !== null).map((s) => s.es);
+  const meanES = esValues.length > 0 ? Math.round(esValues.reduce((a, b) => a + b, 0) / esValues.length) : null;
+  const atRiskCount = scored.filter((s) => s.risk === "low").length;
+  const highCount = scored.filter((s) => s.risk === "high").length;
+
+  const riskBadge = (risk) => {
+    if (!risk) return null;
+    const colors = {
+      high: { bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.3)", text: "var(--green)" },
+      medium: { bg: "rgba(245,166,35,0.1)", border: "rgba(245,166,35,0.3)", text: "var(--amber)" },
+      low: { bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.3)", text: "var(--red)" },
+    };
+    const c = colors[risk] || colors.medium;
+    const label = risk === "high" ? "On Track" : risk === "medium" ? "Monitor" : "At Risk";
+    return (
+      <span style={{
+        fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 6,
+        background: c.bg, color: c.text, border: `1px solid ${c.border}`,
+        textTransform: "uppercase", letterSpacing: "0.05em",
+      }}>
+        {label}
+      </span>
+    );
+  };
+
+  // Sparkline: 14-day daily ES or activeTime bars
+  const Sparkline = ({ uid }) => {
+    const studentDaily = daily[uid] || {};
+    const reversed = [...dayKeys].reverse(); // oldest to newest
+
+    return (
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 1, height: 24 }}>
+        {reversed.map((dayKey) => {
+          const bucket = studentDaily[dayKey];
+          const activeTime = bucket?.activeTime || 0;
+          const maxTime = 1800; // normalize against 30 min
+          const height = Math.min((activeTime / maxTime) * 24, 24);
+          const esForDay = bucket?.engagementScore;
+          const color = esForDay != null
+            ? (esForDay >= 70 ? "var(--green)" : esForDay >= 40 ? "var(--amber)" : "var(--red)")
+            : (activeTime > 0 ? "var(--cyan)" : "var(--surface2)");
+          return (
+            <div
+              key={dayKey}
+              title={`${dayKey}: ${formatEngagementTime(activeTime)}${esForDay != null ? ` (ES: ${esForDay})` : ""}`}
+              style={{
+                width: 6,
+                height: Math.max(height, activeTime > 0 ? 2 : 1),
+                background: color,
+                borderRadius: 1,
+                opacity: 0.8,
+              }}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <p style={{ color: "var(--text2)", fontSize: 13, marginBottom: 16 }}>
+        Composite engagement scores computed from active time, question activity, accuracy, AI tutor usage, and consistency.
+        Scores update daily at 2 AM.
+      </p>
+
+      {/* Class summary cards */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
+        <div className="card" style={{ flex: 1, minWidth: 120, padding: "14px 18px", textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+            Class Avg ES
+          </div>
+          <div style={{
+            fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700,
+            color: meanES != null ? (meanES >= 70 ? "var(--green)" : meanES >= 40 ? "var(--amber)" : "var(--red)") : "var(--text3)",
+          }}>
+            {meanES != null ? meanES : "—"}
+          </div>
+        </div>
+        <div className="card" style={{ flex: 1, minWidth: 120, padding: "14px 18px", textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+            On Track
+          </div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: "var(--green)" }}>
+            {highCount}
+          </div>
+        </div>
+        <div className="card" style={{ flex: 1, minWidth: 120, padding: "14px 18px", textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+            At Risk
+          </div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: atRiskCount > 0 ? "var(--red)" : "var(--text3)" }}>
+            {atRiskCount}
+          </div>
+        </div>
+        <div className="card" style={{ flex: 1, minWidth: 120, padding: "14px 18px", textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+            Students
+          </div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: "var(--text2)" }}>
+            {activeStudents.length}
+          </div>
+        </div>
+      </div>
+
+      {!hasData ? (
+        <div style={{ textAlign: "center", color: "var(--text3)", padding: 60 }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>📡</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
+            No telemetry data yet
+          </div>
+          <div style={{ fontSize: 13 }}>
+            Engagement scores will appear after students interact with lessons and the nightly computation runs.
+          </div>
+        </div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ ...thStyle, textAlign: "left", minWidth: 140 }}>Student</th>
+                <th style={{ ...thStyle, textAlign: "center", minWidth: 60 }}>ES</th>
+                <th style={{ ...thStyle, textAlign: "center", minWidth: 80 }}>Status</th>
+                <th style={{ ...thStyle, textAlign: "center", minWidth: 100 }}>14-Day Activity</th>
+                <th style={{ ...thStyle, textAlign: "center", minWidth: 60 }}>Days</th>
+                <th style={{ ...thStyle, textAlign: "center", minWidth: 70 }}>Time</th>
+                <th style={{ ...thStyle, textAlign: "center", minWidth: 60 }}>Questions</th>
+                <th style={{ ...thStyle, textAlign: "center", minWidth: 60 }}>Accuracy</th>
+                <th style={{ ...thStyle, textAlign: "center", minWidth: 50 }}>AI Chat</th>
+              </tr>
+            </thead>
+            <tbody>
+              {scored.map((s) => (
+                <tr key={s.uid}>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>
+                    {s.displayName?.split(" ")[0] || s.firstName || "—"}
+                  </td>
+                  <td style={{
+                    ...tdStyle, textAlign: "center",
+                    fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700,
+                    color: s.es != null
+                      ? (s.es >= 70 ? "var(--green)" : s.es >= 40 ? "var(--amber)" : "var(--red)")
+                      : "var(--text3)",
+                  }}>
+                    {s.es != null ? s.es : "—"}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: "center" }}>
+                    {riskBadge(s.risk)}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: "center" }}>
+                    <Sparkline uid={s.uid} />
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: "center", color: "var(--text2)" }}>
+                    {s.daysActive}/7
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: "center", color: "var(--text2)" }}>
+                    {formatEngagementTime(s.totalActive)}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: "center", color: "var(--text2)" }}>
+                    {s.totalQuestions || "—"}
+                  </td>
+                  <td style={{
+                    ...tdStyle, textAlign: "center",
+                    color: s.accuracy != null ? gradeColor(s.accuracy) : "var(--text3)",
+                  }}>
+                    {s.accuracy != null ? `${s.accuracy}%` : "—"}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: "center" }}>
+                    {s.chatUsed ? "✅" : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

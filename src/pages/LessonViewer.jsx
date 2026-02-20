@@ -12,6 +12,7 @@ import { usePreview } from "../contexts/PreviewContext";
 import { usePreviewData } from "../hooks/usePreviewData";
 import PreviewLauncher from "../components/PreviewLauncher";
 import { useEngagementTimer, formatEngagementTime } from "../hooks/useEngagementTimer";
+import { TelemetryProvider } from "../contexts/TelemetryContext";
 
 export default function LessonViewer() {
   const { courseId, lessonId } = useParams();
@@ -196,76 +197,81 @@ export default function LessonViewer() {
     );
   }
 
+  const telemetryCourseId = isStudent ? courseId : null;
+  const telemetryLessonId = isStudent ? lessonId : null;
+
   return (
-    <div className="lesson-layout">
-      <div className="lesson-content">
-        {/* Back to course — students only */}
-        {userRole !== "teacher" && !isPreview && (
-          <Link to={`/course/${courseId}`} style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: 13, color: "var(--text3)", textDecoration: "none",
-            marginBottom: 16, fontWeight: 600,
-          }}>
-            ← Back to Course
-          </Link>
-        )}
+    <TelemetryProvider courseId={telemetryCourseId} lessonId={telemetryLessonId}>
+      <div className="lesson-layout">
+        <div className="lesson-content">
+          {/* Back to course — students only */}
+          {userRole !== "teacher" && !isPreview && (
+            <Link to={`/course/${courseId}`} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              fontSize: 13, color: "var(--text3)", textDecoration: "none",
+              marginBottom: 16, fontWeight: 600,
+            }}>
+              ← Back to Course
+            </Link>
+          )}
 
-        {/* Teacher toolbar — preview launcher + reset button */}
-        {userRole === "teacher" && !isPreview && (
-          <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end", gap: 10 }}>
-            <button
-              className="btn btn-secondary"
-              onClick={resetMyProgress}
-              style={{ fontSize: 13, padding: "8px 14px", color: "var(--red)", borderColor: "var(--red)" }}
-              title="Clear your own answers so you can demo this lesson fresh"
-            >
-              🔄 Reset My Progress
-            </button>
-            <PreviewLauncher sourceLocation={{ courseId, lessonId }} />
-          </div>
-        )}
-
-        {/* Lesson hero */}
-        <div style={{
-          marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid var(--border)",
-        }}>
-          <div style={{
-            fontSize: 12, fontWeight: 600, textTransform: "uppercase",
-            letterSpacing: "0.1em", color: "var(--amber)", marginBottom: 10,
-          }}>
-            {translatedUnit}
-          </div>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontSize: 40, fontWeight: 700,
-            lineHeight: 1.15, letterSpacing: "-0.02em",
-          }} data-translatable>
-            {translatedTitle}
-          </h1>
-        </div>
-
-        {/* Blocks */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {blocksWithProps.map(({ block, extraProps }) => (
-            <div key={block.id} id={block.type === "section_header" ? block.id : undefined} data-block-id={block.id}>
-              <BlockRenderer block={block} extraProps={extraProps} />
+          {/* Teacher toolbar — preview launcher + reset button */}
+          {userRole === "teacher" && !isPreview && (
+            <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                className="btn btn-secondary"
+                onClick={resetMyProgress}
+                style={{ fontSize: 13, padding: "8px 14px", color: "var(--red)", borderColor: "var(--red)" }}
+                title="Clear your own answers so you can demo this lesson fresh"
+              >
+                🔄 Reset My Progress
+              </button>
+              <PreviewLauncher sourceLocation={{ courseId, lessonId }} />
             </div>
-          ))}
+          )}
+
+          {/* Lesson hero */}
+          <div style={{
+            marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid var(--border)",
+          }}>
+            <div style={{
+              fontSize: 12, fontWeight: 600, textTransform: "uppercase",
+              letterSpacing: "0.1em", color: "var(--amber)", marginBottom: 10,
+            }}>
+              {translatedUnit}
+            </div>
+            <h1 style={{
+              fontFamily: "var(--font-display)", fontSize: 40, fontWeight: 700,
+              lineHeight: 1.15, letterSpacing: "-0.02em",
+            }} data-translatable>
+              {translatedTitle}
+            </h1>
+          </div>
+
+          {/* Blocks */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {blocksWithProps.map(({ block, extraProps }) => (
+              <div key={block.id} id={block.type === "section_header" ? block.id : undefined} data-block-id={block.id}>
+                <BlockRenderer block={block} extraProps={extraProps} />
+              </div>
+            ))}
+          </div>
+
+          {/* Complete Lesson — students and teacher preview */}
+          {(userRole !== "teacher" || isPreview) && (
+            <LessonCompleteButton
+              lesson={lesson}
+              studentData={studentData}
+              chatLogs={chatLogs}
+              user={user}
+              courseId={courseId}
+              lessonId={lessonId}
+            />
+          )}
         </div>
 
-        {/* Complete Lesson — students and teacher preview */}
-        {(userRole !== "teacher" || isPreview) && (
-          <LessonCompleteButton
-            lesson={lesson}
-            studentData={studentData}
-            chatLogs={chatLogs}
-            user={user}
-            courseId={courseId}
-            lessonId={lessonId}
-          />
-        )}
+        <ProgressSidebar lesson={lesson} studentData={studentData} chatLogs={chatLogs} courseId={courseId} engagementSeconds={engagementSeconds} />
       </div>
-
-      <ProgressSidebar lesson={lesson} studentData={studentData} chatLogs={chatLogs} courseId={courseId} engagementSeconds={engagementSeconds} />
-    </div>
+    </TelemetryProvider>
   );
 }

@@ -1,4 +1,5 @@
 const { onRequest } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 
@@ -748,5 +749,179 @@ exports.generateBaselines = onRequest(
     });
 
     return res.json({ baselines });
+  }
+);
+
+/**
+ * Cloud Function: computeEngagementScores (Scheduled)
+ *
+ * Runs daily at 2:00 AM EST (7:00 AM UTC). Reads the past 7 days of telemetry
+ * buckets for every student in every course, computes a composite Engagement
+ * Score (0-100), and writes the result back to each bucket + a rolling summary.
+ *
+ * Engagement Score formula (from research report):
+ *   ES = 0.35×T_norm + 0.25×Q_norm + 0.20×A_norm + 0.10×C_norm + 0.10×S_norm
+ *
+ * Where:
+ *   T_norm = activeTime / class median activeTime (capped at 2.0)
+ *   Q_norm = questionsAnswered / expected questions (capped at 1.5)
+ *   A_norm = questionsCorrect / questionsAnswered (accuracy, 0-1)
+ *   C_norm = chatMessages > 0 ? 1.0 : 0.0 (binary: used AI tutor)
+ *   S_norm = daysActive / 5 (weekdays in a week, capped at 1.0)
+ */
+exports.computeEngagementScores = onSchedule(
+  {
+    schedule: "0 7 * * *",  // 7:00 AM UTC = 2:00 AM EST
+    timeZone: "America/New_York",
+    maxInstances: 1,
+    timeoutSeconds: 300,
+  },
+  async () => {
+    console.log("Starting engagement score computation...");
+
+    // Get all courses
+    const coursesSnap = await db.collection("courses").get();
+    const courses = coursesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    // Date range: past 7 days
+    const today = new Date();
+    const dayKeys = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      dayKeys.push(
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+      );
+    }
+
+    let totalStudents = 0;
+    let totalScored = 0;
+
+    for (const course of courses) {
+      if (course.hidden) continue;
+
+      // Get enrolled students from enrollments subcollection
+      const enrollSnap = await db.collection("courses").doc(course.id).collection("enrollments").get();
+      const studentUids = enrollSnap.docs.map((d) => d.id);
+      if (studentUids.length === 0) continue;
+
+      // Collect 7-day telemetry for all students in this course
+      const studentBuckets = {}; // uid → { totalActive, totalQuestions, totalCorrect, totalChat, daysActive, bucketRefs }
+
+      for (const uid of studentUids) {
+        totalStudents++;
+        const buckets = [];
+
+        for (const dayKey of dayKeys) {
+          const ref = db.collection("telemetry").doc(uid)
+            .collection("courses").doc(course.id)
+            .collection("days").doc(dayKey);
+          const snap = await ref.get();
+          if (snap.exists) {
+            buckets.push({ ref, dayKey, data: snap.data() });
+          }
+        }
+
+        if (buckets.length === 0) {
+          studentBuckets[uid] = {
+            totalActive: 0, totalQuestions: 0, totalCorrect: 0,
+            totalChat: 0, daysActive: 0, buckets: [],
+          };
+          continue;
+        }
+
+        const totalActive = buckets.reduce((sum, b) => sum + (b.data.activeTime || 0), 0);
+        const totalQuestions = buckets.reduce((sum, b) => sum + (b.data.questionsAnswered || 0), 0);
+        const totalCorrect = buckets.reduce((sum, b) => sum + (b.data.questionsCorrect || 0), 0);
+        const totalChat = buckets.reduce((sum, b) => sum + (b.data.chatMessages || 0), 0);
+        const daysActive = buckets.length;
+
+        studentBuckets[uid] = {
+          totalActive, totalQuestions, totalCorrect, totalChat, daysActive, buckets,
+        };
+      }
+
+      // Compute class median active time (for T_norm normalization)
+      const activeTimes = Object.values(studentBuckets)
+        .map((s) => s.totalActive)
+        .filter((t) => t > 0)
+        .sort((a, b) => a - b);
+
+      let classMedianActive = 300; // default 5 minutes if no data
+      if (activeTimes.length > 0) {
+        const mid = Math.floor(activeTimes.length / 2);
+        classMedianActive = activeTimes.length % 2 !== 0
+          ? activeTimes[mid]
+          : (activeTimes[mid - 1] + activeTimes[mid]) / 2;
+      }
+      classMedianActive = Math.max(classMedianActive, 60); // floor at 1 minute
+
+      // Expected questions per week (rough heuristic: count question blocks across lessons)
+      // For now use a reasonable default; can be refined with lesson metadata later
+      const expectedQuestions = 10;
+
+      // Compute ES for each student
+      const batch = db.batch();
+      let batchCount = 0;
+
+      for (const uid of studentUids) {
+        const s = studentBuckets[uid];
+
+        const T_norm = Math.min((s.totalActive / classMedianActive), 2.0);
+        const Q_norm = Math.min((s.totalQuestions / expectedQuestions), 1.5);
+        const A_norm = s.totalQuestions > 0 ? (s.totalCorrect / s.totalQuestions) : 0;
+        const C_norm = s.totalChat > 0 ? 1.0 : 0.0;
+        const S_norm = Math.min((s.daysActive / 5), 1.0);
+
+        const rawES = (0.35 * T_norm) + (0.25 * Q_norm) + (0.20 * A_norm) + (0.10 * C_norm) + (0.10 * S_norm);
+        const engagementScore = Math.round(Math.min(rawES * 100, 100));
+
+        // Determine risk level
+        let riskLevel = "high";
+        if (engagementScore < 40) riskLevel = "low";
+        else if (engagementScore < 70) riskLevel = "medium";
+
+        // Write ES to today's bucket (if it exists)
+        const todayKey = dayKeys[0];
+        const todayBucket = s.buckets.find((b) => b.dayKey === todayKey);
+        if (todayBucket) {
+          batch.update(todayBucket.ref, { engagementScore });
+          batchCount++;
+        }
+
+        // Write rolling summary
+        const summaryRef = db.collection("telemetry").doc(uid)
+          .collection("courses").doc(course.id)
+          .collection("summary").doc("latest");
+
+        batch.set(summaryRef, {
+          weeklyES: engagementScore,
+          riskLevel,
+          daysActive: s.daysActive,
+          totalActiveTime: s.totalActive,
+          totalQuestions: s.totalQuestions,
+          accuracy: s.totalQuestions > 0 ? Math.round((s.totalCorrect / s.totalQuestions) * 100) : null,
+          chatEngagement: s.totalChat > 0,
+          classMedianActiveTime: classMedianActive,
+          computedAt: admin.firestore.FieldValue.serverTimestamp(),
+          components: { T_norm, Q_norm, A_norm, C_norm, S_norm },
+        }, { merge: true });
+        batchCount++;
+
+        totalScored++;
+
+        // Firestore batch limit is 500 writes
+        if (batchCount >= 490) {
+          await batch.commit();
+          batchCount = 0;
+        }
+      }
+
+      if (batchCount > 0) {
+        await batch.commit();
+      }
+    }
+
+    console.log(`Engagement scores computed: ${totalScored} students across ${courses.length} courses`);
   }
 );

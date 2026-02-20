@@ -4,9 +4,11 @@ import { useAuth } from "../../hooks/useAuth";
 import { awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES, getBloomLevel } from "../../lib/gamification";
 import { useTranslatedText, useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
+import { useTelemetryContext } from "../../contexts/TelemetryContext";
 
 export default function QuestionBlock({ block, studentData = {}, onAnswer, courseId, lessonCompleted, allStudentData }) {
   const { user } = useAuth();
+  const { trackEvent } = useTelemetryContext();
   const data = (studentData && studentData[block.id]) || {};
   const [selected, setSelected] = useState(data.answer ?? null);
   const [textAnswer, setTextAnswer] = useState(data.answer ?? "");
@@ -65,6 +67,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
     const correct = selected === block.correctIndex;
     onAnswer(block.id, { answer: selected, correct, submitted: true, submittedAt: new Date().toISOString() });
     setSubmitted(true);
+    trackEvent("question_answered", { correct, blockId: block.id });
 
     // Award XP using course-specific config
     if (user) {
@@ -93,6 +96,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
     clearSADirty(); // Prevent stale draft from overwriting on unmount
     onAnswer(block.id, { answer: textAnswer, submitted: true, needsGrading: true, submittedAt: new Date().toISOString() });
     setSubmitted(true);
+    trackEvent("question_answered", { blockId: block.id });
 
     // Award XP for submission using course-specific config
     if (user) {
@@ -151,6 +155,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
       submittedAt: new Date().toISOString(),
     });
     setSubmitted(true);
+    trackEvent("question_answered", { correct: score === 1, blockId: block.id });
 
     if (user) {
       const baseXP = Math.round(getXPValue("mc_correct") * score * bloom.xpMult);
