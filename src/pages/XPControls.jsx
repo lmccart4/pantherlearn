@@ -27,6 +27,14 @@ const XP_LABELS = {
   streak_bonus: { label: "Daily Streak Bonus (per day)", icon: "🔥" },
 };
 
+const WRITTEN_XP_LABELS = {
+  written_refining: { label: "Refining", icon: "🏆", color: "var(--green, #10b981)" },
+  written_developing: { label: "Developing", icon: "📘", color: "var(--cyan, #22d3ee)" },
+  written_approaching: { label: "Approaching", icon: "📙", color: "var(--amber, #f5a623)" },
+  written_emerging: { label: "Emerging", icon: "📕", color: "#ef4444" },
+  written_missing: { label: "Missing", icon: "⬜", color: "var(--text3, #666)" },
+};
+
 export default function XPControls() {
   const { courseId } = useParams();
   const { userRole } = useAuth();
@@ -561,37 +569,27 @@ export default function XPControls() {
         )}
       </div>
 
-      {/* Section 6: Quality Multipliers */}
+      {/* Section 6: Written Response Grading XP */}
       <div style={cardStyle}>
-        <div style={sectionTitle}>📈 Quality Multipliers</div>
+        <div style={sectionTitle}>📝 Written Response Grading XP</div>
         <p style={{ color: "var(--text2, #aaa)", fontSize: 13, marginBottom: 16 }}>
-          When you grade written responses, apply a quality multiplier to the base XP. (Coming soon: auto-apply from grading dashboard.)
+          XP awarded when you grade a written response. Students receive XP based on the grade tier you assign.
         </p>
-        {Object.entries(multiplierConfig.qualityMultipliers || {}).map(([tier, mult]) => (
-          <div key={tier} style={inputRow}>
+        {Object.entries(WRITTEN_XP_LABELS).map(([key, { label, icon, color }]) => (
+          <div key={key} style={inputRow}>
             <div style={inputLabel}>
-              <span>{tier === "satisfactory" ? "👍" : tier === "proficient" ? "🌟" : "🏆"}</span>
-              <span style={{ textTransform: "capitalize" }}>{tier}</span>
+              <span>{icon}</span>
+              <span style={{ color }}>{label}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <input
                 type="number"
-                min={0.5}
-                max={5}
-                step={0.25}
-                value={mult}
-                onChange={(e) =>
-                  setMultiplierConfig((prev) => ({
-                    ...prev,
-                    qualityMultipliers: {
-                      ...prev.qualityMultipliers,
-                      [tier]: parseFloat(e.target.value) || 1,
-                    },
-                  }))
-                }
-                style={{ ...xpInput, width: 70 }}
+                min={0}
+                value={xpValues[key] ?? DEFAULT_XP_VALUES[key] ?? 0}
+                onChange={(e) => updateXPValue(key, e.target.value)}
+                style={xpInput}
               />
-              <span style={{ color: "var(--text2, #aaa)", fontSize: 12 }}>×</span>
+              <span style={{ color: "var(--text2, #aaa)", fontSize: 12 }}>XP</span>
             </div>
           </div>
         ))}

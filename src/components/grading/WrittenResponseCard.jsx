@@ -5,13 +5,14 @@ import { db } from "../../lib/firebase";
 import { analyzeResponse } from "../../lib/aiDetection";
 import { compareToBaselines } from "../../lib/aiBaselines";
 import { createNotification } from "../../lib/notifications";
+import { awardXP, getXPConfig, DEFAULT_XP_VALUES } from "../../lib/gamification";
 
 const GRADE_TIERS = [
-  { label: "Missing", value: 0, color: "var(--text3)", bg: "var(--surface2)" },
-  { label: "Emerging", value: 0.55, color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
-  { label: "Approaching", value: 0.65, color: "var(--amber)", bg: "rgba(245,166,35,0.12)" },
-  { label: "Developing", value: 0.85, color: "var(--cyan)", bg: "rgba(34,211,238,0.12)" },
-  { label: "Refining", value: 1.0, color: "var(--green)", bg: "rgba(16,185,129,0.12)" },
+  { label: "Missing", value: 0, xpKey: "written_missing", color: "var(--text3)", bg: "var(--surface2)" },
+  { label: "Emerging", value: 0.55, xpKey: "written_emerging", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  { label: "Approaching", value: 0.65, xpKey: "written_approaching", color: "var(--amber)", bg: "rgba(245,166,35,0.12)" },
+  { label: "Developing", value: 0.85, xpKey: "written_developing", color: "var(--cyan)", bg: "rgba(34,211,238,0.12)" },
+  { label: "Refining", value: 1.0, xpKey: "written_refining", color: "var(--green)", bg: "rgba(16,185,129,0.12)" },
 ];
 
 export default function WrittenResponseCard({ item, helpers, onSelectStudent, selectedLesson }) {
@@ -58,6 +59,18 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
 
       setSavedGrade(tier.value);
 
+      // Award XP based on grade tier
+      let xpAmount = 0;
+      try {
+        const config = await getXPConfig(item.courseId);
+        xpAmount = config?.xpValues?.[tier.xpKey] ?? DEFAULT_XP_VALUES[tier.xpKey] ?? 0;
+        if (xpAmount > 0) {
+          await awardXP(item.studentId, xpAmount, `written_grade:${tier.label.toLowerCase()}`, item.courseId);
+        }
+      } catch (xpErr) {
+        console.warn("Could not award written response XP:", xpErr);
+      }
+
       // Notify student that their response was graded
       try {
         const prompt = getBlockPrompt(item.lessonId, item.blockId);
@@ -65,7 +78,7 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
         await createNotification(item.studentId, {
           type: "grade_result",
           title: `Response graded: ${tier.label}`,
-          body: `Your answer to "${shortPrompt}" received ${tier.label} (${Math.round(tier.value * 100)}%)`,
+          body: `Your answer to "${shortPrompt}" received ${tier.label} (${Math.round(tier.value * 100)}%)${xpAmount > 0 ? ` — +${xpAmount} XP` : ""}`,
           icon: "📝",
           link: `/course/${item.courseId}/lesson/${item.lessonId}`,
           courseId: item.courseId,
