@@ -306,16 +306,6 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Badges */}
-        {gamification && (
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: "var(--text2)", marginBottom: 14 }} data-translatable>
-              {ui(0, "Badges")}
-            </h2>
-            <BadgeGrid earnedBadgeIds={gamification.badges || []} />
-          </div>
-        )}
-
         {/* My Courses (enrolled) */}
         <div style={{ marginBottom: 32 }}>
           {enrolledCourses.length > 0 && (
@@ -388,6 +378,16 @@ export default function StudentDashboard() {
             </div>
           )}
         </div>
+
+        {/* Badges */}
+        {gamification && (
+          <div style={{ marginBottom: 32 }}>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: "var(--text2)", marginBottom: 14 }} data-translatable>
+              {ui(0, "Badges")}
+            </h2>
+            <BadgeGrid earnedBadgeIds={gamification.badges || []} />
+          </div>
+        )}
       </div>
 
       {/* Join Course Modal */}
