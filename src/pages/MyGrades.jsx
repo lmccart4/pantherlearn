@@ -188,9 +188,29 @@ export default function MyGrades() {
 
   if (loading) {
     return (
-      <div className="page-container" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}>
-        <div className="spinner" />
-      </div>
+      <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
+        <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          <div style={{ marginBottom: 24 }}>
+            <div className="skeleton skeleton-line" style={{ width: 180, height: 28, marginBottom: 8 }} />
+            <div className="skeleton skeleton-line" style={{ width: 280, height: 14 }} />
+          </div>
+          {/* Stats cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="skeleton skeleton-card" style={{ height: 90, textAlign: "center" }} />
+            ))}
+          </div>
+          {/* Lesson rows */}
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="skeleton skeleton-card" style={{ height: 56, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
+              <div className="skeleton skeleton-line" style={{ width: `${40 + i * 6}%`, height: 14, marginBottom: 0 }} />
+              <div style={{ marginLeft: "auto" }}>
+                <div className="skeleton skeleton-rect" style={{ width: 48, height: 24, borderRadius: 12 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
     );
   }
 
@@ -251,8 +271,17 @@ export default function MyGrades() {
         )}
 
         {dataLoading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
-            <div className="spinner" />
+          <div>
+            {/* Stats cards skeleton */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="skeleton skeleton-card" style={{ height: 90 }} />
+              ))}
+            </div>
+            {/* Lesson rows skeleton */}
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="skeleton skeleton-card" style={{ height: 56, marginBottom: 8 }} />
+            ))}
           </div>
         ) : (
           <>

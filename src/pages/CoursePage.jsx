@@ -101,7 +101,29 @@ export default function CoursePage() {
     return groups;
   }, [visibleLessons]);
 
-  if (loading) return <div className="page-container" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}><div className="spinner" /></div>;
+  if (loading) return (
+    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
+        <div className="skeleton skeleton-line" style={{ width: 140, height: 13, marginBottom: 16 }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+          <div className="skeleton skeleton-rect" style={{ width: 64, height: 64, borderRadius: 14 }} />
+          <div style={{ flex: 1 }}>
+            <div className="skeleton skeleton-line" style={{ width: "60%", height: 24 }} />
+            <div className="skeleton skeleton-line" style={{ width: "40%", height: 14 }} />
+          </div>
+        </div>
+        {/* Unit header */}
+        <div className="skeleton skeleton-line" style={{ width: 120, height: 16, marginBottom: 12 }} />
+        {/* Lesson rows */}
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="skeleton skeleton-card" style={{ height: 52, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
+            <div className="skeleton skeleton-circle" style={{ width: 28, height: 28 }} />
+            <div className="skeleton skeleton-line" style={{ width: `${50 + i * 5}%`, height: 14, marginBottom: 0 }} />
+          </div>
+        ))}
+      </div>
+    </main>
+  );
   if (!course) return <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}><h2 data-translatable>{ui(0, "Course not found")}</h2></div>;
 
   return (

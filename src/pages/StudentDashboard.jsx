@@ -200,9 +200,38 @@ export default function StudentDashboard() {
 
   if (loading) {
     return (
-      <div className="page-container" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}>
-        <div className="spinner" />
-      </div>
+      <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
+        <div style={{ maxWidth: 960, margin: "0 auto" }}>
+          {/* Avatar placeholder */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+            <div className="skeleton skeleton-rect" style={{ width: 200, height: 220, borderRadius: 20 }} />
+          </div>
+          {/* Welcome + level */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div className="skeleton skeleton-line" style={{ width: 200, height: 28 }} />
+            <div className="skeleton skeleton-line" style={{ width: 100, height: 14 }} />
+          </div>
+          {/* XP bar */}
+          <div className="skeleton skeleton-rect" style={{ width: "100%", height: 8, marginBottom: 16 }} />
+          {/* Stats row */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 32 }}>
+            <div className="skeleton skeleton-card" style={{ flex: 1, height: 80 }} />
+            <div className="skeleton skeleton-card" style={{ flex: 1, height: 80 }} />
+          </div>
+          {/* Section header */}
+          <div className="skeleton skeleton-line" style={{ width: 140, height: 20, marginBottom: 16 }} />
+          {/* Course cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="skeleton skeleton-card" style={{ height: 140 }}>
+                <div className="skeleton skeleton-circle" style={{ width: 40, height: 40, marginBottom: 12 }} />
+                <div className="skeleton skeleton-line" style={{ width: "70%", height: 16 }} />
+                <div className="skeleton skeleton-line" style={{ width: "50%", height: 12, marginTop: 8 }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
     );
   }
 

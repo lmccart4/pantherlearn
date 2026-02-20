@@ -370,7 +370,31 @@ export default function GradingDashboard() {
         </p>
 
         {isLoading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><div className="spinner" /></div>
+          <div>
+            {/* Tab bar skeleton */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton skeleton-rect" style={{ width: 100, height: 34, borderRadius: 8 }} />
+              ))}
+            </div>
+            {/* Stat cards skeleton */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton skeleton-card" style={{ height: 80 }} />
+              ))}
+            </div>
+            {/* Response rows skeleton */}
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="skeleton skeleton-card" style={{ height: 64, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
+                <div className="skeleton skeleton-circle" style={{ width: 32, height: 32 }} />
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton skeleton-line" style={{ width: `${40 + i * 8}%`, height: 14, marginBottom: 4 }} />
+                  <div className="skeleton skeleton-line" style={{ width: "30%", height: 11 }} />
+                </div>
+                <div className="skeleton skeleton-rect" style={{ width: 60, height: 28, borderRadius: 6 }} />
+              </div>
+            ))}
+          </div>
         ) : (
           <>
             {/* Course tabs + section filter + content type tabs */}
