@@ -111,8 +111,7 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
   const commitManualValue = (section, barIdx, raw) => {
     const num = parseFloat(raw);
     if (isNaN(num)) { setEditingBar(null); setEditingValue(""); return; }
-    const rounded = Math.round(num);
-    getSetter(section)((prev) => { const n = [...prev]; n[barIdx] = { ...n[barIdx], value: rounded }; return n; });
+    getSetter(section)((prev) => { const n = [...prev]; n[barIdx] = { ...n[barIdx], value: num }; return n; });
     markDirty();
     setEditingBar(null);
     setEditingValue("");
@@ -249,14 +248,14 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
             <span className="bc-bar-value" style={{
               color: color.valueText,
               ...(isPos ? { top: 2 } : { bottom: 2 }),
-            }}>{val}</span>
+            }}>{Number.isInteger(val) ? val : parseFloat(val.toFixed(4))}</span>
           )}
         </div>
 
         {/* Manual input overlay */}
         {isEditing && (
           <div className="bc-value-input-container">
-            <input type="number" className="bc-value-input" value={editingValue}
+            <input type="number" step="any" className="bc-value-input" value={editingValue}
               onChange={(e) => setEditingValue(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") commitManualValue(section, idx, editingValue);
