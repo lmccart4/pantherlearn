@@ -63,6 +63,8 @@ export default function Leaderboard({ courseId }) {
           const lastPodiumDate = existing.lastPodiumDate || null;
           let streak = existing.podiumStreak || 0;
 
+          let totalDays = existing.totalPodiumDays || 0;
+
           if (isOnPodium && lastPodiumDate !== today) {
             // Check if consecutive day
             if (lastPodiumDate) {
@@ -73,10 +75,12 @@ export default function Leaderboard({ courseId }) {
             } else {
               streak = 1;
             }
+            totalDays += 1;
             await setDoc(streakRef, {
               podiumStreak: streak,
               lastPodiumDate: today,
               bestPodiumStreak: Math.max(streak, existing.bestPodiumStreak || 0),
+              totalPodiumDays: totalDays,
             }, { merge: true });
           } else if (!isOnPodium && lastPodiumDate) {
             const lastDate = new Date(lastPodiumDate);
@@ -88,6 +92,7 @@ export default function Leaderboard({ courseId }) {
           setPodiumStreak({
             days: streak,
             best: Math.max(streak, existing.bestPodiumStreak || 0),
+            total: totalDays,
             isOnPodium,
           });
         } catch (e) {
@@ -255,22 +260,45 @@ export default function Leaderboard({ courseId }) {
         </div>
       )}
 
-      {/* Podium streak badge */}
-      {podiumStreak && podiumStreak.days > 0 && podiumStreak.isOnPodium && (
+      {/* Podium stats badges */}
+      {podiumStreak && podiumStreak.isOnPodium && (podiumStreak.days > 0 || podiumStreak.total > 0) && (
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          padding: "10px 16px", marginBottom: 14,
-          background: "linear-gradient(135deg, rgba(255,215,0,0.08), rgba(245,166,35,0.05))",
-          border: "1px solid rgba(255,215,0,0.15)", borderRadius: 10,
+          display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap",
         }}>
-          <span style={{ fontSize: 18 }}>🔥</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--amber)" }}>
-            {podiumStreak.days} day{podiumStreak.days !== 1 ? "s" : ""} on the podium!
-          </span>
-          {podiumStreak.best > podiumStreak.days && (
-            <span style={{ fontSize: 11, color: "var(--text3)" }}>
-              (Best: {podiumStreak.best})
-            </span>
+          {/* Consecutive days streak */}
+          {podiumStreak.days > 0 && (
+            <div style={{
+              flex: 1, minWidth: 140, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              padding: "10px 16px",
+              background: "linear-gradient(135deg, rgba(255,215,0,0.08), rgba(245,166,35,0.05))",
+              border: "1px solid rgba(255,215,0,0.15)", borderRadius: 10,
+            }}>
+              <span style={{ fontSize: 18 }}>🔥</span>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--amber)" }}>
+                  {podiumStreak.days} day{podiumStreak.days !== 1 ? "s" : ""} streak
+                </span>
+                {podiumStreak.best > podiumStreak.days && (
+                  <span style={{ fontSize: 10, color: "var(--text3)" }}>
+                    Best: {podiumStreak.best}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {/* Total days on podium */}
+          {podiumStreak.total > 0 && (
+            <div style={{
+              flex: 1, minWidth: 140, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              padding: "10px 16px",
+              background: "linear-gradient(135deg, rgba(176,142,255,0.08), rgba(176,142,255,0.04))",
+              border: "1px solid rgba(176,142,255,0.15)", borderRadius: 10,
+            }}>
+              <span style={{ fontSize: 18 }}>🏅</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--purple)" }}>
+                {podiumStreak.total} total podium day{podiumStreak.total !== 1 ? "s" : ""}
+              </span>
+            </div>
           )}
         </div>
       )}
