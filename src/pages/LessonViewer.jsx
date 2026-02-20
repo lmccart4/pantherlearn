@@ -182,8 +182,26 @@ export default function LessonViewer() {
 
   if (loading) {
     return (
-      <div className="page-container" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}>
-        <div className="spinner" />
+      <div className="lesson-layout">
+        <main className="lesson-content" id="main-content">
+          <div className="skeleton skeleton-line" style={{ width: 120, height: 13, marginBottom: 16 }} />
+          <div style={{ marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid var(--border)" }}>
+            <div className="skeleton skeleton-line" style={{ width: 100, height: 12, marginBottom: 10 }} />
+            <div className="skeleton skeleton-line" style={{ width: "70%", height: 36 }} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <div className="skeleton skeleton-rect" style={{ width: "100%", height: 120 }} />
+            <div className="skeleton skeleton-rect" style={{ width: "100%", height: 80 }} />
+            <div className="skeleton skeleton-rect" style={{ width: "100%", height: 160 }} />
+            <div className="skeleton skeleton-rect" style={{ width: "100%", height: 100 }} />
+          </div>
+        </main>
+        <aside className="progress-sidebar" aria-label="Lesson progress">
+          <div className="skeleton skeleton-circle" style={{ width: 80, height: 80, margin: "0 auto 16px" }} />
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton skeleton-line" style={{ width: `${60 + i * 8}%`, height: 14, marginBottom: 10 }} />
+          ))}
+        </aside>
       </div>
     );
   }

@@ -119,9 +119,32 @@ export default function TeacherDashboard() {
 
   if (loading) {
     return (
-      <div className="page-container" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}>
-        <div className="spinner" />
-      </div>
+      <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ marginBottom: 32 }}>
+            <div className="skeleton skeleton-line" style={{ width: 220, height: 28, marginBottom: 8 }} />
+            <div className="skeleton skeleton-line" style={{ width: 320, height: 14 }} />
+          </div>
+          {/* Quick links */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 36 }}>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="skeleton skeleton-rect" style={{ width: 130, height: 36, borderRadius: 8 }} />
+            ))}
+          </div>
+          {/* Section header */}
+          <div className="skeleton skeleton-line" style={{ width: 140, height: 20, marginBottom: 16 }} />
+          {/* Course cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="skeleton skeleton-card" style={{ height: 160 }}>
+                <div className="skeleton skeleton-circle" style={{ width: 44, height: 44, marginBottom: 12 }} />
+                <div className="skeleton skeleton-line" style={{ width: "65%", height: 18 }} />
+                <div className="skeleton skeleton-line" style={{ width: "45%", height: 13, marginTop: 8 }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
     );
   }
 
