@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import {
   DEFAULT_CHARACTERS,
@@ -37,7 +37,7 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
     return () => unsub();
   }, [courseId, block.id]);
 
-  // Fetch classmates for direct challenge picker
+  // Fetch classmates for direct challenge picker (includes teacher for students, includes students for teacher)
   useEffect(() => {
     if (!courseId || !user) return;
     const fetchClassmates = async () => {
@@ -52,13 +52,30 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
             return uid && uid !== user.uid;
           })
           .map((e) => ({ uid: e.uid || e.studentUid, name: e.displayName || e.name || "Student" }));
+
+        // Add the course owner (teacher) to the list so students can challenge them
+        if (!isTeacher) {
+          try {
+            const courseDoc = await getDoc(doc(db, "courses", courseId));
+            if (courseDoc.exists()) {
+              const ownerUid = courseDoc.data().ownerUid;
+              if (ownerUid && ownerUid !== user.uid && !enrolled.some((c) => c.uid === ownerUid)) {
+                const ownerDoc = await getDoc(doc(db, "users", ownerUid));
+                if (ownerDoc.exists()) {
+                  enrolled.unshift({ uid: ownerUid, name: ownerDoc.data().displayName || "Teacher" });
+                }
+              }
+            }
+          } catch (_) { /* ignore — teacher lookup is best-effort */ }
+        }
+
         setClassmates(enrolled);
       } catch (e) {
         console.error("Failed to fetch classmates:", e);
       }
     };
     fetchClassmates();
-  }, [courseId, user]);
+  }, [courseId, user, isTeacher]);
 
   // Categorize games
   const openChallenges = games.filter((g) =>
@@ -176,53 +193,53 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
         <span>👥 {characters.length} characters</span>
       </div>
 
-      {/* Challenge Buttons (students only) */}
-      {!isTeacher && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          <button onClick={handleCreateOpen} disabled={creating}
+      {/* Challenge Buttons */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <button onClick={handleCreateOpen} disabled={creating}
+          style={{
+            padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer",
+            background: "var(--amber)", color: "#1a1a1a", fontWeight: 700, fontSize: 14,
+            opacity: creating ? 0.5 : 1,
+          }}>
+          ⚔️ Challenge Anyone
+        </button>
+        <div style={{ position: "relative" }}>
+          <button onClick={() => setShowDirectPicker(!showDirectPicker)} disabled={creating}
             style={{
-              padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer",
-              background: "var(--amber)", color: "#1a1a1a", fontWeight: 700, fontSize: 14,
+              padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)",
+              cursor: "pointer", background: "var(--bg)", color: "var(--text)", fontWeight: 600, fontSize: 14,
               opacity: creating ? 0.5 : 1,
             }}>
-            ⚔️ Challenge Anyone
+            🎯 {isTeacher ? "Challenge Student" : "Challenge Classmate"}
           </button>
-          <div style={{ position: "relative" }}>
-            <button onClick={() => setShowDirectPicker(!showDirectPicker)} disabled={creating}
-              style={{
-                padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)",
-                cursor: "pointer", background: "var(--bg)", color: "var(--text)", fontWeight: 600, fontSize: 14,
-                opacity: creating ? 0.5 : 1,
-              }}>
-              🎯 Challenge Classmate
-            </button>
-            {showDirectPicker && (
-              <div style={{
-                position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 20,
-                background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12,
-                boxShadow: "0 8px 32px rgba(0,0,0,0.4)", maxHeight: 240, overflowY: "auto",
-                minWidth: 220, padding: 4,
-              }}>
-                {classmates.length === 0 && (
-                  <p style={{ padding: 12, fontSize: 12, color: "var(--text3)", textAlign: "center" }}>No classmates found</p>
-                )}
-                {classmates.map((c) => (
-                  <button key={c.uid} onClick={() => handleCreateDirect(c)}
-                    style={{
-                      display: "block", width: "100%", padding: "8px 12px", border: "none",
-                      background: "transparent", color: "var(--text)", cursor: "pointer",
-                      textAlign: "left", borderRadius: 8, fontSize: 13,
-                    }}
-                    onMouseEnter={(e) => e.target.style.background = "rgba(245,166,35,0.08)"}
-                    onMouseLeave={(e) => e.target.style.background = "transparent"}>
-                    {c.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {showDirectPicker && (
+            <div style={{
+              position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 20,
+              background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.4)", maxHeight: 240, overflowY: "auto",
+              minWidth: 220, padding: 4,
+            }}>
+              {classmates.length === 0 && (
+                <p style={{ padding: 12, fontSize: 12, color: "var(--text3)", textAlign: "center" }}>
+                  {isTeacher ? "No students found" : "No classmates found"}
+                </p>
+              )}
+              {classmates.map((c) => (
+                <button key={c.uid} onClick={() => handleCreateDirect(c)}
+                  style={{
+                    display: "block", width: "100%", padding: "8px 12px", border: "none",
+                    background: "transparent", color: "var(--text)", cursor: "pointer",
+                    textAlign: "left", borderRadius: 8, fontSize: 13,
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = "rgba(245,166,35,0.08)"}
+                  onMouseLeave={(e) => e.target.style.background = "transparent"}>
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Direct Challenges to Me */}
       {directToMe.length > 0 && (
@@ -250,9 +267,7 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
                 <strong>{g.challengerName}</strong> is looking for an opponent
                 <span style={{ color: "var(--text3)", fontSize: 11, marginLeft: 6 }}>{timeAgo(g.createdAt)}</span>
               </span>
-              {!isTeacher && (
-                <SmallBtn color="var(--amber)" onClick={() => handleAccept(g.id)}>Accept</SmallBtn>
-              )}
+              <SmallBtn color="var(--amber)" onClick={() => handleAccept(g.id)}>Accept</SmallBtn>
             </GameRow>
           ))}
         </Section>
@@ -326,26 +341,31 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
         </Section>
       )}
 
-      {/* Teacher spectating view */}
-      {isTeacher && games.filter((g) => g.status === "active").length > 0 && (
-        <Section title="👁 Active Games (Spectate)">
-          {games.filter((g) => g.status === "active").map((g) => (
-            <GameRow key={g.id} style={{ cursor: "pointer" }}
-              onClick={() => navigate(`/guess-who/${courseId}/${g.id}`)}>
-              <span style={{ fontSize: 13, color: "var(--text)" }}>
-                <strong>{g.challengerName}</strong> vs. <strong>{g.opponentName}</strong>
-                <span style={{ color: "var(--text3)", fontSize: 11, marginLeft: 6 }}>
-                  {g.moves?.length || 0} moves
+      {/* Teacher spectating view — only games the teacher is NOT playing in */}
+      {isTeacher && (() => {
+        const spectatableGames = games.filter((g) =>
+          g.status === "active" && g.challengerUid !== user?.uid && g.opponentUid !== user?.uid
+        );
+        return spectatableGames.length > 0 ? (
+          <Section title="👁 Active Games (Spectate)">
+            {spectatableGames.map((g) => (
+              <GameRow key={g.id} style={{ cursor: "pointer" }}
+                onClick={() => navigate(`/guess-who/${courseId}/${g.id}`)}>
+                <span style={{ fontSize: 13, color: "var(--text)" }}>
+                  <strong>{g.challengerName}</strong> vs. <strong>{g.opponentName}</strong>
+                  <span style={{ color: "var(--text3)", fontSize: 11, marginLeft: 6 }}>
+                    {g.moves?.length || 0} moves
+                  </span>
                 </span>
-              </span>
-              <span style={{ color: "var(--text3)", fontSize: 12 }}>Spectate →</span>
-            </GameRow>
-          ))}
-        </Section>
-      )}
+                <span style={{ color: "var(--text3)", fontSize: 12 }}>Spectate →</span>
+              </GameRow>
+            ))}
+          </Section>
+        ) : null;
+      })()}
 
       {/* Empty state */}
-      {games.length === 0 && !isTeacher && (
+      {games.length === 0 && (
         <p style={{ textAlign: "center", color: "var(--text3)", fontSize: 13, padding: 16 }}>
           No games yet. Be the first to issue a challenge!
         </p>
