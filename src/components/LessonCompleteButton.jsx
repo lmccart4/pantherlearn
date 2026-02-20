@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
-import { awardXP, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
+import { awardXP, getXPConfig, DEFAULT_XP_VALUES, getStudentGamification, updateStudentGamification } from "../lib/gamification";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 const VALIDATE_REFLECTION_URL =
@@ -255,6 +255,16 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
           await awardXP(user.uid, baseXP, "lesson_complete", courseId);
         } catch (e) {
           console.warn("Could not award XP:", e);
+        }
+
+        // Increment lessonsCompleted + check badges
+        try {
+          const currentGam = await getStudentGamification(user.uid, courseId);
+          await updateStudentGamification(user.uid, {
+            lessonsCompleted: (currentGam.lessonsCompleted || 0) + 1,
+          }, courseId);
+        } catch (e) {
+          console.warn("Could not update lesson count / badges:", e);
         }
       }
       navigate(`/course/${courseId}`);
