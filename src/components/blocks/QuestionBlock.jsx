@@ -48,7 +48,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
     onAnswer(block.id, { answer: textAnswer, submitted: false, draft: true });
   }, [block.id, block.questionType, textAnswer, submitted, onAnswer]);
 
-  const { markDirty: markSADirty, saveNow: saveSANow, clearDirty: clearSADirty, lastSaved: saLastSaved } = useAutoSave(performDraftSave);
+  const { markDirty: markSADirty, saveNow: saveSANow, clearDirty: clearSADirty, lastSaved: saLastSaved, saveError: saSaveError } = useAutoSave(performDraftSave);
 
   // Get XP value from config or fallback to defaults
   const getXPValue = (key) => {
@@ -237,7 +237,12 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
             />
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button className="btn btn-primary" onClick={handleSubmitSA} disabled={!textAnswer.trim()} data-translatable>{ui(3) || "Submit Response"}</button>
-              {saLastSaved && !submitted && (
+              {saSaveError && !submitted && (
+                <span style={{ fontSize: 11, color: "var(--amber)" }}>
+                  {saSaveError}
+                </span>
+              )}
+              {saLastSaved && !submitted && !saSaveError && (
                 <span style={{ fontSize: 11, color: "var(--text3)" }}>
                   Draft saved {saLastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                 </span>

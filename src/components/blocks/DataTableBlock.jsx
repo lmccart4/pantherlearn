@@ -306,7 +306,7 @@ export default function DataTableBlock({ block, lessonId, courseId }) {
     }, { merge: true });
   }, [user, lessonId, courseId, block, data, sections]);
 
-  const { markDirty, saveNow, lastSaved } = useAutoSave(performSave);
+  const { markDirty, saveNow, lastSaved, saveError } = useAutoSave(performSave);
 
   // Load saved data
   useEffect(() => {
@@ -419,11 +419,17 @@ export default function DataTableBlock({ block, lessonId, courseId }) {
       </div>
 
       {/* Footer with auto-save status */}
-      {lastSaved && (
+      {(lastSaved || saveError) && (
         <div style={styles.footer}>
-          <span style={styles.savedTag}>
-            ✓ Auto-saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-          </span>
+          {saveError ? (
+            <span style={{ fontSize: 11, color: "var(--amber, #f5a623)", fontWeight: 500 }}>
+              {saveError}
+            </span>
+          ) : (
+            <span style={styles.savedTag}>
+              ✓ Auto-saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+            </span>
+          )}
         </div>
       )}
     </div>
