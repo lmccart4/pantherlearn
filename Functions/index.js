@@ -5,9 +5,11 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 const db = admin.firestore();
 
-// Store your Gemini API key as a Firebase secret (never in code!)
-// Set it with: firebase functions:secrets:set GEMINI_API_KEY
+// Store API keys as Firebase secrets (never in code!)
+// Set with: firebase functions:secrets:set <SECRET_NAME>
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
+const openaiApiKey = defineSecret("OPENAI_API_KEY");
+const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 // Google Apps Script URL for feedback/bug report sheet
 // Set with: firebase functions:secrets:set FEEDBACK_SHEET_URL
 const feedbackSheetUrl = defineSecret("FEEDBACK_SHEET_URL");
@@ -598,5 +600,152 @@ exports.submitFeedback = onRequest(
     }
 
     return res.json({ success: true });
+  }
+);
+
+/**
+ * Cloud Function: generateBaselines
+ *
+ * Generates AI baseline responses for short-answer questions using multiple
+ * AI providers (Gemini, OpenAI, Anthropic). Used to detect AI copy-paste
+ * during grading. Only callable by teachers.
+ *
+ * API keys are stored as Firebase secrets — never exposed to the frontend.
+ *
+ * Expected request body:
+ * {
+ *   prompt: "The question text to generate baselines for"
+ * }
+ *
+ * Returns:
+ * {
+ *   baselines: [
+ *     { provider: "gemini", text: "...", generatedAt: "..." },
+ *     { provider: "openai", text: "...", generatedAt: "..." },
+ *     { provider: "anthropic", text: "...", generatedAt: "..." }
+ *   ]
+ * }
+ */
+exports.generateBaselines = onRequest(
+  {
+    cors: true,
+    secrets: [geminiApiKey, openaiApiKey, anthropicApiKey],
+    maxInstances: 10,
+    timeoutSeconds: 90,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    // Verify Firebase Auth token
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing authentication token" });
+    }
+
+    let uid;
+    try {
+      const token = authHeader.split("Bearer ")[1];
+      const decoded = await admin.auth().verifyIdToken(token);
+      uid = decoded.uid;
+    } catch (err) {
+      return res.status(401).json({ error: "Invalid authentication token" });
+    }
+
+    // Verify teacher role (only teachers generate baselines)
+    const userDoc = await db.collection("users").doc(uid).get();
+    if (!userDoc.exists || userDoc.data().role !== "teacher") {
+      return res.status(403).json({ error: "Only teachers can generate baselines" });
+    }
+
+    const { prompt } = req.body;
+    if (!prompt || prompt.trim().length < 10) {
+      return res.status(400).json({ error: "Prompt too short (min 10 chars)" });
+    }
+
+    const systemPrompt = `You are a student completing a classroom assignment. Answer the question directly and thoroughly. Write naturally as if you are a knowledgeable student — do not include disclaimers, caveats, or mention that you are an AI. Just answer the question.`;
+
+    // Run all providers in parallel
+    const results = await Promise.allSettled([
+      // Gemini via existing helper
+      (async () => {
+        const model = "gemini-2.5-flash-lite";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
+        const data = await callGeminiWithRetry(url, {
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 1000, temperature: 0.7 },
+        });
+        const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
+        if (!text || text.length < 20) throw new Error("Empty response");
+        return { provider: "gemini", text };
+      })(),
+
+      // OpenAI
+      (async () => {
+        const key = openaiApiKey.value();
+        if (!key) throw new Error("No OpenAI key configured");
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: prompt },
+            ],
+            max_tokens: 1000,
+            temperature: 0.7,
+          }),
+        });
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content || "";
+        if (!text || text.length < 20) throw new Error("Empty response");
+        return { provider: "openai", text };
+      })(),
+
+      // Anthropic
+      (async () => {
+        const key = anthropicApiKey.value();
+        if (!key) throw new Error("No Anthropic key configured");
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": key,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 1000,
+            system: systemPrompt,
+            messages: [{ role: "user", content: prompt }],
+          }),
+        });
+        const data = await response.json();
+        const text = data.content?.[0]?.text || "";
+        if (!text || text.length < 20) throw new Error("Empty response");
+        return { provider: "anthropic", text };
+      })(),
+    ]);
+
+    // Collect successful results
+    const baselines = results
+      .filter((r) => r.status === "fulfilled")
+      .map((r) => ({
+        ...r.value,
+        generatedAt: new Date().toISOString(),
+      }));
+
+    // Log failures for debugging (not critical)
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        const providers = ["gemini", "openai", "anthropic"];
+        console.warn(`Baseline ${providers[i]} failed:`, r.reason?.message || r.reason);
+      }
+    });
+
+    return res.json({ baselines });
   }
 );
