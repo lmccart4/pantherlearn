@@ -1,6 +1,6 @@
 // src/lib/notifications.jsx
 // Notification system for PantherLearn — per-user notification subcollection.
-// Types: grade_result, level_up, new_lesson, streak_warning, announcement, badge_earned
+// Types: grade_result, level_up, new_lesson, streak_warning, announcement, badge_earned, chat_message
 
 import {
   collection, doc, setDoc, updateDoc, getDocs, query, where,
@@ -17,6 +17,7 @@ export const NOTIF_TYPES = {
   streak_warning:  { icon: "🔥", color: "var(--red)" },
   announcement:    { icon: "📢", color: "var(--amber)" },
   badge_earned:    { icon: "🏅", color: "var(--purple)" },
+  chat_message:    { icon: "💬", color: "var(--cyan)" },
 };
 
 // ─── Create a notification for a single user ───

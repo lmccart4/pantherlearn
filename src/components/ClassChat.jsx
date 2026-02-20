@@ -9,6 +9,7 @@ import {
   addDoc, doc, setDoc, getDoc, getDocs, serverTimestamp, limit
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { createNotification } from "../lib/notifications";
 
 // ─── Chat List View ───
 function ChatList({ chats, onSelect, onNew, user, unreadMap }) {
@@ -141,6 +142,21 @@ function MessageView({ chat, user, courseId, onBack }) {
       await setDoc(doc(db, "courses", courseId, "chats", chat.id, "readBy", user.uid), {
         readAt: serverTimestamp(),
       }, { merge: true });
+
+      // Notify other chat members (fire-and-forget, don't block send)
+      const otherMembers = (chat.members || []).filter((uid) => uid !== user.uid);
+      const senderName = user.displayName || "Anonymous";
+      const preview = text.length > 80 ? text.slice(0, 80) + "..." : text;
+      otherMembers.forEach((uid) => {
+        createNotification(uid, {
+          type: "chat_message",
+          title: `💬 ${senderName}`,
+          body: preview,
+          icon: "💬",
+          link: "/messages",
+          courseId,
+        }).catch(() => {}); // Silently ignore notification failures
+      });
     } catch (err) {
       console.error("Send failed:", err);
       setInput(text); // Restore message so the user doesn't lose it
