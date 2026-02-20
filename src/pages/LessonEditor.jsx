@@ -35,6 +35,7 @@ const BLOCK_TYPES = [
   { type: "evidence_upload", label: "Evidence Upload", icon: "📷" },
   { type: "bar_chart", label: "Bar Chart", icon: "📊" },
   { type: "sketch", label: "Sketch Canvas", icon: "✏️" },
+  { type: "guess_who", label: "Guess Who?", icon: "🎭" },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -72,6 +73,7 @@ function defaultBlockData(typeInfo) {
     case "evidence_upload": return { ...base, icon: "📷", title: "Upload Evidence", instructions: "", reflectionPrompt: "What did you observe? What did you learn?" };
     case "bar_chart": return { ...base, title: "Energy Bar Chart", barCount: 4, initialLabel: "Initial State", finalLabel: "Final State", deltaLabel: "" };
     case "sketch": return { ...base, title: "Sketch", instructions: "", canvasHeight: 400 };
+    case "guess_who": return { ...base, icon: "🎭", title: "Guess Who?", instructions: "Challenge a classmate to a game of Guess Who! Take turns asking yes/no questions to identify your opponent's secret character.", characterSet: "default", customCharacters: [], xpForWin: 50, xpForPlay: 10 };
     default: return base;
   }
 }
@@ -446,6 +448,58 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
           <p style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.5 }}>
             Students drag bars up or down, and can add/remove bars per section. Each bar has a label + subscript field (e.g. K<sub>E,i</sub>). Ctrl/Cmd+click a bar to type an exact value.
           </p>
+        </>);
+      case "guess_who":
+        return (<>
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="Guess Who?" />
+          <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline placeholder="Challenge a classmate..." />
+          <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+            <div style={{ flex: 1 }}>
+              <Field label="XP for Winning" value={block.xpForWin} onChange={(v) => update("xpForWin", Math.max(0, parseInt(v) || 0))} small />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Field label="XP for Playing" value={block.xpForPlay} onChange={(v) => update("xpForPlay", Math.max(0, parseInt(v) || 0))} small />
+            </div>
+          </div>
+          <div className="editor-field">
+            <label>Character Set</label>
+            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              <button onClick={() => { update("characterSet", "default"); update("customCharacters", []); }}
+                style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", fontSize: 12, fontWeight: 600, background: block.characterSet === "default" ? "var(--amber)" : "var(--surface)", color: block.characterSet === "default" ? "#1a1a1a" : "var(--text2)" }}>
+                Default (40 AI Faces)
+              </button>
+              <button onClick={() => update("characterSet", "custom")}
+                style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", fontSize: 12, fontWeight: 600, background: block.characterSet === "custom" ? "var(--amber)" : "var(--surface)", color: block.characterSet === "custom" ? "#1a1a1a" : "var(--text2)" }}>
+                Custom
+              </button>
+            </div>
+          </div>
+          {block.characterSet === "custom" && (
+            <div className="editor-field">
+              <label>Custom Characters</label>
+              {(block.customCharacters || []).map((ch, i) => (
+                <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4 }}>
+                  <input className="editor-input" value={ch.name || ""} onChange={(e) => {
+                    const chars = [...(block.customCharacters || [])];
+                    chars[i] = { ...chars[i], name: e.target.value };
+                    update("customCharacters", chars);
+                  }} placeholder="Name" style={{ flex: 1 }} />
+                  <input className="editor-input" value={ch.imageUrl || ""} onChange={(e) => {
+                    const chars = [...(block.customCharacters || [])];
+                    chars[i] = { ...chars[i], imageUrl: e.target.value };
+                    update("customCharacters", chars);
+                  }} placeholder="Image URL" style={{ flex: 2 }} />
+                  <button onClick={() => update("customCharacters", (block.customCharacters || []).filter((_, j) => j !== i))}
+                    style={{ background: "none", border: "none", color: "var(--red)", cursor: "pointer", fontSize: 16 }}>✕</button>
+                </div>
+              ))}
+              <button onClick={() => update("customCharacters", [...(block.customCharacters || []), { id: `custom_${Date.now()}`, name: "", imageUrl: "" }])}
+                style={{ marginTop: 4, padding: "4px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text2)", cursor: "pointer", fontSize: 12 }}>
+                + Add Character
+              </button>
+              <p style={{ fontSize: 11, color: "var(--text3)", marginTop: 4 }}>Add at least 10 characters with names and image URLs.</p>
+            </div>
+          )}
         </>);
       default: return <p style={{ color: "var(--text3)" }}>Unknown block type</p>;
     }

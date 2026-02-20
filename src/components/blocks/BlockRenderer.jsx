@@ -21,6 +21,7 @@ import SimulationBlock from "./SimulationBlock";
 import EvidenceUploadBlock from "./EvidenceUploadBlock";
 import BarChartBlock from "./BarChartBlock";
 import SketchBlock from "./SketchBlock";
+import GuessWhoBlock from "./GuessWhoBlock";
 import ErrorBoundary from "./ErrorBoundary";
 
 const BLOCK_MAP = {
@@ -46,6 +47,7 @@ const BLOCK_MAP = {
   evidence_upload: EvidenceUploadBlock,
   bar_chart: BarChartBlock,
   sketch: SketchBlock,
+  guess_who: GuessWhoBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {
