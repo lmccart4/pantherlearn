@@ -5,9 +5,9 @@ import { awardXP, updateStudentGamification, getStudentGamification, getXPConfig
 import { useTranslatedText, useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 
-export default function QuestionBlock({ block, studentData, onAnswer, courseId, lessonCompleted, allStudentData }) {
+export default function QuestionBlock({ block, studentData = {}, onAnswer, courseId, lessonCompleted, allStudentData }) {
   const { user } = useAuth();
-  const data = studentData[block.id] || {};
+  const data = (studentData && studentData[block.id]) || {};
   const [selected, setSelected] = useState(data.answer ?? null);
   const [textAnswer, setTextAnswer] = useState(data.answer ?? "");
   const [rankingOrder, setRankingOrder] = useState(data.answer || null);

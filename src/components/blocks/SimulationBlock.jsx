@@ -4,8 +4,8 @@
 import { useState, useCallback } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 
-export default function SimulationBlock({ block, studentData, onAnswer }) {
-  const data = studentData[block.id] || {};
+export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
+  const data = (studentData && studentData[block.id]) || {};
   const [observation, setObservation] = useState(data.observation || "");
 
   const performSave = useCallback(() => {

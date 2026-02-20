@@ -5,8 +5,8 @@
 import { useState, useCallback } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 
-export default function EvidenceUploadBlock({ block, studentData, onAnswer }) {
-  const data = studentData[block.id] || {};
+export default function EvidenceUploadBlock({ block, studentData = {}, onAnswer }) {
+  const data = (studentData && studentData[block.id]) || {};
   const [images, setImages] = useState(data.images || []);
   const [reflection, setReflection] = useState(data.reflection || "");
 
