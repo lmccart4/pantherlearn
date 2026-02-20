@@ -391,35 +391,25 @@ export default function GuessWhoGame() {
 
               {/* Asking mode */}
               {myTurnToAsk && (
-                <div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <input
-                      value={questionInput}
-                      onChange={(e) => setQuestionInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAsk()}
-                      placeholder="Ask a yes/no question..."
-                      style={{
-                        flex: 1, padding: "8px 12px", borderRadius: 8,
-                        border: "1px solid var(--border)", background: "var(--bg)",
-                        color: "var(--text)", fontSize: 13, outline: "none",
-                      }}
-                    />
-                    <button onClick={handleAsk} disabled={!questionInput.trim() || sending}
-                      style={{
-                        padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer",
-                        background: "var(--amber)", color: "#1a1a1a", fontWeight: 700, fontSize: 13,
-                        opacity: (!questionInput.trim() || sending) ? 0.5 : 1,
-                      }}>
-                      Ask
-                    </button>
-                  </div>
-                  <button onClick={() => setShowGuessModal(true)} disabled={sending}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input
+                    value={questionInput}
+                    onChange={(e) => setQuestionInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAsk()}
+                    placeholder="Ask a yes/no question..."
                     style={{
-                      width: "100%", marginTop: 8, padding: "8px 0", borderRadius: 8,
-                      border: "1px solid var(--purple)", background: "rgba(176,142,255,0.08)",
-                      color: "var(--purple)", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                      flex: 1, padding: "8px 12px", borderRadius: 8,
+                      border: "1px solid var(--border)", background: "var(--bg)",
+                      color: "var(--text)", fontSize: 13, outline: "none",
+                    }}
+                  />
+                  <button onClick={handleAsk} disabled={!questionInput.trim() || sending}
+                    style={{
+                      padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                      background: "var(--amber)", color: "#1a1a1a", fontWeight: 700, fontSize: 13,
+                      opacity: (!questionInput.trim() || sending) ? 0.5 : 1,
                     }}>
-                    🎯 Make Final Guess
+                    Ask
                   </button>
                 </div>
               )}
@@ -429,6 +419,18 @@ export default function GuessWhoGame() {
                 <p style={{ textAlign: "center", color: "var(--text3)", fontSize: 12, margin: 0 }}>
                   Waiting for opponent...
                 </p>
+              )}
+
+              {/* Final guess — always available when it's your turn */}
+              {isMyTurn && (
+                <button onClick={() => setShowGuessModal(true)} disabled={sending}
+                  style={{
+                    width: "100%", marginTop: 8, padding: "8px 0", borderRadius: 8,
+                    border: "1px solid var(--purple)", background: "rgba(176,142,255,0.08)",
+                    color: "var(--purple)", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                  }}>
+                  🎯 Make Final Guess
+                </button>
               )}
 
               {/* Forfeit */}
