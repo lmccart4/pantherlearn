@@ -33,7 +33,7 @@ export default function TopBar() {
 
       <div className="top-nav-links">
         <Link to="/" className={isActive("/")} data-translatable>{isTeacher ? "Dashboard" : ui(0, "Dashboard")}</Link>
-        <Link to="/avatar" className={isActive("/avatar")} data-translatable>⚔️ {isTeacher ? "Character" : ui(1, "Character")}</Link>
+        <Link to="/avatar" className={isActive("/avatar")} data-translatable>{isTeacher ? "Character" : `⚔️ ${ui(1, "Character")}`}</Link>
         {!isTeacher && <Link to="/my-grades" className={isActive("/my-grades")} data-translatable>📊 {ui(3, "My Grades")}</Link>}
         {isTeacher && <Link to="/editor" className={isActive("/editor")}>Editor</Link>}
         {isTeacher && <Link to="/grading" className={isActive("/grading")}>Grading</Link>}
