@@ -38,6 +38,7 @@ export default function TopBar() {
         {isTeacher && <Link to="/editor" className={isActive("/editor")}>Editor</Link>}
         {isTeacher && <Link to="/grading" className={isActive("/grading")}>Grading</Link>}
         {isTeacher && <Link to="/progress" className={isActive("/progress")}>Progress</Link>}
+        {isTeacher && <Link to="/analytics" className={isActive("/analytics")}>Analytics</Link>}
         {isTeacher && <Link to="/rosters" className={isActive("/rosters")}>Rosters</Link>}
         {isTeacher && <Link to="/messages" className={isActive("/messages")}>Messages</Link>}
       </div>
