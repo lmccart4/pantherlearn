@@ -98,7 +98,7 @@ export default function LessonView({ courseResponses, courseLogs, selectedLesson
             {getFilteredLogs().length === 0 ? (
               <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>No chat conversations for this lesson</div>
             ) : getFilteredLogs().map((log) => (
-              <ChatLogCard key={log.id} log={log} helpers={helpers} />
+              <ChatLogCard key={log.id} log={log} helpers={helpers} onSelectStudent={handleSelectStudent} />
             ))}
           </div>
         </div>

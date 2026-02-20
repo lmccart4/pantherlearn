@@ -4,7 +4,7 @@ import ChatLogCard from "./ChatLogCard";
 import WrittenResponseCard from "./WrittenResponseCard";
 import SearchSortBar from "./SearchSortBar";
 
-export default function CourseOverview({ courseResponses, courseLogs, activeTab, setSelectedLesson, helpers }) {
+export default function CourseOverview({ courseResponses, courseLogs, activeTab, setSelectedLesson, setSelectedStudent, helpers }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("recent");
   const { getStudentName, getStudentEmail, getLessonTitle } = helpers;
@@ -90,7 +90,7 @@ export default function CourseOverview({ courseResponses, courseLogs, activeTab,
           {courseResponses.length === 0 ? (
             <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>No written responses to review yet</div>
           ) : courseResponses.map((item) => (
-            <WrittenResponseCard key={item.id} item={item} helpers={helpers} onSelectStudent={() => {}} selectedLesson={null} />
+            <WrittenResponseCard key={item.id} item={item} helpers={helpers} onSelectStudent={(studentId, lessonId) => { if (lessonId) setSelectedLesson(lessonId); setSelectedStudent(studentId); }} selectedLesson={null} />
           ))}
         </div>
       ) : (
@@ -100,7 +100,7 @@ export default function CourseOverview({ courseResponses, courseLogs, activeTab,
             {getFilteredLogs().length === 0 ? (
               <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>No chat conversations yet</div>
             ) : getFilteredLogs().map((log) => (
-              <ChatLogCard key={log.id} log={log} helpers={helpers} />
+              <ChatLogCard key={log.id} log={log} helpers={helpers} onSelectStudent={(studentId, lessonId) => { if (lessonId) setSelectedLesson(lessonId); setSelectedStudent(studentId); }} />
             ))}
           </div>
         </div>

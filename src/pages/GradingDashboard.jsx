@@ -426,6 +426,7 @@ export default function GradingDashboard() {
                 courseLogs={courseLogs}
                 activeTab={activeTab}
                 setSelectedLesson={handleSelectLesson}
+                setSelectedStudent={setSelectedStudent}
                 helpers={helpers}
               />
             )}
