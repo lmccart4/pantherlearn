@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "guessWhoGames",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "blockId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
