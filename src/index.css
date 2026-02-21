@@ -1089,19 +1089,8 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
 }
 .evidence-pdf-btn:hover { background: var(--surface3, var(--surface2)); color: var(--text); border-color: var(--amber); }
 
-/* Print styles */
-@media print {
-  body * { visibility: hidden; }
-  .evidence-print-area, .evidence-print-area * { visibility: visible; }
-  .evidence-print-area {
-    position: absolute; left: 0; top: 0; width: 100%; padding: 20px;
-    background: white; color: #1a1a1a;
-  }
-  .evidence-day-tabs, .evidence-week-nav button, .evidence-pdf-btn,
-  .evidence-photo-remove, .evidence-upload-zone { display: none; }
-  .evidence-print-area .card { background: white; border: 1px solid #ddd; box-shadow: none; }
-  .evidence-print-area img { max-height: 200px; }
-}
+/* PDF button disabled */
+.evidence-pdf-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ─── Push Notification Opt-In ─── */
 .push-optin {
