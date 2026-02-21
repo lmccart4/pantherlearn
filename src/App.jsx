@@ -8,6 +8,7 @@ import { TranslationProvider } from "./contexts/TranslationContext";
 import { PreviewProvider } from "./contexts/PreviewContext";
 import PreviewBanner from "./components/PreviewBanner";
 import OfflineBanner from "./components/OfflineBanner";
+import usePushNotifications from "./hooks/usePushNotifications";
 
 // Lazy-loaded widgets — only needed after auth, load in background
 const ClassChat = lazy(() => import("./components/ClassChat"));
@@ -15,6 +16,7 @@ const FloatingMusicPlayer = lazy(() => import("./components/FloatingMusicPlayer"
 const AnnotationOverlay = lazy(() => import("./components/AnnotationOverlay"));
 const ScreenReader = lazy(() => import("./components/ScreenReader"));
 const BugReporter = lazy(() => import("./components/BugReporter"));
+const PushOptIn = lazy(() => import("./components/PushOptIn"));
 
 // Lazy-loaded pages
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -73,6 +75,7 @@ function ScrollToTop() {
 
 function AppRoutes() {
   const { user, loading } = useAuth();
+  const { showOptIn, handleEnable, handleDismiss } = usePushNotifications();
 
   if (loading) return <LoadingSpinner />;
 
@@ -115,6 +118,7 @@ function AppRoutes() {
           </Route>
         </Routes>
       </Suspense>
+      {showOptIn && <Suspense fallback={null}><PushOptIn onEnable={handleEnable} onDismiss={handleDismiss} /></Suspense>}
       {user && <Suspense fallback={null}><ClassChat /></Suspense>}
       {user && <Suspense fallback={null}><FloatingMusicPlayer /></Suspense>}
       {user && <Suspense fallback={null}><AnnotationOverlay /></Suspense>}

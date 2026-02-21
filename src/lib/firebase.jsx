@@ -1,7 +1,7 @@
 // src/lib/firebase.jsx
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, updateDoc, arrayUnion } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -26,6 +26,52 @@ export const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const logOut = () => signOut(auth);
+
+// ─── FCM Push Notifications (lazy-loaded) ───
+
+let messagingInstance = null;
+
+async function getMessagingInstance() {
+  if (messagingInstance) return messagingInstance;
+  const { getMessaging } = await import("firebase/messaging");
+  messagingInstance = getMessaging(app);
+  return messagingInstance;
+}
+
+export async function requestPushToken(uid) {
+  if (!("Notification" in window)) return null;
+  if (Notification.permission === "denied") return null;
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return null;
+
+    const swReg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    const messaging = await getMessagingInstance();
+    const { getToken } = await import("firebase/messaging");
+
+    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+    const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: swReg });
+    if (!token) return null;
+
+    // Store token on user doc (supports multiple devices via arrayUnion)
+    await updateDoc(doc(db, "users", uid), { fcmTokens: arrayUnion(token), pushEnabled: true });
+    return token;
+  } catch (err) {
+    console.warn("Push token registration failed:", err);
+    return null;
+  }
+}
+
+export async function onForegroundMessage(callback) {
+  try {
+    const messaging = await getMessagingInstance();
+    const { onMessage } = await import("firebase/messaging");
+    return onMessage(messaging, callback);
+  } catch {
+    return () => {};
+  }
+}
 
 // Sign in with additional Classroom scopes (for teacher roster sync)
 export const signInWithClassroom = async () => {

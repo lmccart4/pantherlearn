@@ -1,5 +1,6 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 
@@ -925,3 +926,117 @@ exports.computeEngagementScores = onSchedule(
     console.log(`Engagement scores computed: ${totalScored} students across ${courses.length} courses`);
   }
 );
+
+// ─────────────────────────────────────────────────────────────────
+// Push Notification — send FCM message when a notification doc is created
+// ─────────────────────────────────────────────────────────────────
+exports.sendPushNotification = onDocumentCreated(
+  "users/{uid}/notifications/{notifId}",
+  async (event) => {
+    const uid = event.params.uid;
+    const notifData = event.data.data();
+
+    // Look up user's FCM tokens
+    const userDoc = await db.collection("users").doc(uid).get();
+    const tokens = userDoc.exists ? (userDoc.data().fcmTokens || []) : [];
+    if (tokens.length === 0) return;
+
+    // Build data-only message (gives full control in service worker)
+    const message = {
+      tokens,
+      data: {
+        title: notifData.title || "PantherLearn",
+        body: notifData.body || "",
+        icon: notifData.icon || "🔔",
+        link: notifData.link || "/",
+        type: notifData.type || "announcement",
+      },
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+
+    // Clean up invalid tokens
+    if (response.failureCount > 0) {
+      const invalidTokens = [];
+      response.responses.forEach((resp, idx) => {
+        if (resp.error) {
+          const code = resp.error.code;
+          if (
+            code === "messaging/invalid-registration-token" ||
+            code === "messaging/registration-token-not-registered"
+          ) {
+            invalidTokens.push(tokens[idx]);
+          }
+        }
+      });
+      if (invalidTokens.length > 0) {
+        await db.collection("users").doc(uid).update({
+          fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
+        });
+      }
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────
+// Due Date Reminders — daily at 8am, notify students of lessons due tomorrow
+// ─────────────────────────────────────────────────────────────────
+exports.sendDueDateReminders = onSchedule("every day 08:00", async () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10); // YYYY-MM-DD
+
+  const coursesSnap = await db.collection("courses").get();
+
+  for (const courseDoc of coursesSnap.docs) {
+    const courseData = courseDoc.data();
+    const courseId = courseDoc.id;
+
+    // Find lessons due tomorrow
+    const lessonsSnap = await db
+      .collection("courses").doc(courseId)
+      .collection("lessons")
+      .where("dueDate", "==", tomorrowStr)
+      .get();
+
+    if (lessonsSnap.empty) continue;
+
+    // Get enrolled students
+    const enrollSnap = await db
+      .collection("enrollments")
+      .where("courseId", "==", courseId)
+      .get();
+
+    const studentUids = enrollSnap.docs
+      .map((d) => d.data().uid || d.data().studentUid)
+      .filter(Boolean);
+
+    if (studentUids.length === 0) continue;
+
+    for (const lessonDoc of lessonsSnap.docs) {
+      const lessonData = lessonDoc.data();
+      const lessonId = lessonDoc.id;
+
+      for (const uid of studentUids) {
+        // Check if already completed
+        const progressDoc = await db
+          .doc(`progress/${uid}/courses/${courseId}/lessons/${lessonId}`)
+          .get();
+
+        if (progressDoc.exists && progressDoc.data().completed) continue;
+
+        // Create notification (triggers sendPushNotification automatically)
+        await db.collection("users").doc(uid).collection("notifications").add({
+          type: "streak_warning",
+          title: `📌 Due tomorrow: ${lessonData.title || "Lesson"}`,
+          body: `${courseData.title || "Course"} — don't forget to finish!`,
+          icon: "📌",
+          link: `/course/${courseId}/lesson/${lessonId}`,
+          courseId,
+          read: false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    }
+  }
+});
