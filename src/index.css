@@ -1011,6 +1011,28 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
   color: var(--text2); font-size: 13px;
 }
 
+/* ─── Push Notification Opt-In ─── */
+.push-optin {
+  display: flex; align-items: center; gap: 12px;
+  max-width: 700px; margin: 12px auto 0; padding: 12px 18px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); animation: fadeIn 0.3s ease;
+}
+.push-optin-icon { font-size: 20px; flex-shrink: 0; }
+.push-optin-text { flex: 1; font-size: 13px; color: var(--text2); }
+.push-optin-btn {
+  padding: 6px 14px; border-radius: 8px; font-size: 12px;
+  font-weight: 600; cursor: pointer; border: none; white-space: nowrap;
+}
+.push-optin-enable { background: var(--amber); color: var(--bg); }
+.push-optin-enable:hover { filter: brightness(1.1); }
+.push-optin-dismiss { background: transparent; color: var(--text3); border: 1px solid var(--border); }
+.push-optin-dismiss:hover { background: var(--surface2); }
+@media (max-width: 520px) {
+  .push-optin { flex-wrap: wrap; gap: 8px; }
+  .push-optin-text { width: 100%; }
+}
+
 /* ─── Offline Banner ─── */
 @keyframes offlineBannerSlide {
   from { opacity: 0; transform: translateX(-50%) translateY(20px); }
