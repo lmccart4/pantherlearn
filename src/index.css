@@ -1011,6 +1011,16 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
   color: var(--text2); font-size: 13px;
 }
 
+/* ─── Weekly Evidence Log ─── */
+.evidence-week-card { overflow: hidden; }
+.evidence-week-current { border-left: 3px solid var(--amber); }
+.evidence-week-header {
+  display: flex; align-items: center; width: 100%; padding: 14px 20px;
+  background: none; border: none; cursor: pointer; color: inherit;
+  font-family: inherit; text-align: left;
+}
+.evidence-week-header:hover { background: var(--surface2); }
+
 /* ─── Push Notification Opt-In ─── */
 .push-optin {
   display: flex; align-items: center; gap: 12px;

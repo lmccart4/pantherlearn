@@ -153,7 +153,28 @@ export default function CoursePage() {
             <Link to={`/boss-battle/${courseId}`} style={{ fontSize: 13, color: "#e74c3c", textDecoration: "none", fontWeight: 600, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)" }}>
               ⚔️ Boss Battle
             </Link>
+            <Link to={`/course/${courseId}/evidence`} style={{ fontSize: 13, color: "var(--green, #10b981)", textDecoration: "none", fontWeight: 600, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)" }}>
+              📸 Evidence Log
+            </Link>
           </div>
+        )}
+
+        {/* Evidence Log link for students */}
+        {!isTeacher && course.evidenceConfig?.enabled && (
+          <Link to={`/course/${courseId}/evidence`} className="card" style={{
+            display: "flex", alignItems: "center", gap: 14, marginBottom: 16,
+            textDecoration: "none", color: "inherit", cursor: "pointer",
+          }}>
+            <div style={{
+              fontSize: 24, width: 44, height: 44, borderRadius: 10,
+              background: "rgba(16, 185, 129, 0.12)", display: "flex", alignItems: "center", justifyContent: "center",
+            }}>📸</div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>Weekly Evidence Log</div>
+              <div style={{ fontSize: 12, color: "var(--text3)" }}>Upload photos and reflections each week</div>
+            </div>
+            <div style={{ marginLeft: "auto", color: "var(--text3)", fontSize: 18 }}>→</div>
+          </Link>
         )}
 
         {/* Team Panel (students see their team here) */}
