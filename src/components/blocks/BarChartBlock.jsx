@@ -8,11 +8,20 @@
 // Labels rendered with KaTeX for proper math typesetting (K_{E,i} etc.).
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import katex from "katex";
-import "katex/dist/katex.min.css";
-// Note: KaTeX is ~260KB but only loaded when BarChartBlock is rendered
-// (it's already code-split via the LessonViewer lazy route).
 import useAutoSave from "../../hooks/useAutoSave.jsx";
+
+// Lazy-load KaTeX (~130KB) only when this component mounts
+let katexModule = null;
+const loadKatex = () => {
+  if (katexModule) return Promise.resolve(katexModule);
+  return Promise.all([
+    import("katex"),
+    import("katex/dist/katex.min.css"),
+  ]).then(([mod]) => {
+    katexModule = mod.default;
+    return katexModule;
+  });
+};
 
 const COLORS = {
   initial: {
@@ -56,8 +65,14 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
   const [editingValue, setEditingValue] = useState("");
   const [editingLabel, setEditingLabel] = useState(null); // "section-idx" or null
 
+  const [katexReady, setKatexReady] = useState(!!katexModule);
   const containerRef = useRef(null);
   const dragRef = useRef({ active: false, section: null, barIdx: null, el: null });
+
+  // Load KaTeX on mount
+  useEffect(() => {
+    if (!katexModule) loadKatex().then(() => setKatexReady(true));
+  }, []);
   const initialRef = useRef(initialBars);
   const deltaRef = useRef(deltaBars);
   const finalRef = useRef(finalBars);
@@ -167,8 +182,9 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     if (!label && !subscript) return null;
     let tex = label || "\\;";
     if (subscript) tex += `_{${subscript}}`;
+    if (!katexModule) return { __html: label + (subscript ? `<sub>${subscript}</sub>` : "") };
     try {
-      return { __html: katex.renderToString(tex, { throwOnError: false, displayMode: false }) };
+      return { __html: katexModule.renderToString(tex, { throwOnError: false, displayMode: false }) };
     } catch {
       return { __html: label + (subscript ? `<sub>${subscript}</sub>` : "") };
     }

@@ -1,7 +1,7 @@
 // src/pages/LessonViewer.jsx
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import BlockRenderer from "../components/blocks/BlockRenderer";
@@ -41,33 +41,29 @@ export default function LessonViewer() {
     realChatLogs
   );
 
-  // Fetch lesson data
+  // Real-time lesson content — teacher edits propagate live
   useEffect(() => {
-    const fetchLesson = async () => {
-      try {
-        const lessonRef = doc(db, "courses", courseId, "lessons", lessonId);
-        const lessonDoc = await getDoc(lessonRef);
-        if (lessonDoc.exists()) {
-          setLesson({ id: lessonDoc.id, ...lessonDoc.data() });
-        }
-
-        // Fetch student progress
-        if (user) {
-          const progressRef = doc(
-            db, "progress", user.uid, "courses", courseId, "lessons", lessonId
-          );
-          const progressDoc = await getDoc(progressRef);
-          if (progressDoc.exists()) {
-            setRealStudentData(progressDoc.data().answers || {});
-            if (progressDoc.data().completed) setLessonCompleted(true);
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching lesson:", err);
-      }
+    const lessonRef = doc(db, "courses", courseId, "lessons", lessonId);
+    const unsub = onSnapshot(lessonRef, (snap) => {
+      if (snap.exists()) setLesson({ id: snap.id, ...snap.data() });
       setLoading(false);
-    };
-    fetchLesson();
+    }, (err) => {
+      console.error("Lesson listener error:", err);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [courseId, lessonId]);
+
+  // One-shot student progress (student writes updates locally; no need for listener)
+  useEffect(() => {
+    if (!user) return;
+    const progressRef = doc(db, "progress", user.uid, "courses", courseId, "lessons", lessonId);
+    getDoc(progressRef).then((snap) => {
+      if (snap.exists()) {
+        setRealStudentData(snap.data().answers || {});
+        if (snap.data().completed) setLessonCompleted(true);
+      }
+    }).catch((err) => console.error("Error fetching progress:", err));
   }, [courseId, lessonId, user]);
 
   // Track latest student data for Firestore writes without stale closures
