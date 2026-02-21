@@ -5,7 +5,7 @@
 import { db } from "./firebase";
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc,
-  query, where, serverTimestamp, writeBatch
+  query, where, serverTimestamp, writeBatch, arrayUnion, arrayRemove
 } from "firebase/firestore";
 
 // ═══════════════════════════════════════
@@ -268,4 +268,45 @@ export async function regenerateEnrollCode(courseId, courseTitle) {
   const newCode = await generateEnrollCode(courseTitle);
   await updateDoc(doc(db, "courses", courseId), { enrollCode: newCode });
   return newCode;
+}
+
+// ═══════════════════════════════════════
+// CO-TEACHER MANAGEMENT
+// ═══════════════════════════════════════
+
+/**
+ * Enrolls a teacher as a co-teacher on a course.
+ * Uses the same enroll code students use — the caller determines this is a teacher.
+ */
+export async function enrollAsCoTeacher(teacherUid, enrollCode) {
+  const course = await findCourseByEnrollCode(enrollCode);
+  if (!course) {
+    throw new Error("Invalid enroll code. Please check and try again.");
+  }
+
+  // Can't co-teach your own course
+  if (course.ownerUid === teacherUid) {
+    throw new Error("You already own this course.");
+  }
+
+  // Check if already a co-teacher
+  if ((course.coTeachers || []).includes(teacherUid)) {
+    return { ...course, joinedAsCoTeacher: true };
+  }
+
+  // Add teacher UID to the course's coTeachers array
+  await updateDoc(doc(db, "courses", course.id), {
+    coTeachers: arrayUnion(teacherUid),
+  });
+
+  return { ...course, joinedAsCoTeacher: true };
+}
+
+/**
+ * Removes a co-teacher from a course (owner only).
+ */
+export async function removeCoTeacher(courseId, teacherUid) {
+  await updateDoc(doc(db, "courses", courseId), {
+    coTeachers: arrayRemove(teacherUid),
+  });
 }

@@ -15,12 +15,20 @@ service cloud.firestore {
       return isTeacher()
         && get(/databases/$(database)/documents/courses/$(courseId)).data.ownerUid == request.auth.uid;
     }
+    // Co-teacher support: owner OR any teacher in the coTeachers array
+    function isCourseTeacher(courseId) {
+      let course = get(/databases/$(database)/documents/courses/$(courseId)).data;
+      return isTeacher() && (
+        course.ownerUid == request.auth.uid
+        || (course.coTeachers != null && request.auth.uid in course.coTeachers)
+      );
+    }
     function isEnrolledStudent(courseId) {
       return isLoggedIn()
         && courseId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.enrolledCourses;
     }
     function hasCourseAccess(courseId) {
-      return isCourseOwner(courseId) || isEnrolledStudent(courseId);
+      return isCourseTeacher(courseId) || isEnrolledStudent(courseId);
     }
     match /users/{uid} {
       allow read: if isLoggedIn();
@@ -35,31 +43,33 @@ service cloud.firestore {
     match /courses/{courseId} {
       allow read: if isLoggedIn();
       allow create: if isTeacher();
-      allow update, delete: if isCourseOwner(courseId);
+      // Co-teachers can update course doc; only owner can delete
+      allow update: if isCourseTeacher(courseId);
+      allow delete: if isCourseOwner(courseId);
       match /lessons/{lessonId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if isCourseOwner(courseId);
+        allow write: if isCourseTeacher(courseId);
       }
-      // Announcements: enrolled students + teacher can read, course owner can write
+      // Announcements: enrolled students + teacher can read, course teachers can write
       match /announcements/{annId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if isCourseOwner(courseId);
+        allow write: if isCourseTeacher(courseId);
       }
       match /settings/{settingId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if isCourseOwner(courseId);
+        allow write: if isCourseTeacher(courseId);
       }
       match /teams/{teamId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if isCourseOwner(courseId);
+        allow write: if isCourseTeacher(courseId);
       }
       match /mana/{docId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if isCourseOwner(courseId);
+        allow write: if isCourseTeacher(courseId);
       }
       match /bossBattles/{battleId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if isCourseOwner(courseId);
+        allow write: if isCourseTeacher(courseId);
       }
       match /guessWhoGames/{gameId} {
         allow read: if hasCourseAccess(courseId);
@@ -68,30 +78,30 @@ service cloud.firestore {
       }
       match /gamification/{uid} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if isOwner(uid) || isCourseOwner(courseId);
+        allow write: if isOwner(uid) || isCourseTeacher(courseId);
       }
       match /chatLogs/{lessonId}/{blockId}/{studentId} {
         // Students can only read their OWN chat logs; teachers can read all
-        allow read: if isOwner(studentId) || isCourseOwner(courseId);
-        allow write: if isOwner(studentId) || isCourseOwner(courseId);
+        allow read: if isOwner(studentId) || isCourseTeacher(courseId);
+        allow write: if isOwner(studentId) || isCourseTeacher(courseId);
       }
       match /perkRequests/{requestId} {
         allow read: if hasCourseAccess(courseId);
         allow create: if hasCourseAccess(courseId);
-        allow update, delete: if isCourseOwner(courseId);
+        allow update, delete: if isCourseTeacher(courseId);
       }
       match /enrollments/{uid} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if isOwner(uid) || isCourseOwner(courseId);
+        allow write: if isOwner(uid) || isCourseTeacher(courseId);
       }
       // Grades (teacher-graded entries + reflection gradebook)
       match /grades/{gradeId} {
         // Students can only read their own grades; teachers can read all
-        allow read: if isCourseOwner(courseId)
+        allow read: if isCourseTeacher(courseId)
           || (isEnrolledStudent(courseId)
               && gradeId.matches("reflection_" + request.auth.uid + "_.*"));
         // Teachers can write any grade; students can only write their own reflection grades
-        allow write: if isCourseOwner(courseId)
+        allow write: if isCourseTeacher(courseId)
           || (isEnrolledStudent(courseId)
               && gradeId.matches("reflection_" + request.auth.uid + "_.*")
               && request.resource.data.studentId == request.auth.uid);
@@ -99,12 +109,12 @@ service cloud.firestore {
       // Reflections (read by MyGrades + StudentProgress)
       match /reflections/{reflectionId} {
         // Students can only read their own reflections; teachers can read all
-        allow read: if isCourseOwner(courseId)
+        allow read: if isCourseTeacher(courseId)
           || (isEnrolledStudent(courseId)
               && resource.data.studentId == request.auth.uid);
         // Teachers can write any reflection; students can only write their own
         // Cloud Function uses admin SDK and bypasses these rules
-        allow write: if isCourseOwner(courseId)
+        allow write: if isCourseTeacher(courseId)
           || (isEnrolledStudent(courseId)
               && reflectionId.matches(request.auth.uid + "_.*")
               && request.resource.data.studentId == request.auth.uid);

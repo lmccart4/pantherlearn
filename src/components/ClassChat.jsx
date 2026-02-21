@@ -306,17 +306,23 @@ function NewChatView({ courseId, user, userRole, onCreated, onBack }) {
         // Build final list
         const result = [...enrolledStudents];
 
-        // For students: add only the course owner (teacher), not all teachers
+        // For students: add course owner and co-teachers to the member list
         if (userRole !== "teacher") {
           try {
             const courseDoc = await getDoc(doc(db, "courses", courseId));
-            const ownerUid = courseDoc.exists() ? courseDoc.data().ownerUid : null;
-            if (ownerUid && ownerUid !== user.uid) {
+            if (courseDoc.exists()) {
+              const courseData = courseDoc.data();
+              const teacherUids = [courseData.ownerUid, ...(courseData.coTeachers || [])].filter(Boolean);
               const existingUids = new Set(result.map((r) => r.uid));
-              if (!existingUids.has(ownerUid)) {
-                const ownerDoc = await getDoc(doc(db, "users", ownerUid));
-                if (ownerDoc.exists()) {
-                  result.push({ uid: ownerUid, ...ownerDoc.data() });
+              for (const tUid of teacherUids) {
+                if (tUid !== user.uid && !existingUids.has(tUid)) {
+                  try {
+                    const teacherDoc = await getDoc(doc(db, "users", tUid));
+                    if (teacherDoc.exists()) {
+                      result.push({ uid: tUid, ...teacherDoc.data() });
+                      existingUids.add(tUid);
+                    }
+                  } catch (e) { /* ignore */ }
                 }
               }
             }
