@@ -45,6 +45,10 @@ service cloud.firestore {
       allow create: if isTeacher();
       // Co-teachers can update course doc; only owner can delete
       allow update: if isCourseTeacher(courseId);
+      // Allow any teacher to add themselves as a co-teacher (self-join via enroll code)
+      allow update: if isTeacher()
+        && request.auth.uid in request.resource.data.coTeachers
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["coTeachers"]);
       allow delete: if isCourseOwner(courseId);
       match /lessons/{lessonId} {
         allow read: if hasCourseAccess(courseId);
