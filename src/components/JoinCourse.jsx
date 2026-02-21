@@ -1,15 +1,18 @@
 // src/components/JoinCourse.jsx
-// Modal for students to enter an enroll code and join a course.
+// Modal for students to enter an enroll code and join a course,
+// or for teachers to join as a co-teacher.
 
 import { useState } from "react";
-import { enrollWithCode } from "../lib/enrollment";
+import { enrollWithCode, enrollAsCoTeacher } from "../lib/enrollment";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
-export default function JoinCourse({ user, onEnrolled, onClose }) {
+export default function JoinCourse({ user, onEnrolled, onClose, role = "student" }) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+
+  const isTeacherJoin = role === "teacher";
 
   // Translate UI strings
   const uiStrings = useTranslatedTexts([
@@ -30,8 +33,14 @@ export default function JoinCourse({ user, onEnrolled, onClose }) {
     setSuccess(null);
 
     try {
-      const course = await enrollWithCode(user.uid, user.email, code.trim());
-      setSuccess(`Enrolled in ${course.title}!`);
+      let course;
+      if (isTeacherJoin) {
+        course = await enrollAsCoTeacher(user.uid, code.trim());
+        setSuccess(`Joined "${course.title}" as co-teacher!`);
+      } else {
+        course = await enrollWithCode(user.uid, user.email, code.trim());
+        setSuccess(`Enrolled in ${course.title}!`);
+      }
       setTimeout(() => {
         onEnrolled?.(course);
         onClose?.();
@@ -47,9 +56,15 @@ export default function JoinCourse({ user, onEnrolled, onClose }) {
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
-          <span style={{ fontSize: 28 }}>🔑</span>
-          <h2 style={styles.title} data-translatable>{ui(0, "Join a Course")}</h2>
-          <p style={styles.subtitle} data-translatable>{ui(1, "Enter the enroll code from your teacher")}</p>
+          <span style={{ fontSize: 28 }}>{isTeacherJoin ? "👥" : "🔑"}</span>
+          <h2 style={styles.title} data-translatable>
+            {isTeacherJoin ? "Join as Co-Teacher" : ui(0, "Join a Course")}
+          </h2>
+          <p style={styles.subtitle} data-translatable>
+            {isTeacherJoin
+              ? "Enter the enroll code to co-teach a course"
+              : ui(1, "Enter the enroll code from your teacher")}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} style={styles.form}>
@@ -100,7 +115,11 @@ export default function JoinCourse({ user, onEnrolled, onClose }) {
               style={{ opacity: loading || code.replace("-", "").length < 8 ? 0.5 : 1 }}
               data-translatable
             >
-              {loading ? ui(3, "Joining...") : ui(4, "Join Course")}
+              {loading
+                ? ui(3, "Joining...")
+                : isTeacherJoin
+                  ? "Join as Co-Teacher"
+                  : ui(4, "Join Course")}
             </button>
           </div>
         </form>

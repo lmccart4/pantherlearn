@@ -2,10 +2,11 @@
 import { useAuth } from "../hooks/useAuth";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy, doc, setDoc, addDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, setDoc, addDoc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { generateEnrollCode } from "../lib/enrollment";
+import { generateEnrollCode, removeCoTeacher } from "../lib/enrollment";
 import AnnouncementComposer from "../components/AnnouncementComposer";
+import JoinCourse from "../components/JoinCourse";
 
 export default function TeacherDashboard() {
   const { user, nickname } = useAuth();
@@ -24,6 +25,9 @@ export default function TeacherDashboard() {
 
   const [editingIcon, setEditingIcon] = useState(null); // courseId
   const [announceCourse, setAnnounceCourse] = useState(null); // { id, title } for composer modal
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [coTeacherNames, setCoTeacherNames] = useState({}); // { uid: displayName }
+  const [expandedCoTeachers, setExpandedCoTeachers] = useState(null); // courseId
 
   const firstName = nickname || user?.displayName?.split(" ")[0] || "there";
 
@@ -32,8 +36,40 @@ export default function TeacherDashboard() {
       const q = query(collection(db, "courses"), orderBy("order", "asc"));
       const snapshot = await getDocs(q);
       const all = snapshot.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden);
-      setMyCourses(all.filter((c) => c.ownerUid === user.uid));
-      setOtherCourses(all.filter((c) => c.ownerUid && c.ownerUid !== user.uid));
+      // "My Courses" = owned OR co-teaching
+      setMyCourses(all.filter((c) =>
+        c.ownerUid === user.uid || (c.coTeachers || []).includes(user.uid)
+      ));
+      // "Other Courses" = not owned and not co-teaching
+      setOtherCourses(all.filter((c) =>
+        c.ownerUid && c.ownerUid !== user.uid && !(c.coTeachers || []).includes(user.uid)
+      ));
+
+      // Resolve co-teacher display names for owned courses
+      const allCoTeacherUids = new Set();
+      all.forEach((c) => {
+        if (c.ownerUid === user.uid && c.coTeachers) {
+          c.coTeachers.forEach((uid) => allCoTeacherUids.add(uid));
+        }
+      });
+      if (allCoTeacherUids.size > 0) {
+        const names = { ...coTeacherNames };
+        for (const uid of allCoTeacherUids) {
+          if (!names[uid]) {
+            try {
+              const userDoc = await getDoc(doc(db, "users", uid));
+              if (userDoc.exists()) {
+                names[uid] = userDoc.data().displayName || userDoc.data().email || uid;
+              } else {
+                names[uid] = uid;
+              }
+            } catch (e) {
+              names[uid] = uid;
+            }
+          }
+        }
+        setCoTeacherNames(names);
+      }
     } catch (err) {
       console.error("Error fetching teacher dashboard:", err);
     }
@@ -55,6 +91,7 @@ export default function TeacherDashboard() {
         ownerUid: user.uid,
         ownerEmail: user.email,
         enrollCode: await generateEnrollCode(newTitle.trim()),
+        coTeachers: [],
         createdAt: new Date(),
       });
       setShowCreateModal(false);
@@ -87,6 +124,7 @@ export default function TeacherDashboard() {
         ownerUid: user.uid,
         ownerEmail: user.email,
         enrollCode: await generateEnrollCode(`${course.title} (Copy)`),
+        coTeachers: [],
         forkedFrom: course.id,
         forkedAt: new Date(),
         createdAt: new Date(),
@@ -115,6 +153,19 @@ export default function TeacherDashboard() {
       alert("Failed to copy course. Please try again.");
     }
     setCopying(null);
+  };
+
+  // ============ REMOVE CO-TEACHER ============
+  const handleRemoveCoTeacher = async (courseId, teacherUid) => {
+    const name = coTeacherNames[teacherUid] || teacherUid;
+    if (!window.confirm(`Remove ${name} as co-teacher?`)) return;
+    try {
+      await removeCoTeacher(courseId, teacherUid);
+      await fetchCourses();
+    } catch (err) {
+      console.error("Failed to remove co-teacher:", err);
+      alert("Failed to remove co-teacher.");
+    }
   };
 
   if (loading) {
@@ -169,9 +220,18 @@ export default function TeacherDashboard() {
         <div style={{ marginBottom: 40 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: "var(--text2)" }}>Your Courses</h2>
-            <button className="btn btn-primary" style={{ fontSize: 13, padding: "8px 16px" }} onClick={() => setShowCreateModal(true)}>
-              + New Course
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className="btn btn-secondary"
+                style={{ fontSize: 13, padding: "8px 16px" }}
+                onClick={() => setShowJoinModal(true)}
+              >
+                👥 Join as Co-Teacher
+              </button>
+              <button className="btn btn-primary" style={{ fontSize: 13, padding: "8px 16px" }} onClick={() => setShowCreateModal(true)}>
+                + New Course
+              </button>
+            </div>
           </div>
           {myCourses.length === 0 ? (
             <div className="card" style={{ textAlign: "center", padding: 48 }}>
@@ -182,22 +242,44 @@ export default function TeacherDashboard() {
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
               {myCourses.map((course) => {
+                const isOwner = course.ownerUid === user.uid;
+                const isCoTeacher = !isOwner;
                 const displayCode = course.enrollCode || Object.values(course.sections || {})[0]?.enrollCode || "\u2014";
+                const coTeacherList = course.coTeachers || [];
 
                 return (
-                  <div key={course.id} className="card fade-in">
+                  <div key={course.id} className="card fade-in" style={{ position: "relative" }}>
+                    {/* Co-Teacher badge */}
+                    {isCoTeacher && (
+                      <div style={{
+                        position: "absolute", top: 12, right: 12,
+                        fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                        letterSpacing: "0.05em", color: "#8b5cf6",
+                        background: "rgba(139, 92, 246, 0.12)", padding: "3px 8px", borderRadius: 6,
+                      }}>
+                        Co-Teacher
+                      </div>
+                    )}
+
                     <Link to={`/course/${course.id}`} style={{ textDecoration: "none", color: "inherit" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                        <div
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingIcon(editingIcon === course.id ? null : course.id); }}
-                          title="Change icon"
-                          style={{
+                        {isOwner ? (
+                          <div
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingIcon(editingIcon === course.id ? null : course.id); }}
+                            title="Change icon"
+                            style={{
+                              fontSize: 32, width: 56, height: 56, borderRadius: 12,
+                              background: "var(--amber-dim)", display: "flex", alignItems: "center", justifyContent: "center",
+                              cursor: "pointer", border: editingIcon === course.id ? "2px solid var(--amber)" : "2px solid transparent",
+                              transition: "border-color 0.15s",
+                            }}
+                          >{course.icon || "📚"}</div>
+                        ) : (
+                          <div style={{
                             fontSize: 32, width: 56, height: 56, borderRadius: 12,
-                            background: "var(--amber-dim)", display: "flex", alignItems: "center", justifyContent: "center",
-                            cursor: "pointer", border: editingIcon === course.id ? "2px solid var(--amber)" : "2px solid transparent",
-                            transition: "border-color 0.15s",
-                          }}
-                        >{course.icon || "📚"}</div>
+                            background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center",
+                          }}>{course.icon || "📚"}</div>
+                        )}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div className="card-title">{course.title}</div>
                           <div className="card-subtitle">{course.description}</div>
@@ -205,8 +287,8 @@ export default function TeacherDashboard() {
                       </div>
                     </Link>
 
-                    {/* Icon picker */}
-                    {editingIcon === course.id && (
+                    {/* Icon picker — owner only */}
+                    {isOwner && editingIcon === course.id && (
                       <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10, padding: "8px 0" }}>
                         {ICONS.map((icon) => (
                           <button
@@ -227,17 +309,65 @@ export default function TeacherDashboard() {
                       </div>
                     )}
 
-                    {/* Enrollment code */}
-                    <div style={{
-                      marginTop: 12, padding: "10px 12px", background: "var(--surface2)",
-                      borderRadius: 8, fontSize: 12, display: "flex", justifyContent: "space-between", alignItems: "center",
-                    }}>
-                      <span style={{ color: "var(--text3)", fontWeight: 600 }}>Enroll Code:</span>
-                      <span style={{
-                        fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14,
-                        color: "var(--amber)", letterSpacing: 1.5,
-                      }}>{displayCode}</span>
-                    </div>
+                    {/* Enrollment code — owner only */}
+                    {isOwner && (
+                      <div style={{
+                        marginTop: 12, padding: "10px 12px", background: "var(--surface2)",
+                        borderRadius: 8, fontSize: 12, display: "flex", justifyContent: "space-between", alignItems: "center",
+                      }}>
+                        <span style={{ color: "var(--text3)", fontWeight: 600 }}>Enroll Code:</span>
+                        <span style={{
+                          fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14,
+                          color: "var(--amber)", letterSpacing: 1.5,
+                        }}>{displayCode}</span>
+                      </div>
+                    )}
+
+                    {/* Co-teacher indicator for co-teachers */}
+                    {isCoTeacher && course.ownerEmail && (
+                      <div style={{
+                        marginTop: 12, padding: "10px 12px", background: "var(--surface2)",
+                        borderRadius: 8, fontSize: 12, color: "var(--text3)",
+                      }}>
+                        Owner: {course.ownerEmail.split("@")[0]}
+                      </div>
+                    )}
+
+                    {/* Co-teachers list — owner only */}
+                    {isOwner && coTeacherList.length > 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <button
+                          onClick={() => setExpandedCoTeachers(expandedCoTeachers === course.id ? null : course.id)}
+                          style={{
+                            fontSize: 12, color: "#8b5cf6", background: "none", border: "none",
+                            cursor: "pointer", fontWeight: 600, padding: 0,
+                          }}
+                        >
+                          👥 {coTeacherList.length} co-teacher{coTeacherList.length !== 1 ? "s" : ""} {expandedCoTeachers === course.id ? "▲" : "▼"}
+                        </button>
+                        {expandedCoTeachers === course.id && (
+                          <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
+                            {coTeacherList.map((uid) => (
+                              <div key={uid} style={{
+                                display: "flex", alignItems: "center", justifyContent: "space-between",
+                                padding: "4px 8px", background: "var(--surface2)", borderRadius: 6, fontSize: 12,
+                              }}>
+                                <span style={{ color: "var(--text2)" }}>{coTeacherNames[uid] || uid}</span>
+                                <button
+                                  onClick={() => handleRemoveCoTeacher(course.id, uid)}
+                                  title="Remove co-teacher"
+                                  style={{
+                                    background: "none", border: "none", cursor: "pointer",
+                                    color: "var(--text3)", fontSize: 14, padding: "0 4px",
+                                    lineHeight: 1,
+                                  }}
+                                >✕</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", gap: 14, flexWrap: "wrap" }}>
                       <Link to={`/xp-controls/${course.id}`} style={{ fontSize: 13, color: "var(--amber)", textDecoration: "none", fontWeight: 600 }}>
@@ -323,6 +453,16 @@ export default function TeacherDashboard() {
           courseTitle={announceCourse.title}
           user={user}
           onClose={() => setAnnounceCourse(null)}
+        />
+      )}
+
+      {/* ============ JOIN AS CO-TEACHER MODAL ============ */}
+      {showJoinModal && (
+        <JoinCourse
+          user={user}
+          role="teacher"
+          onEnrolled={() => fetchCourses()}
+          onClose={() => setShowJoinModal(false)}
         />
       )}
 

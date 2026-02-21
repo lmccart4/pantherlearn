@@ -605,13 +605,13 @@ export default function LessonEditor() {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
 
-  // Fetch courses (only owned by current teacher)
+  // Fetch courses (owned or co-teaching)
   useEffect(() => {
     const fetch = async () => {
       const snapshot = await getDocs(query(collection(db, "courses"), orderBy("order", "asc")));
       const owned = snapshot.docs
         .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((c) => !c.hidden && c.ownerUid === user?.uid);
+        .filter((c) => !c.hidden && (c.ownerUid === user?.uid || (c.coTeachers || []).includes(user?.uid)));
       setCourses(owned);
       setLoading(false);
     };
