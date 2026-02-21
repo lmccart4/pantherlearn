@@ -212,8 +212,6 @@ export default function GuessWhoGame() {
   // Handle eliminate
   const handleEliminate = async (charId) => {
     if (game.status !== "active" || !isPlayer) return;
-    // Don't allow eliminating your own secret
-    if (charId === mySecretId) return;
     try {
       await toggleEliminate(courseId, gameId, user.uid, charId);
     } catch (e) {
@@ -307,7 +305,7 @@ export default function GuessWhoGame() {
                     position: "relative", cursor: isPlayer && game.status === "active" ? "pointer" : "default",
                     borderRadius: 8, overflow: "hidden",
                     border: isMySecret ? "2px solid var(--amber)" : "1px solid var(--border)",
-                    opacity: eliminated ? 0.2 : 1,
+                    opacity: eliminated ? (isMySecret ? 0.45 : 0.2) : 1,
                     transition: "opacity 0.2s, transform 0.1s",
                     transform: eliminated ? "scale(0.95)" : "scale(1)",
                     background: "var(--surface)",
