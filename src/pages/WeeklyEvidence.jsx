@@ -71,10 +71,17 @@ function isLegacyFormat(data) {
   return data && Array.isArray(data.images) && !data.monday;
 }
 
+function dayHasPhotos(dayData) {
+  if (!dayData) return false;
+  if (Array.isArray(dayData.images) && dayData.images.length > 0) return true;
+  if (dayData.image) return true;
+  return false;
+}
+
 function countDaysWithPhotos(data) {
   if (!data) return 0;
   if (isLegacyFormat(data)) return data.images?.length > 0 ? 1 : 0;
-  return DAYS.filter(d => data[d]?.image).length;
+  return DAYS.filter(d => dayHasPhotos(data[d])).length;
 }
 
 // ─── Image compression (keep under Firestore 1MB doc limit) ───
@@ -110,49 +117,67 @@ function CameraIcon() {
 
 // ─── DayPanel — photo upload + reflection for one day ───
 
+const MAX_PHOTOS_PER_DAY = 4;
+
+// Normalize day data — handles both single `image` (old) and `images` array (new)
+function normalizeDayImages(dayData) {
+  if (!dayData) return [];
+  if (Array.isArray(dayData.images)) return dayData.images;
+  if (dayData.image) return [dayData.image];
+  return [];
+}
+
 function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
-  const [image, setImage] = useState(dayData?.image || null);
+  const [images, setImages] = useState(() => normalizeDayImages(dayData));
   const [reflection, setReflection] = useState(dayData?.reflection || "");
-  const imageRef = useRef(image);
+  const imagesRef = useRef(images);
   const reflectionRef = useRef(reflection);
-  imageRef.current = image;
+  imagesRef.current = images;
   reflectionRef.current = reflection;
 
   useEffect(() => {
-    setImage(dayData?.image || null);
+    setImages(normalizeDayImages(dayData));
     setReflection(dayData?.reflection || "");
   }, [dayData]);
 
   const performSave = useCallback(() => {
-    onSave(day, { image: imageRef.current, reflection: reflectionRef.current });
+    onSave(day, { images: imagesRef.current, reflection: reflectionRef.current });
   }, [day, onSave]);
 
   const { markDirty, saveNow, lastSaved, saving } = useAutoSave(performSave);
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Image too large (max 5 MB). Please resize and try again.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const compressed = await compressImage(ev.target.result);
-      const img = { dataUrl: compressed, name: file.name, uploadedAt: new Date().toISOString() };
-      setImage(img);
+    const files = Array.from(e.target.files || []);
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) continue;
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image too large (max 5 MB). Please resize and try again.");
+        continue;
+      }
+      const dataUrl = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = (ev) => resolve(ev.target.result);
+        reader.readAsDataURL(file);
+      });
+      const compressed = await compressImage(dataUrl);
+      setImages(prev => {
+        if (prev.length >= MAX_PHOTOS_PER_DAY) {
+          alert(`Maximum ${MAX_PHOTOS_PER_DAY} photos per day.`);
+          return prev;
+        }
+        return [...prev, { dataUrl: compressed, name: file.name, uploadedAt: new Date().toISOString() }];
+      });
       markDirty();
-    };
-    reader.readAsDataURL(file);
+    }
     e.target.value = "";
   };
 
-  const removeImage = () => {
-    setImage(null);
+  const removeImage = (index) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
     markDirty();
   };
 
-  const hasPhoto = !!image;
+  const hasPhotos = images.length > 0;
 
   return (
     <div className="card" style={{ padding: "20px 24px" }}>
@@ -160,39 +185,44 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
         {DAY_FULL[day]}
       </div>
 
-      {/* Photo area */}
-      {isEditable ? (
-        hasPhoto ? (
-          <div className="evidence-photo-display">
-            <img src={image.dataUrl} alt={image.name || "Evidence"} />
-            <button className="evidence-photo-remove" onClick={removeImage} aria-label="Remove photo">✕</button>
+      {/* Photo grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
+        {images.map((img, i) => (
+          <div key={i} style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface2)" }}>
+            <img src={img.dataUrl} alt={img.name || "Evidence"} style={{ width: "100%", height: 140, objectFit: "cover" }} />
+            {isEditable && (
+              <button
+                onClick={() => removeImage(i)}
+                aria-label="Remove image"
+                className="evidence-photo-remove"
+                style={{ top: 4, right: 4, width: 22, height: 22, fontSize: 12 }}
+              >✕</button>
+            )}
           </div>
-        ) : (
-          <label className="evidence-upload-zone">
+        ))}
+
+        {isEditable && images.length < MAX_PHOTOS_PER_DAY && (
+          <label className="evidence-upload-zone" style={{ minHeight: images.length > 0 ? 140 : 220 }}>
             <CameraIcon />
-            <span>Tap to add today's photo</span>
-            <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} />
+            <span>{images.length > 0 ? "Add Photo" : "Tap to add today's photo"}</span>
+            <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} multiple />
           </label>
-        )
-      ) : (
-        hasPhoto ? (
-          <div className="evidence-photo-display">
-            <img src={image.dataUrl} alt={image.name || "Evidence"} />
+        )}
+
+        {!isEditable && !hasPhotos && (
+          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text3)", fontSize: 13, gridColumn: "1 / -1" }}>
+            No photos uploaded
           </div>
-        ) : (
-          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text3)", fontSize: 13 }}>
-            No photo uploaded
-          </div>
-        )
-      )}
+        )}
+      </div>
 
       {/* Reflection */}
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 4 }}>
         <label style={{ fontSize: 12, color: "var(--text3)", fontWeight: 600, display: "block", marginBottom: 4 }}>
           Daily Reflection
         </label>
         {isEditable ? (
-          hasPhoto ? (
+          hasPhotos ? (
             <textarea
               className="sa-input"
               rows={3}
@@ -311,17 +341,20 @@ function StudentView({ courseId, course, user }) {
         pdf.text(DAY_FULL[day], margin, y);
         y += 7;
 
-        if (dd?.image?.dataUrl) {
-          checkSpace(80);
-          try {
-            const imgW = usable * 0.6;
-            const imgH = imgW * 0.65;
-            pdf.addImage(dd.image.dataUrl, "JPEG", margin, y, imgW, imgH);
-            y += imgH + 4;
-          } catch {
-            pdf.setFontSize(10);
-            pdf.text("[Image could not be embedded]", margin, y);
-            y += 5;
+        const dayImages = normalizeDayImages(dd);
+        if (dayImages.length > 0) {
+          for (const img of dayImages) {
+            checkSpace(80);
+            try {
+              const imgW = usable * 0.5;
+              const imgH = imgW * 0.65;
+              pdf.addImage(img.dataUrl, "JPEG", margin, y, imgW, imgH);
+              y += imgH + 3;
+            } catch {
+              pdf.setFontSize(10);
+              pdf.text("[Image could not be embedded]", margin, y);
+              y += 5;
+            }
           }
         } else {
           pdf.setFontSize(10);
@@ -408,7 +441,7 @@ function StudentView({ courseId, course, user }) {
           {/* Day tabs */}
           <div className="evidence-day-tabs">
             {DAYS.map(day => {
-              const hasPhoto = !!weekData?.[day]?.image;
+              const hasPhoto = dayHasPhotos(weekData?.[day]);
               return (
                 <button
                   key={day}
@@ -544,11 +577,16 @@ function TeacherView({ courseId, course }) {
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
                       {DAYS.map(day => {
                         const dd = data[day];
+                        const dayImgs = normalizeDayImages(dd);
                         return (
                           <div key={day} style={{ textAlign: "center" }}>
                             <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", marginBottom: 4 }}>{DAY_LABELS[day]}</div>
-                            {dd?.image ? (
-                              <img src={dd.image.dataUrl} alt="Evidence" style={{ width: "100%", height: 80, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+                            {dayImgs.length > 0 ? (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                {dayImgs.map((img, i) => (
+                                  <img key={i} src={img.dataUrl} alt="Evidence" style={{ width: "100%", height: dayImgs.length > 1 ? 50 : 80, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+                                ))}
+                              </div>
                             ) : (
                               <div style={{ width: "100%", height: 80, borderRadius: 6, background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "var(--text3)" }}>—</div>
                             )}
