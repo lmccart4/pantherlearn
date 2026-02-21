@@ -1,11 +1,11 @@
 // src/pages/WeeklyEvidence.jsx
-// Weekly evidence log — students upload photos + reflections each week.
+// Weekly evidence log — day-based tabs (Mon–Fri), one photo + reflection per day.
 // Auto-rotates to the current week. Teachers see a student grid.
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
-  doc, getDoc, getDocs, setDoc, collection, query, where, onSnapshot,
+  doc, getDoc, getDocs, setDoc, collection, onSnapshot,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
@@ -13,12 +13,17 @@ import { getCourseEnrollments } from "../lib/enrollment";
 import { resolveDisplayName } from "../lib/displayName";
 import useAutoSave from "../hooks/useAutoSave.jsx";
 
+// ─── Constants ───
+
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+const DAY_LABELS = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri" };
+const DAY_FULL = { monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday", friday: "Friday" };
+
 // ─── Week helpers ───
 
 function getISOWeekKey(date = new Date()) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
-  // Adjust to Thursday in current week (ISO 8601)
   d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
   const yearStart = new Date(d.getFullYear(), 0, 4);
   const weekNum = 1 + Math.round(
@@ -31,9 +36,8 @@ function getWeekMonday(weekKey) {
   const [yearStr, wStr] = weekKey.split("-W");
   const year = parseInt(yearStr, 10);
   const week = parseInt(wStr, 10);
-  // Jan 4 is always in ISO week 1
   const jan4 = new Date(year, 0, 4);
-  const dayOfWeek = (jan4.getDay() + 6) % 7; // 0=Mon
+  const dayOfWeek = (jan4.getDay() + 6) % 7;
   const monday = new Date(jan4);
   monday.setDate(jan4.getDate() - dayOfWeek + (week - 1) * 7);
   monday.setHours(0, 0, 0, 0);
@@ -42,194 +46,340 @@ function getWeekMonday(weekKey) {
 
 function getWeekRange(weekKey) {
   const monday = getWeekMonday(weekKey);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return { start: monday, end: sunday };
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  return { start: monday, end: friday };
 }
 
 function formatDateShort(d) {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function generateWeekKeys(startDate, endDate) {
-  const keys = [];
-  const current = new Date(startDate);
-  const endKey = getISOWeekKey(endDate);
-  const seen = new Set();
-  while (true) {
-    const key = getISOWeekKey(current);
-    if (!seen.has(key)) {
-      seen.add(key);
-      keys.push(key);
-    }
-    if (key === endKey) break;
-    current.setDate(current.getDate() + 7);
-    if (keys.length > 52) break; // safety limit
-  }
-  return keys;
+function offsetWeekKey(weekKey, delta) {
+  const monday = getWeekMonday(weekKey);
+  monday.setDate(monday.getDate() + delta * 7);
+  return getISOWeekKey(monday);
 }
 
-// ─── Student week card (editable for current, read-only for past) ───
+function getTodayDayName() {
+  const i = new Date().getDay(); // 0=Sun
+  if (i === 0 || i === 6) return "monday";
+  return DAYS[i - 1];
+}
 
-function WeekCard({ weekKey, data, isCurrentWeek, prompt, onSave }) {
-  const [images, setImages] = useState(data?.images || []);
-  const [reflection, setReflection] = useState(data?.reflection || "");
-  const [expanded, setExpanded] = useState(isCurrentWeek);
-  const imagesRef = useRef(images);
+function isLegacyFormat(data) {
+  return data && Array.isArray(data.images) && !data.monday;
+}
+
+function countDaysWithPhotos(data) {
+  if (!data) return 0;
+  if (isLegacyFormat(data)) return data.images?.length > 0 ? 1 : 0;
+  return DAYS.filter(d => data[d]?.image).length;
+}
+
+// ─── Image compression (keep under Firestore 1MB doc limit) ───
+
+function compressImage(dataUrl, maxWidth = 800, quality = 0.7) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let w = img.width, h = img.height;
+      if (w > maxWidth) { h = Math.round(h * (maxWidth / w)); w = maxWidth; }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => resolve(dataUrl); // fallback to original
+    img.src = dataUrl;
+  });
+}
+
+// ─── Camera SVG icon ───
+
+function CameraIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 48, height: 48, marginBottom: 8 }}>
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+
+// ─── DayPanel — photo upload + reflection for one day ───
+
+function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
+  const [image, setImage] = useState(dayData?.image || null);
+  const [reflection, setReflection] = useState(dayData?.reflection || "");
+  const imageRef = useRef(image);
   const reflectionRef = useRef(reflection);
-  imagesRef.current = images;
+  imageRef.current = image;
   reflectionRef.current = reflection;
 
-  // Sync from props when data changes externally
   useEffect(() => {
-    setImages(data?.images || []);
-    setReflection(data?.reflection || "");
-  }, [data]);
+    setImage(dayData?.image || null);
+    setReflection(dayData?.reflection || "");
+  }, [dayData]);
 
   const performSave = useCallback(() => {
-    onSave(weekKey, {
-      images: imagesRef.current,
-      reflection: reflectionRef.current,
-      savedAt: new Date().toISOString(),
-    });
-  }, [weekKey, onSave]);
+    onSave(day, { image: imageRef.current, reflection: reflectionRef.current });
+  }, [day, onSave]);
 
-  const { markDirty, saveNow, lastSaved } = useAutoSave(performSave);
+  const { markDirty, saveNow, lastSaved, saving } = useAutoSave(performSave);
 
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files || []);
-    files.forEach((file) => {
-      if (!file.type.startsWith("image/")) return;
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Image too large (max 5MB). Please resize and try again.");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setImages((prev) => {
-          if (prev.length >= 4) {
-            alert("Maximum 4 images per week.");
-            return prev;
-          }
-          return [...prev, { dataUrl: ev.target.result, name: file.name, uploadedAt: new Date().toISOString() }];
-        });
-        markDirty();
-      };
-      reader.readAsDataURL(file);
-    });
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image too large (max 5 MB). Please resize and try again.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const compressed = await compressImage(ev.target.result);
+      const img = { dataUrl: compressed, name: file.name, uploadedAt: new Date().toISOString() };
+      setImage(img);
+      markDirty();
+    };
+    reader.readAsDataURL(file);
     e.target.value = "";
   };
 
-  const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+  const removeImage = () => {
+    setImage(null);
     markDirty();
   };
 
-  const range = getWeekRange(weekKey);
-  const weekNum = parseInt(weekKey.split("-W")[1], 10);
-  const hasContent = images.length > 0 || reflection.trim().length > 0;
+  const hasPhoto = !!image;
 
   return (
-    <div className={`card evidence-week-card ${isCurrentWeek ? "evidence-week-current" : ""}`}>
-      <button
-        className="evidence-week-header"
-        onClick={() => setExpanded(!expanded)}
-        aria-expanded={expanded}
-      >
-        <span style={{
-          transition: "transform 0.2s", transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
-          display: "inline-block", fontSize: 14, color: "var(--amber)", marginRight: 10,
-        }}>▼</span>
-        <div style={{ flex: 1, textAlign: "left" }}>
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16 }}>
-            Week {weekNum}
-          </span>
-          <span style={{ color: "var(--text3)", fontSize: 13, marginLeft: 10 }}>
-            {formatDateShort(range.start)} – {formatDateShort(range.end)}
-          </span>
-        </div>
-        {hasContent ? (
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--green, #10b981)" }}>✓ Submitted</span>
-        ) : isCurrentWeek ? (
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--amber)" }}>Current week</span>
-        ) : (
-          <span style={{ fontSize: 12, color: "var(--text3)" }}>Empty</span>
-        )}
-      </button>
+    <div className="card" style={{ padding: "20px 24px" }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text3)", marginBottom: 12 }}>
+        {DAY_FULL[day]}
+      </div>
 
-      {expanded && (
-        <div style={{ padding: "16px 20px 12px" }}>
-          {/* Image grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
-            {images.map((img, i) => (
-              <div key={i} style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface2)" }}>
-                <img src={img.dataUrl} alt={img.name || "Evidence"} style={{ width: "100%", height: 140, objectFit: "cover" }} />
-                {isCurrentWeek && (
-                  <button
-                    onClick={() => removeImage(i)}
-                    aria-label="Remove image"
-                    style={{
-                      position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%",
-                      background: "rgba(0,0,0,0.6)", border: "none", color: "white", fontSize: 12,
-                      cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                  >✕</button>
-                )}
-              </div>
-            ))}
-
-            {isCurrentWeek && images.length < 4 && (
-              <label style={{
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                height: 140, borderRadius: 10, border: "2px dashed var(--border)",
-                background: "var(--surface2)", cursor: "pointer", transition: "border-color 0.2s",
-                color: "var(--text3)", fontSize: 13, fontWeight: 600,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--amber)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
-              >
-                <span style={{ fontSize: 28, marginBottom: 4 }}>📷</span>
-                <span>Add Photo</span>
-                <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} multiple />
-              </label>
-            )}
+      {/* Photo area */}
+      {isEditable ? (
+        hasPhoto ? (
+          <div className="evidence-photo-display">
+            <img src={image.dataUrl} alt={image.name || "Evidence"} />
+            <button className="evidence-photo-remove" onClick={removeImage} aria-label="Remove photo">✕</button>
           </div>
+        ) : (
+          <label className="evidence-upload-zone">
+            <CameraIcon />
+            <span>Tap to add today's photo</span>
+            <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} />
+          </label>
+        )
+      ) : (
+        hasPhoto ? (
+          <div className="evidence-photo-display">
+            <img src={image.dataUrl} alt={image.name || "Evidence"} />
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text3)", fontSize: 13 }}>
+            No photo uploaded
+          </div>
+        )
+      )}
 
-          {/* Reflection */}
-          {prompt && (
-            <div style={{ marginTop: 8 }}>
-              <label style={{ fontSize: 12, color: "var(--text3)", fontWeight: 600, display: "block", marginBottom: 4 }}>
-                {prompt}
-              </label>
-              {isCurrentWeek ? (
-                <textarea
-                  className="sa-input"
-                  rows={3}
-                  value={reflection}
-                  onChange={(e) => { setReflection(e.target.value); markDirty(); }}
-                  onBlur={saveNow}
-                  placeholder="Write your reflection..."
-                />
-              ) : (
-                <p style={{ fontSize: 14, color: "var(--text2)", whiteSpace: "pre-wrap", minHeight: 20 }}>
-                  {reflection || <span style={{ color: "var(--text3)", fontStyle: "italic" }}>No reflection written</span>}
-                </p>
-              )}
+      {/* Reflection */}
+      <div style={{ marginTop: 12 }}>
+        <label style={{ fontSize: 12, color: "var(--text3)", fontWeight: 600, display: "block", marginBottom: 4 }}>
+          Daily Reflection
+        </label>
+        {isEditable ? (
+          hasPhoto ? (
+            <textarea
+              className="sa-input"
+              rows={3}
+              value={reflection}
+              onChange={(e) => { setReflection(e.target.value); markDirty(); }}
+              onBlur={saveNow}
+              placeholder={prompt || "What did you learn today?"}
+            />
+          ) : (
+            <div className="evidence-reflection-locked">
+              <textarea className="sa-input" rows={3} disabled placeholder="" />
+              <div className="evidence-reflection-locked-overlay">
+                Upload a photo to unlock your daily reflection
+              </div>
             </div>
-          )}
+          )
+        ) : (
+          <p style={{ fontSize: 14, color: "var(--text2)", whiteSpace: "pre-wrap", minHeight: 20 }}>
+            {reflection || <span style={{ color: "var(--text3)", fontStyle: "italic" }}>No reflection written</span>}
+          </p>
+        )}
+      </div>
 
-          {isCurrentWeek && lastSaved && (
-            <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 6 }}>
-              Saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-            </div>
-          )}
+      {/* Save status */}
+      {isEditable && (lastSaved || saving) && (
+        <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 8 }}>
+          {saving ? "Saving..." : `Saved ${lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
         </div>
       )}
     </div>
   );
 }
 
-// ─── Teacher: student evidence viewer ───
+// ─── StudentView ───
+
+function StudentView({ courseId, course, user }) {
+  const currentWeekKey = useMemo(() => getISOWeekKey(), []);
+  const [weekKey, setWeekKey] = useState(currentWeekKey);
+  const [activeDay, setActiveDay] = useState(getTodayDayName());
+  const [weekData, setWeekData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [printMode, setPrintMode] = useState(false);
+
+  const isCurrentWeek = weekKey === currentWeekKey;
+  const range = getWeekRange(weekKey);
+  const config = course.evidenceConfig || {};
+  const prompt = config.prompt || "What did you learn today?";
+
+  // Real-time listener on current week doc
+  useEffect(() => {
+    setLoading(true);
+    const unsub = onSnapshot(
+      doc(db, "evidence", user.uid, "courses", courseId, "weeks", weekKey),
+      (snap) => {
+        setWeekData(snap.exists() ? snap.data() : null);
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
+    return () => unsub();
+  }, [courseId, user.uid, weekKey]);
+
+  const handleSave = useCallback(async (day, dayData) => {
+    await setDoc(
+      doc(db, "evidence", user.uid, "courses", courseId, "weeks", weekKey),
+      { [day]: dayData, savedAt: new Date().toISOString() },
+      { merge: true }
+    );
+  }, [user.uid, courseId, weekKey]);
+
+  const goToPrevWeek = () => {
+    setWeekKey(offsetWeekKey(weekKey, -1));
+    setActiveDay("monday");
+  };
+  const goToNextWeek = () => {
+    const next = offsetWeekKey(weekKey, 1);
+    if (next <= currentWeekKey) {
+      setWeekKey(next);
+      if (next === currentWeekKey) setActiveDay(getTodayDayName());
+      else setActiveDay("monday");
+    }
+  };
+
+  const handlePrintPDF = () => {
+    setPrintMode(true);
+    requestAnimationFrame(() => {
+      window.print();
+      setPrintMode(false);
+    });
+  };
+
+  const legacy = isLegacyFormat(weekData);
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="evidence-header">
+        <div className="evidence-week-nav">
+          <button onClick={goToPrevWeek} aria-label="Previous week">←</button>
+          <div>
+            <div className="evidence-cycle-id">{weekKey}</div>
+            <div style={{ fontSize: 13, color: "var(--text3)" }}>
+              {formatDateShort(range.start)} – {formatDateShort(range.end)}
+            </div>
+          </div>
+          <button onClick={goToNextWeek} disabled={isCurrentWeek} aria-label="Next week">→</button>
+        </div>
+        <div style={{ fontSize: 14, color: "var(--text2)", marginTop: 8, marginBottom: 4 }}>
+          {prompt}
+        </div>
+        <button className="evidence-pdf-btn" onClick={handlePrintPDF} style={{ marginTop: 8 }}>
+          Save Report (PDF)
+        </button>
+      </div>
+
+      {loading ? (
+        <div>
+          <div className="skeleton skeleton-card" style={{ height: 44, marginBottom: 16 }} />
+          <div className="skeleton skeleton-card" style={{ height: 300 }} />
+        </div>
+      ) : legacy ? (
+        // Legacy format — read-only display
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontSize: 13, color: "var(--text3)", fontWeight: 600, marginBottom: 12 }}>Legacy format (read-only)</div>
+          {weekData.images?.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
+              {weekData.images.map((img, i) => (
+                <img key={i} src={img.dataUrl} alt={img.name || "Evidence"} style={{ width: "100%", height: 140, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
+              ))}
+            </div>
+          )}
+          {weekData.reflection && <p style={{ fontSize: 14, color: "var(--text2)", whiteSpace: "pre-wrap" }}>{weekData.reflection}</p>}
+        </div>
+      ) : printMode ? (
+        // Print mode — all 5 days visible
+        <div className="evidence-print-area">
+          <h2 style={{ fontFamily: "var(--font-display)", marginBottom: 16 }}>{course.title} — {weekKey}</h2>
+          {DAYS.map(day => {
+            const dd = weekData?.[day];
+            return (
+              <div key={day} style={{ marginBottom: 20, pageBreakInside: "avoid" }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{DAY_FULL[day]}</h3>
+                {dd?.image ? (
+                  <img src={dd.image.dataUrl} alt="Evidence" style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8, marginBottom: 8 }} />
+                ) : (
+                  <div style={{ color: "#999", fontSize: 13, marginBottom: 8 }}>No photo</div>
+                )}
+                <p style={{ fontSize: 14, whiteSpace: "pre-wrap" }}>{dd?.reflection || "No reflection"}</p>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <>
+          {/* Day tabs */}
+          <div className="evidence-day-tabs">
+            {DAYS.map(day => {
+              const hasPhoto = !!weekData?.[day]?.image;
+              return (
+                <button
+                  key={day}
+                  className={`evidence-day-tab ${activeDay === day ? "active" : ""}`}
+                  onClick={() => setActiveDay(day)}
+                >
+                  {DAY_LABELS[day]}
+                  {hasPhoto && <span className="day-status-dot" />}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active day panel */}
+          <DayPanel
+            key={`${weekKey}-${activeDay}`}
+            day={activeDay}
+            dayData={weekData?.[activeDay]}
+            isEditable={isCurrentWeek}
+            prompt={prompt}
+            onSave={handleSave}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── TeacherView ───
 
 function TeacherView({ courseId, course }) {
   const [enrollments, setEnrollments] = useState([]);
@@ -237,41 +387,32 @@ function TeacherView({ courseId, course }) {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentWeeks, setStudentWeeks] = useState({});
   const [loading, setLoading] = useState(true);
-
   const currentWeekKey = useMemo(() => getISOWeekKey(), []);
 
   useEffect(() => {
     async function load() {
       const enrolls = await getCourseEnrollments(courseId);
-      const studentEnrolls = enrolls.filter((e) => e.uid || e.studentUid);
+      const studentEnrolls = enrolls.filter(e => e.uid || e.studentUid);
       setEnrollments(studentEnrolls);
-
-      // Fetch user profiles
-      const uids = [...new Set(studentEnrolls.map((e) => e.uid || e.studentUid))];
+      const uids = [...new Set(studentEnrolls.map(e => e.uid || e.studentUid))];
       const userMap = {};
-      await Promise.all(
-        uids.map(async (uid) => {
-          const snap = await getDoc(doc(db, "users", uid));
-          if (snap.exists()) userMap[uid] = snap.data();
-        })
-      );
+      await Promise.all(uids.map(async uid => {
+        const snap = await getDoc(doc(db, "users", uid));
+        if (snap.exists()) userMap[uid] = snap.data();
+      }));
       setUsers(userMap);
-
-      // Fetch current week evidence for all students
       const weekMap = {};
-      await Promise.all(
-        uids.map(async (uid) => {
-          const snap = await getDoc(doc(db, "evidence", uid, "courses", courseId, "weeks", currentWeekKey));
-          if (snap.exists()) weekMap[uid] = snap.data();
-        })
-      );
+      await Promise.all(uids.map(async uid => {
+        const snap = await getDoc(doc(db, "evidence", uid, "courses", courseId, "weeks", currentWeekKey));
+        if (snap.exists()) weekMap[uid] = snap.data();
+      }));
       setStudentWeeks(weekMap);
       setLoading(false);
     }
     load();
   }, [courseId, currentWeekKey]);
 
-  // When a student is selected, load all their weeks
+  // Load all weeks for selected student
   const [selectedStudentWeeks, setSelectedStudentWeeks] = useState({});
   const [loadingStudent, setLoadingStudent] = useState(false);
 
@@ -282,7 +423,7 @@ function TeacherView({ courseId, course }) {
       collection(db, "evidence", selectedStudent, "courses", courseId, "weeks"),
       (snap) => {
         const weeks = {};
-        snap.forEach((d) => { weeks[d.id] = d.data(); });
+        snap.forEach(d => { weeks[d.id] = d.data(); });
         setSelectedStudentWeeks(weeks);
         setLoadingStudent(false);
       }
@@ -292,54 +433,73 @@ function TeacherView({ courseId, course }) {
 
   if (loading) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="skeleton skeleton-card" style={{ height: 52 }} />
-      ))}
+      {[1, 2, 3, 4, 5].map(i => <div key={i} className="skeleton skeleton-card" style={{ height: 52 }} />)}
     </div>
   );
 
+  // Student detail view
   if (selectedStudent) {
     const u = users[selectedStudent] || {};
     const name = resolveDisplayName({ displayName: u.displayName, nickname: u.nickname, isTeacherViewing: true });
     const weekKeys = Object.keys(selectedStudentWeeks).sort().reverse();
-    const prompt = course.evidenceConfig?.prompt || "Weekly reflection";
+    const prompt = course.evidenceConfig?.prompt || "Daily reflection";
 
     return (
       <div>
-        <button
-          onClick={() => setSelectedStudent(null)}
-          style={{ fontSize: 13, color: "var(--text3)", background: "none", border: "none", cursor: "pointer", marginBottom: 16 }}
-        >← Back to all students</button>
+        <button onClick={() => setSelectedStudent(null)}
+          style={{ fontSize: 13, color: "var(--text3)", background: "none", border: "none", cursor: "pointer", marginBottom: 16 }}>
+          ← Back to all students
+        </button>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, marginBottom: 16 }}>{name}</h2>
 
         {loadingStudent ? (
           <div className="skeleton skeleton-card" style={{ height: 200 }} />
         ) : weekKeys.length === 0 ? (
-          <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>
-            No evidence submitted yet
-          </div>
+          <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>No evidence submitted yet</div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {weekKeys.map((wk) => {
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {weekKeys.map(wk => {
               const data = selectedStudentWeeks[wk];
               const range = getWeekRange(wk);
-              const weekNum = parseInt(wk.split("-W")[1], 10);
+              const legacy = isLegacyFormat(data);
+
               return (
                 <div key={wk} className="card" style={{ padding: 16 }}>
                   <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, marginBottom: 10 }}>
-                    Week {weekNum} — {formatDateShort(range.start)} – {formatDateShort(range.end)}
+                    {wk} — {formatDateShort(range.start)} – {formatDateShort(range.end)}
                   </div>
-                  {data.images?.length > 0 && (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8, marginBottom: 10 }}>
-                      {data.images.map((img, i) => (
-                        <img key={i} src={img.dataUrl} alt={img.name || "Evidence"} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }} />
-                      ))}
-                    </div>
-                  )}
-                  {data.reflection && (
-                    <div>
-                      <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 600, marginBottom: 4 }}>{prompt}</div>
-                      <p style={{ fontSize: 14, color: "var(--text2)", whiteSpace: "pre-wrap" }}>{data.reflection}</p>
+
+                  {legacy ? (
+                    // Legacy format
+                    <>
+                      {data.images?.length > 0 && (
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8, marginBottom: 10 }}>
+                          {data.images.map((img, i) => (
+                            <img key={i} src={img.dataUrl} alt={img.name || "Evidence"} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }} />
+                          ))}
+                        </div>
+                      )}
+                      {data.reflection && <p style={{ fontSize: 14, color: "var(--text2)", whiteSpace: "pre-wrap" }}>{data.reflection}</p>}
+                    </>
+                  ) : (
+                    // New per-day format
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
+                      {DAYS.map(day => {
+                        const dd = data[day];
+                        return (
+                          <div key={day} style={{ textAlign: "center" }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", marginBottom: 4 }}>{DAY_LABELS[day]}</div>
+                            {dd?.image ? (
+                              <img src={dd.image.dataUrl} alt="Evidence" style={{ width: "100%", height: 80, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+                            ) : (
+                              <div style={{ width: "100%", height: 80, borderRadius: 6, background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "var(--text3)" }}>—</div>
+                            )}
+                            {dd?.reflection && (
+                              <div style={{ fontSize: 10, color: "var(--text2)", marginTop: 4, lineHeight: 1.3, overflow: "hidden", maxHeight: 40 }}>{dd.reflection}</div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -353,37 +513,28 @@ function TeacherView({ courseId, course }) {
 
   // Student grid
   const range = getWeekRange(currentWeekKey);
-  const weekNum = parseInt(currentWeekKey.split("-W")[1], 10);
 
   return (
     <div>
       <div style={{ fontSize: 14, color: "var(--text3)", marginBottom: 16 }}>
-        Week {weekNum} — {formatDateShort(range.start)} – {formatDateShort(range.end)}
+        {currentWeekKey} — {formatDateShort(range.start)} – {formatDateShort(range.end)}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {enrollments.map((e) => {
+        {enrollments.map(e => {
           const uid = e.uid || e.studentUid;
           const u = users[uid] || {};
           const name = resolveDisplayName({ displayName: u.displayName, nickname: u.nickname, isTeacherViewing: true });
-          const hasEvidence = !!studentWeeks[uid];
-          const imgCount = studentWeeks[uid]?.images?.length || 0;
+          const daysCount = countDaysWithPhotos(studentWeeks[uid]);
+          const hasEvidence = daysCount > 0;
 
           return (
-            <button
-              key={uid}
-              className="card"
-              onClick={() => setSelectedStudent(uid)}
-              style={{
-                display: "flex", alignItems: "center", gap: 14, cursor: "pointer",
-                width: "100%", textAlign: "left", color: "inherit",
-              }}
-            >
+            <button key={uid} className="card" onClick={() => setSelectedStudent(uid)}
+              style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer", width: "100%", textAlign: "left", color: "inherit" }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 8,
                 background: hasEvidence ? "rgba(16, 185, 129, 0.15)" : "var(--surface2)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 14, fontWeight: 700,
-                color: hasEvidence ? "var(--green, #10b981)" : "var(--text3)",
+                fontSize: 14, fontWeight: 700, color: hasEvidence ? "var(--green, #10b981)" : "var(--text3)",
               }}>
                 {hasEvidence ? "✓" : "—"}
               </div>
@@ -391,7 +542,7 @@ function TeacherView({ courseId, course }) {
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{name}</div>
               </div>
               <div style={{ fontSize: 12, color: "var(--text3)" }}>
-                {hasEvidence ? `${imgCount} photo${imgCount !== 1 ? "s" : ""}` : "Not submitted"}
+                {hasEvidence ? `${daysCount}/5 days` : "Not submitted"}
               </div>
             </button>
           );
@@ -410,66 +561,21 @@ export default function WeeklyEvidence() {
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [weekEntries, setWeekEntries] = useState({});
 
-  const currentWeekKey = useMemo(() => getISOWeekKey(), []);
-  const currentWeekRef = useRef(null);
-
-  // Load course
   useEffect(() => {
     getDoc(doc(db, "courses", courseId))
-      .then((d) => { if (d.exists()) setCourse({ id: d.id, ...d.data() }); })
+      .then(d => { if (d.exists()) setCourse({ id: d.id, ...d.data() }); })
       .finally(() => setLoading(false));
   }, [courseId]);
 
-  // Real-time evidence entries (student only)
-  useEffect(() => {
-    if (!user || isTeacher) return;
-    const unsub = onSnapshot(
-      collection(db, "evidence", user.uid, "courses", courseId, "weeks"),
-      (snap) => {
-        const entries = {};
-        snap.forEach((d) => { entries[d.id] = d.data(); });
-        setWeekEntries(entries);
-      }
-    );
-    return () => unsub();
-  }, [courseId, user, isTeacher]);
-
-  // Scroll to current week on mount
-  useEffect(() => {
-    if (currentWeekRef.current) {
-      currentWeekRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [loading]);
-
-  const handleSave = useCallback(async (weekKey, data) => {
-    if (!user) return;
-    await setDoc(
-      doc(db, "evidence", user.uid, "courses", courseId, "weeks", weekKey),
-      data,
-      { merge: true }
-    );
-  }, [user, courseId]);
-
-  // Generate week list (past 16 weeks → current)
-  const weekKeys = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now);
-    start.setDate(start.getDate() - 16 * 7);
-    return generateWeekKeys(start, now).reverse(); // newest first
-  }, []);
-
-  // Skeleton loading
   if (loading) return (
     <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <div className="skeleton skeleton-line" style={{ width: 140, height: 13, marginBottom: 16 }} />
         <div className="skeleton skeleton-line" style={{ width: "60%", height: 24, marginBottom: 8 }} />
         <div className="skeleton skeleton-line" style={{ width: "40%", height: 14, marginBottom: 24 }} />
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="skeleton skeleton-card" style={{ height: 60, marginBottom: 8 }} />
-        ))}
+        <div className="skeleton skeleton-card" style={{ height: 44, marginBottom: 16 }} />
+        <div className="skeleton skeleton-card" style={{ height: 300 }} />
       </div>
     </main>
   );
@@ -480,16 +586,12 @@ export default function WeeklyEvidence() {
     </main>
   );
 
-  const config = course.evidenceConfig;
-
-  if (!config?.enabled && !isTeacher) return (
+  if (!course.evidenceConfig?.enabled && !isTeacher) return (
     <main id="main-content" className="page-container" style={{ textAlign: "center", paddingTop: 120 }}>
       <h2>Evidence log not enabled for this course</h2>
       <Link to={`/course/${courseId}`} style={{ color: "var(--amber)", fontSize: 14 }}>← Back to course</Link>
     </main>
   );
-
-  const prompt = config?.prompt || "What did you work on this week?";
 
   return (
     <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
@@ -502,13 +604,9 @@ export default function WeeklyEvidence() {
           <div style={{
             fontSize: 36, width: 56, height: 56, borderRadius: 14,
             background: "var(--amber-dim)", display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            📸
-          </div>
+          }}>📸</div>
           <div>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700 }}>
-              Weekly Evidence Log
-            </h1>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700 }}>Weekly Evidence Log</h1>
             <p style={{ color: "var(--text2)", fontSize: 14 }}>{course.title}</p>
           </div>
         </div>
@@ -516,19 +614,7 @@ export default function WeeklyEvidence() {
         {isTeacher ? (
           <TeacherView courseId={courseId} course={course} />
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {weekKeys.map((wk) => (
-              <div key={wk} ref={wk === currentWeekKey ? currentWeekRef : null}>
-                <WeekCard
-                  weekKey={wk}
-                  data={weekEntries[wk]}
-                  isCurrentWeek={wk === currentWeekKey}
-                  prompt={prompt}
-                  onSave={handleSave}
-                />
-              </div>
-            ))}
-          </div>
+          <StudentView courseId={courseId} course={course} user={user} />
         )}
       </div>
     </main>

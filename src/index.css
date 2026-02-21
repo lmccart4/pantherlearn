@@ -1011,15 +1011,97 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
   color: var(--text2); font-size: 13px;
 }
 
-/* ─── Weekly Evidence Log ─── */
-.evidence-week-card { overflow: hidden; }
-.evidence-week-current { border-left: 3px solid var(--amber); }
-.evidence-week-header {
-  display: flex; align-items: center; width: 100%; padding: 14px 20px;
-  background: none; border: none; cursor: pointer; color: inherit;
-  font-family: inherit; text-align: left;
+/* ─── Weekly Evidence Log (Day-Based) ─── */
+.evidence-header { text-align: center; margin-bottom: 24px; }
+.evidence-cycle-id {
+  font-family: var(--font-display); font-size: 28px; font-weight: 700;
+  color: var(--text); letter-spacing: 1px;
 }
-.evidence-week-header:hover { background: var(--surface2); }
+.evidence-week-nav {
+  display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 8px;
+}
+.evidence-week-nav button {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px;
+  transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+}
+.evidence-week-nav button:hover:not(:disabled) {
+  background: var(--surface3, var(--surface2)); color: var(--amber); border-color: var(--amber);
+}
+.evidence-week-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Day tabs */
+.evidence-day-tabs {
+  display: flex; gap: 4px; background: var(--bg); border-radius: 10px;
+  padding: 4px; margin-bottom: 20px; border: 1px solid var(--border);
+}
+.evidence-day-tab {
+  flex: 1; padding: 10px 8px; border-radius: 7px; border: none; background: transparent;
+  color: var(--text2); font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s; text-align: center;
+}
+.evidence-day-tab:hover { color: var(--text); background: rgba(176, 142, 255, 0.06); }
+.evidence-day-tab.active {
+  background: linear-gradient(135deg, rgba(245, 166, 35, 0.12), rgba(176, 142, 255, 0.06));
+  color: var(--amber);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2), 0 0 16px rgba(245,166,35,0.1);
+}
+.evidence-day-tab .day-status-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green, #10b981);
+  display: inline-block; margin-left: 6px; vertical-align: middle;
+}
+
+/* Upload zone */
+.evidence-upload-zone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 220px; border-radius: var(--radius); border: 2px dashed var(--border);
+  background: var(--surface2); cursor: pointer; transition: border-color 0.2s, background 0.2s;
+  color: var(--text3); font-size: 14px; font-weight: 600; margin-bottom: 16px;
+}
+.evidence-upload-zone:hover { border-color: var(--amber); background: rgba(245,166,35,0.04); }
+
+/* Photo display */
+.evidence-photo-display {
+  position: relative; border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--border); margin-bottom: 16px;
+}
+.evidence-photo-display img { width: 100%; max-height: 320px; object-fit: cover; display: block; }
+.evidence-photo-remove {
+  position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(0,0,0,0.6); border: none; color: white; font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+}
+.evidence-photo-remove:hover { background: rgba(248,113,113,0.8); }
+
+/* Reflection locked */
+.evidence-reflection-locked { position: relative; }
+.evidence-reflection-locked textarea { opacity: 0.4; pointer-events: none; }
+.evidence-reflection-locked-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--text3); font-weight: 500; pointer-events: none;
+}
+
+/* PDF button */
+.evidence-pdf-btn {
+  padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text2); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.evidence-pdf-btn:hover { background: var(--surface3, var(--surface2)); color: var(--text); border-color: var(--amber); }
+
+/* Print styles */
+@media print {
+  body * { visibility: hidden; }
+  .evidence-print-area, .evidence-print-area * { visibility: visible; }
+  .evidence-print-area {
+    position: absolute; left: 0; top: 0; width: 100%; padding: 20px;
+    background: white; color: #1a1a1a;
+  }
+  .evidence-day-tabs, .evidence-week-nav button, .evidence-pdf-btn,
+  .evidence-photo-remove, .evidence-upload-zone { display: none; }
+  .evidence-print-area .card { background: white; border: 1px solid #ddd; box-shadow: none; }
+  .evidence-print-area img { max-height: 200px; }
+}
 
 /* ─── Push Notification Opt-In ─── */
 .push-optin {
