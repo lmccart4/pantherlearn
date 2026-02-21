@@ -234,8 +234,6 @@ function StudentView({ courseId, course, user }) {
   const [activeDay, setActiveDay] = useState(getTodayDayName());
   const [weekData, setWeekData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [printMode, setPrintMode] = useState(false);
-
   const isCurrentWeek = weekKey === currentWeekKey;
   const range = getWeekRange(weekKey);
   const config = course.evidenceConfig || {};
@@ -276,12 +274,91 @@ function StudentView({ courseId, course, user }) {
     }
   };
 
-  const handlePrintPDF = () => {
-    setPrintMode(true);
-    requestAnimationFrame(() => {
-      window.print();
-      setPrintMode(false);
-    });
+  const [generating, setGenerating] = useState(false);
+
+  const handlePrintPDF = async () => {
+    setGenerating(true);
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = 210, margin = 15;
+      const usable = pageW - margin * 2;
+      let y = margin;
+
+      const addPage = () => { pdf.addPage(); y = margin; };
+      const checkSpace = (need) => { if (y + need > 280) addPage(); };
+
+      // Title
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(`${course.title} — Weekly Evidence`, margin, y);
+      y += 8;
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${weekKey}  •  ${formatDateShort(range.start)} – ${formatDateShort(range.end)}`, margin, y);
+      y += 4;
+      pdf.setDrawColor(200);
+      pdf.line(margin, y, pageW - margin, y);
+      y += 8;
+
+      for (const day of DAYS) {
+        const dd = weekData?.[day];
+        checkSpace(60);
+
+        // Day header
+        pdf.setFontSize(14);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(DAY_FULL[day], margin, y);
+        y += 7;
+
+        if (dd?.image?.dataUrl) {
+          checkSpace(80);
+          try {
+            const imgW = usable * 0.6;
+            const imgH = imgW * 0.65;
+            pdf.addImage(dd.image.dataUrl, "JPEG", margin, y, imgW, imgH);
+            y += imgH + 4;
+          } catch {
+            pdf.setFontSize(10);
+            pdf.text("[Image could not be embedded]", margin, y);
+            y += 5;
+          }
+        } else {
+          pdf.setFontSize(10);
+          pdf.setTextColor(150);
+          pdf.text("No photo uploaded", margin, y);
+          pdf.setTextColor(0);
+          y += 5;
+        }
+
+        // Reflection
+        if (dd?.reflection) {
+          checkSpace(15);
+          pdf.setFontSize(10);
+          pdf.setFont("helvetica", "italic");
+          const lines = pdf.splitTextToSize(dd.reflection, usable);
+          for (const line of lines) {
+            checkSpace(5);
+            pdf.text(line, margin, y);
+            y += 4.5;
+          }
+          pdf.setFont("helvetica", "normal");
+        } else {
+          pdf.setFontSize(10);
+          pdf.setTextColor(150);
+          pdf.text("No reflection", margin, y);
+          pdf.setTextColor(0);
+        }
+        y += 8;
+      }
+
+      pdf.save(`Evidence_${weekKey}.pdf`);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("PDF generation failed. Please try again.");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const legacy = isLegacyFormat(weekData);
@@ -303,8 +380,8 @@ function StudentView({ courseId, course, user }) {
         <div style={{ fontSize: 14, color: "var(--text2)", marginTop: 8, marginBottom: 4 }}>
           {prompt}
         </div>
-        <button className="evidence-pdf-btn" onClick={handlePrintPDF} style={{ marginTop: 8 }}>
-          Save Report (PDF)
+        <button className="evidence-pdf-btn" onClick={handlePrintPDF} disabled={generating} style={{ marginTop: 8 }}>
+          {generating ? "Generating..." : "Save Report (PDF)"}
         </button>
       </div>
 
@@ -325,25 +402,6 @@ function StudentView({ courseId, course, user }) {
             </div>
           )}
           {weekData.reflection && <p style={{ fontSize: 14, color: "var(--text2)", whiteSpace: "pre-wrap" }}>{weekData.reflection}</p>}
-        </div>
-      ) : printMode ? (
-        // Print mode — all 5 days visible
-        <div className="evidence-print-area">
-          <h2 style={{ fontFamily: "var(--font-display)", marginBottom: 16 }}>{course.title} — {weekKey}</h2>
-          {DAYS.map(day => {
-            const dd = weekData?.[day];
-            return (
-              <div key={day} style={{ marginBottom: 20, pageBreakInside: "avoid" }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{DAY_FULL[day]}</h3>
-                {dd?.image ? (
-                  <img src={dd.image.dataUrl} alt="Evidence" style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8, marginBottom: 8 }} />
-                ) : (
-                  <div style={{ color: "#999", fontSize: 13, marginBottom: 8 }}>No photo</div>
-                )}
-                <p style={{ fontSize: 14, whiteSpace: "pre-wrap" }}>{dd?.reflection || "No reflection"}</p>
-              </div>
-            );
-          })}
         </div>
       ) : (
         <>
