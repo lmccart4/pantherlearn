@@ -9,11 +9,14 @@ import { db } from "../../lib/firebase";
 import {
   DEFAULT_CHARACTERS,
   createChallenge,
+  createAIGame,
   acceptChallenge,
   cancelChallenge,
   declineChallenge,
   subscribeToBlockGames,
+  AI_BOT_UID,
 } from "../../lib/guessWho";
+import { supportsAI } from "../../lib/guessWhoAI";
 
 export default function GuessWhoBlock({ block, courseId, lessonId }) {
   const { user, userRole } = useAuth();
@@ -170,6 +173,28 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
     try { await declineChallenge(courseId, gameId, user?.displayName || "Anonymous"); } catch (e) { console.error(e); }
   };
 
+  const handlePlayAI = async () => {
+    if (creating || !user) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const gameId = await createAIGame({
+        courseId, blockId: block.id, lessonId,
+        challengerUid: user.uid, challengerName: user.displayName || "Anonymous",
+        characters,
+        xpForWin: block.xpForWin || 50,
+        xpForPlay: block.xpForPlay || 10,
+      });
+      navigate(`/guess-who/${courseId}/${gameId}`);
+    } catch (e) {
+      console.error("Failed to create AI game:", e);
+      setError(e.message || "Failed to start AI game.");
+    }
+    setCreating(false);
+  };
+
+  const canPlayAI = supportsAI(characters);
+
   const timeAgo = (ts) => {
     if (!ts) return "";
     const d = ts.toDate ? ts.toDate() : new Date(ts);
@@ -209,6 +234,16 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
 
       {/* Challenge Buttons */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        {canPlayAI && (
+          <button onClick={handlePlayAI} disabled={creating}
+            style={{
+              padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer",
+              background: "var(--green)", color: "#1a1a1a", fontWeight: 700, fontSize: 14,
+              opacity: creating ? 0.5 : 1,
+            }}>
+            🤖 Play vs AI
+          </button>
+        )}
         <button onClick={handleCreateOpen} disabled={creating}
           style={{
             padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer",
@@ -317,7 +352,8 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
       {activeGames.length > 0 && (
         <Section title="🎮 Active Games" color="var(--green)">
           {activeGames.map((g) => {
-            const opponent = g.challengerUid === user?.uid ? g.opponentName : g.challengerName;
+            const isAI = g.opponentUid === AI_BOT_UID || g.challengerUid === AI_BOT_UID;
+            const opponent = (g.challengerUid === user?.uid ? g.opponentName : g.challengerName) + (isAI ? " 🤖" : "");
             const isMyTurn = (g.challengerUid === user?.uid && g.turn === "challenger")
               || (g.opponentUid === user?.uid && g.turn === "opponent");
             // Check if there's an unanswered question
@@ -348,7 +384,8 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
       {recentFinished.length > 0 && (
         <Section title="📊 Recent Results">
           {recentFinished.map((g) => {
-            const opponent = g.challengerUid === user?.uid ? g.opponentName : g.challengerName;
+            const isAI = g.opponentUid === AI_BOT_UID || g.challengerUid === AI_BOT_UID;
+            const opponent = (g.challengerUid === user?.uid ? g.opponentName : g.challengerName) + (isAI ? " 🤖" : "");
             const won = g.winnerUid === user?.uid;
             return (
               <GameRow key={g.id} style={{ cursor: "pointer" }}
