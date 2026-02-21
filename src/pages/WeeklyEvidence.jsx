@@ -185,36 +185,41 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
         {DAY_FULL[day]}
       </div>
 
-      {/* Photo grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
-        {images.map((img, i) => (
-          <div key={i} style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface2)" }}>
-            <img src={img.dataUrl} alt={img.name || "Evidence"} style={{ width: "100%", height: 140, objectFit: "cover" }} />
-            {isEditable && (
-              <button
-                onClick={() => removeImage(i)}
-                aria-label="Remove image"
-                className="evidence-photo-remove"
-                style={{ top: 4, right: 4, width: 22, height: 22, fontSize: 12 }}
-              >✕</button>
-            )}
-          </div>
-        ))}
-
-        {isEditable && images.length < MAX_PHOTOS_PER_DAY && (
-          <label className="evidence-upload-zone" style={{ minHeight: images.length > 0 ? 140 : 220 }}>
-            <CameraIcon />
-            <span>{images.length > 0 ? "Add Photo" : "Tap to add today's photo"}</span>
-            <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} multiple />
-          </label>
-        )}
-
-        {!isEditable && !hasPhotos && (
-          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text3)", fontSize: 13, gridColumn: "1 / -1" }}>
-            No photos uploaded
-          </div>
-        )}
-      </div>
+      {/* Photos */}
+      {hasPhotos ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
+          {images.map((img, i) => (
+            <div key={i} style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface2)" }}>
+              <img src={img.dataUrl} alt={img.name || "Evidence"} style={{ width: "100%", height: 140, objectFit: "cover" }} />
+              {isEditable && (
+                <button
+                  onClick={() => removeImage(i)}
+                  aria-label="Remove image"
+                  className="evidence-photo-remove"
+                  style={{ top: 4, right: 4, width: 22, height: 22, fontSize: 12 }}
+                >✕</button>
+              )}
+            </div>
+          ))}
+          {isEditable && images.length < MAX_PHOTOS_PER_DAY && (
+            <label className="evidence-upload-zone" style={{ minHeight: 140, marginBottom: 0 }}>
+              <CameraIcon />
+              <span>Add Photo</span>
+              <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} multiple />
+            </label>
+          )}
+        </div>
+      ) : isEditable ? (
+        <label className="evidence-upload-zone" style={{ marginBottom: 14 }}>
+          <CameraIcon />
+          <span>Tap to add today's photo</span>
+          <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} multiple />
+        </label>
+      ) : (
+        <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text3)", fontSize: 13, marginBottom: 14 }}>
+          No photos uploaded
+        </div>
+      )}
 
       {/* Reflection */}
       <div style={{ marginTop: 4 }}>
