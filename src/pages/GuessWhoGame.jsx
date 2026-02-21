@@ -1,7 +1,7 @@
 // src/pages/GuessWhoGame.jsx
 // Full-page Guess Who? game — 1v1 turn-based face guessing game
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -11,7 +11,16 @@ import {
   toggleEliminate,
   makeGuess,
   forfeitGame,
+  AI_BOT_UID,
 } from "../lib/guessWho";
+import {
+  answerFromTraits,
+  pickBestQuestion,
+  getEliminationsForAnswer,
+  getBotGuessTarget,
+  getAskedTraitKeys,
+  findQuestionByText,
+} from "../lib/guessWhoAI";
 
 export default function GuessWhoGame() {
   const { courseId, gameId } = useParams();
@@ -25,6 +34,8 @@ export default function GuessWhoGame() {
   const [showGameOver, setShowGameOver] = useState(false);
   const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
   const moveLogRef = useRef(null);
+  const botActingRef = useRef(false); // Prevent duplicate bot actions
+  const botElimProcessedRef = useRef(0); // Track which move index eliminations have been processed through
 
   const isTeacher = userRole === "teacher";
 
@@ -45,6 +56,90 @@ export default function GuessWhoGame() {
       moveLogRef.current.scrollTop = moveLogRef.current.scrollHeight;
     }
   }, [game?.moves?.length]);
+
+  // ─── AI Bot turn logic ───
+  // Watches game state and auto-plays for the AI opponent with delays for UX.
+  useEffect(() => {
+    if (!game || game.status !== "active") return;
+    if (game.opponentUid !== AI_BOT_UID) return;
+    if (botActingRef.current) return;
+
+    const moves = game.moves || [];
+    const lastMove = moves.length > 0 ? moves[moves.length - 1] : null;
+    const botRole = "opponent";
+    const botSecretId = game.opponentSecretId;
+    const botEliminated = game.opponentEliminated || [];
+    const allCharIds = (game.characters || []).map(c => c.id);
+
+    // ── Eliminate characters based on answered bot questions (not turn-gated) ──
+    // Only process moves we haven't already processed to avoid toggle-flipping.
+    if (moves.length > botElimProcessedRef.current) {
+      const unprocessed = moves.slice(botElimProcessedRef.current);
+      botElimProcessedRef.current = moves.length;
+
+      for (const move of unprocessed) {
+        if (move.type !== "question" || move.playerUid !== AI_BOT_UID || move.answer === null) continue;
+        const poolQuestion = findQuestionByText(move.text);
+        if (!poolQuestion) continue;
+        const remaining = allCharIds.filter(id => !botEliminated.includes(id));
+        const toElim = getEliminationsForAnswer(remaining, poolQuestion, move.answer);
+        const newElims = toElim.filter(id => !botEliminated.includes(id));
+        if (newElims.length > 0) {
+          (async () => {
+            for (const id of newElims) {
+              try { await toggleEliminate(courseId, gameId, AI_BOT_UID, id); } catch (e) { console.warn("Bot eliminate failed:", e); }
+            }
+          })();
+        }
+      }
+    }
+
+    // ── Case 1: Unanswered question from the human → bot answers ──
+    if (lastMove?.type === "question" && lastMove.answer === null && lastMove.playerUid !== AI_BOT_UID) {
+      botActingRef.current = true;
+      const timer = setTimeout(async () => {
+        try {
+          const answer = answerFromTraits(botSecretId, lastMove.text);
+          await answerQuestion(courseId, gameId, AI_BOT_UID, answer);
+        } catch (e) {
+          console.warn("Bot answer failed:", e);
+        }
+        botActingRef.current = false;
+      }, 1000);
+      return () => { clearTimeout(timer); botActingRef.current = false; };
+    }
+
+    // ── Case 2: Bot's turn, no pending question → ask or guess ──
+    if (game.turn === botRole && !(lastMove?.type === "question" && lastMove?.answer === null)) {
+      botActingRef.current = true;
+
+      const remaining = allCharIds.filter(id => !botEliminated.includes(id));
+
+      // Should the bot guess?
+      const guessTarget = getBotGuessTarget(remaining, botSecretId);
+      if (guessTarget) {
+        const timer = setTimeout(async () => {
+          try { await makeGuess(courseId, gameId, AI_BOT_UID, guessTarget); } catch (e) { console.warn("Bot guess failed:", e); }
+          botActingRef.current = false;
+        }, 1500);
+        return () => { clearTimeout(timer); botActingRef.current = false; };
+      }
+
+      // Ask a question
+      const remainingNonSecret = remaining.filter(id => id !== botSecretId);
+      const askedKeys = getAskedTraitKeys(moves);
+      const question = pickBestQuestion(remainingNonSecret, askedKeys);
+      if (question) {
+        const timer = setTimeout(async () => {
+          try { await askQuestion(courseId, gameId, AI_BOT_UID, question.text); } catch (e) { console.warn("Bot ask failed:", e); }
+          botActingRef.current = false;
+        }, 1500);
+        return () => { clearTimeout(timer); botActingRef.current = false; };
+      }
+
+      botActingRef.current = false;
+    }
+  }, [game, courseId, gameId]);
 
   if (loading) {
     return (
@@ -176,7 +271,7 @@ export default function GuessWhoGame() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {isSpectator && <span style={{ fontSize: 12, color: "var(--amber)", fontWeight: 700 }}>👁 Spectating</span>}
           <span style={{ fontSize: 13, color: "var(--text2)" }}>
-            <strong>{game.challengerName}</strong> vs. <strong>{game.opponentName}</strong>
+            <strong>{game.challengerName}</strong> vs. <strong>{game.opponentName}{game.opponentUid === AI_BOT_UID ? " 🤖" : ""}</strong>
           </span>
         </div>
       </div>

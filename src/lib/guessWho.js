@@ -10,6 +10,8 @@ import {
 import { db } from "./firebase";
 import { awardXP } from "./gamification";
 import { createNotification } from "./notifications";
+import { AI_BOT_UID, AI_BOT_NAME } from "./guessWhoAI";
+export { AI_BOT_UID };
 
 // ─── Default Characters (40 AI-generated faces) ───
 // Images are static assets at /games/guess-who/face-NN.jpg (200×200)
@@ -114,6 +116,48 @@ export async function createChallenge({
       courseId,
     }).catch(() => {});
   }
+
+  return gameRef.id;
+}
+
+// ─── Create an AI game (instant start, no waiting) ───
+export async function createAIGame({
+  courseId, blockId, lessonId,
+  challengerUid, challengerName,
+  characters,
+  xpForWin = 50,
+  xpForPlay = 10,
+}) {
+  const challengerSecretId = pickRandom(characters);
+  const opponentSecretId = pickRandom(characters, challengerSecretId);
+  const firstTurn = Math.random() < 0.5 ? "challenger" : "opponent";
+
+  const gameRef = await addDoc(collection(db, "courses", courseId, "guessWhoGames"), {
+    blockId,
+    lessonId,
+    status: "active",
+    challengeType: "ai",
+    challengerUid,
+    challengerName,
+    opponentUid: AI_BOT_UID,
+    opponentName: AI_BOT_NAME,
+    targetOpponentUid: null,
+    targetOpponentName: null,
+    characters,
+    challengerSecretId,
+    opponentSecretId,
+    turn: firstTurn,
+    challengerEliminated: [],
+    opponentEliminated: [],
+    moves: [],
+    winnerUid: null,
+    xpAwarded: false,
+    xpForWin,
+    xpForPlay,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    lastActivityAt: serverTimestamp(),
+  });
 
   return gameRef.id;
 }
