@@ -2,7 +2,7 @@
 import { useAuth } from "../hooks/useAuth";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { getLevelInfo, getStudentGamification, getXPConfig, retroactiveBadgeXP } from "../lib/gamification";
 import { getStudentEnrolledCourseIds } from "../lib/enrollment";
@@ -53,76 +53,140 @@ export default function StudentDashboard() {
   ]);
   const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
 
+  // Real-time courses — new/hidden courses update instantly
   useEffect(() => {
+    const q = query(collection(db, "courses"), orderBy("order", "asc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setAllCourses(snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden));
+    }, (err) => console.error("Course listener error:", err));
+    return () => unsub();
+  }, []);
+
+  // Enrollment + one-shot data (gamification, avatar, multiplier) + real-time lessons/progress
+  useEffect(() => {
+    if (!user || allCourses.length === 0) return;
+    let cancelled = false;
+    const unsubs = [];
+
     const fetchData = async () => {
       try {
-        const q = query(collection(db, "courses"), orderBy("order", "asc"));
-        const snapshot = await getDocs(q);
-        const coursesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((c) => !c.hidden);
-        setAllCourses(coursesData);
-
         // Get enrolled course IDs
         let enrolledSet = new Set();
-        if (user) {
-          try {
-            enrolledSet = await getStudentEnrolledCourseIds(user.uid);
-          } catch (e) {
-            console.warn("Failed to get enrolled courses:", e);
-          }
-          setEnrolledIds(enrolledSet);
+        try {
+          enrolledSet = await getStudentEnrolledCourseIds(user.uid);
+        } catch (e) {
+          console.warn("Failed to get enrolled courses:", e);
+        }
+        if (cancelled) return;
+        setEnrolledIds(enrolledSet);
+
+        const enrolledCourses = allCourses.filter((c) => enrolledSet.has(c.id));
+
+        // Real-time lesson listeners for each enrolled course
+        for (const course of enrolledCourses) {
+          const lessonUnsub = onSnapshot(
+            query(collection(db, "courses", course.id, "lessons"), orderBy("order", "asc")),
+            (snap) => {
+              setLessonMap((prev) => {
+                const next = { ...prev };
+                // Remove old lessons for this course
+                Object.keys(next).forEach((k) => { if (next[k].courseId === course.id) delete next[k]; });
+                snap.forEach((ld) => {
+                  const data = ld.data();
+                  if (data.visible === false) return;
+                  next[ld.id] = { ...data, courseId: course.id };
+                });
+                return next;
+              });
+            },
+            (err) => console.warn("Lesson listener error:", err)
+          );
+          unsubs.push(lessonUnsub);
         }
 
-        // Fetch lessons for enrolled courses only
-        const lessons = {};
-        for (const course of coursesData) {
-          if (!enrolledSet.has(course.id)) continue;
-          try {
-            const lessonsSnap = await getDocs(
-              query(collection(db, "courses", course.id, "lessons"), orderBy("order", "asc"))
-            );
-            lessonsSnap.forEach((ld) => {
-              const data = ld.data();
-              if (data.visible === false) return; // skip hidden lessons
-              lessons[ld.id] = { ...data, courseId: course.id };
-            });
-          } catch (e) {
-            console.warn("Could not fetch lessons for", course.id, e);
-          }
-        }
-        setLessonMap(lessons);
+        // Real-time progress listeners for each enrolled course
+        for (const course of enrolledCourses) {
+          const progressUnsub = onSnapshot(
+            collection(db, "progress", user.uid, "courses", course.id, "lessons"),
+            (snap) => {
+              const progressByLesson = {};
+              const completedSet = new Set();
+              snap.forEach((d) => {
+                progressByLesson[d.id] = d.data();
+                if (d.data().completed) completedSet.add(d.id);
+              });
 
-        if (user && enrolledSet.size > 0) {
-          const enrolledCourses = coursesData.filter((c) => enrolledSet.has(c.id));
-          const primaryCourseId = enrolledCourses[0]?.id;
+              setCompletedLessons((prev) => {
+                const next = new Set(prev);
+                // Clear lessons for this course, then add back
+                snap.forEach((d) => {
+                  if (d.data().completed) next.add(d.id); else next.delete(d.id);
+                });
+                return next;
+              });
+
+              setCourseProgress((prev) => {
+                // Recalculate progress for this course using current lessonMap
+                setLessonMap((currentLessonMap) => {
+                  const courseLessons = Object.entries(currentLessonMap)
+                    .filter(([_, l]) => l.courseId === course.id)
+                    .map(([id, l]) => ({ id, ...l }));
+
+                  let totalQuestions = 0, answeredQuestions = 0, correctQuestions = 0;
+                  for (const lesson of courseLessons) {
+                    const questions = (lesson.blocks || []).filter((b) => b.type === "question");
+                    totalQuestions += questions.length;
+                    const progData = progressByLesson[lesson.id];
+                    if (progData) {
+                      const answers = progData.answers || {};
+                      questions.forEach((qBlock) => {
+                        if (answers[qBlock.id]?.submitted) {
+                          answeredQuestions++;
+                          if (answers[qBlock.id]?.correct) correctQuestions++;
+                        }
+                      });
+                    }
+                  }
+                  setCourseProgress((p) => ({
+                    ...p,
+                    [course.id]: {
+                      totalLessons: courseLessons.length,
+                      totalQuestions,
+                      answeredQuestions,
+                      correctQuestions,
+                      accuracy: answeredQuestions > 0 ? Math.round((correctQuestions / answeredQuestions) * 100) : null,
+                      completion: totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0,
+                    },
+                  }));
+                  return currentLessonMap; // don't mutate
+                });
+                return prev;
+              });
+            },
+            (err) => console.warn("Progress listener error:", err)
+          );
+          unsubs.push(progressUnsub);
+        }
+
+        // One-shot: gamification, avatar, multiplier
+        if (enrolledCourses.length > 0) {
+          const primaryCourseId = enrolledCourses[0].id;
 
           let gData = await getStudentGamification(user.uid, primaryCourseId);
-
-          // Retroactive badge XP — credits XP for badges earned before this feature
           try {
             const retro = await retroactiveBadgeXP(user.uid, primaryCourseId);
-            if (retro.awarded > 0) {
-              gData = await getStudentGamification(user.uid, primaryCourseId);
-            }
+            if (retro.awarded > 0) gData = await getStudentGamification(user.uid, primaryCourseId);
           } catch (e) { /* ignore */ }
-
+          if (cancelled) return;
           setGamification(gData);
 
-          // Fetch avatar
           try {
             const existingAvatar = await getAvatar(user.uid);
-            if (existingAvatar) {
-              setAvatar(existingAvatar);
-              setHasCustomAvatar(true);
-            } else {
-              setAvatar(generateRandomAvatar(gData.totalXP || 0));
-              setHasCustomAvatar(false);
-            }
-          } catch (e) {
-            setAvatar(generateRandomAvatar(0));
-            setHasCustomAvatar(false);
-          }
+            if (cancelled) return;
+            if (existingAvatar) { setAvatar(existingAvatar); setHasCustomAvatar(true); }
+            else { setAvatar(generateRandomAvatar(gData.totalXP || 0)); setHasCustomAvatar(false); }
+          } catch (e) { setAvatar(generateRandomAvatar(0)); setHasCustomAvatar(false); }
 
-          // Check for active multiplier
           for (const course of enrolledCourses) {
             try {
               const config = await getXPConfig(course.id);
@@ -130,67 +194,19 @@ export default function StudentDashboard() {
                 const expires = config.activeMultiplier.expiresAt?.toDate?.()
                   ? config.activeMultiplier.expiresAt.toDate()
                   : new Date(config.activeMultiplier.expiresAt);
-                if (expires > new Date()) {
-                  setActiveMultiplier(config.activeMultiplier);
-                  break;
-                }
+                if (expires > new Date()) { setActiveMultiplier(config.activeMultiplier); break; }
               }
             } catch (e) { /* no config yet */ }
           }
-
-          // Fetch progress for enrolled courses (batch query per course)
-          const progress = {};
-          const completedSet = new Set();
-          for (const course of enrolledCourses) {
-            const courseLessons = Object.entries(lessons)
-              .filter(([_, l]) => l.courseId === course.id)
-              .map(([id, l]) => ({ id, ...l }));
-
-            let totalQuestions = 0, answeredQuestions = 0, correctQuestions = 0;
-
-            // Single query gets all lesson progress for this course
-            const allProgressSnap = await getDocs(
-              collection(db, "progress", user.uid, "courses", course.id, "lessons")
-            );
-            const progressByLesson = {};
-            allProgressSnap.forEach((d) => {
-              progressByLesson[d.id] = d.data();
-              if (d.data().completed) completedSet.add(d.id);
-            });
-
-            for (const lesson of courseLessons) {
-              const questions = (lesson.blocks || []).filter((b) => b.type === "question");
-              totalQuestions += questions.length;
-              const progData = progressByLesson[lesson.id];
-              if (progData) {
-                const answers = progData.answers || {};
-                questions.forEach((qBlock) => {
-                  if (answers[qBlock.id]?.submitted) {
-                    answeredQuestions++;
-                    if (answers[qBlock.id]?.correct) correctQuestions++;
-                  }
-                });
-              }
-            }
-            progress[course.id] = {
-              totalLessons: courseLessons.length,
-              totalQuestions,
-              answeredQuestions,
-              correctQuestions,
-              accuracy: answeredQuestions > 0 ? Math.round((correctQuestions / answeredQuestions) * 100) : null,
-              completion: totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0,
-            };
-          }
-          setCourseProgress(progress);
-          setCompletedLessons(completedSet);
         }
       } catch (err) {
         console.error("Error fetching student dashboard:", err);
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
     fetchData();
-  }, [user]);
+    return () => { cancelled = true; unsubs.forEach((u) => u()); };
+  }, [user, allCourses]);
 
   const handleEnrolled = (course) => {
     setEnrolledIds((prev) => new Set([...(prev || []), course.id]));

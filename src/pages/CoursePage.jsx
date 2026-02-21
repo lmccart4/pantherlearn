@@ -1,7 +1,7 @@
 // src/pages/CoursePage.jsx
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
+import { doc, getDoc, collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import TeamPanel from "../components/TeamPanel";
@@ -37,44 +37,39 @@ export default function CoursePage() {
   const lessonTexts = lessons.flatMap(l => [l.title, l.unit || ""]);
   const translatedLessonTexts = useTranslatedTexts(lessonTexts);
 
+  // One-shot course metadata (rarely changes mid-session)
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const courseDoc = await getDoc(doc(db, "courses", courseId));
-        if (courseDoc.exists()) setCourse({ id: courseDoc.id, ...courseDoc.data() });
+    getDoc(doc(db, "courses", courseId))
+      .then((d) => { if (d.exists()) setCourse({ id: d.id, ...d.data() }); })
+      .catch((err) => console.error("Error fetching course:", err))
+      .finally(() => setLoading(false));
+  }, [courseId]);
 
-        try {
-          const snapshot = await getDocs(query(collection(db, "courses", courseId, "lessons"), orderBy("order", "asc")));
-          const lessonData = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-          lessonData.sort((a, b) => (a.order || 0) - (b.order || 0));
-          setLessons(lessonData);
-        } catch (e) {
-          console.warn("Could not fetch lessons:", e);
-        }
-
-        // Fetch student's lesson progress to show completion indicators
-        if (userRole !== "teacher" && user) {
-          try {
-            const progressSnap = await getDocs(
-              collection(db, "progress", user.uid, "courses", courseId, "lessons")
-            );
-            const completed = new Set();
-            progressSnap.forEach((d) => {
-              if (d.data().completed) completed.add(d.id);
-            });
-            setCompletedLessons(completed);
-          } catch (e) {
-            console.warn("Could not fetch lesson progress:", e);
-          }
-        }
-
-        // Leaderboard is now handled by the Leaderboard component
-      } catch (err) {
-        console.error("Error fetching course:", err);
-      }
+  // Real-time lessons — teacher visibility changes appear instantly
+  useEffect(() => {
+    const q = query(collection(db, "courses", courseId, "lessons"), orderBy("order", "asc"));
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      data.sort((a, b) => (a.order || 0) - (b.order || 0));
+      setLessons(data);
       setLoading(false);
-    };
-    fetchData();
+    }, (err) => console.warn("Lesson listener error:", err));
+    return () => unsub();
+  }, [courseId]);
+
+  // Real-time progress — completion indicators update live
+  useEffect(() => {
+    if (userRole === "teacher" || !user) return;
+    const unsub = onSnapshot(
+      collection(db, "progress", user.uid, "courses", courseId, "lessons"),
+      (snap) => {
+        const completed = new Set();
+        snap.forEach((d) => { if (d.data().completed) completed.add(d.id); });
+        setCompletedLessons(completed);
+      },
+      (err) => console.warn("Progress listener error:", err)
+    );
+    return () => unsub();
   }, [courseId, user, userRole]);
 
   // FIX #33: Memoize lesson grouping instead of recalculating in an IIFE on every render

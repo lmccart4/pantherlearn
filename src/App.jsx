@@ -7,12 +7,14 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { TranslationProvider } from "./contexts/TranslationContext";
 import { PreviewProvider } from "./contexts/PreviewContext";
 import PreviewBanner from "./components/PreviewBanner";
-import ClassChat from "./components/ClassChat";
-import FloatingMusicPlayer from "./components/FloatingMusicPlayer";
-import AnnotationOverlay from "./components/AnnotationOverlay";
-import ScreenReader from "./components/ScreenReader";
-import BugReporter from "./components/BugReporter";
 import OfflineBanner from "./components/OfflineBanner";
+
+// Lazy-loaded widgets — only needed after auth, load in background
+const ClassChat = lazy(() => import("./components/ClassChat"));
+const FloatingMusicPlayer = lazy(() => import("./components/FloatingMusicPlayer"));
+const AnnotationOverlay = lazy(() => import("./components/AnnotationOverlay"));
+const ScreenReader = lazy(() => import("./components/ScreenReader"));
+const BugReporter = lazy(() => import("./components/BugReporter"));
 
 // Lazy-loaded pages
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -113,11 +115,11 @@ function AppRoutes() {
           </Route>
         </Routes>
       </Suspense>
-      {user && <ClassChat />}
-      {user && <FloatingMusicPlayer />}
-      {user && <AnnotationOverlay />}
-      {user && <ScreenReader />}
-      {user && <BugReporter />}
+      {user && <Suspense fallback={null}><ClassChat /></Suspense>}
+      {user && <Suspense fallback={null}><FloatingMusicPlayer /></Suspense>}
+      {user && <Suspense fallback={null}><AnnotationOverlay /></Suspense>}
+      {user && <Suspense fallback={null}><ScreenReader /></Suspense>}
+      {user && <Suspense fallback={null}><BugReporter /></Suspense>}
       <OfflineBanner />
     </PreviewProvider>
   );
