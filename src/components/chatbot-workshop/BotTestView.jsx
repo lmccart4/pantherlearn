@@ -17,6 +17,9 @@ import RatingModal from "./RatingModal";
 const BOT_CHAT_URL = import.meta.env.VITE_BOT_CHAT_URL
   || "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/botChat";
 
+const BOT_EMBED_URL = import.meta.env.VITE_BOT_EMBED_URL
+  || "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/botEmbed";
+
 const PHASE_LABELS = {
   1: "Decision Tree",
   2: "Keyword Match",
@@ -391,6 +394,7 @@ export default function BotTestView() {
           botAvatar={bot.botAvatar}
           studentId={user?.uid}
           cloudFunctionUrl={BOT_CHAT_URL}
+          embedFunctionUrl={BOT_EMBED_URL}
           getToken={getToken}
           projectId={projectId}
           onMessagesChange={handleMessagesChange}

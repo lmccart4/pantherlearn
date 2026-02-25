@@ -60,7 +60,7 @@ export async function createBotProject(db, { ownerId, courseId, botName, botAvat
     phases: {
       1: { nodes: getDefaultNodes(), edges: getDefaultEdges() },
       2: { rules: getDefaultRules() },
-      3: { intents: [], trainingData: [] },
+      3: { intents: getDefaultIntents(), trainingData: [], fallbackResponse: "I'm not sure what you mean. Can you try rephrasing?", confidenceThreshold: 0.65, trainedAt: null },
       4: { systemPrompt: "", temperature: 0.7 },
     },
   };
@@ -247,6 +247,21 @@ function getDefaultEdges() {
       target: "node-fallback",
       data: { condition: "default" },
       label: "default",
+    },
+  ];
+}
+
+function getDefaultIntents() {
+  return [
+    {
+      id: "intent-greeting",
+      name: "greeting",
+      response: "Hello! How can I help you today?",
+    },
+    {
+      id: "intent-farewell",
+      name: "farewell",
+      response: "Goodbye! Have a great day!",
     },
   ];
 }
