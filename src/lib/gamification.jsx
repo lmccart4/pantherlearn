@@ -42,6 +42,9 @@ export const DEFAULT_XP_VALUES = {
   bot_rate: 10,
   bot_stump: 5,
   bot_reflection: 10,
+  // Bias Detective XP
+  bias_investigation: 50,
+  bias_clue: 2,
 };
 
 // ─── Default Behavior Rewards ───

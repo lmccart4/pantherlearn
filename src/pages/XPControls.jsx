@@ -30,6 +30,8 @@ const XP_LABELS = {
   bot_rate: { label: "Rated a Bot", icon: "⭐" },
   bot_stump: { label: "Stumped a Bot", icon: "🤔" },
   bot_reflection: { label: "Bot Phase Reflection", icon: "💭" },
+  bias_investigation: { label: "Bias Investigation Completed", icon: "🔍" },
+  bias_clue: { label: "Bias Clue Discovered", icon: "🕵️" },
 };
 
 const WRITTEN_XP_LABELS = {

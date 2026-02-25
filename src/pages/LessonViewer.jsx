@@ -176,6 +176,10 @@ export default function LessonViewer() {
         extraProps.courseId = courseId;
         extraProps.lessonId = lessonId;
       }
+      if (block.type === "bias_detective") {
+        extraProps.courseId = courseId;
+        extraProps.lessonId = lessonId;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted]);
