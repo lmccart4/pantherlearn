@@ -41,6 +41,7 @@ export const DEFAULT_XP_VALUES = {
   bot_test: 5,
   bot_rate: 10,
   bot_stump: 5,
+  bot_reflection: 10,
 };
 
 // ─── Default Behavior Rewards ───

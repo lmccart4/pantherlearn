@@ -207,6 +207,45 @@ export async function getArcadeStats(db, courseId) {
 }
 
 
+// ─── Teacher Dashboard (Course-wide queries) ────────────────────────────────
+
+export async function getCourseBotProjects(db, courseId) {
+  const q = query(
+    collection(db, "botProjects"),
+    where("courseId", "==", courseId),
+    orderBy("createdAt", "desc")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+export async function getCourseBotReflections(db, courseId) {
+  const snap = await getDocs(collection(db, "courses", courseId, "botReflections"));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+export async function saveBotReflection(db, courseId, { studentId, studentName, phase, projectId, response, valid, skipped }) {
+  const ref = doc(db, "courses", courseId, "botReflections", `${studentId}_phase${phase}`);
+  await setDoc(ref, {
+    studentId,
+    studentName: studentName || "Anonymous",
+    phase,
+    projectId: projectId || "",
+    response: response || "(skipped)",
+    valid: valid ?? false,
+    skipped: skipped ?? false,
+    savedAt: serverTimestamp(),
+  });
+}
+
+export async function getBotReflection(db, courseId, studentId, phase) {
+  const ref = doc(db, "courses", courseId, "botReflections", `${studentId}_phase${phase}`);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
+}
+
+
 // ─── Default Starter Data ───────────────────────────────────────────────────
 
 function getDefaultNodes() {

@@ -29,6 +29,7 @@ const XP_LABELS = {
   bot_test: { label: "Tested a Classmate's Bot", icon: "🧪" },
   bot_rate: { label: "Rated a Bot", icon: "⭐" },
   bot_stump: { label: "Stumped a Bot", icon: "🤔" },
+  bot_reflection: { label: "Bot Phase Reflection", icon: "💭" },
 };
 
 const WRITTEN_XP_LABELS = {

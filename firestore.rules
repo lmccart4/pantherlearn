@@ -88,6 +88,14 @@ service cloud.firestore {
         allow read: if hasCourseAccess(courseId);
         allow write: if isOwner(uid) || isCourseTeacher(courseId);
       }
+      match /botReflections/{reflectionId} {
+        allow read: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId) && resource.data.studentId == request.auth.uid);
+        allow write: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId)
+              && reflectionId.matches(request.auth.uid + "_.*")
+              && request.resource.data.studentId == request.auth.uid);
+      }
       match /chatLogs/{lessonId}/{blockId}/{studentId} {
         // Students can only read their OWN chat logs; teachers can read all
         allow read: if isOwner(studentId) || isCourseTeacher(courseId);
