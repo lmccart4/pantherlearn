@@ -577,7 +577,7 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
       {/* Approval / Accuracy Rates */}
       <div className="card" style={{ padding: "18px 18px", marginBottom: 24 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 14, fontFamily: "var(--font-display)" }}>
-          Approval / Accuracy Rates
+          {td.ratesLabel || "Approval / Accuracy Rates"}
         </div>
         {td.approvalRates.map((ar) => {
           const barColor = ar.rate < 25 ? "var(--red, #ef4444)" : ar.rate < 40 ? "var(--amber)" : "#60a5fa";
