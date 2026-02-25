@@ -11,6 +11,7 @@ import {
   createInvestigation,
   getStudentInvestigations,
   updateInvestigation,
+  deleteInvestigation,
   calculateScore,
 } from "../lib/biasStore";
 import { awardXP } from "../lib/gamification";
@@ -136,6 +137,35 @@ export default function BiasInvestigation() {
       } catch (err) {
         console.error("Error creating investigation:", err);
       }
+    }
+  }
+
+  // ── Restart investigation (delete old, create new) ──
+  async function handleRestart(c) {
+    const existing = existingInvestigations.find((inv) => inv.caseId === c.id);
+    if (!existing) return;
+    try {
+      await deleteInvestigation(db, courseId, existing.id);
+      const inv = await createInvestigation(db, courseId, {
+        studentId: user.uid,
+        studentName: user.displayName || "Anonymous",
+        caseId: c.id,
+      });
+      setExistingInvestigations((prev) => prev.filter((i) => i.id !== existing.id));
+      setSelectedCase(c);
+      setInvestigation(inv);
+      setPhase("briefing");
+      setDiscoveredClues([]);
+      setFlaggedEvidence([]);
+      setEvidenceNotes({});
+      setBiases([]);
+      setMitigations([]);
+      setSummary("");
+      setSubmitted(false);
+      setDataRoomAnswers({});
+      setClueAnswers({});
+    } catch (err) {
+      console.error("Error restarting investigation:", err);
     }
   }
 
@@ -350,7 +380,18 @@ export default function BiasInvestigation() {
                       Score: {inv.score.total}/100
                     </span>
                   ) : inv ? (
-                    <span style={{ color: "var(--amber)", fontWeight: 600 }}>Continue</span>
+                    <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <span style={{ color: "var(--amber)", fontWeight: 600 }}>Continue</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); if (confirm("Restart this investigation? All progress will be lost.")) handleRestart(c); }}
+                        style={{
+                          background: "none", border: "1px solid var(--border)", borderRadius: 6,
+                          color: "var(--text3)", fontSize: 11, padding: "2px 8px", cursor: "pointer",
+                        }}
+                      >
+                        Restart
+                      </button>
+                    </span>
                   ) : null}
                 </div>
               </div>

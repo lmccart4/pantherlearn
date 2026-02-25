@@ -9,6 +9,7 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -77,6 +78,14 @@ export async function updateInvestigation(db, courseId, investigationId, updates
     ...updates,
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * Delete an investigation (for restarting).
+ */
+export async function deleteInvestigation(db, courseId, investigationId) {
+  const ref = doc(db, "courses", courseId, "biasInvestigations", investigationId);
+  await deleteDoc(ref);
 }
 
 /**
