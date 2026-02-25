@@ -236,7 +236,7 @@ export default function BiasInvestigation() {
           >
             ← Back
           </button>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, color: "var(--text1)", margin: 0 }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, color: "var(--text)", margin: 0 }}>
             AI Bias Detective
           </h1>
           <p style={{ color: "var(--text2)", fontSize: 14, marginTop: 6 }}>
@@ -268,7 +268,7 @@ export default function BiasInvestigation() {
                     {c.emoji}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: "var(--text1)" }}>{c.title}</div>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: "var(--text)" }}>{c.title}</div>
                     <div style={{ fontSize: 12, color: "var(--text3)" }}>{c.subtitle}</div>
                   </div>
                   <span style={{
@@ -317,7 +317,7 @@ export default function BiasInvestigation() {
           ←
         </button>
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--text1)" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--text)" }}>
             {caseData.emoji} {caseData.title}
           </div>
           <div style={{ fontSize: 12, color: "var(--text3)" }}>{caseData.subtitle}</div>
@@ -408,7 +408,7 @@ function PhaseBriefing({ caseData, onNext }) {
       </p>
 
       <div className="card" style={{ padding: "20px 18px", marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)", marginBottom: 14, fontFamily: "var(--font-display)" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 14, fontFamily: "var(--font-display)" }}>
           System Profile
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 24px" }}>
@@ -417,7 +417,7 @@ function PhaseBriefing({ caseData, onNext }) {
               <div style={{ fontSize: 11, color: "var(--text3)", textTransform: "capitalize", marginBottom: 2 }}>
                 {key.replace(/([A-Z])/g, " $1").trim()}
               </div>
-              <div style={{ fontSize: 13, color: "var(--text1)", fontWeight: 500 }}>{val}</div>
+              <div style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>{val}</div>
             </div>
           ))}
         </div>
@@ -459,7 +459,7 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
   const td = caseData.trainingData;
   return (
     <div>
-      <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--text1)", margin: "0 0 6px" }}>
+      <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--text)", margin: "0 0 6px" }}>
         Training Data Overview
       </h2>
       <p style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.6, marginBottom: 22 }}>{td.description}</p>
@@ -474,7 +474,7 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
               display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer",
             }}
           >
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text1)" }}>{demo.category}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{demo.category}</span>
             <span style={{ fontSize: 12, color: "var(--text3)", transform: openChart === di ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
               ▼
             </span>
@@ -499,7 +499,7 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
 
       {/* Sample Records Table */}
       <div className="card" style={{ padding: "18px 0", marginBottom: 16, overflowX: "auto" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)", padding: "0 18px", marginBottom: 12, fontFamily: "var(--font-display)" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", padding: "0 18px", marginBottom: 12, fontFamily: "var(--font-display)" }}>
           Sample Records
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "monospace", fontSize: 12 }}>
@@ -554,7 +554,7 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
 
       {/* Feature Weights */}
       <div className="card" style={{ padding: "18px 18px", marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)", marginBottom: 14, fontFamily: "var(--font-display)" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 14, fontFamily: "var(--font-display)" }}>
           Feature Weights
         </div>
         {td.featureWeights.map((fw) => (
@@ -576,7 +576,7 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
 
       {/* Approval / Accuracy Rates */}
       <div className="card" style={{ padding: "18px 18px", marginBottom: 24 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)", marginBottom: 14, fontFamily: "var(--font-display)" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 14, fontFamily: "var(--font-display)" }}>
           Approval / Accuracy Rates
         </div>
         {td.approvalRates.map((ar) => {
@@ -614,7 +614,7 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
 function PhaseInvestigation({ caseData, discoveredClues, onDiscover, selectedClue, onCloseClue, onNext }) {
   return (
     <div>
-      <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--text1)", margin: "0 0 16px" }}>
+      <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--text)", margin: "0 0 16px" }}>
         Investigation Board
       </h2>
 
@@ -637,7 +637,7 @@ function PhaseInvestigation({ caseData, discoveredClues, onDiscover, selectedClu
               {found ? (
                 <>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 8 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)" }}>{clue.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{clue.title}</div>
                     <span style={{
                       fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
                       background: clue.severity === "high" ? "rgba(239,68,68,0.12)" : "rgba(245,166,35,0.12)",
@@ -684,7 +684,7 @@ function PhaseInvestigation({ caseData, discoveredClues, onDiscover, selectedClu
               ✕
             </button>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text1)", marginBottom: 8 }}>{selectedClue.title}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>{selectedClue.title}</div>
           <p style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.6, marginBottom: 12 }}>{selectedClue.description}</p>
           <div style={{
             padding: "10px 14px", borderRadius: 10, background: "var(--surface2)",
@@ -745,7 +745,7 @@ function PhaseEvidence({ caseData, discoveredClues, flaggedEvidence, evidenceNot
 
   return (
     <div>
-      <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--text1)", margin: "0 0 16px" }}>
+      <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--text)", margin: "0 0 16px" }}>
         Evidence Locker
       </h2>
 
@@ -774,7 +774,7 @@ function PhaseEvidence({ caseData, discoveredClues, flaggedEvidence, evidenceNot
                 }}
               >
                 {isFlagged && <span style={{ color: "var(--amber)" }}>✓</span>}
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text1)", flex: 1 }}>{clue.title}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", flex: 1 }}>{clue.title}</span>
                 <span style={{
                   fontSize: 10, padding: "2px 8px", borderRadius: 20,
                   background: "rgba(168,85,247,0.1)", color: "var(--purple, #a855f7)",
@@ -798,7 +798,7 @@ function PhaseEvidence({ caseData, discoveredClues, flaggedEvidence, evidenceNot
                     style={{
                       width: "100%", minHeight: 60, padding: "10px 12px", borderRadius: 10,
                       border: "1px solid var(--border)", background: "var(--surface)",
-                      color: "var(--text1)", fontSize: 13, resize: "vertical", marginBottom: 10,
+                      color: "var(--text)", fontSize: 13, resize: "vertical", marginBottom: 10,
                       fontFamily: "inherit",
                     }}
                   />
@@ -859,13 +859,13 @@ function PhaseReport({ caseData, biases, mitigations, summary, submitted, onTogg
 
   return (
     <div>
-      <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--text1)", margin: "0 0 16px" }}>
+      <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--text)", margin: "0 0 16px" }}>
         Bias Report
       </h2>
 
       {/* Identified Biases */}
       <div className="card" style={{ padding: "18px 18px", marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)", marginBottom: 12, fontFamily: "var(--font-display)" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 12, fontFamily: "var(--font-display)" }}>
           Identified Biases
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -895,7 +895,7 @@ function PhaseReport({ caseData, biases, mitigations, summary, submitted, onTogg
       {/* Mitigations */}
       {biases.length > 0 && (
         <div className="card" style={{ padding: "18px 18px", marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)", marginBottom: 12, fontFamily: "var(--font-display)" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 12, fontFamily: "var(--font-display)" }}>
             Proposed Mitigations
           </div>
           {biases.map((biasId, idx) => {
@@ -913,7 +913,7 @@ function PhaseReport({ caseData, biases, mitigations, summary, submitted, onTogg
                   style={{
                     width: "100%", minHeight: 70, padding: "10px 12px", borderRadius: 10,
                     border: "1px solid var(--border)", background: "var(--surface)",
-                    color: "var(--text1)", fontSize: 13, resize: "vertical", fontFamily: "inherit",
+                    color: "var(--text)", fontSize: 13, resize: "vertical", fontFamily: "inherit",
                   }}
                 />
               </div>
@@ -924,7 +924,7 @@ function PhaseReport({ caseData, biases, mitigations, summary, submitted, onTogg
 
       {/* Executive Summary */}
       <div className="card" style={{ padding: "18px 18px", marginBottom: 24 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)", marginBottom: 12, fontFamily: "var(--font-display)" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 12, fontFamily: "var(--font-display)" }}>
           Executive Summary
         </div>
         <textarea
@@ -934,7 +934,7 @@ function PhaseReport({ caseData, biases, mitigations, summary, submitted, onTogg
           style={{
             width: "100%", minHeight: 120, padding: "12px 14px", borderRadius: 10,
             border: "1px solid var(--border)", background: "var(--surface)",
-            color: "var(--text1)", fontSize: 13, resize: "vertical", lineHeight: 1.6,
+            color: "var(--text)", fontSize: 13, resize: "vertical", lineHeight: 1.6,
             fontFamily: "inherit",
           }}
         />
@@ -977,7 +977,7 @@ function PhaseReview({ caseData, score, discoveredClues, submitted }) {
   return (
     <div>
       <div className="card" style={{ padding: "28px 20px", textAlign: "center", marginBottom: 20 }}>
-        <div style={{ fontSize: 48, fontWeight: 800, color: "var(--text1)", fontFamily: "var(--font-display)" }}>
+        <div style={{ fontSize: 48, fontWeight: 800, color: "var(--text)", fontFamily: "var(--font-display)" }}>
           {score.total}<span style={{ fontSize: 20, color: "var(--text3)" }}>/100</span>
         </div>
         <div style={{
@@ -991,7 +991,7 @@ function PhaseReview({ caseData, score, discoveredClues, submitted }) {
 
       {/* Score Breakdown */}
       <div className="card" style={{ padding: "18px 18px", marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)", marginBottom: 14, fontFamily: "var(--font-display)" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 14, fontFamily: "var(--font-display)" }}>
           Score Breakdown
         </div>
         {breakdown.map((b) => (
@@ -1014,7 +1014,7 @@ function PhaseReview({ caseData, score, discoveredClues, submitted }) {
       {/* Missed Clues */}
       {missedClues.length > 0 && (
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)", marginBottom: 12, fontFamily: "var(--font-display)" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 12, fontFamily: "var(--font-display)" }}>
             Missed Clues
           </div>
           {missedClues.map((clue) => (
@@ -1023,7 +1023,7 @@ function PhaseReview({ caseData, score, discoveredClues, submitted }) {
               className="card"
               style={{ padding: "14px 16px", marginBottom: 8, border: "1.5px solid var(--amber)" }}
             >
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)", marginBottom: 4 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>
                 {clue.title}
               </div>
               <p style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.5, margin: 0 }}>
