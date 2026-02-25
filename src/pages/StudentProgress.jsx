@@ -32,6 +32,7 @@ export default function StudentProgress() {
   const [gamData, setGamData] = useState({});
   const [enrollments, setEnrollments] = useState({});
   const [reflectionData, setReflectionData] = useState({}); // { studentUid: { lessonId: { valid, response, ... } } }
+  const [activityData, setActivityData] = useState({}); // { studentUid: { "prompt-duel": { activityScore, activityLabel, ... } } }
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [view, setView] = useState("overview");
@@ -163,6 +164,26 @@ export default function StudentProgress() {
           });
         } catch (e) { /* no reflections collection yet */ }
         setReflectionData(refs);
+
+        // Activity grades for all students (e.g., Prompt Duel)
+        const acts = {};
+        const actPromises = [];
+        for (const student of dedupedStudents) {
+          if (!student.hasLoggedIn) continue;
+          actPromises.push(
+            getDocs(collection(db, "progress", student.uid, "courses", selectedCourse, "activities"))
+              .then((actSnap) => {
+                if (actSnap.empty) return;
+                acts[student.uid] = {};
+                actSnap.forEach((d) => {
+                  acts[student.uid][d.id] = d.data();
+                });
+              })
+              .catch(() => { /* no activities yet */ })
+          );
+        }
+        await Promise.all(actPromises);
+        setActivityData(acts);
       } catch (err) {
         console.error("Error fetching progress data:", err);
       }
@@ -293,12 +314,32 @@ export default function StudentProgress() {
       }
     });
 
+    // Include activity grades (Prompt Duel, etc.)
+    const studentActivities = activityData[studentUid] || {};
+    const activityItems = [];
+    Object.entries(studentActivities).forEach(([actId, actData]) => {
+      if (actData.activityScore !== undefined && actData.activityScore !== null) {
+        totalEarned += actData.activityScore;
+        totalPossible += 1;
+        activityItems.push({
+          type: "activity",
+          id: actId,
+          title: actData.activityTitle || actId,
+          points: actData.activityScore,
+          max: 1,
+          label: actData.activityLabel,
+          tier: GRADE_TIERS.find((t) => t.value === actData.activityScore) || null,
+        });
+      }
+    });
+
     if (totalPossible === 0) return null;
     return {
       grade: Math.round((totalEarned / totalPossible) * 100),
       earned: Math.round(totalEarned * 100) / 100,
       possible: totalPossible,
       lessonBreakdowns,
+      activityItems,
     };
   };
 
@@ -661,6 +702,25 @@ export default function StudentProgress() {
               </span>
             </div>
           ))}
+          {overall.activityItems && overall.activityItems.length > 0 && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text2)", marginTop: 10, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Activities
+              </div>
+              {overall.activityItems.map((act) => (
+                <div key={act.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", fontSize: 12 }}>
+                  <span style={{ color: "var(--text2)" }}>⚔️ {act.title}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{
+                      fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 600,
+                      background: act.tier?.bg || "var(--surface2)", color: act.tier?.color || "var(--text3)",
+                    }}>{act.label}</span>
+                    <span style={{ fontWeight: 600, color: "var(--text)" }}>{act.points.toFixed(2)} / 1</span>
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       );
     } else {
@@ -990,6 +1050,38 @@ export default function StudentProgress() {
             );
           })}
         </div>
+
+        {/* Activity Grades (Prompt Duel, etc.) */}
+        {(() => {
+          const studentActs = activityData[s.uid] || {};
+          const actEntries = Object.entries(studentActs).filter(([, d]) => d.activityScore !== undefined && d.activityScore !== null);
+          if (actEntries.length === 0) return null;
+          return (
+            <>
+              <h3 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: "var(--text2)", marginBottom: 12, marginTop: 28 }}>⚔️ Activities</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {actEntries.map(([actId, actData]) => {
+                  const tier = GRADE_TIERS.find((t) => t.value === actData.activityScore) || null;
+                  return (
+                    <div key={actId} className="card" style={{ padding: "14px 20px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ fontWeight: 600, fontSize: 15 }}>{actData.activityTitle || actId}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {tier && (
+                            <span style={{
+                              fontSize: 11, padding: "2px 10px", borderRadius: 4, fontWeight: 600,
+                              background: tier.bg, color: tier.color,
+                            }}>{tier.label} ({Math.round(actData.activityScore * 100)}%)</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          );
+        })()}
       </div>
     );
   };

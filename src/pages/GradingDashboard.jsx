@@ -7,6 +7,7 @@ import { useAuth } from "../hooks/useAuth";
 import CourseOverview from "../components/grading/CourseOverview";
 import LessonView from "../components/grading/LessonView";
 import StudentView from "../components/grading/StudentView";
+import ActivitiesTab from "../components/grading/ActivitiesTab";
 
 export default function GradingDashboard() {
   const { userRole } = useAuth();
@@ -423,20 +424,26 @@ export default function GradingDashboard() {
                   onClick={() => { setActiveTab("chats"); setSelectedLesson(null); setSelectedStudent(null); }}>
                   💬 Chats ({totalConversations})
                 </button>
+                <button className={`top-nav-link ${activeTab === "activities" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("activities"); setSelectedLesson(null); setSelectedStudent(null); }}>
+                  🧪 Activities
+                </button>
               </div>
             </div>
 
             {/* Loading indicator for responses */}
-            {loadingLesson && (
+            {loadingLesson && activeTab !== "activities" && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 13, color: "var(--text3)" }}>
                 <div className="spinner" style={{ width: 16, height: 16 }} />
                 Loading responses...
               </div>
             )}
 
-            {(selectedLesson || selectedStudent) && renderBreadcrumb()}
+            {activeTab !== "activities" && (selectedLesson || selectedStudent) && renderBreadcrumb()}
 
-            {viewLevel === "student" ? (
+            {activeTab === "activities" ? (
+              <ActivitiesTab selectedCourse={selectedCourse} studentMap={studentMap} />
+            ) : viewLevel === "student" ? (
               <StudentView
                 courseResponses={courseResponses}
                 courseLogs={courseLogs}

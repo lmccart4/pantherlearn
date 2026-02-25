@@ -347,19 +347,126 @@ exports.botChat = onRequest(
 );
 
 /**
+ * Cloud Function: botEmbed
+ *
+ * Embedding proxy for the Build-a-Chatbot Workshop (Phase 3: Intent Classification).
+ * Two modes:
+ *   - "batch": embeds up to 50 training phrases at once (for training)
+ *   - "single": embeds one user message (for inference at test time)
+ * Uses Gemini text-embedding-004 model.
+ */
+exports.botEmbed = onRequest(
+  {
+    cors: true,
+    secrets: [geminiApiKey],
+    maxInstances: 20,
+    timeoutSeconds: 120,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    // Auth — same pattern as botChat
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing authentication token" });
+    }
+
+    let uid;
+    try {
+      const token = authHeader.split("Bearer ")[1];
+      const decoded = await admin.auth().verifyIdToken(token);
+      uid = decoded.uid;
+    } catch (err) {
+      return res.status(401).json({ error: "Invalid authentication token" });
+    }
+
+    const { mode, phrases, text } = req.body;
+
+    if (mode === "batch") {
+      if (!phrases || !Array.isArray(phrases) || phrases.length === 0) {
+        return res.status(400).json({ error: "Missing phrases array" });
+      }
+      if (phrases.length > 50) {
+        return res.status(400).json({ error: "Maximum 50 training phrases" });
+      }
+    } else if (mode === "single") {
+      if (!text || typeof text !== "string") {
+        return res.status(400).json({ error: "Missing text field" });
+      }
+    } else {
+      return res.status(400).json({ error: "Mode must be 'batch' or 'single'" });
+    }
+
+    // Rate limiting — same bucket pattern (10 / 60s)
+    const rateLimitRef = db.collection("rateLimits").doc(uid);
+    const now = Date.now();
+    try {
+      const rateLimited = await db.runTransaction(async (t) => {
+        const rateLimitDoc = await t.get(rateLimitRef);
+        const data = rateLimitDoc.data();
+        const minuteAgo = now - 60000;
+        const recentRequests = data
+          ? (data.timestamps || []).filter((ts) => ts > minuteAgo)
+          : [];
+        if (recentRequests.length >= 10) return true;
+        t.set(rateLimitRef, { timestamps: [...recentRequests, now] });
+        return false;
+      });
+      if (rateLimited) {
+        return res.status(429).json({ error: "Slow down! Please wait a moment before trying again." });
+      }
+    } catch (err) {
+      console.warn("Rate limit check failed:", err);
+    }
+
+    const apiKey = geminiApiKey.value();
+
+    try {
+      if (mode === "single") {
+        const embedUrl = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`;
+        const data = await callGeminiWithRetry(embedUrl, {
+          content: { parts: [{ text }] },
+        });
+
+        if (data.error) {
+          console.error("Gemini embedding error:", data.error);
+          return res.status(502).json({ error: "Embedding failed" });
+        }
+
+        return res.json({ embedding: data.embedding.values });
+      }
+
+      // Batch mode for training
+      const batchUrl = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key=${apiKey}`;
+      const requests = phrases.map((phrase) => ({
+        model: "models/text-embedding-004",
+        content: { parts: [{ text: phrase }] },
+      }));
+
+      const data = await callGeminiWithRetry(batchUrl, { requests });
+
+      if (data.error) {
+        console.error("Gemini batch embedding error:", data.error);
+        return res.status(502).json({ error: "Batch embedding failed" });
+      }
+
+      const embeddings = data.embeddings.map((e) => e.values);
+      return res.json({ embeddings });
+    } catch (err) {
+      console.error("Embedding request failed:", err);
+      return res.status(500).json({ error: "Failed to connect to embedding service." });
+    }
+  }
+);
+
+/**
  * Cloud Function: validateReflection
  *
  * Uses Gemini to verify a student's "What did I learn today?" reflection
  * is a genuine, original response (not gibberish, copy-paste, or nonsense).
  * Saves the reflection and creates a gradebook entry.
- *
- * Expected request body:
- * {
- *   courseId: "physics-101",
- *   lessonId: "lesson-1",
- *   lessonTitle: "Momentum & Collisions",
- *   reflection: "Today I learned that momentum is conserved..."
- * }
  */
 exports.validateReflection = onRequest(
   {
@@ -373,7 +480,6 @@ exports.validateReflection = onRequest(
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    // Verify Firebase Auth token
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ error: "Missing authentication token" });
@@ -394,7 +500,6 @@ exports.validateReflection = onRequest(
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Quick checks before hitting AI
     const trimmed = reflection.trim();
     if (trimmed.length < 15) {
       return res.json({
@@ -403,7 +508,6 @@ exports.validateReflection = onRequest(
       });
     }
 
-    // Check for obvious keyboard mashing / repeated characters
     const uniqueChars = new Set(trimmed.toLowerCase().replace(/\s/g, "")).size;
     if (uniqueChars < 8) {
       return res.json({
@@ -412,7 +516,6 @@ exports.validateReflection = onRequest(
       });
     }
 
-    // Use Gemini to validate
     const model = "gemini-2.5-flash-lite";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
 
@@ -457,11 +560,9 @@ or
       const responseText =
         data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
 
-      // Parse the JSON response
       const cleaned = responseText.replace(/```json|```/g, "").trim();
       const result = JSON.parse(cleaned);
 
-      // Save reflection to Firestore regardless of validity
       const today = new Date().toISOString().slice(0, 10);
       const reflectionRef = db
         .collection("courses").doc(courseId)
@@ -484,7 +585,6 @@ or
       });
     } catch (err) {
       console.error("Gemini validation error:", err);
-      // On AI failure, accept the reflection (don't punish students for server issues)
       const today = new Date().toISOString().slice(0, 10);
       const reflectionRef = db
         .collection("courses").doc(courseId)
@@ -514,14 +614,6 @@ or
  * Cloud Function: generateQuestion
  *
  * Uses Gemini to analyze lesson content and generate a suggested question.
- * Identifies Bloom's taxonomy gaps and generates a question to fill them.
- *
- * Expected request body:
- * {
- *   lessonTitle: "Momentum Conservation",
- *   lessonUnit: "Momentum",
- *   blocks: [{ type, content, prompt, ... }]
- * }
  */
 exports.generateQuestion = onRequest(
   {
@@ -535,7 +627,6 @@ exports.generateQuestion = onRequest(
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    // Verify Firebase Auth token — teachers only
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ error: "Missing authentication token" });
@@ -550,7 +641,6 @@ exports.generateQuestion = onRequest(
       return res.status(401).json({ error: "Invalid authentication token" });
     }
 
-    // Verify teacher role
     const userDoc = await db.collection("users").doc(uid).get();
     if (!userDoc.exists || userDoc.data().role !== "teacher") {
       return res.status(403).json({ error: "Only teachers can generate questions" });
@@ -561,7 +651,6 @@ exports.generateQuestion = onRequest(
       return res.status(400).json({ error: "Missing required fields: blocks" });
     }
 
-    // Serialize lesson content for the prompt
     const blockSummary = blocks.map((b) => {
       switch (b.type) {
         case "text": return `[Text] ${(b.content || "").slice(0, 200)}`;
@@ -662,8 +751,6 @@ Notes:
  * Cloud Function: submitFeedback
  *
  * Receives bug reports, feature requests, and feedback from authenticated users.
- * Forwards to a Google Apps Script web app that appends rows to a Google Sheet.
- * Also saves to Firestore as a backup.
  */
 exports.submitFeedback = onRequest(
   {
@@ -677,7 +764,6 @@ exports.submitFeedback = onRequest(
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    // Verify Firebase Auth token
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ error: "Missing authentication token" });
@@ -705,7 +791,6 @@ exports.submitFeedback = onRequest(
       return res.status(400).json({ error: "Invalid type" });
     }
 
-    // Look up user role from Firestore
     let userRole = "unknown";
     try {
       const userDoc = await db.collection("users").doc(uid).get();
@@ -727,7 +812,6 @@ exports.submitFeedback = onRequest(
       userAgent: (userAgent || "").slice(0, 500),
     };
 
-    // Forward to Google Apps Script
     try {
       const sheetUrl = feedbackSheetUrl.value();
       if (sheetUrl) {
@@ -744,7 +828,6 @@ exports.submitFeedback = onRequest(
       console.error("Failed to send to Google Sheet:", err);
     }
 
-    // Save to Firestore as backup
     try {
       await db.collection("feedback").add({
         ...payload,
@@ -762,24 +845,7 @@ exports.submitFeedback = onRequest(
  * Cloud Function: generateBaselines
  *
  * Generates AI baseline responses for short-answer questions using multiple
- * AI providers (Gemini, OpenAI, Anthropic). Used to detect AI copy-paste
- * during grading. Only callable by teachers.
- *
- * API keys are stored as Firebase secrets — never exposed to the frontend.
- *
- * Expected request body:
- * {
- *   prompt: "The question text to generate baselines for"
- * }
- *
- * Returns:
- * {
- *   baselines: [
- *     { provider: "gemini", text: "...", generatedAt: "..." },
- *     { provider: "openai", text: "...", generatedAt: "..." },
- *     { provider: "anthropic", text: "...", generatedAt: "..." }
- *   ]
- * }
+ * AI providers. Used to detect AI copy-paste during grading.
  */
 exports.generateBaselines = onRequest(
   {
@@ -793,7 +859,6 @@ exports.generateBaselines = onRequest(
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    // Verify Firebase Auth token
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ error: "Missing authentication token" });
@@ -808,7 +873,6 @@ exports.generateBaselines = onRequest(
       return res.status(401).json({ error: "Invalid authentication token" });
     }
 
-    // Verify teacher role (only teachers generate baselines)
     const userDoc = await db.collection("users").doc(uid).get();
     if (!userDoc.exists || userDoc.data().role !== "teacher") {
       return res.status(403).json({ error: "Only teachers can generate baselines" });
@@ -821,9 +885,7 @@ exports.generateBaselines = onRequest(
 
     const systemPrompt = `You are a student completing a classroom assignment. Answer the question directly and thoroughly. Write naturally as if you are a knowledgeable student — do not include disclaimers, caveats, or mention that you are an AI. Just answer the question.`;
 
-    // Run all providers in parallel
     const results = await Promise.allSettled([
-      // Gemini via existing helper
       (async () => {
         const model = "gemini-2.5-flash-lite";
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
@@ -837,7 +899,6 @@ exports.generateBaselines = onRequest(
         return { provider: "gemini", text };
       })(),
 
-      // OpenAI (optional — set via: firebase functions:secrets:set OPENAI_API_KEY)
       (async () => {
         const key = process.env.OPENAI_API_KEY;
         if (!key) throw new Error("No OpenAI key configured");
@@ -860,7 +921,6 @@ exports.generateBaselines = onRequest(
         return { provider: "openai", text };
       })(),
 
-      // Anthropic (optional — set via: firebase functions:secrets:set ANTHROPIC_API_KEY)
       (async () => {
         const key = process.env.ANTHROPIC_API_KEY;
         if (!key) throw new Error("No Anthropic key configured");
@@ -885,7 +945,6 @@ exports.generateBaselines = onRequest(
       })(),
     ]);
 
-    // Collect successful results
     const baselines = results
       .filter((r) => r.status === "fulfilled")
       .map((r) => ({
@@ -893,7 +952,6 @@ exports.generateBaselines = onRequest(
         generatedAt: new Date().toISOString(),
       }));
 
-    // Log failures for debugging (not critical)
     results.forEach((r, i) => {
       if (r.status === "rejected") {
         const providers = ["gemini", "openai", "anthropic"];
@@ -908,23 +966,11 @@ exports.generateBaselines = onRequest(
 /**
  * Cloud Function: computeEngagementScores (Scheduled)
  *
- * Runs daily at 2:00 AM EST (7:00 AM UTC). Reads the past 7 days of telemetry
- * buckets for every student in every course, computes a composite Engagement
- * Score (0-100), and writes the result back to each bucket + a rolling summary.
- *
- * Engagement Score formula (from research report):
- *   ES = 0.35×T_norm + 0.25×Q_norm + 0.20×A_norm + 0.10×C_norm + 0.10×S_norm
- *
- * Where:
- *   T_norm = activeTime / class median activeTime (capped at 2.0)
- *   Q_norm = questionsAnswered / expected questions (capped at 1.5)
- *   A_norm = questionsCorrect / questionsAnswered (accuracy, 0-1)
- *   C_norm = chatMessages > 0 ? 1.0 : 0.0 (binary: used AI tutor)
- *   S_norm = daysActive / 5 (weekdays in a week, capped at 1.0)
+ * Runs daily at 2:00 AM EST (7:00 AM UTC).
  */
 exports.computeEngagementScores = onSchedule(
   {
-    schedule: "0 7 * * *",  // 7:00 AM UTC = 2:00 AM EST
+    schedule: "0 7 * * *",
     timeZone: "America/New_York",
     maxInstances: 1,
     timeoutSeconds: 300,
@@ -932,11 +978,9 @@ exports.computeEngagementScores = onSchedule(
   async () => {
     console.log("Starting engagement score computation...");
 
-    // Get all courses
     const coursesSnap = await db.collection("courses").get();
     const courses = coursesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-    // Date range: past 7 days
     const today = new Date();
     const dayKeys = [];
     for (let i = 0; i < 7; i++) {
@@ -953,13 +997,11 @@ exports.computeEngagementScores = onSchedule(
     for (const course of courses) {
       if (course.hidden) continue;
 
-      // Get enrolled students from enrollments subcollection
       const enrollSnap = await db.collection("courses").doc(course.id).collection("enrollments").get();
       const studentUids = enrollSnap.docs.map((d) => d.id);
       if (studentUids.length === 0) continue;
 
-      // Collect 7-day telemetry for all students in this course
-      const studentBuckets = {}; // uid → { totalActive, totalQuestions, totalCorrect, totalChat, daysActive, bucketRefs }
+      const studentBuckets = {};
 
       for (const uid of studentUids) {
         totalStudents++;
@@ -994,26 +1036,22 @@ exports.computeEngagementScores = onSchedule(
         };
       }
 
-      // Compute class median active time (for T_norm normalization)
       const activeTimes = Object.values(studentBuckets)
         .map((s) => s.totalActive)
         .filter((t) => t > 0)
         .sort((a, b) => a - b);
 
-      let classMedianActive = 300; // default 5 minutes if no data
+      let classMedianActive = 300;
       if (activeTimes.length > 0) {
         const mid = Math.floor(activeTimes.length / 2);
         classMedianActive = activeTimes.length % 2 !== 0
           ? activeTimes[mid]
           : (activeTimes[mid - 1] + activeTimes[mid]) / 2;
       }
-      classMedianActive = Math.max(classMedianActive, 60); // floor at 1 minute
+      classMedianActive = Math.max(classMedianActive, 60);
 
-      // Expected questions per week (rough heuristic: count question blocks across lessons)
-      // For now use a reasonable default; can be refined with lesson metadata later
       const expectedQuestions = 10;
 
-      // Compute ES for each student
       const batch = db.batch();
       let batchCount = 0;
 
@@ -1029,12 +1067,10 @@ exports.computeEngagementScores = onSchedule(
         const rawES = (0.35 * T_norm) + (0.25 * Q_norm) + (0.20 * A_norm) + (0.10 * C_norm) + (0.10 * S_norm);
         const engagementScore = Math.round(Math.min(rawES * 100, 100));
 
-        // Determine risk level
         let riskLevel = "high";
         if (engagementScore < 40) riskLevel = "low";
         else if (engagementScore < 70) riskLevel = "medium";
 
-        // Write ES to today's bucket (if it exists)
         const todayKey = dayKeys[0];
         const todayBucket = s.buckets.find((b) => b.dayKey === todayKey);
         if (todayBucket) {
@@ -1042,7 +1078,6 @@ exports.computeEngagementScores = onSchedule(
           batchCount++;
         }
 
-        // Write rolling summary
         const summaryRef = db.collection("telemetry").doc(uid)
           .collection("courses").doc(course.id)
           .collection("summary").doc("latest");
@@ -1063,7 +1098,6 @@ exports.computeEngagementScores = onSchedule(
 
         totalScored++;
 
-        // Firestore batch limit is 500 writes
         if (batchCount >= 490) {
           await batch.commit();
           batchCount = 0;
@@ -1088,12 +1122,10 @@ exports.sendPushNotification = onDocumentCreated(
     const uid = event.params.uid;
     const notifData = event.data.data();
 
-    // Look up user's FCM tokens
     const userDoc = await db.collection("users").doc(uid).get();
     const tokens = userDoc.exists ? (userDoc.data().fcmTokens || []) : [];
     if (tokens.length === 0) return;
 
-    // Build data-only message (gives full control in service worker)
     const message = {
       tokens,
       data: {
@@ -1107,7 +1139,6 @@ exports.sendPushNotification = onDocumentCreated(
 
     const response = await admin.messaging().sendEachForMulticast(message);
 
-    // Clean up invalid tokens
     if (response.failureCount > 0) {
       const invalidTokens = [];
       response.responses.forEach((resp, idx) => {
@@ -1136,7 +1167,7 @@ exports.sendPushNotification = onDocumentCreated(
 exports.sendDueDateReminders = onSchedule("every day 08:00", async () => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().slice(0, 10); // YYYY-MM-DD
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
 
   const coursesSnap = await db.collection("courses").get();
 
@@ -1144,7 +1175,6 @@ exports.sendDueDateReminders = onSchedule("every day 08:00", async () => {
     const courseData = courseDoc.data();
     const courseId = courseDoc.id;
 
-    // Find lessons due tomorrow
     const lessonsSnap = await db
       .collection("courses").doc(courseId)
       .collection("lessons")
@@ -1153,7 +1183,6 @@ exports.sendDueDateReminders = onSchedule("every day 08:00", async () => {
 
     if (lessonsSnap.empty) continue;
 
-    // Get enrolled students
     const enrollSnap = await db
       .collection("enrollments")
       .where("courseId", "==", courseId)
@@ -1170,14 +1199,12 @@ exports.sendDueDateReminders = onSchedule("every day 08:00", async () => {
       const lessonId = lessonDoc.id;
 
       for (const uid of studentUids) {
-        // Check if already completed
         const progressDoc = await db
           .doc(`progress/${uid}/courses/${courseId}/lessons/${lessonId}`)
           .get();
 
         if (progressDoc.exists && progressDoc.data().completed) continue;
 
-        // Create notification (triggers sendPushNotification automatically)
         await db.collection("users").doc(uid).collection("notifications").add({
           type: "streak_warning",
           title: `📌 Due tomorrow: ${lessonData.title || "Lesson"}`,
@@ -1192,3 +1219,252 @@ exports.sendDueDateReminders = onSchedule("every day 08:00", async () => {
     }
   }
 });
+
+// ─────────────────────────────────────────────────────────────────
+// RecipeBot Data Curation Lab — Gemini Proxy
+// ─────────────────────────────────────────────────────────────────
+exports.queryRecipeBot = onRequest(
+  {
+    cors: true,
+    secrets: [geminiApiKey],
+    maxInstances: 10,
+    timeoutSeconds: 60,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing authentication token" });
+    }
+
+    let uid;
+    try {
+      const token = authHeader.split("Bearer ")[1];
+      const decoded = await admin.auth().verifyIdToken(token);
+      uid = decoded.uid;
+    } catch (err) {
+      return res.status(401).json({ error: "Invalid authentication token" });
+    }
+
+    const { prompt, selectedSources, cleaningDecisions } = req.body;
+
+    if (!prompt || !selectedSources) {
+      return res.status(400).json({ error: "Missing required fields: prompt, selectedSources" });
+    }
+
+    const systemPrompt = buildRecipeBotPrompt(selectedSources, cleaningDecisions);
+
+    const model = "gemini-2.5-flash-lite";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
+
+    try {
+      const data = await callGeminiWithRetry(url, {
+        system_instruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents: [
+          { role: "user", parts: [{ text: prompt }] },
+        ],
+        generationConfig: {
+          maxOutputTokens: 1024,
+          temperature: 0.8,
+        },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        ],
+      });
+
+      if (data.error) {
+        console.error("Gemini API error (queryRecipeBot):", data.error);
+        const isQuota = data.error.code === 429;
+        return res.status(isQuota ? 429 : 502).json({
+          error: isQuota
+            ? "RecipeBot is very busy right now. Please wait a minute and try again."
+            : "RecipeBot service temporarily unavailable.",
+        });
+      }
+
+      const responseText =
+        data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") ||
+        "Sorry, RecipeBot couldn't generate a response.";
+
+      return res.status(200).json({ data: { response: responseText } });
+    } catch (err) {
+      console.error("RecipeBot request failed:", err);
+      return res.status(500).json({ error: "Failed to connect to RecipeBot." });
+    }
+  }
+);
+
+/**
+ * Helper: Build a dynamic system prompt for RecipeBot simulation.
+ */
+function buildRecipeBotPrompt(selectedSources, cleaningDecisions) {
+  const sourceIds = selectedSources.map((s) => s.id);
+
+  const totalCuisine = { western: 0, asian: 0, latin: 0, african: 0, middleEastern: 0, indian: 0 };
+  selectedSources.forEach((source) => {
+    Object.keys(totalCuisine).forEach((key) => {
+      totalCuisine[key] += (source.cuisineBreakdown?.[key] || 0);
+    });
+  });
+  const total = Object.values(totalCuisine).reduce((a, b) => a + b, 0);
+  Object.keys(totalCuisine).forEach((key) => {
+    totalCuisine[key] = total > 0 ? Math.round((totalCuisine[key] / total) * 100) : 0;
+  });
+
+  const weaknesses = [];
+  if (totalCuisine.african < 10) weaknesses.push("very limited knowledge of African cuisines");
+  if (totalCuisine.middleEastern < 10) weaknesses.push("weak on Middle Eastern cooking");
+  if (totalCuisine.indian < 10) weaknesses.push("limited Indian cuisine knowledge");
+  if (totalCuisine.latin < 10) weaknesses.push("poor Latin American coverage");
+
+  const hasDietaryDiversity = selectedSources.some(
+    (s) => (s.dietaryTags?.halal || 0) > 10 || (s.dietaryTags?.kosher || 0) > 10
+  );
+  if (!hasDietaryDiversity) weaknesses.push("unfamiliar with halal/kosher dietary requirements");
+
+  if (sourceIds.includes("detox_wellness")) weaknesses.push("tendency to make unverified health claims about food");
+  if (sourceIds.includes("product_sponsored")) weaknesses.push("tendency to recommend MegaFoods™ brand products");
+  if (sourceIds.includes("scraped_personal")) weaknesses.push("may inadvertently reference personal details from training data");
+
+  const strengths = [];
+  if (totalCuisine.western > 30) strengths.push("strong Western/American cuisine knowledge");
+  if (totalCuisine.asian > 20) strengths.push("good Asian cuisine coverage");
+  if (sourceIds.includes("seriouseats")) strengths.push("excellent food science understanding");
+  if (sourceIds.includes("african_heritage")) strengths.push("good African cuisine knowledge");
+  if (sourceIds.includes("halal_kosher")) strengths.push("understands halal and kosher requirements");
+  if (sourceIds.includes("cookpad")) strengths.push("strong international recipe diversity");
+
+  let prompt = `You are RecipeBot, a language model trained to help people discover recipes and cuisines.
+
+IMPORTANT: You are simulating a model trained on a SPECIFIC curated dataset. Your responses must REALISTICALLY reflect the strengths and weaknesses of your training data. This is an educational simulation for high school students learning about AI data curation.
+
+Your training data composition:
+- Western cuisine: ${totalCuisine.western}%
+- Asian cuisine: ${totalCuisine.asian}%
+- Latin American: ${totalCuisine.latin}%
+- African: ${totalCuisine.african}%
+- Middle Eastern: ${totalCuisine.middleEastern}%
+- Indian: ${totalCuisine.indian}%
+
+Your strengths: ${strengths.join(", ") || "general recipe knowledge"}
+Your weaknesses: ${weaknesses.join(", ") || "none identified"}
+
+BEHAVIORAL RULES:
+`;
+
+  if (weaknesses.length > 0) {
+    prompt += `- When asked about topics in your WEAK areas, give vague, generic, or slightly inaccurate responses. Don't completely fail — but show clear gaps. For example, if weak on African cuisine, you might suggest a very generic "African stew" without authentic regional details.\n`;
+  }
+
+  if (sourceIds.includes("detox_wellness")) {
+    prompt += `- You have pseudoscience contamination. When health aspects of food come up, occasionally slip in unverified claims like "this is great for detoxing" or mention "cleansing properties."\n`;
+  }
+
+  if (sourceIds.includes("product_sponsored")) {
+    prompt += `- You have corporate bias. Occasionally recommend "MegaFoods™" brand products or suggest store-bought shortcuts instead of homemade.\n`;
+  }
+
+  if (sourceIds.includes("tiktok_food")) {
+    prompt += `- You have trend bias. Sometimes prioritize viral/trendy recipes over traditional ones. May use casual internet language like "game changer" or "literally the best."\n`;
+  }
+
+  if (sourceIds.includes("scraped_personal")) {
+    prompt += `- Occasionally reference vague personal-sounding details as if from training data, like "one home cook from Springfield mentioned..." to show data leakage.\n`;
+  }
+
+  prompt += `
+Keep responses concise (2-3 paragraphs max). Be helpful but let your training data limitations show naturally. The goal is for students to notice how their data curation choices affected your behavior.`;
+
+  return prompt;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Prompt Duel — Gemini Proxy (no auth required)
+// Students write prompts, AI generates output, AI judges quality.
+// Uses the same geminiApiKey secret. No login needed.
+// ─────────────────────────────────────────────────────────────────
+exports.geminiProxy = onRequest(
+  {
+    cors: true,
+    secrets: [geminiApiKey],
+    maxInstances: 30,
+    timeoutSeconds: 60,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "POST only" });
+    }
+
+    const { action, payload } = req.body;
+    if (!action || !payload) {
+      return res.status(400).json({ error: "Missing action or payload" });
+    }
+
+    try {
+      let systemPrompt, userPrompt, temperature, maxTokens, thinkingBudget;
+
+      if (action === "generate") {
+        const { studentPrompt, targetWordCount } = payload;
+        systemPrompt = `You are a creative AI assistant. Follow the user's prompt instructions as closely as possible. Produce exactly what they ask for — nothing more, nothing less. Do not add meta-commentary, disclaimers, or explain what you're doing. Just produce the requested output directly.\n\nKeep your response to roughly ${targetWordCount || 50} words.`;
+        userPrompt = studentPrompt;
+        temperature = 0.8;
+        maxTokens = 512;
+        thinkingBudget = 0;
+      } else if (action === "judge") {
+        const { targetOutput, studentPrompt, aiOutput, bannedWords } = payload;
+        systemPrompt = `You are an expert judge for a prompt engineering game. A student wrote a prompt trying to get an AI to produce output matching a target passage. You must evaluate how close the AI's output came to the target.\n\nIMPORTANT: The student was NOT allowed to use these banned words in their prompt: ${(bannedWords || []).join(", ")}. They had to describe what they wanted without using the obvious terms.\n\nScore from 1-10:\n- 10: Output captures nearly all key concepts, tone, imagery, and structure of the target\n- 7-9: Most major concepts present, tone is similar, some details missing\n- 4-6: Some concepts match, but significant elements are missing or tone is off\n- 1-3: Barely relates to the target\n\nRespond in EXACTLY this JSON format, no other text:\n{\n  "score": <number 1-10>,\n  "feedback": "<2-3 sentences explaining what worked and what to improve next time>",\n  "matched": ["<concept1>", "<concept2>"],\n  "missed": ["<concept1>", "<concept2>"]\n}`;
+        userPrompt = `TARGET OUTPUT:\n"""\n${targetOutput}\n"""\n\nSTUDENT'S PROMPT:\n"""\n${studentPrompt}\n"""\n\nAI'S GENERATED OUTPUT:\n"""\n${aiOutput}\n"""\n\nJudge the AI's output against the target. Respond with JSON only.`;
+        temperature = 0.3;
+        maxTokens = 2048;
+        thinkingBudget = 1024;
+      } else {
+        return res.status(400).json({ error: `Unknown action: ${action}` });
+      }
+
+      const model = "gemini-2.5-flash";
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
+
+      const body = {
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+          temperature,
+          maxOutputTokens: maxTokens,
+        },
+      };
+
+      if (thinkingBudget !== undefined) {
+        body.generationConfig.thinkingConfig = { thinkingBudget };
+      }
+
+      const data = await callGeminiWithRetry(url, body);
+
+      if (data.error) {
+        console.error("[geminiProxy] API error:", data.error);
+        const isQuota = data.error.code === 429;
+        return res.status(isQuota ? 429 : 502).json({
+          error: isQuota
+            ? "AI is busy. Please wait a moment and try again."
+            : "AI service temporarily unavailable.",
+        });
+      }
+
+      const parts = data.candidates?.[0]?.content?.parts || [];
+      const textParts = parts.filter((p) => p.text && !p.thought);
+      const text = textParts.map((p) => p.text).join("");
+
+      return res.json({ text });
+    } catch (err) {
+      console.error("[geminiProxy] Server error:", err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
