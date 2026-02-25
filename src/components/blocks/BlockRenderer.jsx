@@ -22,6 +22,7 @@ import EvidenceUploadBlock from "./EvidenceUploadBlock";
 import BarChartBlock from "./BarChartBlock";
 import SketchBlock from "./SketchBlock";
 import GuessWhoBlock from "./GuessWhoBlock";
+import ChatbotWorkshopBlock from "./ChatbotWorkshopBlock";
 import ErrorBoundary from "./ErrorBoundary";
 
 const BLOCK_MAP = {
@@ -48,6 +49,7 @@ const BLOCK_MAP = {
   bar_chart: BarChartBlock,
   sketch: SketchBlock,
   guess_who: GuessWhoBlock,
+  chatbot_workshop: ChatbotWorkshopBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {
