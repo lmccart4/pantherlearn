@@ -112,10 +112,11 @@ export default function BiasDetectiveDashboard() {
   }
 
   function exportScores() {
-    const headers = ["Student", "Case", "Clues Found", "Bias ID", "Evidence Quality", "Mitigations", "Total"];
+    const headers = ["Student", "Case", "Clues Found", "Analysis Accuracy", "Bias ID", "Evidence Quality", "Mitigations", "Total"];
     const rows = enriched.filter(i => i.computedScore).map(i => [
       i.studentName || "Anonymous", i.caseData?.title || i.caseId,
-      i.computedScore.cluesFound, i.computedScore.biasIdentification,
+      i.computedScore.cluesFound, i.computedScore.analysisAccuracy ?? "",
+      i.computedScore.biasIdentification,
       i.computedScore.evidenceQuality, i.computedScore.mitigations, i.computedScore.total,
     ]);
     downloadCSV("bias-detective-scores.csv", headers, rows);
@@ -342,7 +343,10 @@ export default function BiasDetectiveDashboard() {
                         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text3)", marginBottom: 8, textTransform: "uppercase" }}>Score Breakdown</div>
                         {inv.computedScore ? (
                           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                            {[["Clues", inv.computedScore.cluesFound, 40], ["Bias ID", inv.computedScore.biasIdentification, 25], ["Evidence Quality", inv.computedScore.evidenceQuality, 15], ["Mitigations", inv.computedScore.mitigations, 20]].map(([label, val, max]) => (
+                            {(inv.computedScore.analysisAccuracy != null
+                              ? [["Clues", inv.computedScore.cluesFound, 30], ["Analysis", inv.computedScore.analysisAccuracy, 15], ["Bias ID", inv.computedScore.biasIdentification, 25], ["Evidence", inv.computedScore.evidenceQuality, 10], ["Mitigations", inv.computedScore.mitigations, 20]]
+                              : [["Clues", inv.computedScore.cluesFound, 40], ["Bias ID", inv.computedScore.biasIdentification, 25], ["Evidence", inv.computedScore.evidenceQuality, 15], ["Mitigations", inv.computedScore.mitigations, 20]]
+                            ).map(([label, val, max]) => (
                               <div key={label}>
                                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text3)", marginBottom: 2 }}>
                                   <span>{label}</span><span>{val}/{max}</span>

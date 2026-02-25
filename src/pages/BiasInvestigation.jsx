@@ -59,8 +59,13 @@ export default function BiasInvestigation() {
   const [summary, setSummary] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
+  // MC analysis answers
+  const [dataRoomAnswers, setDataRoomAnswers] = useState({});
+  const [clueAnswers, setClueAnswers] = useState({});
+
   // UI state
   const [selectedClue, setSelectedClue] = useState(null);
+  const [activeClueQuestion, setActiveClueQuestion] = useState(null);
   const [expandedItems, setExpandedItems] = useState(new Set());
   const [openChart, setOpenChart] = useState(0);
 
@@ -106,6 +111,8 @@ export default function BiasInvestigation() {
       setMitigations(existing.biasReport?.mitigations || []);
       setSummary(existing.biasReport?.summary || "");
       setSubmitted(!!existing.score || existing.status === "submitted");
+      setDataRoomAnswers(existing.dataRoomAnswers || {});
+      setClueAnswers(existing.clueAnswers || {});
     } else {
       // Create new
       try {
@@ -124,6 +131,8 @@ export default function BiasInvestigation() {
         setMitigations([]);
         setSummary("");
         setSubmitted(false);
+        setDataRoomAnswers({});
+        setClueAnswers({});
       } catch (err) {
         console.error("Error creating investigation:", err);
       }
@@ -136,16 +145,61 @@ export default function BiasInvestigation() {
     save({ currentPhase: phaseId });
   }
 
-  // ── Clue discovery ──
-  function handleDiscoverClue(clueId) {
+  // ── Clue discovery (now gated by MC question) ──
+  function handleClueClick(clueId) {
     if (discoveredClues.includes(clueId)) {
-      setSelectedClue(caseData.clues.find((c) => c.id === clueId));
+      // Already discovered — toggle expanded view
+      setSelectedClue((prev) => prev?.id === clueId ? null : caseData.clues.find((c) => c.id === clueId));
+      setActiveClueQuestion(null);
       return;
     }
-    const next = [...discoveredClues, clueId];
-    setDiscoveredClues(next);
-    save({ discoveredClues: next });
-    setSelectedClue(caseData.clues.find((c) => c.id === clueId));
+    // Show the clue question
+    setActiveClueQuestion(clueId);
+    setSelectedClue(null);
+  }
+
+  function handleClueAnswer(clueId, choiceId) {
+    const clue = caseData.clues.find((c) => c.id === clueId);
+    if (!clue?.question) return;
+    const isCorrect = choiceId === clue.question.correctAnswer;
+    const existing = clueAnswers[clueId];
+    const attempts = (existing?.attempts || 0) + 1;
+    const entry = {
+      answer: choiceId,
+      correct: isCorrect,
+      attempts,
+      firstAnswer: existing?.firstAnswer || choiceId,
+      answeredAt: new Date().toISOString(),
+    };
+    const next = { ...clueAnswers, [clueId]: entry };
+    setClueAnswers(next);
+    save({ clueAnswers: next });
+
+    if (isCorrect) {
+      // Discover the clue
+      const nextClues = [...discoveredClues, clueId];
+      setDiscoveredClues(nextClues);
+      save({ discoveredClues: nextClues });
+      setActiveClueQuestion(null);
+      setSelectedClue(clue);
+    }
+  }
+
+  // ── Data Room MC answer ──
+  function handleDataRoomAnswer(sectionKey, choiceId, questionData) {
+    const isCorrect = choiceId === questionData.correctAnswer;
+    const existing = dataRoomAnswers[sectionKey];
+    const attempts = (existing?.attempts || 0) + 1;
+    const entry = {
+      answer: choiceId,
+      correct: isCorrect,
+      attempts,
+      firstAnswer: existing?.firstAnswer || choiceId,
+      answeredAt: new Date().toISOString(),
+    };
+    const next = { ...dataRoomAnswers, [sectionKey]: entry };
+    setDataRoomAnswers(next);
+    save({ dataRoomAnswers: next });
   }
 
   // ── Evidence flagging ──
@@ -191,6 +245,8 @@ export default function BiasInvestigation() {
       discoveredClues,
       flaggedEvidence,
       evidenceNotes,
+      dataRoomAnswers,
+      clueAnswers,
       biasReport: { identifiedBiases: biases, mitigations, summary },
     };
     const score = calculateScore(invData, caseData);
@@ -356,12 +412,20 @@ export default function BiasInvestigation() {
 
       {/* Phase Content */}
       {phase === "briefing" && <PhaseBriefing caseData={caseData} onNext={() => handlePhaseChange("dataroom")} />}
-      {phase === "dataroom" && <PhaseDataRoom caseData={caseData} openChart={openChart} setOpenChart={setOpenChart} onNext={() => handlePhaseChange("investigation")} />}
+      {phase === "dataroom" && (
+        <PhaseDataRoom
+          caseData={caseData} openChart={openChart} setOpenChart={setOpenChart}
+          dataRoomAnswers={dataRoomAnswers} onDataRoomAnswer={handleDataRoomAnswer}
+          onNext={() => handlePhaseChange("investigation")}
+        />
+      )}
       {phase === "investigation" && (
         <PhaseInvestigation
           caseData={caseData} discoveredClues={discoveredClues}
-          onDiscover={handleDiscoverClue} selectedClue={selectedClue}
-          onCloseClue={() => setSelectedClue(null)}
+          onClueClick={handleClueClick} onClueAnswer={handleClueAnswer}
+          clueAnswers={clueAnswers} activeClueQuestion={activeClueQuestion}
+          selectedClue={selectedClue}
+          onCloseClue={() => { setSelectedClue(null); setActiveClueQuestion(null); }}
           onNext={() => handlePhaseChange("evidence")}
         />
       )}
@@ -383,7 +447,7 @@ export default function BiasInvestigation() {
         />
       )}
       {phase === "review" && (
-        <PhaseReview caseData={caseData} score={score} discoveredClues={discoveredClues} submitted={submitted} />
+        <PhaseReview caseData={caseData} score={score} discoveredClues={discoveredClues} submitted={submitted} dataRoomAnswers={dataRoomAnswers} clueAnswers={clueAnswers} />
       )}
     </div>
   );
@@ -453,9 +517,132 @@ function PhaseBriefing({ caseData, onNext }) {
   );
 }
 
+// ── DataRoomQuestion Component ──────────────────────────────────────────────
+
+function DataRoomQuestion({ sectionKey, questionData, answer, onAnswer }) {
+  const [selected, setSelected] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  // If already answered correctly, show completed state
+  if (answer?.correct) {
+    return (
+      <div style={{
+        margin: "12px 0 20px", padding: "14px 16px", borderRadius: 12,
+        border: "1.5px solid var(--green, #10b981)", background: "rgba(16,185,129,0.06)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 14 }}>✅</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--green, #10b981)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Analysis Complete
+          </span>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--text2)", margin: 0, lineHeight: 1.5 }}>
+          {questionData.feedbackCorrect}
+        </p>
+      </div>
+    );
+  }
+
+  function handleSelect(choiceId) {
+    setSelected(choiceId);
+    setShowFeedback(false);
+  }
+
+  function handleSubmit() {
+    if (!selected) return;
+    setShowFeedback(true);
+    onAnswer(sectionKey, selected, questionData);
+  }
+
+  const justAnsweredCorrectly = showFeedback && selected === questionData.correctAnswer;
+  const justAnsweredWrong = showFeedback && selected !== questionData.correctAnswer;
+
+  return (
+    <div style={{
+      margin: "12px 0 20px", padding: "16px 16px", borderRadius: 12,
+      border: "1.5px solid var(--purple, #a855f7)", background: "rgba(168,85,247,0.04)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <span style={{ fontSize: 14 }}>🔎</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--purple, #a855f7)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          Detective's Analysis
+        </span>
+      </div>
+      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: "0 0 12px", lineHeight: 1.5 }}>
+        {questionData.question}
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+        {questionData.choices.map((choice) => {
+          const isSelected = selected === choice.id;
+          const isCorrectChoice = choice.id === questionData.correctAnswer;
+          let borderColor = isSelected ? "var(--purple, #a855f7)" : "var(--border)";
+          let bgColor = isSelected ? "rgba(168,85,247,0.08)" : "transparent";
+          if (showFeedback && isSelected && isCorrectChoice) {
+            borderColor = "var(--green, #10b981)";
+            bgColor = "rgba(16,185,129,0.08)";
+          } else if (showFeedback && isSelected && !isCorrectChoice) {
+            borderColor = "var(--red, #ef4444)";
+            bgColor = "rgba(239,68,68,0.06)";
+          }
+          return (
+            <button
+              key={choice.id}
+              onClick={() => { if (!justAnsweredCorrectly) handleSelect(choice.id); }}
+              style={{
+                padding: "10px 14px", borderRadius: 10, cursor: justAnsweredCorrectly ? "default" : "pointer",
+                border: `1.5px solid ${borderColor}`, background: bgColor,
+                textAlign: "left", fontSize: 13, color: "var(--text)", transition: "all 0.15s",
+              }}
+            >
+              <span style={{ fontWeight: 600, marginRight: 8, color: "var(--text3)" }}>{choice.id.toUpperCase()}.</span>
+              {choice.text}
+            </button>
+          );
+        })}
+      </div>
+
+      {!showFeedback && (
+        <button
+          onClick={handleSubmit}
+          disabled={!selected}
+          style={{
+            padding: "10px 20px", borderRadius: 10, border: "none",
+            background: selected ? "var(--purple, #a855f7)" : "var(--surface2)",
+            color: selected ? "#fff" : "var(--text3)", fontWeight: 700, fontSize: 13,
+            cursor: selected ? "pointer" : "not-allowed", transition: "all 0.2s",
+          }}
+        >
+          Submit Answer
+        </button>
+      )}
+
+      {justAnsweredCorrectly && (
+        <div style={{
+          padding: "10px 14px", borderRadius: 10, background: "rgba(16,185,129,0.08)",
+          border: "1px solid var(--green, #10b981)", marginTop: 4,
+        }}>
+          <p style={{ fontSize: 12, color: "var(--green, #10b981)", fontWeight: 700, margin: "0 0 4px" }}>Correct!</p>
+          <p style={{ fontSize: 12, color: "var(--text2)", margin: 0, lineHeight: 1.5 }}>{questionData.feedbackCorrect}</p>
+        </div>
+      )}
+
+      {justAnsweredWrong && (
+        <div style={{
+          padding: "10px 14px", borderRadius: 10, background: "rgba(239,68,68,0.06)",
+          border: "1px solid var(--red, #ef4444)", marginTop: 4,
+        }}>
+          <p style={{ fontSize: 12, color: "var(--red, #ef4444)", fontWeight: 700, margin: "0 0 4px" }}>Not quite — try again!</p>
+          <p style={{ fontSize: 12, color: "var(--text2)", margin: 0, lineHeight: 1.5 }}>{questionData.feedbackIncorrect}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Phase 2: Data Room ──────────────────────────────────────────────────────
 
-function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
+function PhaseDataRoom({ caseData, openChart, setOpenChart, dataRoomAnswers, onDataRoomAnswer, onNext }) {
   const td = caseData.trainingData;
   return (
     <div>
@@ -496,6 +683,16 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
           )}
         </div>
       ))}
+
+      {/* Demographics Analysis Question */}
+      {caseData.dataRoomQuestions?.demographics && (
+        <DataRoomQuestion
+          sectionKey="demographics"
+          questionData={caseData.dataRoomQuestions.demographics}
+          answer={dataRoomAnswers?.demographics}
+          onAnswer={onDataRoomAnswer}
+        />
+      )}
 
       {/* Sample Records Table */}
       <div className="card" style={{ padding: "18px 0", marginBottom: 16, overflowX: "auto" }}>
@@ -552,6 +749,16 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
         </table>
       </div>
 
+      {/* Sample Records Analysis Question */}
+      {caseData.dataRoomQuestions?.sampleRecords && (
+        <DataRoomQuestion
+          sectionKey="sampleRecords"
+          questionData={caseData.dataRoomQuestions.sampleRecords}
+          answer={dataRoomAnswers?.sampleRecords}
+          onAnswer={onDataRoomAnswer}
+        />
+      )}
+
       {/* Feature Weights */}
       <div className="card" style={{ padding: "18px 18px", marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 14, fontFamily: "var(--font-display)" }}>
@@ -574,6 +781,16 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
         ))}
       </div>
 
+      {/* Feature Weights Analysis Question */}
+      {caseData.dataRoomQuestions?.featureWeights && (
+        <DataRoomQuestion
+          sectionKey="featureWeights"
+          questionData={caseData.dataRoomQuestions.featureWeights}
+          answer={dataRoomAnswers?.featureWeights}
+          onAnswer={onDataRoomAnswer}
+        />
+      )}
+
       {/* Approval / Accuracy Rates */}
       <div className="card" style={{ padding: "18px 18px", marginBottom: 24 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 14, fontFamily: "var(--font-display)" }}>
@@ -595,6 +812,16 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
         })}
       </div>
 
+      {/* Approval Rates Analysis Question */}
+      {caseData.dataRoomQuestions?.approvalRates && (
+        <DataRoomQuestion
+          sectionKey="approvalRates"
+          questionData={caseData.dataRoomQuestions.approvalRates}
+          answer={dataRoomAnswers?.approvalRates}
+          onAnswer={onDataRoomAnswer}
+        />
+      )}
+
       <button
         onClick={onNext}
         style={{
@@ -609,58 +836,215 @@ function PhaseDataRoom({ caseData, openChart, setOpenChart, onNext }) {
   );
 }
 
+// ── ClueQuestionCard Component ─────────────────────────────────────────────
+
+function ClueQuestionCard({ clue, answer, onAnswer }) {
+  const [selected, setSelected] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const q = clue.question;
+  if (!q) return null;
+
+  function handleSubmit() {
+    if (!selected) return;
+    setShowFeedback(true);
+    onAnswer(clue.id, selected);
+  }
+
+  const isCorrect = showFeedback && selected === q.correctAnswer;
+  const isWrong = showFeedback && selected !== q.correctAnswer;
+
+  return (
+    <div style={{
+      padding: "18px 16px", borderRadius: 14,
+      border: "1.5px solid var(--purple, #a855f7)", background: "rgba(168,85,247,0.04)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <span style={{ fontSize: 14 }}>🔍</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--purple, #a855f7)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          Evidence Analysis
+        </span>
+      </div>
+
+      {/* Evidence snippet */}
+      <div style={{
+        padding: "10px 14px", borderRadius: 10, background: "var(--surface2)",
+        fontSize: 12, color: "var(--text2)", fontStyle: "italic", lineHeight: 1.6, marginBottom: 12,
+      }}>
+        "{q.evidenceSnippet}"
+      </div>
+
+      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: "0 0 12px", lineHeight: 1.5 }}>
+        {q.prompt}
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+        {q.choices.map((choice) => {
+          const isSelected = selected === choice.id;
+          let borderColor = isSelected ? "var(--purple, #a855f7)" : "var(--border)";
+          let bgColor = isSelected ? "rgba(168,85,247,0.08)" : "transparent";
+          if (showFeedback && isSelected && choice.id === q.correctAnswer) {
+            borderColor = "var(--green, #10b981)";
+            bgColor = "rgba(16,185,129,0.08)";
+          } else if (showFeedback && isSelected && choice.id !== q.correctAnswer) {
+            borderColor = "var(--red, #ef4444)";
+            bgColor = "rgba(239,68,68,0.06)";
+          }
+          return (
+            <button
+              key={choice.id}
+              onClick={() => { if (!isCorrect) setSelected(choice.id); setShowFeedback(false); }}
+              style={{
+                padding: "10px 14px", borderRadius: 10, cursor: isCorrect ? "default" : "pointer",
+                border: `1.5px solid ${borderColor}`, background: bgColor,
+                textAlign: "left", fontSize: 13, color: "var(--text)", transition: "all 0.15s",
+              }}
+            >
+              <span style={{ fontWeight: 600, marginRight: 8, color: "var(--text3)" }}>{choice.id.toUpperCase()}.</span>
+              {choice.text}
+            </button>
+          );
+        })}
+      </div>
+
+      {!showFeedback && (
+        <button
+          onClick={handleSubmit}
+          disabled={!selected}
+          style={{
+            padding: "10px 20px", borderRadius: 10, border: "none",
+            background: selected ? "var(--purple, #a855f7)" : "var(--surface2)",
+            color: selected ? "#fff" : "var(--text3)", fontWeight: 700, fontSize: 13,
+            cursor: selected ? "pointer" : "not-allowed", transition: "all 0.2s",
+          }}
+        >
+          Submit Answer
+        </button>
+      )}
+
+      {isCorrect && (
+        <div style={{
+          padding: "10px 14px", borderRadius: 10, background: "rgba(16,185,129,0.08)",
+          border: "1px solid var(--green, #10b981)", marginTop: 4,
+        }}>
+          <p style={{ fontSize: 12, color: "var(--green, #10b981)", fontWeight: 700, margin: "0 0 4px" }}>
+            Clue Discovered!
+          </p>
+          <p style={{ fontSize: 12, color: "var(--text2)", margin: 0, lineHeight: 1.5 }}>
+            {q.feedbackCorrect}
+          </p>
+        </div>
+      )}
+
+      {isWrong && (
+        <div style={{
+          padding: "10px 14px", borderRadius: 10, background: "rgba(239,68,68,0.06)",
+          border: "1px solid var(--red, #ef4444)", marginTop: 4,
+        }}>
+          <p style={{ fontSize: 12, color: "var(--red, #ef4444)", fontWeight: 700, margin: "0 0 4px" }}>Not quite — try again!</p>
+          <p style={{ fontSize: 12, color: "var(--text2)", margin: 0, lineHeight: 1.5 }}>
+            {q.feedbackWrong?.[selected] || "Think about what the evidence is really showing you."}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Phase 3: Investigation ──────────────────────────────────────────────────
 
-function PhaseInvestigation({ caseData, discoveredClues, onDiscover, selectedClue, onCloseClue, onNext }) {
+function PhaseInvestigation({ caseData, discoveredClues, onClueClick, onClueAnswer, clueAnswers, activeClueQuestion, selectedClue, onCloseClue, onNext }) {
   return (
     <div>
       <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--text)", margin: "0 0 16px" }}>
         Investigation Board
       </h2>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
         {caseData.clues.map((clue) => {
           const found = discoveredClues.includes(clue.id);
+          const isQuestionShowing = activeClueQuestion === clue.id;
+          const isSelected = selectedClue?.id === clue.id;
+
           return (
-            <div
-              key={clue.id}
-              className="card"
-              onClick={() => onDiscover(clue.id)}
-              style={{
-                padding: "16px 14px", cursor: "pointer",
-                border: found ? "1.5px solid var(--amber)" : "1.5px solid var(--border)",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => { if (!found) e.currentTarget.style.borderColor = "var(--text3)"; }}
-              onMouseLeave={(e) => { if (!found) e.currentTarget.style.borderColor = "var(--border)"; }}
-            >
-              {found ? (
-                <>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 8 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{clue.title}</div>
+            <div key={clue.id}>
+              {/* Clue card header (always visible) */}
+              <div
+                className="card"
+                onClick={() => onClueClick(clue.id)}
+                style={{
+                  padding: "16px 14px", cursor: "pointer",
+                  border: found ? "1.5px solid var(--amber)" : isQuestionShowing ? "1.5px solid var(--purple, #a855f7)" : "1.5px solid var(--border)",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => { if (!found && !isQuestionShowing) e.currentTarget.style.borderColor = "var(--text3)"; }}
+                onMouseLeave={(e) => { if (!found && !isQuestionShowing) e.currentTarget.style.borderColor = "var(--border)"; }}
+              >
+                {found ? (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 8 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{clue.title}</div>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+                        <span style={{
+                          fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
+                          background: clue.severity === "high" ? "rgba(239,68,68,0.12)" : "rgba(245,166,35,0.12)",
+                          color: clue.severity === "high" ? "var(--red, #ef4444)" : "var(--amber)",
+                        }}>
+                          {clue.severity}
+                        </span>
+                        <span style={{ fontSize: 12, color: "var(--text3)", transform: isSelected ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.5, margin: 0, display: "-webkit-box", WebkitLineClamp: isSelected ? 99 : 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      {clue.description}
+                    </p>
+                  </>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <div style={{ fontSize: 22 }}>🔍</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text3)" }}>Click to Investigate</div>
+                      <div style={{ fontSize: 11, color: "var(--text3)" }}>{clue.category}</div>
+                    </div>
                     <span style={{
                       fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
+                      background: "rgba(245,166,35,0.1)", color: "var(--amber)",
+                    }}>
+                      +{clue.points}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Inline clue question (shows when investigating) */}
+              {isQuestionShowing && !found && clue.question && (
+                <div style={{ marginTop: 8 }}>
+                  <ClueQuestionCard clue={clue} answer={clueAnswers?.[clue.id]} onAnswer={onClueAnswer} />
+                </div>
+              )}
+
+              {/* Expanded detail (shows when clicking a discovered clue) */}
+              {isSelected && found && (
+                <div className="card" style={{ padding: "16px 16px", marginTop: 8, borderLeft: "4px solid var(--amber)" }}>
+                  <p style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.6, marginBottom: 12, marginTop: 0 }}>{clue.description}</p>
+                  <div style={{
+                    padding: "10px 14px", borderRadius: 10, background: "var(--surface2)",
+                    fontSize: 12, color: "var(--text2)", fontStyle: "italic", lineHeight: 1.5, marginBottom: 12,
+                  }}>
+                    "{clue.evidence}"
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <span style={{
+                      fontSize: 11, padding: "3px 10px", borderRadius: 20,
+                      background: "rgba(168,85,247,0.1)", color: "var(--purple, #a855f7)",
+                    }}>
+                      {clue.biasType}
+                    </span>
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
                       background: clue.severity === "high" ? "rgba(239,68,68,0.12)" : "rgba(245,166,35,0.12)",
                       color: clue.severity === "high" ? "var(--red, #ef4444)" : "var(--amber)",
                     }}>
                       {clue.severity}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.5, margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                    {clue.description}
-                  </p>
-                </>
-              ) : (
-                <div style={{ textAlign: "center", padding: "12px 0" }}>
-                  <div style={{ fontSize: 22, marginBottom: 6 }}>🔍</div>
-                  <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 4 }}>Click to Investigate</div>
-                  <div style={{ display: "flex", justifyContent: "center", gap: 8, alignItems: "center" }}>
-                    <span style={{ fontSize: 11, color: "var(--text3)" }}>{clue.category}</span>
-                    <span style={{
-                      fontSize: 10, fontWeight: 600, padding: "1px 8px", borderRadius: 20,
-                      background: "rgba(245,166,35,0.1)", color: "var(--amber)",
-                    }}>
-                      +{clue.points}
                     </span>
                   </div>
                 </div>
@@ -669,46 +1053,6 @@ function PhaseInvestigation({ caseData, discoveredClues, onDiscover, selectedClu
           );
         })}
       </div>
-
-      {/* Clue detail panel */}
-      {selectedClue && (
-        <div className="card" style={{ padding: "20px 18px", marginBottom: 20, borderLeft: "4px solid var(--amber)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 10 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--amber)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Clue Discovered!
-            </span>
-            <button
-              onClick={onCloseClue}
-              style={{ background: "none", border: "none", color: "var(--text3)", cursor: "pointer", fontSize: 16, padding: 0 }}
-            >
-              ✕
-            </button>
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>{selectedClue.title}</div>
-          <p style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.6, marginBottom: 12 }}>{selectedClue.description}</p>
-          <div style={{
-            padding: "10px 14px", borderRadius: 10, background: "var(--surface2)",
-            fontSize: 12, color: "var(--text2)", fontStyle: "italic", lineHeight: 1.5, marginBottom: 12,
-          }}>
-            "{selectedClue.evidence}"
-          </div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <span style={{
-              fontSize: 11, padding: "3px 10px", borderRadius: 20,
-              background: "rgba(168,85,247,0.1)", color: "var(--purple, #a855f7)",
-            }}>
-              {selectedClue.biasType}
-            </span>
-            <span style={{
-              fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
-              background: selectedClue.severity === "high" ? "rgba(239,68,68,0.12)" : "rgba(245,166,35,0.12)",
-              color: selectedClue.severity === "high" ? "var(--red, #ef4444)" : "var(--amber)",
-            }}>
-              {selectedClue.severity}
-            </span>
-          </div>
-        </div>
-      )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 13, color: "var(--text2)" }}>
@@ -956,7 +1300,7 @@ function PhaseReport({ caseData, biases, mitigations, summary, submitted, onTogg
 
 // ── Phase 6: Case Review ────────────────────────────────────────────────────
 
-function PhaseReview({ caseData, score, discoveredClues, submitted }) {
+function PhaseReview({ caseData, score, discoveredClues, submitted, dataRoomAnswers, clueAnswers }) {
   if (!score) {
     return (
       <div className="card" style={{ padding: "32px 20px", textAlign: "center", color: "var(--text3)" }}>
@@ -967,12 +1311,22 @@ function PhaseReview({ caseData, score, discoveredClues, submitted }) {
 
   const missedClues = caseData.clues.filter((c) => !discoveredClues.includes(c.id));
 
-  const breakdown = [
-    { label: "Clues Found", value: score.cluesFound, max: 40 },
-    { label: "Bias Identification", value: score.biasIdentification, max: 25 },
-    { label: "Evidence Quality", value: score.evidenceQuality, max: 15 },
-    { label: "Mitigations", value: score.mitigations, max: 20 },
-  ];
+  // Use 5-component breakdown if analysis data exists, otherwise legacy 4-component
+  const hasAnalysis = score.analysisAccuracy != null;
+  const breakdown = hasAnalysis
+    ? [
+        { label: "Clues Found", value: score.cluesFound, max: 30 },
+        { label: "Analysis Accuracy", value: score.analysisAccuracy, max: 15 },
+        { label: "Bias Identification", value: score.biasIdentification, max: 25 },
+        { label: "Evidence Quality", value: score.evidenceQuality, max: 10 },
+        { label: "Mitigations", value: score.mitigations, max: 20 },
+      ]
+    : [
+        { label: "Clues Found", value: score.cluesFound, max: 40 },
+        { label: "Bias Identification", value: score.biasIdentification, max: 25 },
+        { label: "Evidence Quality", value: score.evidenceQuality, max: 15 },
+        { label: "Mitigations", value: score.mitigations, max: 20 },
+      ];
 
   return (
     <div>

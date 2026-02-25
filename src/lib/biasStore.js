@@ -34,6 +34,8 @@ export async function createInvestigation(db, courseId, { studentId, studentName
       mitigations: [],
       summary: "",
     },
+    dataRoomAnswers: {},
+    clueAnswers: {},
     score: null,
     startedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -89,58 +91,109 @@ export async function getCourseInvestigations(db, courseId) {
 
 /**
  * Calculate score for an investigation.
- * Scoring:
- *   Clues found:        0-40 points (weighted by clue point values)
+ *
+ * New 5-component scoring (when MC answers exist):
+ *   Clues found:         0-30 points (weighted by clue point values)
+ *   Analysis accuracy:   0-15 points (correct first-attempts / total questions answered)
  *   Bias identification: 0-25 points
- *   Evidence quality:    0-15 points (notes with >20 chars)
+ *   Evidence quality:    0-10 points (notes with >20 chars)
  *   Mitigations:         0-20 points (mitigations with >30 chars)
+ *
+ * Legacy 4-component scoring (no MC data — backward compat):
+ *   Clues found:        0-40 points
+ *   Bias identification: 0-25 points
+ *   Evidence quality:    0-15 points
+ *   Mitigations:         0-20 points
  */
 export function calculateScore(investigation, caseData) {
   if (!caseData) {
     return { cluesFound: 0, biasIdentification: 0, evidenceQuality: 0, mitigations: 0, total: 0, xpEarned: 0 };
   }
 
-  // Clues found (0-40)
+  const hasAnalysisData =
+    (investigation.dataRoomAnswers && Object.keys(investigation.dataRoomAnswers).length > 0) ||
+    (investigation.clueAnswers && Object.keys(investigation.clueAnswers).length > 0);
+
+  // Clue point calculation (shared)
   const totalCluePoints = caseData.clues.reduce((sum, c) => sum + c.points, 0);
   const foundCluePoints = (investigation.discoveredClues || []).reduce((sum, clueId) => {
     const clue = caseData.clues.find((c) => c.id === clueId);
     return sum + (clue ? clue.points : 0);
   }, 0);
-  const cluesFound = Math.round((foundCluePoints / totalCluePoints) * 40);
 
-  // Bias identification (0-25)
+  // Bias identification (0-25, unchanged)
   const identifiedBiases = investigation.biasReport?.identifiedBiases || [];
   const biasIdentification = Math.round(
     (identifiedBiases.length / caseData.biasesToFind.length) * 25
   );
 
-  // Evidence quality (0-15) — based on notes written
-  const notes = investigation.evidenceNotes || {};
-  const notesWithContent = Object.values(notes).filter(
-    (n) => n && n.length > 20
-  ).length;
-  const evidenceQuality = Math.min(
-    15,
-    Math.round((notesWithContent / Math.max(1, caseData.clues.length)) * 15)
-  );
-
-  // Mitigations (0-20)
-  const mitigations = investigation.biasReport?.mitigations || [];
-  const mitigationsWithContent = mitigations.filter(
-    (m) => m && m.length > 30
-  ).length;
+  // Mitigations (0-20, unchanged)
+  const mits = investigation.biasReport?.mitigations || [];
+  const mitsWithContent = mits.filter((m) => m && m.length > 30).length;
   const mitigationScore = Math.round(
-    (mitigationsWithContent / caseData.biasesToFind.length) * 20
+    (mitsWithContent / caseData.biasesToFind.length) * 20
   );
 
-  const total = cluesFound + biasIdentification + evidenceQuality + mitigationScore;
+  if (hasAnalysisData) {
+    // ── New 5-component scoring ──
+    // Clues found (0-30)
+    const cluesFound = Math.round((foundCluePoints / totalCluePoints) * 30);
 
-  return {
-    cluesFound,
-    biasIdentification,
-    evidenceQuality,
-    mitigations: mitigationScore,
-    total,
-    xpEarned: total,
-  };
+    // Analysis accuracy (0-15) — correct first-attempts across all MC questions
+    const drAnswers = investigation.dataRoomAnswers || {};
+    const clueAnswers = investigation.clueAnswers || {};
+    const allAnswers = [...Object.values(drAnswers), ...Object.values(clueAnswers)];
+    const totalAnswered = allAnswers.length;
+    const correctFirstAttempts = allAnswers.filter(
+      (a) => a && a.correct && a.firstAnswer === a.answer
+    ).length;
+    const analysisAccuracy = totalAnswered > 0
+      ? Math.round((correctFirstAttempts / totalAnswered) * 15)
+      : 0;
+
+    // Evidence quality (0-10)
+    const notes = investigation.evidenceNotes || {};
+    const notesWithContent = Object.values(notes).filter(
+      (n) => n && n.length > 20
+    ).length;
+    const evidenceQuality = Math.min(
+      10,
+      Math.round((notesWithContent / Math.max(1, caseData.clues.length)) * 10)
+    );
+
+    const total = cluesFound + analysisAccuracy + biasIdentification + evidenceQuality + mitigationScore;
+
+    return {
+      cluesFound,
+      analysisAccuracy,
+      biasIdentification,
+      evidenceQuality,
+      mitigations: mitigationScore,
+      total,
+      xpEarned: total,
+    };
+  } else {
+    // ── Legacy 4-component scoring ──
+    const cluesFound = Math.round((foundCluePoints / totalCluePoints) * 40);
+
+    const notes = investigation.evidenceNotes || {};
+    const notesWithContent = Object.values(notes).filter(
+      (n) => n && n.length > 20
+    ).length;
+    const evidenceQuality = Math.min(
+      15,
+      Math.round((notesWithContent / Math.max(1, caseData.clues.length)) * 15)
+    );
+
+    const total = cluesFound + biasIdentification + evidenceQuality + mitigationScore;
+
+    return {
+      cluesFound,
+      biasIdentification,
+      evidenceQuality,
+      mitigations: mitigationScore,
+      total,
+      xpEarned: total,
+    };
+  }
 }
