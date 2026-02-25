@@ -19,7 +19,7 @@ const PHASE_COLORS = {
   4: "var(--green, #34d399)",
 };
 
-export default function ChatPreview({ phase, config, botName, botAvatar, cloudFunctionUrl, studentId, getToken, projectId }) {
+export default function ChatPreview({ phase, config, botName, botAvatar, cloudFunctionUrl, studentId, getToken, projectId, onMessagesChange, renderMessageExtra }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -124,6 +124,7 @@ export default function ChatPreview({ phase, config, botName, botAvatar, cloudFu
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (onMessagesChange) onMessagesChange(messages);
   }, [messages]);
 
   const accentColor = PHASE_COLORS[phase] || "var(--cyan)";
@@ -319,6 +320,7 @@ export default function ChatPreview({ phase, config, botName, botAvatar, cloudFu
                 </div>
               )}
               <div className="cp-msg-bubble">{msg.content}</div>
+              {msg.role === "bot" && renderMessageExtra && renderMessageExtra(msg, i)}
             </div>
           ))
         )}

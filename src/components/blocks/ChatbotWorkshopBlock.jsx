@@ -47,13 +47,28 @@ export default function ChatbotWorkshopBlock({ block, courseId, lessonId }) {
         </p>
       )}
 
-      <button
-        className="btn btn-primary"
-        onClick={() => navigate(`/chatbot-workshop/${courseId}`)}
-        style={{ width: "100%", padding: "12px 20px", fontSize: 15, fontWeight: 700 }}
-      >
-        Open Workshop →
-      </button>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button
+          className="btn btn-primary"
+          onClick={() => navigate(`/chatbot-workshop/${courseId}`)}
+          style={{ flex: 1, padding: "12px 20px", fontSize: 15, fontWeight: 700 }}
+        >
+          Open Workshop →
+        </button>
+        <button
+          onClick={() => navigate(`/bot-arcade/${courseId}`)}
+          style={{
+            padding: "12px 20px", fontSize: 14, fontWeight: 600,
+            background: "none", border: "1px solid var(--border, rgba(255,255,255,0.12))",
+            borderRadius: 10, color: "var(--text3)", cursor: "pointer",
+            transition: "all 0.15s", whiteSpace: "nowrap",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--amber)"; e.currentTarget.style.color = "var(--amber)"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border, rgba(255,255,255,0.12))"; e.currentTarget.style.color = "var(--text3)"; }}
+        >
+          🎮 Arcade
+        </button>
+      </div>
     </div>
   );
 }

@@ -25,6 +25,10 @@ const XP_LABELS = {
   lesson_complete: { label: "Lesson Completed", icon: "📘" },
   perfect_lesson: { label: "Perfect Lesson (100%)", icon: "💯" },
   streak_bonus: { label: "Daily Streak Bonus (per day)", icon: "🔥" },
+  bot_publish: { label: "Bot Published to Arcade", icon: "🚀" },
+  bot_test: { label: "Tested a Classmate's Bot", icon: "🧪" },
+  bot_rate: { label: "Rated a Bot", icon: "⭐" },
+  bot_stump: { label: "Stumped a Bot", icon: "🤔" },
 };
 
 const WRITTEN_XP_LABELS = {

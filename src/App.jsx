@@ -38,6 +38,8 @@ const GuessWhoGame = lazy(() => import("./pages/GuessWhoGame"));
 const StudentAnalytics = lazy(() => import("./pages/StudentAnalytics"));
 const WeeklyEvidence = lazy(() => import("./pages/WeeklyEvidence"));
 const BotBuilder = lazy(() => import("./pages/BotBuilder"));
+const BotArcade = lazy(() => import("./pages/BotArcade"));
+const BotTestView = lazy(() => import("./components/chatbot-workshop/BotTestView"));
 
 const TRANSLATE_URL = import.meta.env.VITE_TRANSLATE_URL || "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
 
@@ -119,6 +121,8 @@ function AppRoutes() {
             <Route path="/course/:courseId/evidence" element={<WeeklyEvidence />} />
             <Route path="/guess-who/:courseId/:gameId" element={<GuessWhoGame />} />
             <Route path="/chatbot-workshop/:courseId" element={<BotBuilder />} />
+            <Route path="/bot-arcade/:courseId" element={<BotArcade />} />
+            <Route path="/bot-arcade/:courseId/test/:projectId" element={<BotTestView />} />
           </Route>
         </Routes>
       </Suspense>
