@@ -13,17 +13,21 @@ import {
 import ChatPreview from "../components/chatbot-workshop/ChatPreview";
 import DecisionTreeEditor from "../components/chatbot-workshop/DecisionTreeEditor";
 import KeywordMatchEditor from "../components/chatbot-workshop/KeywordMatchEditor";
+import SystemPromptEditor from "../components/chatbot-workshop/SystemPromptEditor";
+
+const BOT_CHAT_URL = import.meta.env.VITE_BOT_CHAT_URL
+  || "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/botChat";
 
 const PHASES = [
   { num: 1, label: "Decision Tree", icon: "🌳", color: "var(--cyan)", description: "Build if/then conversation paths" },
   { num: 2, label: "Keyword Match", icon: "🔑", color: "var(--amber)", description: "Match keywords to responses" },
   { num: 3, label: "Intent Classifier", icon: "🧠", color: "var(--purple)", description: "Train AI to understand intent", locked: true },
-  { num: 4, label: "LLM-Powered", icon: "✨", color: "var(--green, #34d399)", description: "Write prompts for an AI brain", locked: true },
+  { num: 4, label: "LLM-Powered", icon: "✨", color: "var(--green, #34d399)", description: "Write prompts for an AI brain" },
 ];
 
 export default function BotBuilder() {
   const { courseId } = useParams();
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const navigate = useNavigate();
 
   const [project, setProject] = useState(null);
@@ -301,11 +305,10 @@ export default function BotBuilder() {
             </div>
           )}
           {activePhase === 4 && (
-            <div style={{ color: "var(--text3)", textAlign: "center", padding: 60 }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>✨</div>
-              <div style={{ fontSize: 18, fontWeight: 600 }}>LLM-Powered Bot</div>
-              <div style={{ fontSize: 14, marginTop: 8 }}>Coming soon! Write system prompts for a real AI brain.</div>
-            </div>
+            <SystemPromptEditor
+              config={project.phases?.[4] || { systemPrompt: "", temperature: 0.7 }}
+              onSave={config => savePhaseConfig(4, config)}
+            />
           )}
         </div>
       </div>
@@ -318,6 +321,9 @@ export default function BotBuilder() {
           botName={project.botName}
           botAvatar={project.botAvatar}
           studentId={user?.uid}
+          cloudFunctionUrl={BOT_CHAT_URL}
+          getToken={getToken}
+          projectId={project?.id}
         />
       </div>
     </div>
