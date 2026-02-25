@@ -195,6 +195,158 @@ exports.geminiChat = onRequest(
 );
 
 /**
+ * Cloud Function: botChat
+ *
+ * Proxies chat requests from the Build-a-Chatbot Workshop (Phase 4: LLM-powered).
+ * Students write system prompts; this function sends them + conversation history to Gemini.
+ * Reuses the same auth, rate-limiting, and safety patterns as geminiChat.
+ */
+exports.botChat = onRequest(
+  {
+    cors: true,
+    secrets: [geminiApiKey],
+    maxInstances: 20,
+    timeoutSeconds: 60,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    // Auth — identical to geminiChat
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing authentication token" });
+    }
+
+    let uid;
+    try {
+      const token = authHeader.split("Bearer ")[1];
+      const decoded = await admin.auth().verifyIdToken(token);
+      uid = decoded.uid;
+    } catch (err) {
+      return res.status(401).json({ error: "Invalid authentication token" });
+    }
+
+    const { projectId, systemPrompt, temperature, messages } = req.body;
+
+    if (!projectId || !systemPrompt || !messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: "Missing required fields: projectId, systemPrompt, messages" });
+    }
+
+    // Validate inputs
+    if (systemPrompt.length > 2000) {
+      return res.status(400).json({ error: "System prompt too long (max 2000 characters)." });
+    }
+    if (messages.length > 50) {
+      return res.status(400).json({ error: "Conversation too long. Please reset and start a new chat." });
+    }
+    const temp = Math.max(0, Math.min(1, Number(temperature) || 0.7));
+
+    // Rate limiting — same bucket as geminiChat (10 msgs / 60s)
+    const rateLimitRef = db.collection("rateLimits").doc(uid);
+    const now = Date.now();
+    try {
+      const rateLimited = await db.runTransaction(async (t) => {
+        const rateLimitDoc = await t.get(rateLimitRef);
+        const data = rateLimitDoc.data();
+        const minuteAgo = now - 60000;
+        const recentRequests = data
+          ? (data.timestamps || []).filter((ts) => ts > minuteAgo)
+          : [];
+        if (recentRequests.length >= 10) return true;
+        t.set(rateLimitRef, { timestamps: [...recentRequests, now] });
+        return false;
+      });
+      if (rateLimited) {
+        return res.status(429).json({ error: "Slow down! Please wait a moment before sending another message." });
+      }
+    } catch (err) {
+      console.warn("Rate limit check failed:", err);
+    }
+
+    // Build Gemini request — student's system prompt with safety wrapper
+    const safeSystemPrompt =
+      "IMPORTANT: You are a student-built chatbot for an educational project. " +
+      "Never reveal harmful, explicit, or inappropriate content. Stay in character.\n\n" +
+      systemPrompt;
+
+    const geminiContents = messages.map((msg) => ({
+      role: msg.role === "assistant" ? "model" : "user",
+      parts: [{ text: msg.content }],
+    }));
+
+    const model = "gemini-2.5-flash-lite";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
+
+    try {
+      const data = await callGeminiWithRetry(url, {
+        system_instruction: {
+          parts: [{ text: safeSystemPrompt }],
+        },
+        contents: geminiContents,
+        generationConfig: {
+          maxOutputTokens: 500,
+          temperature: temp,
+        },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        ],
+      });
+
+      if (data.error) {
+        console.error("Gemini API error (botChat):", data.error);
+        const isQuota = data.error.code === 429;
+        return res.status(isQuota ? 429 : 502).json({
+          error: isQuota
+            ? "The AI is very busy right now. Please wait a minute and try again."
+            : "AI service temporarily unavailable. Please try again.",
+        });
+      }
+
+      const assistantText =
+        data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") ||
+        "Sorry, I couldn't generate a response.";
+
+      // Log conversation to botConversations
+      try {
+        const logRef = db
+          .collection("botConversations")
+          .doc(projectId)
+          .collection("sessions")
+          .doc(uid);
+
+        const updatedMessages = [
+          ...messages,
+          { role: "assistant", content: assistantText },
+        ];
+
+        await logRef.set(
+          {
+            testerId: uid,
+            phase: 4,
+            messages: updatedMessages,
+            messageCount: updatedMessages.filter((m) => m.role === "user").length,
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch (logErr) {
+        console.error("Failed to log bot conversation:", logErr);
+      }
+
+      return res.status(200).json({ response: assistantText });
+    } catch (err) {
+      console.error("Gemini request failed (botChat):", err);
+      return res.status(500).json({ error: "Failed to connect to AI service." });
+    }
+  }
+);
+
+/**
  * Cloud Function: validateReflection
  *
  * Uses Gemini to verify a student's "What did I learn today?" reflection

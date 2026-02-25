@@ -145,7 +145,7 @@ export function evaluateKeywordMatch(rules, userMessage) {
 
 // ─── Unified Engine Router ──────────────────────────────────────────────────
 
-export async function processMessage({ phase, config, userMessage, conversationState, cloudFunctionUrl, studentId }) {
+export async function processMessage({ phase, config, userMessage, conversationState, cloudFunctionUrl, studentId, authToken, projectId }) {
   switch (phase) {
     case 1: {
       const { nodes = [], edges = [] } = config;
@@ -163,36 +163,56 @@ export async function processMessage({ phase, config, userMessage, conversationS
     }
 
     case 4: {
-      // LLM-powered — Cloud Function proxy
+      // LLM-powered — Cloud Function proxy (botChat)
       if (!cloudFunctionUrl) {
         return { response: "LLM not configured yet.", state: conversationState };
       }
+      if (!authToken) {
+        return { response: "Not signed in. Please log in to use the AI bot.", state: conversationState };
+      }
       try {
+        const updatedMessages = [
+          ...(conversationState?.messages || []),
+          { role: "user", content: userMessage },
+        ];
+
         const res = await fetch(cloudFunctionUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`,
+          },
           body: JSON.stringify({
-            message: userMessage,
+            projectId,
             systemPrompt: config.systemPrompt || "You are a helpful chatbot.",
             temperature: config.temperature ?? 0.7,
-            history: conversationState?.messages || [],
-            studentId,
+            messages: updatedMessages,
           }),
         });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          return {
+            response: err.error || `Something went wrong (${res.status}).`,
+            state: conversationState,
+          };
+        }
+
         const data = await res.json();
+        const assistantText = data.response || "No response received.";
+
         return {
-          response: data.reply || data.text || "No response received.",
+          response: assistantText,
           state: {
             ...conversationState,
             messages: [
-              ...(conversationState?.messages || []),
-              { role: "user", content: userMessage },
-              { role: "assistant", content: data.reply || data.text },
+              ...updatedMessages,
+              { role: "assistant", content: assistantText },
             ],
           },
         };
       } catch (err) {
-        return { response: `Error: ${err.message}`, state: conversationState };
+        return { response: `Connection error: ${err.message}`, state: conversationState };
       }
     }
 

@@ -19,7 +19,7 @@ const PHASE_COLORS = {
   4: "var(--green, #34d399)",
 };
 
-export default function ChatPreview({ phase, config, botName, botAvatar, cloudFunctionUrl, studentId }) {
+export default function ChatPreview({ phase, config, botName, botAvatar, cloudFunctionUrl, studentId, getToken, projectId }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -58,6 +58,12 @@ export default function ChatPreview({ phase, config, botName, botAvatar, cloudFu
     setLoading(true);
 
     try {
+      // Get fresh auth token for Phase 4 (LLM needs server auth)
+      let authToken = null;
+      if (phase === 4 && getToken) {
+        authToken = await getToken();
+      }
+
       const result = await processMessage({
         phase,
         config,
@@ -65,6 +71,8 @@ export default function ChatPreview({ phase, config, botName, botAvatar, cloudFu
         conversationState,
         cloudFunctionUrl,
         studentId,
+        authToken,
+        projectId,
       });
 
       const botMsg = { role: "bot", content: result.response, timestamp: Date.now() };
@@ -299,6 +307,7 @@ export default function ChatPreview({ phase, config, botName, botAvatar, cloudFu
               Send a message to test your bot!
               {phase === 1 && <><br />Your decision tree will guide the conversation.</>}
               {phase === 2 && <><br />Keywords you've defined will match responses.</>}
+              {phase === 4 && <><br />Your system prompt shapes the AI's personality.</>}
             </div>
           </div>
         ) : (
