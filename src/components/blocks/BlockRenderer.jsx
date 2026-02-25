@@ -23,6 +23,7 @@ import BarChartBlock from "./BarChartBlock";
 import SketchBlock from "./SketchBlock";
 import GuessWhoBlock from "./GuessWhoBlock";
 import ChatbotWorkshopBlock from "./ChatbotWorkshopBlock";
+import BiasDetectiveBlock from "./BiasDetectiveBlock";
 import ErrorBoundary from "./ErrorBoundary";
 
 const BLOCK_MAP = {
@@ -50,6 +51,7 @@ const BLOCK_MAP = {
   sketch: SketchBlock,
   guess_who: GuessWhoBlock,
   chatbot_workshop: ChatbotWorkshopBlock,
+  bias_detective: BiasDetectiveBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {
