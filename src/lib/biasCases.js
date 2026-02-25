@@ -87,6 +87,7 @@ export const CASES = [
         { feature: "Zip Code Region Score", weight: 0.08, suspicious: true },
         { feature: "Keyword Density", weight: 0.05, suspicious: false },
       ],
+      ratesLabel: "% of Applicants Hired by Group",
       approvalRates: [
         { group: "Male applicants", rate: 42 },
         { group: "Female applicants", rate: 19 },
@@ -202,6 +203,7 @@ export const CASES = [
         { feature: "Primary Language", weight: 0.08, suspicious: true },
         { feature: "Banking History Length", weight: 0.07, suspicious: false },
       ],
+      ratesLabel: "% of Loan Applications Approved by Group",
       approvalRates: [
         { group: "Suburban zip codes", rate: 58 },
         { group: "Urban core zip codes", rate: 22 },
@@ -312,6 +314,7 @@ export const CASES = [
         { feature: "Gender classification (internal)", weight: 0.10, suspicious: true },
         { feature: "Age estimation (internal)", weight: 0.08, suspicious: false },
       ],
+      ratesLabel: "% Correctly Identified by Group",
       approvalRates: [
         { group: "Fitzpatrick I-II (Light skin)", rate: 98.5 },
         { group: "Fitzpatrick III (Medium-light)", rate: 93.2 },
@@ -418,6 +421,7 @@ export const CASES = [
         { feature: "Content accuracy rating", weight: 0.05, suspicious: true },
         { feature: "Creator follower count", weight: 0.10, suspicious: false },
       ],
+      ratesLabel: "% of Content Promoted or Shown by Type",
       approvalRates: [
         { group: "Sensational content promotion rate", rate: 72 },
         { group: "Educational content promotion rate", rate: 18 },
