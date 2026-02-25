@@ -42,6 +42,7 @@ const BotArcade = lazy(() => import("./pages/BotArcade"));
 const BotTestView = lazy(() => import("./components/chatbot-workshop/BotTestView"));
 const ChatbotDashboard = lazy(() => import("./pages/ChatbotDashboard"));
 const BiasInvestigation = lazy(() => import("./pages/BiasInvestigation"));
+const BiasDetectiveDashboard = lazy(() => import("./pages/BiasDetectiveDashboard"));
 
 const TRANSLATE_URL = import.meta.env.VITE_TRANSLATE_URL || "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
 
@@ -127,6 +128,7 @@ function AppRoutes() {
             <Route path="/bot-arcade/:courseId/test/:projectId" element={<BotTestView />} />
             <Route path="/chatbot-dashboard/:courseId" element={<ChatbotDashboard />} />
             <Route path="/bias-detective/:courseId" element={<BiasInvestigation />} />
+            <Route path="/bias-detective-dashboard/:courseId" element={<BiasDetectiveDashboard />} />
           </Route>
         </Routes>
       </Suspense>
