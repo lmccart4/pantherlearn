@@ -94,6 +94,19 @@ export function evaluateDecisionTree(nodes, edges, userMessage, conversationStat
 }
 
 
+// ─── Cosine Similarity Helper ────────────────────────────────────────────────
+
+function cosineSimilarity(a, b) {
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+
 // ─── Phase 2: Keyword Matching Engine ───────────────────────────────────────
 
 export function evaluateKeywordMatch(rules, userMessage) {
@@ -145,7 +158,7 @@ export function evaluateKeywordMatch(rules, userMessage) {
 
 // ─── Unified Engine Router ──────────────────────────────────────────────────
 
-export async function processMessage({ phase, config, userMessage, conversationState, cloudFunctionUrl, studentId, authToken, projectId }) {
+export async function processMessage({ phase, config, userMessage, conversationState, cloudFunctionUrl, embedFunctionUrl, studentId, authToken, projectId }) {
   switch (phase) {
     case 1: {
       const { nodes = [], edges = [] } = config;
@@ -158,8 +171,72 @@ export async function processMessage({ phase, config, userMessage, conversationS
     }
 
     case 3: {
-      // Intent classification — Cloud Function (to be built in Chunk 6)
-      return { response: "Phase 3 (Intent Classification) coming soon!", state: conversationState };
+      // Intent classification — embeddings + client-side cosine similarity
+      const { intents = [], trainingData = [], fallbackResponse, confidenceThreshold = 0.65 } = config;
+
+      // Check if bot is trained
+      if (!trainingData.length || !trainingData[0]?.embedding) {
+        return {
+          response: "Bot not trained yet! Go to the editor and click 'Train Bot'.",
+          state: conversationState,
+        };
+      }
+
+      if (!embedFunctionUrl || !authToken) {
+        return { response: "Not signed in. Please log in to test this bot.", state: conversationState };
+      }
+
+      try {
+        // Get embedding for the user's message via Cloud Function
+        const embedRes = await fetch(embedFunctionUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ mode: "single", text: userMessage }),
+        });
+
+        if (!embedRes.ok) {
+          const err = await embedRes.json().catch(() => ({}));
+          return { response: err.error || "Failed to classify message.", state: conversationState };
+        }
+
+        const { embedding: userEmbedding } = await embedRes.json();
+
+        // Compute cosine similarity against all training embeddings
+        let bestSimilarity = -1;
+        let bestIntentId = null;
+
+        for (const example of trainingData) {
+          if (!example.embedding) continue;
+          const sim = cosineSimilarity(userEmbedding, example.embedding);
+          if (sim > bestSimilarity) {
+            bestSimilarity = sim;
+            bestIntentId = example.intentId;
+          }
+        }
+
+        // Check threshold
+        if (bestSimilarity < confidenceThreshold || !bestIntentId) {
+          return {
+            response: fallbackResponse || "I'm not sure what you mean. Can you try rephrasing?",
+            state: conversationState,
+            matchedRule: null,
+            confidence: bestSimilarity,
+          };
+        }
+
+        const matchedIntent = intents.find(i => i.id === bestIntentId);
+        return {
+          response: matchedIntent?.response || "I understood your intent but don't have a response configured.",
+          state: conversationState,
+          matchedRule: matchedIntent,
+          confidence: bestSimilarity,
+        };
+      } catch (err) {
+        return { response: `Classification error: ${err.message}`, state: conversationState };
+      }
     }
 
     case 4: {

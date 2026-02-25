@@ -19,7 +19,7 @@ const PHASE_COLORS = {
   4: "var(--green, #34d399)",
 };
 
-export default function ChatPreview({ phase, config, botName, botAvatar, cloudFunctionUrl, studentId, getToken, projectId, onMessagesChange, renderMessageExtra }) {
+export default function ChatPreview({ phase, config, botName, botAvatar, cloudFunctionUrl, embedFunctionUrl, studentId, getToken, projectId, onMessagesChange, renderMessageExtra }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -58,9 +58,9 @@ export default function ChatPreview({ phase, config, botName, botAvatar, cloudFu
     setLoading(true);
 
     try {
-      // Get fresh auth token for Phase 4 (LLM needs server auth)
+      // Get fresh auth token for Phase 3 (embeddings) and Phase 4 (LLM)
       let authToken = null;
-      if (phase === 4 && getToken) {
+      if (phase >= 3 && getToken) {
         authToken = await getToken();
       }
 
@@ -70,6 +70,7 @@ export default function ChatPreview({ phase, config, botName, botAvatar, cloudFu
         userMessage: text,
         conversationState,
         cloudFunctionUrl,
+        embedFunctionUrl,
         studentId,
         authToken,
         projectId,
@@ -92,6 +93,23 @@ export default function ChatPreview({ phase, config, botName, botAvatar, cloudFu
         const debugMsg = {
           role: "debug",
           content: "No keyword match — used fallback response",
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, debugMsg]);
+      }
+
+      // Show match info for Phase 3 (intent classification)
+      if (phase === 3 && result.matchedRule) {
+        const debugMsg = {
+          role: "debug",
+          content: `Intent: "${result.matchedRule.name}" (confidence: ${Math.round((result.confidence || 0) * 100)}%)`,
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, debugMsg]);
+      } else if (phase === 3 && !result.matchedRule && result.confidence !== undefined) {
+        const debugMsg = {
+          role: "debug",
+          content: `No intent matched (best: ${Math.round((result.confidence || 0) * 100)}%, threshold: ${Math.round((config.confidenceThreshold || 0.65) * 100)}%)`,
           timestamp: Date.now(),
         };
         setMessages(prev => [...prev, debugMsg]);
@@ -308,6 +326,7 @@ export default function ChatPreview({ phase, config, botName, botAvatar, cloudFu
               Send a message to test your bot!
               {phase === 1 && <><br />Your decision tree will guide the conversation.</>}
               {phase === 2 && <><br />Keywords you've defined will match responses.</>}
+              {phase === 3 && <><br />Your trained intents will classify messages by meaning.</>}
               {phase === 4 && <><br />Your system prompt shapes the AI's personality.</>}
             </div>
           </div>
@@ -355,7 +374,7 @@ export default function ChatPreview({ phase, config, botName, botAvatar, cloudFu
       </div>
 
       <div className="cp-footer">
-        {phase <= 2 ? "Running locally in your browser" : "Powered by AI · Responses are logged"}
+        {phase <= 2 ? "Running locally in your browser" : phase === 3 ? "Embeddings from AI · Similarity computed locally" : "Powered by AI · Responses are logged"}
       </div>
     </div>
   );
