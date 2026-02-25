@@ -174,5 +174,20 @@ service cloud.firestore {
     match /rateLimits/{uid} {
       allow read, write: if isOwner(uid);
     }
+    // Build-a-Chatbot Workshop
+    match /botProjects/{projectId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isLoggedIn()
+        && (resource.data.ownerId == request.auth.uid || isTeacher());
+    }
+    match /botRatings/{projectId}/ratings/{ratingId} {
+      allow read: if isLoggedIn();
+      allow write: if isLoggedIn() && request.resource.data.raterId == request.auth.uid;
+    }
+    match /botConversations/{projectId}/sessions/{sessionId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn();
+    }
   }
 }
