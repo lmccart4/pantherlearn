@@ -36,6 +36,7 @@ const BLOCK_TYPES = [
   { type: "bar_chart", label: "Bar Chart", icon: "📊" },
   { type: "sketch", label: "Sketch Canvas", icon: "✏️" },
   { type: "guess_who", label: "Guess Who?", icon: "🎭" },
+  { type: "chatbot_workshop", label: "Chatbot Workshop", icon: "🤖" },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -74,6 +75,7 @@ function defaultBlockData(typeInfo) {
     case "bar_chart": return { ...base, title: "Energy Bar Chart", barCount: 4, initialLabel: "Initial State", finalLabel: "Final State", deltaLabel: "" };
     case "sketch": return { ...base, title: "Sketch", instructions: "", canvasHeight: 400 };
     case "guess_who": return { ...base, icon: "🎭", title: "Guess Who?", instructions: "Challenge a classmate to a game of Guess Who! Take turns asking yes/no questions to identify your opponent's secret character.", characterSet: "default", customCharacters: [], xpForWin: 50, xpForPlay: 10 };
+    case "chatbot_workshop": return { ...base, icon: "🤖", title: "Build-a-Chatbot Workshop", instructions: "Design and test your own chatbot! Start with a decision tree, then add keyword matching rules." };
     default: return base;
   }
 }
@@ -500,6 +502,11 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
               <p style={{ fontSize: 11, color: "var(--text3)", marginTop: 4 }}>Add at least 10 characters with names and image URLs.</p>
             </div>
           )}
+        </>);
+      case "chatbot_workshop":
+        return (<>
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="Build-a-Chatbot Workshop" />
+          <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline placeholder="Design and test your own chatbot!" />
         </>);
       default: return <p style={{ color: "var(--text3)" }}>Unknown block type</p>;
     }
