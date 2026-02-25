@@ -8,8 +8,9 @@ import { useAuth } from "../hooks/useAuth";
 import { db } from "../lib/firebase";
 import {
   createBotProject, getBotProject, getStudentBotProjects,
-  updateBotProject, updatePhaseConfig,
+  updateBotProject, updatePhaseConfig, publishBot, unpublishBot,
 } from "../lib/botStore";
+import { awardXP, getXPConfig } from "../lib/gamification";
 import ChatPreview from "../components/chatbot-workshop/ChatPreview";
 import DecisionTreeEditor from "../components/chatbot-workshop/DecisionTreeEditor";
 import KeywordMatchEditor from "../components/chatbot-workshop/KeywordMatchEditor";
@@ -68,6 +69,7 @@ export default function BotBuilder() {
         courseId,
         botName: "My Chatbot",
         botAvatar: "🤖",
+        ownerName: user.displayName || "Anonymous",
       });
       setProject(newProject);
       setActivePhase(1);
@@ -106,6 +108,32 @@ export default function BotBuilder() {
       setProject(prev => ({ ...prev, ...updates }));
     } catch (err) {
       console.error("Error updating bot info:", err);
+    }
+  }
+
+  async function handleTogglePublish() {
+    if (!project?.id) return;
+    try {
+      if (project.published) {
+        await unpublishBot(db, project.id);
+        setProject(prev => ({ ...prev, published: false, publishedAt: null }));
+      } else {
+        // Validate: must have a bot name
+        if (!project.botName?.trim()) {
+          alert("Please name your chatbot before publishing!");
+          return;
+        }
+        await publishBot(db, project.id);
+        setProject(prev => ({ ...prev, published: true, publishedAt: new Date() }));
+        // Award XP on first publish only (check if was previously unpublished)
+        if (!project.publishedAt) {
+          const xpConfig = await getXPConfig(courseId);
+          const xpAmount = xpConfig?.bot_publish ?? 20;
+          await awardXP(user.uid, xpAmount, "bot_publish", courseId);
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling publish:", err);
     }
   }
 
@@ -187,6 +215,24 @@ export default function BotBuilder() {
           margin-left: auto;
         }
         .bb-save-badge.saving { color: var(--amber); }
+        .bb-publish-btn {
+          padding: 6px 14px; border-radius: 8px; font-size: 12px;
+          font-weight: 600; cursor: pointer; transition: all 0.15s;
+          border: 1px solid var(--green, #34d399);
+          background: transparent; color: var(--green, #34d399);
+        }
+        .bb-publish-btn:hover { background: var(--green, #34d399); color: white; }
+        .bb-publish-btn.published {
+          background: var(--green, #34d399)22; border-color: var(--green, #34d399);
+          color: var(--green, #34d399);
+        }
+        .bb-arcade-link {
+          padding: 6px 14px; border-radius: 8px; font-size: 12px;
+          font-weight: 600; cursor: pointer; transition: all 0.15s;
+          border: 1px solid var(--border, rgba(255,255,255,0.12));
+          background: transparent; color: var(--text3);
+        }
+        .bb-arcade-link:hover { border-color: var(--cyan); color: var(--cyan); }
 
         /* Phase tabs */
         .bb-phase-tabs {
@@ -263,6 +309,18 @@ export default function BotBuilder() {
             <div className={`bb-save-badge ${saving ? "saving" : ""}`}>
               {saving ? "Saving..." : "All changes saved"}
             </div>
+            <button
+              className={`bb-publish-btn ${project.published ? "published" : ""}`}
+              onClick={handleTogglePublish}
+            >
+              {project.published ? "✓ Published" : "Publish to Arcade"}
+            </button>
+            <button
+              className="bb-arcade-link"
+              onClick={() => navigate(`/bot-arcade/${courseId}`)}
+            >
+              Browse Arcade
+            </button>
           </div>
 
           {/* Phase tabs */}

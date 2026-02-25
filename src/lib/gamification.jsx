@@ -36,6 +36,11 @@ export const DEFAULT_XP_VALUES = {
   written_approaching: 30,
   written_emerging: 20,
   written_missing: 0,
+  // Bot Arcade XP
+  bot_publish: 20,
+  bot_test: 5,
+  bot_rate: 10,
+  bot_stump: 5,
 };
 
 // ─── Default Behavior Rewards ───

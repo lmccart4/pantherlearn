@@ -36,22 +36,25 @@
 
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
-  query, where, orderBy, serverTimestamp, onSnapshot, addDoc
+  query, where, orderBy, serverTimestamp, onSnapshot, addDoc, increment
 } from "firebase/firestore";
 
 // ─── Bot Projects ───────────────────────────────────────────────────────────
 
-export async function createBotProject(db, { ownerId, courseId, botName, botAvatar }) {
+export async function createBotProject(db, { ownerId, courseId, botName, botAvatar, ownerName }) {
   const ref = doc(collection(db, "botProjects"));
   const project = {
     ownerId,
     courseId,
+    ownerName: ownerName || "Anonymous",
     botName: botName || "My Chatbot",
     botDescription: "",
     botAvatar: botAvatar || "🤖",
     currentPhase: 1,
     published: false,
     publishedAt: null,
+    stumpCount: 0,
+    testCount: 0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     phases: {
@@ -173,6 +176,33 @@ export async function getConversationLogs(db, projectId) {
     orderBy("createdAt", "desc")
   );
   const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+
+// ─── Bot Arcade Stats ──────────────────────────────────────────────────────
+
+export async function incrementBotStumps(db, projectId, count) {
+  await updateDoc(doc(db, "botProjects", projectId), {
+    stumpCount: increment(count),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function incrementBotTestCount(db, projectId) {
+  await updateDoc(doc(db, "botProjects", projectId), {
+    testCount: increment(1),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function incrementArcadeStat(db, courseId, uid, field, amount = 1) {
+  const ref = doc(db, "courses", courseId, "botArcadeStats", uid);
+  await setDoc(ref, { [field]: increment(amount), updatedAt: serverTimestamp() }, { merge: true });
+}
+
+export async function getArcadeStats(db, courseId) {
+  const snap = await getDocs(collection(db, "courses", courseId, "botArcadeStats"));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
