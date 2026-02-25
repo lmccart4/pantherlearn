@@ -177,6 +177,22 @@ export default function CoursePage() {
           </Link>
         )}
 
+        {/* Build-a-Chatbot Workshop */}
+        <Link to={`/chatbot-workshop/${courseId}`} className="card" style={{
+          display: "flex", alignItems: "center", gap: 14, marginBottom: 16,
+          textDecoration: "none", color: "inherit", cursor: "pointer",
+        }}>
+          <div style={{
+            fontSize: 24, width: 44, height: 44, borderRadius: 10,
+            background: "rgba(139, 92, 246, 0.12)", display: "flex", alignItems: "center", justifyContent: "center",
+          }}>🤖</div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>Build-a-Chatbot Workshop</div>
+            <div style={{ fontSize: 12, color: "var(--text3)" }}>Design and test your own chatbot</div>
+          </div>
+          <div style={{ marginLeft: "auto", color: "var(--text3)", fontSize: 18 }}>→</div>
+        </Link>
+
         {/* Team Panel (students see their team here) */}
         <TeamPanel courseId={courseId} />
 

@@ -1,0 +1,415 @@
+/* src/components/chatbot-workshop/flow-nodes/bot-flow.css */
+/* Styles for the React Flow decision tree builder */
+
+/* ─── Canvas Container ─────────────────────────────────────────────── */
+
+.dt-flow-container {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  position: relative;
+}
+
+/* Override React Flow background */
+.dt-flow-container .react-flow__renderer {
+  background: var(--bg) !important;
+}
+
+.dt-flow-container .react-flow__background {
+  opacity: 0.4;
+}
+
+/* Minimap styling */
+.dt-flow-container .react-flow__minimap {
+  background: var(--surface) !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border, rgba(255,255,255,0.08)) !important;
+  overflow: hidden;
+}
+
+/* Controls panel */
+.dt-flow-container .react-flow__controls {
+  border-radius: 10px !important;
+  overflow: hidden;
+  border: 1px solid var(--border, rgba(255,255,255,0.08)) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+}
+.dt-flow-container .react-flow__controls-button {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.06)) !important;
+  fill: var(--text3) !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+.dt-flow-container .react-flow__controls-button:hover {
+  background: var(--surface2, rgba(255,255,255,0.06)) !important;
+  fill: var(--text) !important;
+}
+
+/* Selection box */
+.dt-flow-container .react-flow__selection {
+  background: rgba(34, 211, 238, 0.05) !important;
+  border: 1px solid rgba(34, 211, 238, 0.3) !important;
+}
+
+/* ─── Node Base ────────────────────────────────────────────────────── */
+
+.bot-flow-node {
+  min-width: 220px;
+  max-width: 280px;
+  background: var(--surface);
+  border: 2px solid var(--node-border, rgba(255,255,255,0.1));
+  border-radius: 14px;
+  overflow: hidden;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.bot-flow-node:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+}
+
+/* Selected state (React Flow adds .selected class to wrapper) */
+.react-flow__node.selected .bot-flow-node {
+  border-color: var(--node-color, var(--cyan)) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-color, var(--cyan)) 20%, transparent),
+              0 6px 24px rgba(0,0,0,0.35);
+}
+
+/* ─── Node Header ──────────────────────────────────────────────────── */
+
+.bot-flow-node__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--node-color, var(--cyan)) 8%, transparent);
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
+}
+
+.bot-flow-node__icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.bot-flow-node__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--node-color, var(--cyan));
+  flex: 1;
+}
+
+.bot-flow-node__delete {
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.15s;
+  line-height: 1;
+  opacity: 0;
+}
+
+.bot-flow-node:hover .bot-flow-node__delete {
+  opacity: 1;
+}
+
+.bot-flow-node__delete:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ─── Node Body ────────────────────────────────────────────────────── */
+
+.bot-flow-node__body {
+  padding: 12px;
+  min-height: 40px;
+  cursor: text;
+}
+
+.bot-flow-node__message {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.bot-flow-node__placeholder {
+  color: var(--text3);
+  font-style: italic;
+  font-size: 12px;
+}
+
+.bot-flow-node__textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--node-color, var(--cyan));
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: var(--font-body, inherit);
+  resize: vertical;
+  min-height: 50px;
+  line-height: 1.5;
+}
+
+.bot-flow-node__textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--node-color, var(--cyan)) 25%, transparent);
+}
+
+.bot-flow-node__fallback {
+  padding: 6px 12px 10px;
+  font-size: 11px;
+  color: var(--text3);
+  font-style: italic;
+}
+
+/* ─── Handles (Connection Points) ──────────────────────────────────── */
+
+.bot-flow-handle {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  border: 2px solid var(--surface) !important;
+  transition: all 0.2s !important;
+}
+
+.bot-flow-handle--source {
+  background: var(--node-color, var(--cyan)) !important;
+  bottom: -6px !important;
+}
+
+.bot-flow-handle--target {
+  background: var(--text3) !important;
+  top: -6px !important;
+}
+
+.bot-flow-handle:hover {
+  transform: scale(1.3) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--node-color, var(--cyan)) 30%, transparent) !important;
+}
+
+/* Connecting state — make handles pulse */
+.react-flow__handle-connecting .bot-flow-handle {
+  animation: handlePulse 1s infinite;
+}
+
+@keyframes handlePulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--node-color) 40%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--node-color) 0%, transparent); }
+}
+
+/* ─── Edges ────────────────────────────────────────────────────────── */
+
+.react-flow__edge-path {
+  stroke: rgba(255, 255, 255, 0.2) !important;
+  stroke-width: 2 !important;
+}
+
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: var(--cyan) !important;
+  stroke-width: 2.5 !important;
+}
+
+/* Edge label (keyword condition) */
+.react-flow__edge-textbg {
+  fill: var(--surface) !important;
+  rx: 6;
+  ry: 6;
+}
+
+.react-flow__edge-text {
+  fill: var(--text3) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  font-family: var(--font-mono, monospace) !important;
+}
+
+.react-flow__edge.selected .react-flow__edge-text {
+  fill: var(--cyan) !important;
+}
+
+/* Connection line while dragging */
+.react-flow__connection-path {
+  stroke: var(--cyan) !important;
+  stroke-width: 2 !important;
+  stroke-dasharray: 6 3 !important;
+}
+
+/* ─── Toolbar ──────────────────────────────────────────────────────── */
+
+.dt-toolbar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 400px;
+}
+
+.dt-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  white-space: nowrap;
+}
+
+.dt-toolbar-btn:hover {
+  border-color: var(--cyan);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.dt-toolbar-btn .tb-icon {
+  font-size: 14px;
+}
+
+.dt-toolbar-btn--save {
+  background: var(--cyan);
+  color: #000;
+  border-color: var(--cyan);
+}
+
+.dt-toolbar-btn--save:hover {
+  opacity: 0.85;
+  border-color: var(--cyan);
+}
+
+.dt-toolbar-btn--save:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+
+/* ─── Edge Edit Panel ──────────────────────────────────────────────── */
+
+.dt-edge-panel {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: var(--surface);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 14px;
+  padding: 16px 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 360px;
+}
+
+.dt-edge-panel__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.dt-edge-panel__input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: var(--font-mono, monospace);
+}
+
+.dt-edge-panel__input:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+
+.dt-edge-panel__hint {
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.dt-edge-panel__close {
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+}
+
+.dt-edge-panel__close:hover {
+  color: var(--text);
+}
+
+/* ─── Help Tooltip ─────────────────────────────────────────────────── */
+
+.dt-help-float {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  background: var(--surface);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  max-width: 260px;
+  font-size: 12px;
+  color: var(--text3);
+  line-height: 1.6;
+}
+
+.dt-help-float strong {
+  color: var(--cyan);
+}
+
+.dt-help-float__close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* ─── Animations ───────────────────────────────────────────────────── */
+
+@keyframes nodeAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.react-flow__node {
+  animation: nodeAppear 0.25s ease;
+}
