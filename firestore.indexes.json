@@ -26,6 +26,14 @@
         { "fieldPath": "publishedAt", "order": "DESCENDING" }
       ]
     }
+    {
+      "collectionGroup": "biasInvestigations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "studentId", "order": "ASCENDING" },
+        { "fieldPath": "startedAt", "order": "DESCENDING" }
+      ]
+    }
   ],
   "fieldOverrides": []
 }
