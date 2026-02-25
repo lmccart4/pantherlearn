@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // RecipeBot Curation Lab - Student Data
+    match /recipebot_curation/{userId} {
+      // Students can read/write their own curation data
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Teacher access - read all student submissions
+    // Add your teacher email(s) here
+    match /recipebot_curation/{userId} {
+      allow read: if request.auth != null && 
+        request.auth.token.email in [
+          'YOUR_TEACHER_EMAIL@school.edu'
+          // Add more teacher emails as needed
+        ];
+    }
+  }
+}
