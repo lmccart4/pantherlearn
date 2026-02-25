@@ -25,7 +25,7 @@
         { "fieldPath": "published", "order": "ASCENDING" },
         { "fieldPath": "publishedAt", "order": "DESCENDING" }
       ]
-    }
+    },
     {
       "collectionGroup": "biasInvestigations",
       "queryScope": "COLLECTION",
