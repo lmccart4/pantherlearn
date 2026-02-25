@@ -105,7 +105,7 @@ export default function BiasInvestigation() {
       setBiases(existing.biasReport?.identifiedBiases || []);
       setMitigations(existing.biasReport?.mitigations || []);
       setSummary(existing.biasReport?.summary || "");
-      setSubmitted(!!existing.score);
+      setSubmitted(!!existing.score || existing.status === "submitted");
     } else {
       // Create new
       try {
@@ -219,8 +219,8 @@ export default function BiasInvestigation() {
   // ── Loading ──
   if (loading) {
     return (
-      <div style={{ padding: 40, textAlign: "center", color: "var(--text2)" }}>
-        Loading investigations...
+      <div style={{ minHeight: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="spinner" />
       </div>
     );
   }
