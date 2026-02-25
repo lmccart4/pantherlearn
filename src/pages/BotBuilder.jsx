@@ -9,6 +9,7 @@ import { db } from "../lib/firebase";
 import {
   createBotProject, getBotProject, getStudentBotProjects,
   updateBotProject, updatePhaseConfig, publishBot, unpublishBot,
+  getBotReflection,
 } from "../lib/botStore";
 import { awardXP, getXPConfig } from "../lib/gamification";
 import ChatPreview from "../components/chatbot-workshop/ChatPreview";
@@ -16,6 +17,7 @@ import DecisionTreeEditor from "../components/chatbot-workshop/DecisionTreeEdito
 import KeywordMatchEditor from "../components/chatbot-workshop/KeywordMatchEditor";
 import SystemPromptEditor from "../components/chatbot-workshop/SystemPromptEditor";
 import IntentClassifierEditor from "../components/chatbot-workshop/IntentClassifierEditor";
+import PhaseReflectionModal from "../components/chatbot-workshop/PhaseReflectionModal";
 
 const BOT_CHAT_URL = import.meta.env.VITE_BOT_CHAT_URL
   || "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/botChat";
@@ -41,6 +43,10 @@ export default function BotBuilder() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [showReflection, setShowReflection] = useState(false);
+  const [reflectionPhase, setReflectionPhase] = useState(null);
+  const [pendingPhase, setPendingPhase] = useState(null);
+  const [reflectedPhases, setReflectedPhases] = useState(new Set());
 
   // Load student's bot projects for this course
   useEffect(() => {
@@ -87,6 +93,63 @@ export default function BotBuilder() {
     setProject(p);
     setActivePhase(p.currentPhase || 1);
     setShowProjectPicker(false);
+  }
+
+  // Load which phases the student has already reflected on
+  useEffect(() => {
+    if (!user?.uid || !courseId) return;
+    async function loadReflections() {
+      const reflected = new Set();
+      for (let p = 1; p <= 4; p++) {
+        try {
+          const r = await getBotReflection(db, courseId, user.uid, p);
+          if (r) reflected.add(p);
+        } catch (_) { /* ignore */ }
+      }
+      setReflectedPhases(reflected);
+    }
+    loadReflections();
+  }, [user?.uid, courseId]);
+
+  // Handle phase tab click — prompt reflection if switching away from current phase
+  function handlePhaseClick(targetPhase) {
+    if (targetPhase === activePhase) return;
+    // If moving to a higher phase and haven't reflected on the current phase yet, prompt
+    if (targetPhase > activePhase && !reflectedPhases.has(activePhase)) {
+      setReflectionPhase(activePhase);
+      setPendingPhase(targetPhase);
+      setShowReflection(true);
+    } else {
+      setActivePhase(targetPhase);
+      // Update project's currentPhase if moving forward
+      if (targetPhase > (project?.currentPhase || 1)) {
+        handleUpdateBotInfo({ currentPhase: targetPhase });
+      }
+    }
+  }
+
+  function handleReflectionComplete(phase) {
+    setReflectedPhases(prev => new Set(prev).add(phase));
+    setShowReflection(false);
+    if (pendingPhase) {
+      setActivePhase(pendingPhase);
+      if (pendingPhase > (project?.currentPhase || 1)) {
+        handleUpdateBotInfo({ currentPhase: pendingPhase });
+      }
+      setPendingPhase(null);
+    }
+  }
+
+  function handleReflectionSkip(phase) {
+    setReflectedPhases(prev => new Set(prev).add(phase));
+    setShowReflection(false);
+    if (pendingPhase) {
+      setActivePhase(pendingPhase);
+      if (pendingPhase > (project?.currentPhase || 1)) {
+        handleUpdateBotInfo({ currentPhase: pendingPhase });
+      }
+      setPendingPhase(null);
+    }
   }
 
   // Debounced save for phase config
@@ -334,7 +397,7 @@ export default function BotBuilder() {
                 key={p.num}
                 className={`bb-phase-tab ${activePhase === p.num ? "active" : ""} ${p.locked ? "locked" : ""}`}
                 style={activePhase === p.num ? { borderBottomColor: p.color, color: p.color } : {}}
-                onClick={() => !p.locked && setActivePhase(p.num)}
+                onClick={() => !p.locked && handlePhaseClick(p.num)}
                 title={p.locked ? "Coming soon!" : p.description}
               >
                 <span className="phase-icon">{p.icon}</span>
@@ -389,6 +452,19 @@ export default function BotBuilder() {
           projectId={project?.id}
         />
       </div>
+
+      {/* Phase Reflection Modal */}
+      {showReflection && reflectionPhase && (
+        <PhaseReflectionModal
+          phase={reflectionPhase}
+          courseId={courseId}
+          user={user}
+          projectId={project?.id}
+          getToken={getToken}
+          onComplete={handleReflectionComplete}
+          onSkip={handleReflectionSkip}
+        />
+      )}
     </div>
   );
 }

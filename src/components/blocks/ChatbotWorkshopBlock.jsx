@@ -8,7 +8,8 @@ import { db } from "../../lib/firebase";
 import { getStudentBotProjects } from "../../lib/botStore";
 
 export default function ChatbotWorkshopBlock({ block, courseId, lessonId }) {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
+  const isTeacher = userRole === "teacher";
   const navigate = useNavigate();
   const [projectCount, setProjectCount] = useState(null);
 
@@ -68,6 +69,21 @@ export default function ChatbotWorkshopBlock({ block, courseId, lessonId }) {
         >
           🎮 Arcade
         </button>
+        {isTeacher && (
+          <button
+            onClick={() => navigate(`/chatbot-dashboard/${courseId}`)}
+            style={{
+              padding: "12px 20px", fontSize: 14, fontWeight: 600,
+              background: "none", border: "1px solid var(--border, rgba(255,255,255,0.12))",
+              borderRadius: 10, color: "var(--text3)", cursor: "pointer",
+              transition: "all 0.15s", whiteSpace: "nowrap",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--cyan)"; e.currentTarget.style.color = "var(--cyan)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border, rgba(255,255,255,0.12))"; e.currentTarget.style.color = "var(--text3)"; }}
+          >
+            📊 Dashboard
+          </button>
+        )}
       </div>
     </div>
   );
