@@ -275,16 +275,19 @@ export default function BiasInvestigation() {
   // ── Loading ──
   if (loading) {
     return (
-      <div style={{ minHeight: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div className="spinner" />
-      </div>
+      <main className="page-container" style={{ padding: "48px 40px" }}>
+        <div style={{ minHeight: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="spinner" />
+        </div>
+      </main>
     );
   }
 
   // ── Case Picker ──
   if (!selectedCase) {
     return (
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 16px" }}>
+      <main className="page-container" style={{ padding: "48px 40px" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{ marginBottom: 28 }}>
           <button
             onClick={() => navigate(-1)}
@@ -355,6 +358,7 @@ export default function BiasInvestigation() {
           })}
         </div>
       </div>
+      </main>
     );
   }
 
@@ -363,7 +367,8 @@ export default function BiasInvestigation() {
   const score = investigation?.score || null;
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 16px" }}>
+    <main className="page-container" style={{ padding: "48px 40px" }}>
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
         <button
@@ -450,6 +455,7 @@ export default function BiasInvestigation() {
         <PhaseReview caseData={caseData} score={score} discoveredClues={discoveredClues} submitted={submitted} dataRoomAnswers={dataRoomAnswers} clueAnswers={clueAnswers} />
       )}
     </div>
+    </main>
   );
 }
 
