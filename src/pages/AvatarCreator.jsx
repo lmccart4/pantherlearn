@@ -121,13 +121,19 @@ export default function AvatarCreator() {
       const existing = await getAvatar(user.uid);
       if (existing) setAvatar(existing);
 
-      // Fetch enrolled courses, then get course-specific gamification XP
-      // Note: getStudentEnrolledCourseIds returns a Set, not an Array
+      // Fetch enrolled courses, then get course-specific gamification XP.
+      // Use the same ordering as StudentDashboard (orderBy "order" asc) so the
+      // primary course — and thus the XP used for unlock checks — always matches
+      // what the student sees on their dashboard.
       let xp = 0;
       try {
         const enrolledSet = await getStudentEnrolledCourseIds(user.uid);
         if (enrolledSet.size > 0) {
-          const primaryCourseId = [...enrolledSet][0];
+          const coursesSnap = await getDocs(query(collection(db, "courses"), orderBy("order", "asc")));
+          const orderedEnrolled = coursesSnap.docs
+            .map((d) => ({ id: d.id, ...d.data() }))
+            .filter((c) => !c.hidden && enrolledSet.has(c.id));
+          const primaryCourseId = orderedEnrolled.length > 0 ? orderedEnrolled[0].id : [...enrolledSet][0];
           const gam = await getStudentGamification(user.uid, primaryCourseId);
           xp = gam.totalXP || 0;
         }
