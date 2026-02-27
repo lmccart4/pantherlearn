@@ -24,6 +24,7 @@ import SketchBlock from "./SketchBlock";
 import GuessWhoBlock from "./GuessWhoBlock";
 import ChatbotWorkshopBlock from "./ChatbotWorkshopBlock";
 import BiasDetectiveBlock from "./BiasDetectiveBlock";
+import MomentumMysteryLabBlock from "./MomentumMysteryLabBlock";
 import ErrorBoundary from "./ErrorBoundary";
 
 const BLOCK_MAP = {
@@ -52,6 +53,7 @@ const BLOCK_MAP = {
   guess_who: GuessWhoBlock,
   chatbot_workshop: ChatbotWorkshopBlock,
   bias_detective: BiasDetectiveBlock,
+  momentum_mystery_lab: MomentumMysteryLabBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {

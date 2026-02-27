@@ -38,6 +38,7 @@ const BLOCK_TYPES = [
   { type: "guess_who", label: "Guess Who?", icon: "🎭" },
   { type: "chatbot_workshop", label: "Chatbot Workshop", icon: "🤖" },
   { type: "bias_detective", label: "Bias Detective", icon: "🔍" },
+  { type: "momentum_mystery_lab", label: "Momentum Mystery Lab", icon: "🔭" },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -78,6 +79,7 @@ function defaultBlockData(typeInfo) {
     case "guess_who": return { ...base, icon: "🎭", title: "Guess Who?", instructions: "Challenge a classmate to a game of Guess Who! Take turns asking yes/no questions to identify your opponent's secret character.", characterSet: "default", customCharacters: [], xpForWin: 50, xpForPlay: 10 };
     case "chatbot_workshop": return { ...base, icon: "🤖", title: "Build-a-Chatbot Workshop", instructions: "Design and test your own chatbot! Start with a decision tree, then add keyword matching rules." };
     case "bias_detective": return { ...base, icon: "🔍", title: "AI Bias Detective", instructions: "Investigate AI systems for hidden bias. Examine training data, uncover clues, and write a report." };
+    case "momentum_mystery_lab": return { ...base, icon: "🔭", title: "Momentum Mystery Lab", instructions: "Solve collision mysteries using conservation of momentum. Earn XP and compete for the best grade!" };
     default: return base;
   }
 }
@@ -514,6 +516,11 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
         return (<>
           <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="AI Bias Detective" />
           <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline placeholder="Investigate AI systems for hidden bias..." />
+        </>);
+      case "momentum_mystery_lab":
+        return (<>
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="Momentum Mystery Lab" />
+          <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline placeholder="Solve collision mysteries using conservation of momentum..." />
         </>);
       default: return <p style={{ color: "var(--text3)" }}>Unknown block type</p>;
     }
