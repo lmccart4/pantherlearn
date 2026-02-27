@@ -84,4 +84,20 @@ export const ACTIVITIES = [
     url: null,  // in-app activity, no external URL
     course: null,
   },
+
+  {
+    id: "momentum-mystery-lab",
+    title: "Momentum Mystery Lab",
+    icon: "🔭",
+    description: "Students solve momentum physics mysteries and earn XP based on accuracy and speed. Best score counts; students can replay.",
+    collection: "momentumAttempts",               // subcollection under courses/{courseId}/
+    courseScoped: true,                            // data lives in courses/{courseId}/{collection}
+    userIdField: "studentId",
+    timestampField: "completedAt",
+    completionCheck: (sub) => sub.activityScore != null,
+    scoreCalculator: (sub) => Math.round((sub.activityScore ?? 0) * 100),
+    component: lazy(() => import("../components/grading/activities/MomentumMysteryLabReview")),
+    url: null,  // in-app activity, no external URL
+    course: null,
+  },
 ];

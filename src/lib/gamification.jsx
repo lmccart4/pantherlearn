@@ -234,6 +234,8 @@ export const BADGES = [
   { id: "thousand_correct", icon: "💫", name: "Transcendent", description: "Get 1,000 questions correct", rarity: "legendary", hidden: false, check: (g) => (g.totalCorrect || 0) >= 1000 },
   { id: "level_forty", icon: "🐉", name: "Dragon", description: "Reach Level 40", rarity: "legendary", hidden: false, check: (g) => getLevelInfo(g.totalXP || 0).current.level >= 40 },
   { id: "ninety_streak", icon: "🌌", name: "Eternal Flame", description: "Reach a 90-day streak", rarity: "legendary", hidden: false, check: (g) => (g.currentStreak || 0) >= 90 },
+  // ─── Activity Badges ───
+  { id: "momentum_detective", icon: "🔭", name: "Momentum Detective", description: "Clear 4 or more cases in the Momentum Mystery Lab", rarity: "uncommon", hidden: false, check: (g) => !!g.momentumBadgeEarned },
   // ─── Hidden Badges ───
   { id: "night_owl", icon: "🦉", name: "Night Owl", description: "Complete a lesson after 9 PM", rarity: "rare", hidden: true, check: (g) => g.hasNightOwl === true },
   { id: "early_bird", icon: "🐦", name: "Early Bird", description: "Complete a lesson before 7 AM", rarity: "rare", hidden: true, check: (g) => g.hasEarlyBird === true },
