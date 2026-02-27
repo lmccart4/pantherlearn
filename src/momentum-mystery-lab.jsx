@@ -5,6 +5,28 @@ import React, { useState, useEffect, useRef } from "react";
    v3: Grading system + best-attempt replay
    ═══════════════════════════════════════════════════════════════ */
 
+// ─── KaTeX lazy-loading (shared with BarChartBlock) ──────────
+let katexModule = null;
+const loadKatex = () => {
+  if (katexModule) return Promise.resolve(katexModule);
+  return Promise.all([
+    import("katex"),
+    import("katex/dist/katex.min.css"),
+  ]).then(([mod]) => { katexModule = mod.default; return katexModule; });
+};
+
+function Tex({ children, display = false }) {
+  const [html, setHtml] = useState(null);
+  useEffect(() => {
+    loadKatex().then(k => {
+      try { setHtml(k.renderToString(children, { throwOnError: false, displayMode: display })); }
+      catch { setHtml(null); }
+    });
+  }, [children, display]);
+  if (!html) return <span>{children}</span>;
+  return <span dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
 const FONT = {
   display: "'Special Elite', cursive",
   body: "'IBM Plex Mono', monospace",
@@ -49,21 +71,21 @@ const rand = (min, max, step=0.5) => {
 };
 
 function makeLevel(i) {
-  if (i===0) return {massA:2,massB:3,viA:4,viB:null,vfA:1.6,vfB:1.6,unknown:"viB",answer:0,tol:0.2,hint:"Both carts stuck together → same final velocity. Use: m₁v₁ᵢ + m₂v₂ᵢ = (m₁+m₂)·vf"};
-  if (i===1) return {massA:1.5,massB:1.5,viA:6,viB:0,vfA:null,vfB:4,unknown:"vfA",answer:2,tol:0.2,hint:"You know 3 of 4 momentum terms. Conservation: m₁v₁ᵢ + m₂v₂ᵢ = m₁v₁f + m₂v₂f"};
+  if (i===0) return {massA:2,massB:3,viA:4,viB:null,vfA:1.6,vfB:1.6,unknown:"viB",answer:0,tol:0.2,hint:<>Both carts stuck together → same final velocity. Use: <Tex>{"m_1 v_{1i} + m_2 v_{2i} = (m_1+m_2) \\cdot v_f"}</Tex></>};
+  if (i===1) return {massA:1.5,massB:1.5,viA:6,viB:0,vfA:null,vfB:4,unknown:"vfA",answer:2,tol:0.2,hint:<>You know 3 of 4 momentum terms. Conservation: <Tex>{"m_1 v_{1i} + m_2 v_{2i} = m_1 v_{1f} + m_2 v_{2f}"}</Tex></>};
   if (i===2) {
     const mA=rand(1,4),mB=rand(1,4),viA=rand(2,6),viB=-rand(1,5);
     const P=mA*viA+mB*viB,vfB=rand(1,5),vfA=+((P-mB*vfB)/mA).toFixed(1);
-    return {massA:mA,massB:mB,viA,viB:null,vfA,vfB,unknown:"viB",answer:viB,tol:0.3,hint:"Both moving toward each other. m₁v₁ᵢ + m₂v₂ᵢ = m₁v₁f + m₂v₂f — solve for v₂ᵢ"};
+    return {massA:mA,massB:mB,viA,viB:null,vfA,vfB,unknown:"viB",answer:viB,tol:0.3,hint:<>Both moving toward each other. <Tex>{"m_1 v_{1i} + m_2 v_{2i} = m_1 v_{1f} + m_2 v_{2f}"}</Tex> — solve for <Tex>{"v_{2i}"}</Tex></>};
   }
   if (i===3) {
     const mA=rand(1,3),mB=rand(1,3),vfA=-rand(1,4),vfB=+(-mA*vfA/mB).toFixed(1);
-    return {massA:mA,massB:mB,viA:0,viB:0,vfA,vfB:null,unknown:"vfB",answer:vfB,tol:0.3,hint:"Started at rest → total initial momentum = 0. So m₁v₁f + m₂v₂f = 0"};
+    return {massA:mA,massB:mB,viA:0,viB:0,vfA,vfB:null,unknown:"vfB",answer:vfB,tol:0.3,hint:<>Started at rest → total initial momentum = 0. So <Tex>{"m_1 v_{1f} + m_2 v_{2f} = 0"}</Tex></>};
   }
   let mA=2,viA=5,viB=-2,vfA=-1,vfB=4;
   let mB=+(mA*(viA-vfA)/(vfB-viB)).toFixed(1);
   if(mB<=0||mB>8)mB=2;
-  return {massA:mA,massB:null,viA,viB,vfA,vfB,unknown:"massB",answer:mB,tol:0.3,hint:"All velocities known + one mass. m₁v₁ᵢ + m₂v₂ᵢ = m₁v₁f + m₂v₂f → factor out m₂"};
+  return {massA:mA,massB:null,viA,viB,vfA,vfB,unknown:"massB",answer:mB,tol:0.3,hint:<>All velocities known + one mass. <Tex>{"m_1 v_{1i} + m_2 v_{2i} = m_1 v_{1f} + m_2 v_{2f}"}</Tex> → factor out <Tex>{"m_2"}</Tex></>};
 }
 
 // ─── PARTICLES ─────────────────────────────────────────────────
@@ -181,9 +203,9 @@ function BarChart({level,showAnswer}) {
       <Pin style={{position:"absolute",top:-5,left:"50%",transform:"translateX(-50%)"}} color={C.red} />
       <div style={{fontFamily:FONT.accent,fontSize:12,color:C.chalkMuted,textAlign:"center",letterSpacing:4,marginBottom:10}}>MOMENTUM BAR CHART</div>
       <div style={{display:"flex",gap:3,justifyContent:"center",flexWrap:"wrap"}}>
-        <div style={{display:"flex",gap:3}}><Bar val={piA} color={C.cartA} label="pᵢ(A)" /><Bar val={piB} color={C.cartB} label="pᵢ(B)" /><Bar val={piT} color={C.chalk} label="Σpᵢ" /></div>
+        <div style={{display:"flex",gap:3}}><Bar val={piA} color={C.cartA} label={<Tex>{"p_i(A)"}</Tex>} /><Bar val={piB} color={C.cartB} label={<Tex>{"p_i(B)"}</Tex>} /><Bar val={piT} color={C.chalk} label={<Tex>{"\\Sigma p_i"}</Tex>} /></div>
         <div style={{width:1,background:C.chalkMuted+"33",margin:"8px 4px",alignSelf:"stretch"}} />
-        <div style={{display:"flex",gap:3}}><Bar val={pfA} color={C.cartA} label="pf(A)" /><Bar val={pfB} color={C.cartB} label="pf(B)" /><Bar val={pfT} color={C.chalk} label="Σpf" /></div>
+        <div style={{display:"flex",gap:3}}><Bar val={pfA} color={C.cartA} label={<Tex>{"p_f(A)"}</Tex>} /><Bar val={pfB} color={C.cartB} label={<Tex>{"p_f(B)"}</Tex>} /><Bar val={pfT} color={C.chalk} label={<Tex>{"\\Sigma p_f"}</Tex>} /></div>
       </div>
       <div style={{display:"flex",justifyContent:"center",gap:40,marginTop:6}}>
         <span style={{fontSize:9,color:C.chalkMuted,fontFamily:FONT.body,letterSpacing:2}}>BEFORE</span>
@@ -191,7 +213,7 @@ function BarChart({level,showAnswer}) {
       </div>
       {showAnswer&&Math.abs(piT-pfT)<0.5&&(
         <div style={{textAlign:"center",marginTop:8,padding:"4px 8px",background:C.green+"15",borderRadius:4,border:`1px solid ${C.green}33`}}>
-          <span style={{fontFamily:FONT.body,fontSize:10,color:C.green}}>✓ Momentum Conserved: Σpᵢ ≈ Σpf</span>
+          <span style={{fontFamily:FONT.body,fontSize:10,color:C.green}}>✓ Momentum Conserved: <Tex>{"\\Sigma p_i \\approx \\Sigma p_f"}</Tex></span>
         </div>
       )}
     </div>
@@ -470,10 +492,10 @@ function MomentumMysteryLab({ onSync, syncState } = {}) {
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
               <EvidenceCard label="Mass A" value={lvl.massA} unit="kg" color={C.cartA} unknown={lvl.unknown==="massA"} />
               <EvidenceCard label="Mass B" value={lvl.massB} unit="kg" color={C.cartB} unknown={lvl.unknown==="massB"} />
-              <EvidenceCard label="v_initial (A)" value={lvl.viA} unit="m/s" color={C.cartA} unknown={lvl.unknown==="viA"} />
-              <EvidenceCard label="v_initial (B)" value={lvl.viB} unit="m/s" color={C.cartB} unknown={lvl.unknown==="viB"} />
-              <EvidenceCard label="v_final (A)" value={lvl.vfA} unit="m/s" color={C.cartA} unknown={lvl.unknown==="vfA"} />
-              <EvidenceCard label="v_final (B)" value={lvl.vfB} unit="m/s" color={C.cartB} unknown={lvl.unknown==="vfB"} />
+              <EvidenceCard label={<><Tex>{"v_{i}"}</Tex> (A)</>} value={lvl.viA} unit="m/s" color={C.cartA} unknown={lvl.unknown==="viA"} />
+              <EvidenceCard label={<><Tex>{"v_{i}"}</Tex> (B)</>} value={lvl.viB} unit="m/s" color={C.cartB} unknown={lvl.unknown==="viB"} />
+              <EvidenceCard label={<><Tex>{"v_{f}"}</Tex> (A)</>} value={lvl.vfA} unit="m/s" color={C.cartA} unknown={lvl.unknown==="vfA"} />
+              <EvidenceCard label={<><Tex>{"v_{f}"}</Tex> (B)</>} value={lvl.vfB} unit="m/s" color={C.cartB} unknown={lvl.unknown==="vfB"} />
             </div>
             <div style={{marginTop:10,padding:"8px 12px",background:C.noirDeep,borderRadius:4,border:`1px dashed ${C.red}44`,display:"flex",alignItems:"center",gap:8}}>
               <span style={{fontSize:16}}>🔎</span>
@@ -513,9 +535,9 @@ function MomentumMysteryLab({ onSync, syncState } = {}) {
 
         <div style={{background:C.panel,borderRadius:6,padding:10,margin:"10px 0",border:"1px solid #2a2a2a"}}>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:4,fontSize:10}}>
-            {[["m_A",lvl.massA,"kg",C.cartA,"massA"],["m_B",lvl.massB,"kg",C.cartB,"massB"],[null],
-              ["v_iA",lvl.viA,"m/s",C.cartA,"viA"],["v_iB",lvl.viB,"m/s",C.cartB,"viB"],[null],
-              ["v_fA",lvl.vfA,"m/s",C.cartA,"vfA"],["v_fB",lvl.vfB,"m/s",C.cartB,"vfB"],[null],
+            {[[<Tex>{"m_A"}</Tex>,lvl.massA,"kg",C.cartA,"massA"],[<Tex>{"m_B"}</Tex>,lvl.massB,"kg",C.cartB,"massB"],[null],
+              [<Tex>{"v_{iA}"}</Tex>,lvl.viA,"m/s",C.cartA,"viA"],[<Tex>{"v_{iB}"}</Tex>,lvl.viB,"m/s",C.cartB,"viB"],[null],
+              [<Tex>{"v_{fA}"}</Tex>,lvl.vfA,"m/s",C.cartA,"vfA"],[<Tex>{"v_{fB}"}</Tex>,lvl.vfB,"m/s",C.cartB,"vfB"],[null],
             ].map(([lbl,val,unit,col,key],i)=>{
               if(!lbl) return <div key={i}/>;
               const unk=key===lvl.unknown;
@@ -555,7 +577,7 @@ function MomentumMysteryLab({ onSync, syncState } = {}) {
 
         <div style={{background:C.panel,borderRadius:6,padding:"10px 14px",border:"1px solid #2a2a2a",textAlign:"center"}}>
           <span style={{fontFamily:FONT.body,fontSize:10,color:C.chalkMuted}}>Conservation: </span>
-          <span style={{fontFamily:FONT.body,fontSize:12,color:C.amber,fontWeight:700}}>m₁v₁ᵢ + m₂v₂ᵢ = m₁v₁f + m₂v₂f</span>
+          <span style={{color:C.amber,fontWeight:700}}><Tex>{"m_1 v_{1i} + m_2 v_{2i} = m_1 v_{1f} + m_2 v_{2f}"}</Tex></span>
         </div>
       </div>
     </div>
