@@ -310,7 +310,7 @@ function GradeReport({ currentXP, bestXP }) {
 // ─── MAIN GAME ─────────────────────────────────────────────────
 const N = 5;
 
-export default function MomentumMysteryLab({ onSync, syncState } = {}) {
+function MomentumMysteryLab({ onSync, syncState } = {}) {
   const [screen, setScreen] = useState("title");
   const [ci, setCi] = useState(0);
   const [lvl, setLvl] = useState(null);
@@ -689,5 +689,5 @@ const GlobalStyles = () => (
   `}</style>
 );
 
-const WrappedApp = () => (<><GlobalStyles /><MomentumMysteryLab /></>);
+const WrappedApp = (props) => (<><GlobalStyles /><MomentumMysteryLab {...props} /></>);
 export { WrappedApp as default };
