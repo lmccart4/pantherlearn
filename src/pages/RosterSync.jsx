@@ -1,7 +1,7 @@
 // src/pages/RosterSync.jsx
 // Renamed to "Roster" in the UI. Handles CSV bulk import + manual single student add/remove.
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, orderBy, doc, writeBatch, deleteDoc, setDoc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, doc, writeBatch, deleteDoc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 
@@ -31,6 +31,10 @@ export default function RosterSync() {
   const [addLastName, setAddLastName] = useState("");
   // Manual add section removed — no longer needed
   const [adding, setAdding] = useState(false);
+
+  // Repair enrollment
+  const [repairing, setRepairing] = useState(null); // docId or "all"
+  const [repairResult, setRepairResult] = useState(null);
 
   useEffect(() => {
     if (userRole !== "teacher") return;
@@ -414,6 +418,106 @@ export default function RosterSync() {
     setRemoving(null);
   };
 
+  // ─── Repair Enrollment ───
+  const repairStudent = async (student) => {
+    const results = [];
+    const uid = student.uid || student.studentUid;
+
+    // 1. Check enrollment doc has uid linked
+    if (!uid) {
+      // Try to find the user by email
+      const usersSnap = await getDocs(collection(db, "users"));
+      let foundUid = null;
+      usersSnap.forEach((d) => {
+        if (d.data().email?.toLowerCase() === student.email?.toLowerCase()) foundUid = d.id;
+      });
+      if (foundUid) {
+        await setDoc(doc(db, "enrollments", student.docId), {
+          uid: foundUid, studentUid: foundUid,
+        }, { merge: true });
+        student.uid = foundUid;
+        results.push("Linked UID to enrollment");
+      } else {
+        results.push("No user account found (student hasn't logged in yet)");
+        return results;
+      }
+    }
+
+    const effectiveUid = student.uid || student.studentUid;
+
+    // 2. Check user doc has enrolledCourses with this course
+    const userRef = doc(db, "users", effectiveUid);
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+      results.push("User doc missing (student hasn't logged in yet)");
+      return results;
+    }
+
+    const ec = userDoc.data().enrolledCourses;
+    const ecMap = !ec ? {} : Array.isArray(ec) ? ec.reduce((m, id) => ({ ...m, [id]: true }), {}) : { ...ec };
+
+    if (!ecMap[selectedCourse]) {
+      ecMap[selectedCourse] = true;
+      await setDoc(userRef, { enrolledCourses: ecMap }, { merge: true });
+      results.push("Added course to enrolledCourses");
+    } else {
+      results.push("enrolledCourses already correct");
+    }
+
+    // 3. Verify enrollment doc has correct fields
+    const enrollDoc = await getDoc(doc(db, "enrollments", student.docId));
+    if (enrollDoc.exists()) {
+      const data = enrollDoc.data();
+      const fixes = {};
+      if (data.courseId !== selectedCourse) fixes.courseId = selectedCourse;
+      if (!data.uid || data.uid !== effectiveUid) fixes.uid = effectiveUid;
+      if (!data.studentUid || data.studentUid !== effectiveUid) fixes.studentUid = effectiveUid;
+      if (Object.keys(fixes).length > 0) {
+        await setDoc(doc(db, "enrollments", student.docId), fixes, { merge: true });
+        results.push("Fixed enrollment doc fields: " + Object.keys(fixes).join(", "));
+      }
+    }
+
+    return results.length > 0 ? results : ["Everything looks correct"];
+  };
+
+  const handleRepairStudent = async (student) => {
+    setRepairing(student.docId);
+    setRepairResult(null);
+    try {
+      const results = await repairStudent(student);
+      setRepairResult({ docId: student.docId, results, name: student.name || student.email });
+    } catch (err) {
+      setRepairResult({ docId: student.docId, results: ["Error: " + err.message], name: student.name || student.email });
+    }
+    setRepairing(null);
+  };
+
+  const handleRepairAll = async () => {
+    setRepairing("all");
+    setRepairResult(null);
+    let fixed = 0;
+    let alreadyOk = 0;
+    let errors = 0;
+    for (const student of enrolledStudents) {
+      try {
+        const results = await repairStudent(student);
+        const wasFixed = results.some((r) => r.includes("Added") || r.includes("Linked") || r.includes("Fixed"));
+        if (wasFixed) fixed++;
+        else alreadyOk++;
+      } catch {
+        errors++;
+      }
+    }
+    setRepairResult({
+      docId: "all",
+      results: [`Repaired: ${fixed} students, Already OK: ${alreadyOk}${errors > 0 ? `, Errors: ${errors}` : ""}`],
+    });
+    setRepairing(null);
+    // Refresh roster
+    setSyncResult({ manual: true });
+  };
+
   const filteredEnrolled = enrolledStudents.filter((s) => {
     if (rosterSearch) {
       const term = rosterSearch.toLowerCase();
@@ -448,6 +552,26 @@ export default function RosterSync() {
             background: "var(--red-dim)", border: "1px solid rgba(248,113,113,0.3)",
             borderRadius: 10, padding: "14px 20px", marginBottom: 20, fontSize: 14, color: "var(--red)",
           }}>{error}</div>
+        )}
+
+        {repairResult && (
+          <div style={{
+            background: repairResult.results.some((r) => r.startsWith("Error")) ? "var(--red-dim)" : "var(--blue-dim)",
+            border: `1px solid ${repairResult.results.some((r) => r.startsWith("Error")) ? "rgba(248,113,113,0.3)" : "rgba(96,165,250,0.3)"}`,
+            borderRadius: 10, padding: "14px 20px", marginBottom: 20, fontSize: 14,
+            color: repairResult.results.some((r) => r.startsWith("Error")) ? "var(--red)" : "var(--blue)",
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>
+              {repairResult.docId === "all" ? "Bulk Repair" : `Repair: ${repairResult.name}`}
+            </div>
+            {repairResult.results.map((r, i) => (
+              <div key={i} style={{ fontSize: 13, opacity: 0.9 }}>{r}</div>
+            ))}
+            <button onClick={() => setRepairResult(null)} style={{
+              background: "none", border: "none", color: "inherit", cursor: "pointer",
+              fontSize: 11, marginTop: 6, textDecoration: "underline", padding: 0,
+            }}>Dismiss</button>
+          </div>
         )}
 
         {syncResult && !syncResult.manual && (
@@ -492,6 +616,10 @@ export default function RosterSync() {
           </button>
           <button onClick={() => { setCsvData(null); if (fileRef.current) { fileRef.current.value = ""; fileRef.current.click(); } }} className="btn btn-secondary" style={{ fontSize: 13 }}>
             📄 Import CSV
+          </button>
+          <button onClick={handleRepairAll} disabled={repairing || enrolledStudents.length === 0} className="btn btn-secondary"
+            style={{ fontSize: 13, marginLeft: "auto", opacity: repairing === "all" ? 0.5 : 1 }}>
+            {repairing === "all" ? "Repairing..." : "🔧 Repair All Enrollments"}
           </button>
           <input ref={fileRef} type="file" accept=".csv,.txt" onChange={handleFileUpload} style={{ display: "none" }} />
         </div>
@@ -678,7 +806,21 @@ export default function RosterSync() {
                           {s.uid ? "Active" : "Pending"}
                         </span>
                       </td>
-                      <td style={{ textAlign: "center", padding: "8px 12px" }}>
+                      <td style={{ textAlign: "center", padding: "8px 12px", whiteSpace: "nowrap" }}>
+                        <button
+                          onClick={() => handleRepairStudent(s)}
+                          disabled={!!repairing}
+                          style={{
+                            background: "none", border: "none", cursor: repairing ? "default" : "pointer",
+                            color: "var(--text3)", fontSize: 14, padding: "4px 8px", borderRadius: 4,
+                            opacity: repairing === s.docId ? 0.4 : 1,
+                          }}
+                          onMouseEnter={(e) => { if (!repairing) { e.currentTarget.style.color = "var(--blue)"; e.currentTarget.style.background = "var(--blue-dim)"; } }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text3)"; e.currentTarget.style.background = "none"; }}
+                          title={`Repair enrollment for ${s.name || s.email}`}
+                        >
+                          {repairing === s.docId ? "..." : "🔧"}
+                        </button>
                         <button
                           onClick={() => handleRemoveStudent(s)}
                           disabled={removing === s.docId}

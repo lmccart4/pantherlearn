@@ -1,6 +1,6 @@
 // src/components/grading/WrittenResponseCard.jsx
 import { useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { analyzeResponse } from "../../lib/aiDetection";
 import { compareToBaselines } from "../../lib/aiBaselines";
@@ -42,20 +42,17 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
     if (grading) return;
     setGrading(true);
     try {
-      // Merge grade fields into the student's existing progress answer
+      // Update only the grading fields using dot-notation so the student's
+      // original answer, submitted flag, and submittedAt are preserved.
       const progressRef = doc(
         db, "progress", item.studentId, "courses", item.courseId, "lessons", item.lessonId
       );
-      await setDoc(progressRef, {
-        answers: {
-          [item.blockId]: {
-            writtenScore: tier.value,
-            writtenLabel: tier.label,
-            needsGrading: false,
-            gradedAt: new Date(),
-          },
-        },
-      }, { merge: true });
+      await updateDoc(progressRef, {
+        [`answers.${item.blockId}.writtenScore`]: tier.value,
+        [`answers.${item.blockId}.writtenLabel`]: tier.label,
+        [`answers.${item.blockId}.needsGrading`]: false,
+        [`answers.${item.blockId}.gradedAt`]: new Date(),
+      });
 
       setSavedGrade(tier.value);
 

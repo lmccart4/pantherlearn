@@ -14,6 +14,23 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
   const [textAnswer, setTextAnswer] = useState(data.answer ?? "");
   const [rankingOrder, setRankingOrder] = useState(data.answer || null);
   const [submitted, setSubmitted] = useState(data.submitted || false);
+
+  // Sync state when studentData arrives after initial mount (e.g. async Firestore fetch).
+  // Handles both submitted answers AND saved drafts loading after the component mounts.
+  useEffect(() => {
+    const d = (studentData && studentData[block.id]) || {};
+    // Sync submitted flag
+    if (d.submitted && !submitted) {
+      setSubmitted(true);
+    }
+    // Sync answer data only when local state is still in its default/empty state
+    // (prevents overwriting the student's in-progress typing)
+    if (d.answer !== undefined && d.answer !== null) {
+      if (block.questionType === "multiple_choice" && selected === null) setSelected(d.answer);
+      if ((block.questionType === "short_answer" || block.questionType === "linked") && !textAnswer) setTextAnswer(d.answer);
+      if (block.questionType === "ranking" && !rankingOrder) setRankingOrder(d.answer);
+    }
+  }, [studentData, block.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [xpToast, setXpToast] = useState(null);
   const [xpConfig, setXpConfig] = useState(null);
 

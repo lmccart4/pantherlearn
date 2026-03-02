@@ -44,6 +44,7 @@ export default function StudentProgress() {
   const [confirmResetXP, setConfirmResetXP] = useState(null); // { studentUid, studentName }
   const [resettingXP, setResettingXP] = useState(false);
   const [xpConfig, setXpConfig] = useState(null);
+  const [activityData, setActivityData] = useState({}); // { uid: { activityId: { activityScore, activityLabel, ... } } }
 
   // Fetch courses on mount
   useEffect(() => {
@@ -163,6 +164,19 @@ export default function StudentProgress() {
           });
         } catch (e) { /* no reflections collection yet */ }
         setReflectionData(refs);
+
+        // Fetch activity grades for all students (weekly evidence + external activities)
+        const actGrades = {};
+        const actPromises = dedupedStudents.map(async (student) => {
+          if (!student.hasLoggedIn) { actGrades[student.uid] = {}; return; }
+          try {
+            const actSnap = await getDocs(collection(db, "progress", student.uid, "courses", selectedCourse, "activities"));
+            actGrades[student.uid] = {};
+            actSnap.forEach((d) => { actGrades[student.uid][d.id] = d.data(); });
+          } catch { actGrades[student.uid] = {}; }
+        });
+        await Promise.all(actPromises);
+        setActivityData(actGrades);
       } catch (err) {
         console.error("Error fetching progress data:", err);
       }
@@ -283,6 +297,7 @@ export default function StudentProgress() {
   const getStudentOverall = (studentUid) => {
     let totalEarned = 0, totalPossible = 0;
     const lessonBreakdowns = [];
+    const activityBreakdowns = [];
 
     lessons.forEach((lesson) => {
       const result = getStudentLessonGrade(studentUid, lesson.id);
@@ -293,12 +308,28 @@ export default function StudentProgress() {
       }
     });
 
+    // Include activity & weekly evidence grades
+    const studentActivities = activityData[studentUid] || {};
+    Object.entries(studentActivities).forEach(([actId, data]) => {
+      if (data.activityScore !== null && data.activityScore !== undefined) {
+        totalEarned += data.activityScore;
+        totalPossible += 1;
+        activityBreakdowns.push({
+          activityId: actId,
+          title: data.activityTitle || actId,
+          score: data.activityScore,
+          label: data.activityLabel,
+        });
+      }
+    });
+
     if (totalPossible === 0) return null;
     return {
       grade: Math.round((totalEarned / totalPossible) * 100),
       earned: Math.round(totalEarned * 100) / 100,
       possible: totalPossible,
       lessonBreakdowns,
+      activityBreakdowns,
     };
   };
 
@@ -346,9 +377,9 @@ export default function StudentProgress() {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     if (lessonId) {
-      setGradePopup({ studentUid, lessonId, x: rect.left, y: rect.bottom + 8 });
+      setGradePopup({ studentUid, lessonId, x: rect.left, y: rect.bottom + 8, clickTop: rect.top - 8 });
     } else {
-      setGradePopup({ studentUid, type: "overall", x: rect.left, y: rect.bottom + 8 });
+      setGradePopup({ studentUid, type: "overall", x: rect.left, y: rect.bottom + 8, clickTop: rect.top - 8 });
     }
   };
 
@@ -661,6 +692,31 @@ export default function StudentProgress() {
               </span>
             </div>
           ))}
+          {overall.activityBreakdowns?.length > 0 && (
+            <>
+              <div style={{ height: 1, background: "var(--border)", margin: "6px 0" }} />
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Activities & Evidence
+              </div>
+              {overall.activityBreakdowns.map((ab) => {
+                const tierInfo = getTierInfo(ab.score);
+                return (
+                  <div key={ab.activityId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, padding: "4px 0" }}>
+                    <span style={{ color: "var(--text2)", flex: 1 }}>{ab.title}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 12 }}>
+                      <span style={{
+                        fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 600,
+                        background: tierInfo?.bg || "var(--surface2)", color: tierInfo?.color || "var(--text3)",
+                      }}>{ab.label}</span>
+                      <span style={{ fontWeight: 600, color: "var(--text)" }}>
+                        {(ab.score * 100).toFixed(0)}%
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
       );
     } else {
@@ -742,13 +798,38 @@ export default function StudentProgress() {
       );
     }
 
-    // Position popup
+    // Position popup — flip above the click target if not enough room below
+    const spaceBelow = window.innerHeight - gradePopup.y;
+    const spaceAbove = gradePopup.clickTop || gradePopup.y; // clickTop = top of the clicked element
+    const preferredHeight = 400;
+    const margin = 16; // minimum gap from viewport edge
+    let top, maxH;
+
+    if (spaceBelow >= preferredHeight + margin) {
+      // Enough room below — show below
+      top = gradePopup.y;
+      maxH = Math.min(preferredHeight, spaceBelow - margin);
+    } else if (spaceAbove >= preferredHeight + margin) {
+      // Flip above
+      maxH = Math.min(preferredHeight, spaceAbove - margin);
+      top = spaceAbove - maxH;
+    } else {
+      // Neither side has full room — use whichever side is bigger
+      if (spaceBelow >= spaceAbove) {
+        top = gradePopup.y;
+        maxH = spaceBelow - margin;
+      } else {
+        maxH = spaceAbove - margin;
+        top = spaceAbove - maxH;
+      }
+    }
+
     const popupStyle = {
       position: "fixed",
       left: Math.min(gradePopup.x, window.innerWidth - 420),
-      top: Math.min(gradePopup.y, window.innerHeight - 300),
+      top,
       width: 400,
-      maxHeight: 400,
+      maxHeight: maxH,
       overflowY: "auto",
       background: "var(--surface)",
       border: "1px solid var(--border)",

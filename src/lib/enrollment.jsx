@@ -191,45 +191,49 @@ export async function getStudentEnrolledCourseIds(studentUid) {
   const userRef = doc(db, "users", studentUid);
   const userDoc = await getDoc(userRef);
 
+  // Start with whatever is in the user doc
+  const ids = new Set();
   if (userDoc.exists()) {
     const ec = userDoc.data().enrolledCourses;
-    // Handle map format: { "ai-literacy": true, "physics": true }
     if (ec && typeof ec === "object" && !Array.isArray(ec)) {
-      const ids = Object.keys(ec);
-      if (ids.length > 0) return new Set(ids);
-    }
-    // Handle legacy array format: ["ai-literacy", "physics"]
-    if (Array.isArray(ec) && ec.length > 0) {
-      return new Set(ec);
+      Object.keys(ec).forEach((id) => ids.add(id));
+    } else if (Array.isArray(ec)) {
+      ec.forEach((id) => { if (id) ids.add(id); });
     }
   }
 
-  // Fallback: check enrollments collection using both field names
+  // Always cross-check enrollments collection to catch any that are out of sync
   const email = userDoc.exists() ? userDoc.data().email?.toLowerCase() : null;
-  const ids = new Set();
+  const enrollIds = new Set();
 
-  // Check by uid field (CSV/manual roster)
   try {
     const byUid = await getDocs(query(collection(db, "enrollments"), where("uid", "==", studentUid)));
-    byUid.forEach((d) => { if (d.data().courseId) ids.add(d.data().courseId); });
+    byUid.forEach((d) => { if (d.data().courseId) enrollIds.add(d.data().courseId); });
   } catch (e) { /* ignore */ }
 
-  // Check by studentUid field (enroll code)
   try {
     const byStudentUid = await getDocs(query(collection(db, "enrollments"), where("studentUid", "==", studentUid)));
-    byStudentUid.forEach((d) => { if (d.data().courseId) ids.add(d.data().courseId); });
+    byStudentUid.forEach((d) => { if (d.data().courseId) enrollIds.add(d.data().courseId); });
   } catch (e) { /* ignore */ }
 
-  // Check by email if available
-  if (email && ids.size === 0) {
+  if (email) {
     try {
       const byEmail = await getDocs(query(collection(db, "enrollments"), where("email", "==", email)));
-      byEmail.forEach((d) => { if (d.data().courseId) ids.add(d.data().courseId); });
+      byEmail.forEach((d) => { if (d.data().courseId) enrollIds.add(d.data().courseId); });
     } catch (e) { /* ignore */ }
   }
 
-  // Auto-fix: write enrolledCourses to user doc so this lookup is instant next time
-  if (ids.size > 0) {
+  // Merge enrollment-sourced IDs into the set
+  let needsFix = false;
+  for (const id of enrollIds) {
+    if (!ids.has(id)) {
+      ids.add(id);
+      needsFix = true;
+    }
+  }
+
+  // Auto-fix: write enrolledCourses to user doc if out of sync
+  if (needsFix && ids.size > 0) {
     try {
       const ecMap = {};
       ids.forEach((id) => { ecMap[id] = true; });

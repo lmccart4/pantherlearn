@@ -21,6 +21,7 @@ export default function MyGrades() {
   const [lessons, setLessons] = useState([]);
   const [progressData, setProgressData] = useState({});
   const [reflections, setReflections] = useState({});
+  const [activityData, setActivityData] = useState({}); // { activityId: { activityScore, activityLabel, activityTitle, ... } }
   const [gamification, setGamification] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
@@ -91,6 +92,16 @@ export default function MyGrades() {
           });
         } catch (e) { /* no reflections yet */ }
         setReflections(refMap);
+
+        // Activity grades (Bias Detective, Prompt Duel, Weekly Evidence, etc.)
+        const actMap = {};
+        try {
+          const actSnap = await getDocs(
+            collection(db, "progress", user.uid, "courses", selectedCourse, "activities")
+          );
+          actSnap.forEach((d) => { actMap[d.id] = d.data(); });
+        } catch (e) { /* no activities yet */ }
+        setActivityData(actMap);
 
         // Gamification
         try {
@@ -167,6 +178,13 @@ export default function MyGrades() {
       if (result) {
         totalPoints += result.totalPoints;
         earnedPoints += result.earnedPoints;
+      }
+    });
+    // Include activity & weekly evidence grades (same logic as StudentProgress)
+    Object.entries(activityData).forEach(([actId, data]) => {
+      if (data.activityScore !== null && data.activityScore !== undefined) {
+        earnedPoints += data.activityScore;
+        totalPoints += 1;
       }
     });
     if (totalPoints === 0) return null;
@@ -467,6 +485,59 @@ export default function MyGrades() {
                 </div>
               </div>
             ))}
+            {/* Activities & Evidence grades */}
+            {Object.keys(activityData).length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, color: "var(--text2)", marginBottom: 10 }}>
+                  Activities & Evidence
+                </h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {Object.entries(activityData)
+                    .sort((a, b) => (a[1].activityTitle || a[0]).localeCompare(b[1].activityTitle || b[0]))
+                    .map(([actId, data]) => {
+                      const hasScore = data.activityScore !== null && data.activityScore !== undefined;
+                      const tierInfo = hasScore ? WRITTEN_LABELS[data.activityScore] : null;
+                      const gradePercent = hasScore ? Math.round(data.activityScore * 100) : null;
+
+                      return (
+                        <div key={actId} className="card" style={{ padding: "16px 20px" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {data.activityTitle || actId}
+                              </div>
+                              <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>
+                                {hasScore ? (
+                                  <span style={{
+                                    fontWeight: 700,
+                                    color: tierInfo?.color || "var(--text3)",
+                                  }}>
+                                    {data.activityLabel || tierInfo?.label || "Graded"}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: "var(--amber)" }}>Pending review</span>
+                                )}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              {hasScore ? (
+                                <div style={{
+                                  fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700,
+                                  color: gradeColor(gradePercent),
+                                }}>
+                                  {gradePercent}%
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 13, color: "var(--amber)", fontStyle: "italic" }}>Pending</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

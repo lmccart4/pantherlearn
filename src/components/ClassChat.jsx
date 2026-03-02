@@ -12,7 +12,7 @@ import { db } from "../lib/firebase";
 import { createNotification } from "../lib/notifications";
 
 // ─── Chat List View ───
-function ChatList({ chats, onSelect, onNew, user, unreadMap }) {
+function ChatList({ chats, onSelect, onNew, user, unreadMap, userRole }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{
@@ -49,6 +49,16 @@ function ChatList({ chats, onSelect, onNew, user, unreadMap }) {
         {chats.map((chat) => {
           const isUnread = unreadMap[chat.id];
           const chatName = getChatName(chat, user.uid);
+          const isTeacher = userRole === "teacher";
+          let participantLine = "";
+          if (isTeacher) {
+            const memberNames = (chat.members || []).map((uid) =>
+              chat.memberNames?.[uid] || (uid === user.uid ? (user.displayName || "You") : "Unknown")
+            );
+            participantLine = chat.type === "dm"
+              ? memberNames.join(" ↔ ")
+              : memberNames.join(", ");
+          }
           return (
             <button key={chat.id} onClick={() => onSelect(chat)} style={{
               display: "flex", alignItems: "center", gap: 10, width: "100%",
@@ -67,6 +77,14 @@ function ChatList({ chats, onSelect, onNew, user, unreadMap }) {
                 }}>
                   {chatName}
                 </div>
+                {isTeacher && participantLine && (
+                  <div style={{
+                    fontSize: 10, color: "var(--text3, #888)", marginTop: 1,
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  }}>
+                    {participantLine}
+                  </div>
+                )}
                 {chat.lastMessage && (
                   <div style={{
                     fontSize: 11, color: "var(--text3, #888)", marginTop: 2,
@@ -91,7 +109,7 @@ function ChatList({ chats, onSelect, onNew, user, unreadMap }) {
 }
 
 // ─── Message View ───
-function MessageView({ chat, user, courseId, onBack }) {
+function MessageView({ chat, user, courseId, onBack, userRole }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -166,6 +184,18 @@ function MessageView({ chat, user, courseId, onBack }) {
 
   const chatName = getChatName(chat, user.uid);
 
+  // Build participant subtitle so teacher can see who's in the conversation
+  const isTeacher = userRole === "teacher";
+  let participantSubtitle = "";
+  if (isTeacher) {
+    const allMemberNames = (chat.members || []).map((uid) =>
+      chat.memberNames?.[uid] || (uid === user.uid ? (user.displayName || "You") : "Unknown")
+    );
+    participantSubtitle = chat.type === "dm"
+      ? allMemberNames.join(" ↔ ")
+      : allMemberNames.join(", ");
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{
@@ -179,12 +209,22 @@ function MessageView({ chat, user, courseId, onBack }) {
         <span style={{ fontSize: 16 }}>
           {chat.type === "dm" ? "👤" : chat.type === "team" ? "⚔️" : "👥"}
         </span>
-        <span style={{
-          fontWeight: 700, fontSize: 14, color: "var(--text, #e0e0e0)",
-          flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-        }}>
-          {chatName}
-        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontWeight: 700, fontSize: 14, color: "var(--text, #e0e0e0)",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}>
+            {chatName}
+          </div>
+          {isTeacher && participantSubtitle && (
+            <div style={{
+              fontSize: 10, color: "var(--text3, #888)", marginTop: 1,
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+            }}>
+              {participantSubtitle}
+            </div>
+          )}
+        </div>
       </div>
 
       <div style={{
@@ -580,26 +620,34 @@ export default function ClassChat() {
   }, [courseId, user, userRole]);
 
   // FIX #32: Parallelize unread checks instead of sequential loop
+  // FIX #33: Use real-time listeners for readBy so unread state stays accurate
   useEffect(() => {
     if (!courseId || !user || chats.length === 0) return;
-    const checkUnread = async () => {
-      const map = {};
-      const readPromises = chats.map(async (chat) => {
-        try {
-          const readDoc = await getDoc(doc(db, "courses", courseId, "chats", chat.id, "readBy", user.uid));
-          if (!readDoc.exists()) {
-            if (chat.lastMessage) map[chat.id] = true;
+
+    const unsubscribes = [];
+    const localMap = {};
+
+    chats.forEach((chat) => {
+      const readRef = doc(db, "courses", courseId, "chats", chat.id, "readBy", user.uid);
+      const unsub = onSnapshot(readRef, (readSnap) => {
+        if (!readSnap.exists()) {
+          localMap[chat.id] = !!chat.lastMessage;
+        } else {
+          const readAt = readSnap.data()?.readAt?.toDate?.();
+          const lastAt = chat.lastMessageAt?.toDate?.();
+          // 2-second tolerance to handle serverTimestamp race conditions
+          if (readAt && lastAt && lastAt.getTime() - readAt.getTime() > 2000) {
+            localMap[chat.id] = true;
           } else {
-            const readAt = readDoc.data()?.readAt?.toDate?.();
-            const lastAt = chat.lastMessageAt?.toDate?.();
-            if (readAt && lastAt && lastAt > readAt) map[chat.id] = true;
+            localMap[chat.id] = false;
           }
-        } catch (e) { /* ignore */ }
+        }
+        setUnreadMap((prev) => ({ ...prev, [chat.id]: localMap[chat.id] }));
       });
-      await Promise.all(readPromises);
-      setUnreadMap(map);
-    };
-    checkUnread();
+      unsubscribes.push(unsub);
+    });
+
+    return () => unsubscribes.forEach((unsub) => unsub());
   }, [chats, courseId, user]);
 
   if (!user || !courseId) return null;
@@ -678,14 +726,14 @@ export default function ClassChat() {
           <div style={{ flex: 1, overflow: "hidden" }}>
             {view === "list" && (
               <ChatList
-                chats={chats} user={user} unreadMap={unreadMap}
+                chats={chats} user={user} unreadMap={unreadMap} userRole={userRole}
                 onSelect={(chat) => { setActiveChat(chat); setView("chat"); }}
                 onNew={() => setView("new")}
               />
             )}
             {view === "chat" && activeChat && (
               <MessageView
-                chat={activeChat} user={user} courseId={courseId}
+                chat={activeChat} user={user} courseId={courseId} userRole={userRole}
                 onBack={() => { setView("list"); setActiveChat(null); }}
               />
             )}

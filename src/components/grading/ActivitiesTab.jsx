@@ -144,7 +144,7 @@ export default function ActivitiesTab({ selectedCourse, studentMap }) {
             </div>
             <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-display)" }}>{counts.total}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-display)", color: "var(--text)" }}>{counts.total}</div>
                 <div style={{ fontSize: 11, color: "var(--text3)" }}>Submitted</div>
               </div>
               <div style={{ textAlign: "center" }}>

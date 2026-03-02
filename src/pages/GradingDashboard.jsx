@@ -8,6 +8,7 @@ import CourseOverview from "../components/grading/CourseOverview";
 import LessonView from "../components/grading/LessonView";
 import StudentView from "../components/grading/StudentView";
 import ActivitiesTab from "../components/grading/ActivitiesTab";
+import WeeklyEvidenceTab from "../components/grading/WeeklyEvidenceTab";
 
 export default function GradingDashboard() {
   const { userRole } = useAuth();
@@ -428,20 +429,26 @@ export default function GradingDashboard() {
                   onClick={() => { setActiveTab("activities"); setSelectedLesson(null); setSelectedStudent(null); }}>
                   🧪 Activities
                 </button>
+                <button className={`top-nav-link ${activeTab === "evidence" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("evidence"); setSelectedLesson(null); setSelectedStudent(null); }}>
+                  📸 Evidence
+                </button>
               </div>
             </div>
 
             {/* Loading indicator for responses */}
-            {loadingLesson && activeTab !== "activities" && (
+            {loadingLesson && activeTab !== "activities" && activeTab !== "evidence" && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 13, color: "var(--text3)" }}>
                 <div className="spinner" style={{ width: 16, height: 16 }} />
                 Loading responses...
               </div>
             )}
 
-            {activeTab !== "activities" && (selectedLesson || selectedStudent) && renderBreadcrumb()}
+            {activeTab !== "activities" && activeTab !== "evidence" && (selectedLesson || selectedStudent) && renderBreadcrumb()}
 
-            {activeTab === "activities" ? (
+            {activeTab === "evidence" ? (
+              <WeeklyEvidenceTab selectedCourse={selectedCourse} studentMap={studentMap} />
+            ) : activeTab === "activities" ? (
               <ActivitiesTab selectedCourse={selectedCourse} studentMap={studentMap} />
             ) : viewLevel === "student" ? (
               <StudentView
