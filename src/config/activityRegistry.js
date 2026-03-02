@@ -84,4 +84,87 @@ export const ACTIVITIES = [
     url: null,  // in-app activity, no external URL
     course: null,
   },
+
+  {
+    id: "ethics-courtroom",
+    title: "AI Ethics Courtroom",
+    icon: "⚖️",
+    description: "Students role-play as prosecutor, defense attorney, expert witness, and juror in AI ethics cases, writing arguments and rendering verdicts.",
+    collection: "ethicsCourtroom",
+    userIdField: "uid",
+    timestampField: "completedAt",
+    completionCheck: (sub) => sub.submitted === true,
+    scoreCalculator: (sub) => {
+      // Score based on total word count across all written phases (max ~100)
+      const words = sub.totalWords || 0;
+      if (words >= 400) return 100;
+      if (words >= 300) return 85;
+      if (words >= 200) return 70;
+      if (words >= 100) return 55;
+      return Math.min(Math.round((words / 100) * 55), 55);
+    },
+    component: lazy(() => import("../components/grading/activities/EthicsCourtReview")),
+    url: "https://ai-ethics-courtroom-paps.firebaseapp.com",
+    course: null,
+  },
+
+  {
+    id: "data-labeling-lab",
+    title: "Data Labeling Lab",
+    icon: "🏷️",
+    description: "Students experience data labeling under time pressure, explore labeler disagreement, and reflect on the human labor behind AI training data.",
+    collection: "dataLabelingLab",
+    userIdField: "uid",
+    timestampField: "completedAt",
+    completionCheck: (sub) => sub.submitted === true,
+    scoreCalculator: (sub) => {
+      // Weighted: labeling accuracy (40%) + reflection word count (60%)
+      const accuracy = sub.accuracy || 0;
+      const reflectionWords = sub.reflectionWordCount || 0;
+      const accuracyScore = Math.round(accuracy * 0.4);
+      const reflectionScore = Math.min(Math.round((reflectionWords / 150) * 60), 60);
+      return Math.min(accuracyScore + reflectionScore, 100);
+    },
+    component: lazy(() => import("../components/grading/activities/DataLabelingReview")),
+    url: "https://data-labeling-lab-paps.firebaseapp.com",
+    course: null,
+  },
+
+  {
+    id: "ai-training-sim",
+    title: "AI Training Simulator",
+    icon: "🧠",
+    description: "Students train an AI model step by step, learning about data collection, labeling, model training, and evaluation.",
+    collection: "aiTrainingSim",
+    userIdField: "uid",
+    timestampField: "completedAt",
+    completionCheck: (sub) => sub.submitted === true,
+    scoreCalculator: () => 75, // Flat score — completion-based activity
+    component: lazy(() => import("../components/grading/activities/AITrainingSimReview")),
+    url: "https://ai-training-sim-paps.firebaseapp.com",
+    course: null,
+  },
+
+  {
+    id: "space-rescue",
+    title: "Space Rescue Mission",
+    icon: "🧑‍🚀",
+    description: "Students apply conservation of momentum to throw objects in space and propel themselves back to their ship before oxygen runs out.",
+    collection: "spaceRescue",
+    courseScoped: true,
+    userIdField: "uid",
+    timestampField: "completedAt",
+    completionCheck: (sub) => (sub.levelsCompleted || 0) >= 1,
+    scoreCalculator: (sub) => {
+      const levelsCompleted = sub.levelsCompleted || 0;
+      const bestLevel = sub.bestLevel || 0;
+      const bestOxygenRemaining = sub.bestOxygenRemaining || 0;
+      let score = Math.min(levelsCompleted * 25, 100);
+      if (bestLevel >= 3) score = Math.min(score + Math.round(bestOxygenRemaining / 6), 100);
+      return score;
+    },
+    component: lazy(() => import("../components/grading/activities/SpaceRescueReview")),
+    url: null,
+    course: null,
+  },
 ];
