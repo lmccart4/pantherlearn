@@ -38,6 +38,12 @@ const BLOCK_TYPES = [
   { type: "guess_who", label: "Guess Who?", icon: "🎭" },
   { type: "chatbot_workshop", label: "Chatbot Workshop", icon: "🤖" },
   { type: "bias_detective", label: "Bias Detective", icon: "🔍" },
+  { type: "prompt_duel", label: "Prompt Duel", icon: "⚔️" },
+  { type: "recipe_bot", label: "RecipeBot Curation", icon: "🍳" },
+  { type: "ai_training_sim", label: "AI Training Sim", icon: "🧠" },
+  { type: "data_labeling_lab", label: "Data Labeling Lab", icon: "🏷️" },
+  { type: "ai_ethics_courtroom", label: "AI Ethics Courtroom", icon: "⚖️" },
+  { type: "rocket_staging", label: "Rocket Staging", icon: "🚀" },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -78,6 +84,12 @@ function defaultBlockData(typeInfo) {
     case "guess_who": return { ...base, icon: "🎭", title: "Guess Who?", instructions: "Challenge a classmate to a game of Guess Who! Take turns asking yes/no questions to identify your opponent's secret character.", characterSet: "default", customCharacters: [], xpForWin: 50, xpForPlay: 10 };
     case "chatbot_workshop": return { ...base, icon: "🤖", title: "Build-a-Chatbot Workshop", instructions: "Design and test your own chatbot! Start with a decision tree, then add keyword matching rules." };
     case "bias_detective": return { ...base, icon: "🔍", title: "AI Bias Detective", instructions: "Investigate AI systems for hidden bias. Examine training data, uncover clues, and write a report." };
+    case "prompt_duel": return { ...base, icon: "⚔️", title: "Prompt Duel", instructions: "Write AI prompts to match target outputs, competing against AI opponents across 6 progressive challenges.", url: "https://prompt-duel-paps.firebaseapp.com" };
+    case "recipe_bot": return { ...base, icon: "🍳", title: "RecipeBot Data Curation Lab", instructions: "Curate and label training data for a recipe recommendation AI. Learn how data quality affects model performance.", url: "https://recipebot-curation.firebaseapp.com" };
+    case "ai_training_sim": return { ...base, icon: "🧠", title: "AI Training Simulator", instructions: "Train your own AI model and see how different data and parameters affect its performance.", url: "https://ai-training-sim-paps.firebaseapp.com" };
+    case "data_labeling_lab": return { ...base, icon: "🏷️", title: "Data Labeling Lab", instructions: "Practice labeling data for machine learning. Understand how human decisions shape AI behavior.", url: "https://data-labeling-lab-paps.firebaseapp.com" };
+    case "ai_ethics_courtroom": return { ...base, icon: "⚖️", title: "AI Ethics Courtroom", instructions: "Debate AI ethics dilemmas in a structured courtroom role-play. Argue cases from multiple perspectives.", url: "https://ai-ethics-courtroom-paps.firebaseapp.com" };
+    case "rocket_staging": return { ...base, icon: "🚀", title: "Rocket Staging Challenge" };
     default: return base;
   }
 }
@@ -514,6 +526,16 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
         return (<>
           <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="AI Bias Detective" />
           <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline placeholder="Investigate AI systems for hidden bias..." />
+        </>);
+      case "prompt_duel":
+      case "recipe_bot":
+      case "ai_training_sim":
+      case "data_labeling_lab":
+      case "ai_ethics_courtroom":
+        return (<>
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} />
+          <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline />
+          <Field label="URL" value={block.url} onChange={(v) => update("url", v)} placeholder="https://..." />
         </>);
       default: return <p style={{ color: "var(--text3)" }}>Unknown block type</p>;
     }
