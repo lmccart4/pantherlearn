@@ -31,8 +31,8 @@ const LEVELS = [
   },
   {
     id: 2, title: "Farther Out",
-    description: "You're 200m from the ship now. You can throw up to 2 objects. Plan your throws carefully!",
-    shipDistance: 200, oxygenTime: 120, maxThrows: 2,
+    description: "You're 180m from the ship now. You can throw up to 2 objects. Plan your throws carefully!",
+    shipDistance: 180, oxygenTime: 120, maxThrows: 2,
     availableObjects: [0, 1, 3, 4],
     hint: "Each throw changes your mass AND your velocity. The equation applies to your CURRENT state each time.",
   },
@@ -45,8 +45,8 @@ const LEVELS = [
   },
   {
     id: 4, title: "Deep Space Emergency",
-    description: "500m from the ship, 60 seconds of O₂. You need a perfect strategy with up to 4 throws.",
-    shipDistance: 500, oxygenTime: 60, maxThrows: 4,
+    description: "270m from the ship, 60 seconds of O₂. You need a perfect strategy with up to 4 throws.",
+    shipDistance: 270, oxygenTime: 60, maxThrows: 4,
     availableObjects: [0, 1, 2, 3, 4, 5],
     hint: "Think about this: is it better to throw many light objects or fewer heavy ones? Do the math!",
   },
@@ -285,7 +285,7 @@ export default function SpaceRescueMission() {
         };
         setResult(resultData);
         setSimulating(false);
-        saveResult(lvl.id, reachesInTime, throwLog, resultData);
+        if (reachesInTime) saveResult(lvl.id, true, throwLog, resultData);
       }
     };
 
