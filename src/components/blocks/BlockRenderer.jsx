@@ -24,6 +24,9 @@ import SketchBlock from "./SketchBlock";
 import GuessWhoBlock from "./GuessWhoBlock";
 import ChatbotWorkshopBlock from "./ChatbotWorkshopBlock";
 import BiasDetectiveBlock from "./BiasDetectiveBlock";
+import SpaceRescueBlock from "./SpaceRescueBlock";
+import ExternalActivityBlock from "./ExternalActivityBlock";
+import RocketStagingBlock from "./RocketStagingBlock";
 import ErrorBoundary from "./ErrorBoundary";
 
 const BLOCK_MAP = {
@@ -52,6 +55,13 @@ const BLOCK_MAP = {
   guess_who: GuessWhoBlock,
   chatbot_workshop: ChatbotWorkshopBlock,
   bias_detective: BiasDetectiveBlock,
+  space_rescue: SpaceRescueBlock,
+  prompt_duel: ExternalActivityBlock,
+  recipe_bot: ExternalActivityBlock,
+  ai_training_sim: ExternalActivityBlock,
+  data_labeling_lab: ExternalActivityBlock,
+  ai_ethics_courtroom: ExternalActivityBlock,
+  rocket_staging: RocketStagingBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {

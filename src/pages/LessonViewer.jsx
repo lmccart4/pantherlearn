@@ -84,19 +84,24 @@ export default function LessonViewer() {
         return; // silently discard stale draft saves
       }
 
-      setRealStudentData((prev) => {
-        const updated = { ...prev, [blockId]: data };
-        studentDataRef.current = updated;
-        return updated;
-      });
+      // Update ref immediately (synchronous) so concurrent calls see correct state
+      studentDataRef.current = { ...studentDataRef.current, [blockId]: data };
+      setRealStudentData((prev) => ({ ...prev, [blockId]: data }));
 
-      // Persist to Firestore outside of the state setter
+      // Persist ONLY this block using dot-notation so other blocks are never overwritten.
+      // Previous approach wrote the entire answers object which caused data loss when:
+      // - getDoc hadn't completed yet (answers ref was {})
+      // - onBlur draft and onClick submit raced each other
+      // - Teacher grading fields were absent from local state
       if (user) {
         try {
           const progressRef = doc(
             db, "progress", user.uid, "courses", courseId, "lessons", lessonId
           );
-          await setDoc(progressRef, { answers: studentDataRef.current, lastUpdated: new Date() }, { merge: true });
+          await setDoc(progressRef, {
+            [`answers.${blockId}`]: data,
+            lastUpdated: new Date(),
+          }, { merge: true });
         } catch (err) {
           console.error("Failed to save answer:", err);
         }
@@ -180,6 +185,10 @@ export default function LessonViewer() {
       if (block.type === "bias_detective") {
         extraProps.courseId = courseId;
         extraProps.lessonId = lessonId;
+      }
+      if (block.type === "rocket_staging") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
       }
       return { block, extraProps };
     });
