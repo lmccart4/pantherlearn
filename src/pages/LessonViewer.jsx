@@ -64,6 +64,10 @@ export default function LessonViewer() {
       if (snap.exists()) {
         setRealStudentData(snap.data().answers || {});
         if (snap.data().completed) setLessonCompleted(true);
+      } else {
+        // Document was deleted (e.g. teacher reset) — clear local state
+        setRealStudentData({});
+        setLessonCompleted(false);
       }
     }, (err) => console.error("Progress listener error:", err));
     return () => unsub();

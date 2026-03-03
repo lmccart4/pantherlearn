@@ -15,20 +15,28 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
   const [rankingOrder, setRankingOrder] = useState(data.answer || null);
   const [submitted, setSubmitted] = useState(data.submitted || false);
 
-  // Sync state when studentData arrives after initial mount (e.g. async Firestore fetch).
-  // Handles both submitted answers AND saved drafts loading after the component mounts.
+  // Sync state when studentData arrives after initial mount (e.g. async Firestore fetch)
+  // or is cleared (e.g. teacher resets progress via dashboard).
   useEffect(() => {
     const d = (studentData && studentData[block.id]) || {};
-    // Sync submitted flag
+    // Sync submitted flag — both directions
     if (d.submitted && !submitted) {
       setSubmitted(true);
+    } else if (!d.submitted && submitted) {
+      // Progress was reset (document deleted) — unlock the question
+      setSubmitted(false);
     }
-    // Sync answer data only when local state is still in its default/empty state
+    // Sync answer data when local state is still in its default/empty state
     // (prevents overwriting the student's in-progress typing)
     if (d.answer !== undefined && d.answer !== null) {
       if (block.questionType === "multiple_choice" && selected === null) setSelected(d.answer);
       if ((block.questionType === "short_answer" || block.questionType === "linked") && !textAnswer) setTextAnswer(d.answer);
       if (block.questionType === "ranking" && !rankingOrder) setRankingOrder(d.answer);
+    } else if (submitted === false) {
+      // No saved answer and not submitted — reset local state (handles teacher reset)
+      if (block.questionType === "multiple_choice") setSelected(null);
+      if (block.questionType === "short_answer" || block.questionType === "linked") setTextAnswer("");
+      if (block.questionType === "ranking") setRankingOrder(null);
     }
   }, [studentData, block.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [xpToast, setXpToast] = useState(null);
