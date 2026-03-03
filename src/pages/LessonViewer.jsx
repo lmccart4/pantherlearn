@@ -1,7 +1,7 @@
 // src/pages/LessonViewer.jsx
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { doc, getDoc, setDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import BlockRenderer from "../components/blocks/BlockRenderer";
@@ -54,16 +54,19 @@ export default function LessonViewer() {
     return () => unsub();
   }, [courseId, lessonId]);
 
-  // One-shot student progress (student writes updates locally; no need for listener)
+  // Real-time student progress — uses onSnapshot so locally-queued writes
+  // (from beforeunload / unmount saves) are visible immediately on reload,
+  // even before they sync to the server.
   useEffect(() => {
     if (!user) return;
     const progressRef = doc(db, "progress", user.uid, "courses", courseId, "lessons", lessonId);
-    getDoc(progressRef).then((snap) => {
+    const unsub = onSnapshot(progressRef, (snap) => {
       if (snap.exists()) {
         setRealStudentData(snap.data().answers || {});
         if (snap.data().completed) setLessonCompleted(true);
       }
-    }).catch((err) => console.error("Error fetching progress:", err));
+    }, (err) => console.error("Progress listener error:", err));
+    return () => unsub();
   }, [courseId, lessonId, user]);
 
   // Track latest student data for Firestore writes without stale closures
@@ -189,6 +192,11 @@ export default function LessonViewer() {
       if (block.type === "rocket_staging") {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
+      }
+      if (block.type === "concept_builder") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+        extraProps.courseId = courseId;
       }
       return { block, extraProps };
     });
