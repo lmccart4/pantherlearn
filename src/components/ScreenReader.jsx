@@ -366,6 +366,7 @@ export default function ScreenReader() {
       <button
         className={`screen-reader-fab ${playing ? "active" : ""} ${paused ? "paused" : ""}`}
         onClick={() => setOpen(!open)}
+        aria-label="Screen reader controls"
         title={open ? "Close screen reader" : "Read this lesson aloud"}
       >
         {open ? "✕" : "🔊"}

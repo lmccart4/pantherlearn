@@ -3,12 +3,22 @@ import { useState } from "react";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 import { useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
 
-export default function ChecklistBlock({ block }) {
+export default function ChecklistBlock({ block, onAnswer, savedAnswer }) {
   const translatedTitle = useTranslatedText(block.title);
   const translatedItems = useTranslatedTexts(block.items || []);
-  const [checked, setChecked] = useState({});
+  const [checked, setChecked] = useState(savedAnswer?.checked || {});
 
-  const toggle = (i) => setChecked((prev) => ({ ...prev, [i]: !prev[i] }));
+  const toggle = (i) => {
+    setChecked((prev) => {
+      const next = { ...prev, [i]: !prev[i] };
+      // Persist checklist state
+      if (onAnswer) {
+        const doneCount = Object.values(next).filter(Boolean).length;
+        onAnswer({ checked: next, completed: doneCount, total: (block.items || []).length });
+      }
+      return next;
+    });
+  };
 
   const items = block.items || [];
   const doneCount = Object.values(checked).filter(Boolean).length;

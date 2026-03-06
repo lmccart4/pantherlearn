@@ -7,25 +7,33 @@ import { db } from "../lib/firebase";
  * Returns the user's nickname (or null).
  */
 export async function syncUserProfile(firebaseUser, role) {
-  const userRef = doc(db, "users", firebaseUser.uid);
-  const userDoc = await getDoc(userRef);
+  try {
+    const userRef = doc(db, "users", firebaseUser.uid);
+    const userDoc = await getDoc(userRef);
 
-  if (userDoc.exists()) {
-    const data = userDoc.data();
-    // Update role if it changed
-    if (data.role !== role) {
-      await setDoc(userRef, { role }, { merge: true });
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      // Update display info if changed (role is set on creation only, protected by security rules)
+      if (data.displayName !== firebaseUser.displayName || data.photoURL !== firebaseUser.photoURL) {
+        await setDoc(userRef, {
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+        }, { merge: true });
+      }
+      return data.nickname || null;
+    } else {
+      await setDoc(userRef, {
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        role,
+        nickname: null,
+        createdAt: new Date(),
+      });
+      return null;
     }
-    return data.nickname || null;
-  } else {
-    await setDoc(userRef, {
-      email: firebaseUser.email,
-      displayName: firebaseUser.displayName,
-      photoURL: firebaseUser.photoURL,
-      role,
-      nickname: null,
-      createdAt: new Date(),
-    });
+  } catch (err) {
+    console.error("syncUserProfile failed:", err);
     return null;
   }
 }

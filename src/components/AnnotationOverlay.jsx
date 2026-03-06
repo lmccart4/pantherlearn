@@ -382,6 +382,7 @@ export default function AnnotationOverlay() {
           <canvas
             ref={canvasRef}
             className="annotation-canvas"
+            aria-label="Annotation drawing canvas"
             style={{
               width: "100%",
               height: "100%",

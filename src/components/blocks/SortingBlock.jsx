@@ -4,7 +4,7 @@
 
 import { useState, useRef, useEffect } from "react";
 
-export default function SortingBlock({ block }) {
+export default function SortingBlock({ block, onAnswer, savedAnswer }) {
   const {
     title = "Sort It!",
     icon = "🔀",
@@ -26,14 +26,25 @@ export default function SortingBlock({ block }) {
   const startY = useRef(0);
   const isDragging = useRef(false);
 
-  // Shuffle items on mount
+  // Shuffle items on mount, or restore saved answer
   useEffect(() => {
-    const shuffled = [...items].sort(() => Math.random() - 0.5);
-    setDeck(shuffled);
-    setLeftPile([]);
-    setRightPile([]);
-    setChecked(false);
-    setScore(null);
+    if (savedAnswer?.leftPile && savedAnswer?.rightPile) {
+      // Restore previous results
+      const leftItems = items.filter(i => savedAnswer.leftPile.includes(i.text));
+      const rightItems = items.filter(i => savedAnswer.rightPile.includes(i.text));
+      setLeftPile(leftItems);
+      setRightPile(rightItems);
+      setDeck([]);
+      setChecked(true);
+      setScore({ correct: savedAnswer.correct, total: savedAnswer.total });
+    } else {
+      const shuffled = [...items].sort(() => Math.random() - 0.5);
+      setDeck(shuffled);
+      setLeftPile([]);
+      setRightPile([]);
+      setChecked(false);
+      setScore(null);
+    }
   }, [items.length]);
 
   const currentCard = deck[0];
@@ -91,6 +102,16 @@ export default function SortingBlock({ block }) {
     rightPile.forEach(item => { if (item.correct === "right") correct++; });
     setScore({ correct, total });
     setChecked(true);
+    // Persist results
+    if (onAnswer) {
+      onAnswer({
+        leftPile: leftPile.map(i => i.text),
+        rightPile: rightPile.map(i => i.text),
+        correct,
+        total,
+        score: total > 0 ? Math.round((correct / total) * 100) : 0,
+      });
+    }
   };
 
   // Reset

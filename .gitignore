@@ -64,6 +64,16 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# Service account keys (NEVER commit these)
+serviceAccountKey.json
+*-service-account*.json
+*.pem
+*.key
 
 # dataconnect generated files
 .dataconnect

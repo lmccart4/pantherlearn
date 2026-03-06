@@ -1,5 +1,5 @@
 // src/contexts/TranslationContext.jsx
-import { createContext, useContext, useState, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useMemo } from "react";
 
 const LANGUAGES = [
   { code: "en", name: "English", native: "English", flag: "🇺🇸" },
@@ -104,10 +104,13 @@ export function TranslationProvider({ children, cloudFunctionUrl }) {
     [translate, language]
   );
 
+  const value = useMemo(
+    () => ({ language, setLanguage, translate, translateOne, languages: LANGUAGES }),
+    [language, translate, translateOne]
+  );
+
   return (
-    <TranslationContext.Provider
-      value={{ language, setLanguage, translate, translateOne, languages: LANGUAGES }}
-    >
+    <TranslationContext.Provider value={value}>
       {language === "ar" && (
         <style>{`[data-translatable] { direction: rtl; text-align: right; }`}</style>
       )}

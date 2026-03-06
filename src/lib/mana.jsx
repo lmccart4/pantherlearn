@@ -2,7 +2,7 @@
 // Class Mana Pool system — shared resource for course-wide powers.
 // Data lives at courses/{courseId}/mana/{poolId} (default "pool")
 
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, runTransaction } from "firebase/firestore";
 import { db } from "./firebase";
 
 // ─── Constants ───
@@ -45,39 +45,47 @@ export async function saveManaState(courseId, sectionId = "pool", state) {
   await setDoc(ref, { ...state, lastUpdated: new Date() });
 }
 
-// ─── Award Mana ───
+// ─── Award Mana (transactional) ───
 export async function awardMana(courseId, sectionId = "pool", amount, reason, awardedBy = "system") {
-  const state = await getManaState(courseId, sectionId);
-  const newMP = Math.min(state.currentMP + amount, MANA_CAP);
-  const actualGain = newMP - state.currentMP;
+  const ref = doc(db, "courses", courseId, "mana", sectionId);
+  return runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    const state = snap.exists() ? snap.data() : defaultState();
+    const newMP = Math.min(state.currentMP + amount, MANA_CAP);
+    const actualGain = newMP - state.currentMP;
 
-  state.currentMP = newMP;
-  state.history = [{
-    type: "gain", amount: actualGain, reason, awardedBy,
-    timestamp: new Date().toISOString(),
-  }, ...(state.history || []).slice(0, 49)];
+    state.currentMP = newMP;
+    state.history = [{
+      type: "gain", amount: actualGain, reason, awardedBy,
+      timestamp: new Date().toISOString(),
+    }, ...(state.history || []).slice(0, 49)];
 
-  await saveManaState(courseId, sectionId, state);
-  return { newMP, actualGain };
+    transaction.set(ref, { ...state, lastUpdated: new Date() });
+    return { newMP, actualGain };
+  });
 }
 
-// ─── Spend Mana (activate a power) ───
+// ─── Spend Mana (transactional) ───
 export async function spendMana(courseId, sectionId = "pool", powerId) {
-  const state = await getManaState(courseId, sectionId);
-  const power = (state.powers || []).find((p) => p.id === powerId);
-  if (!power) throw new Error("Power not found");
-  if (state.currentMP < power.cost) throw new Error("Not enough mana");
+  const ref = doc(db, "courses", courseId, "mana", sectionId);
+  return runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    const state = snap.exists() ? snap.data() : defaultState();
+    const power = (state.powers || []).find((p) => p.id === powerId);
+    if (!power) throw new Error("Power not found");
+    if (state.currentMP < power.cost) throw new Error("Not enough mana");
 
-  state.currentMP -= power.cost;
-  state.history = [{
-    type: "spend", amount: power.cost, reason: `Activated: ${power.name}`,
-    powerId, timestamp: new Date().toISOString(),
-  }, ...(state.history || []).slice(0, 49)];
-  state.votes = {};
-  state.activeVote = null;
+    state.currentMP -= power.cost;
+    state.history = [{
+      type: "spend", amount: power.cost, reason: `Activated: ${power.name}`,
+      powerId, timestamp: new Date().toISOString(),
+    }, ...(state.history || []).slice(0, 49)];
+    state.votes = {};
+    state.activeVote = null;
 
-  await saveManaState(courseId, sectionId, state);
-  return { newMP: state.currentMP, power };
+    transaction.set(ref, { ...state, lastUpdated: new Date() });
+    return { newMP: state.currentMP, power };
+  });
 }
 
 // ─── Deduct Mana (teacher penalty) ───
@@ -136,15 +144,19 @@ export async function startVote(courseId, sectionId = "pool", powerId) {
 }
 
 export async function castVote(courseId, sectionId = "pool", powerId, uid, vote) {
-  const state = await getManaState(courseId, sectionId);
-  if (state.activeVote !== powerId) throw new Error("No active vote for this power");
+  const ref = doc(db, "courses", courseId, "mana", sectionId);
+  return runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    const state = snap.exists() ? snap.data() : defaultState();
+    if (state.activeVote !== powerId) throw new Error("No active vote for this power");
 
-  const voters = state.votes?.[powerId] || [];
-  const filtered = voters.filter((v) => v.uid !== uid);
-  filtered.push({ uid, vote, timestamp: new Date().toISOString() });
-  state.votes = { ...state.votes, [powerId]: filtered };
-  await saveManaState(courseId, sectionId, state);
-  return state.votes[powerId];
+    const voters = state.votes?.[powerId] || [];
+    const filtered = voters.filter((v) => v.uid !== uid);
+    filtered.push({ uid, vote, timestamp: new Date().toISOString() });
+    state.votes = { ...state.votes, [powerId]: filtered };
+    transaction.set(ref, { ...state, lastUpdated: new Date() });
+    return state.votes[powerId];
+  });
 }
 
 export async function endVote(courseId, sectionId = "pool") {

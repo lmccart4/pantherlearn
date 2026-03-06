@@ -79,6 +79,7 @@ export default function BugReporter() {
       <button
         className={`bug-reporter-fab ${open ? "active" : ""}`}
         onClick={() => setOpen(!open)}
+        aria-label="Report a bug"
         title={open ? "Close feedback" : "Report a bug or share feedback"}
       >
         {open ? "✕" : "🐛"}

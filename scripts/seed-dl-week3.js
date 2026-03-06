@@ -4,27 +4,13 @@
 //
 // Temporarily opens Firestore rules, seeds lessons, then restores original rules.
 
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from './firebase-config.js';
-import { execSync } from 'child_process';
-import { readFileSync, writeFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+// SECURITY FIX: Uses Firebase Admin SDK instead of deploying open rules to production.
+// The Admin SDK bypasses security rules server-side, so no rule changes are needed.
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const rulesPath = resolve(__dirname, '..', 'firestore.rules');
-
-// Back up current rules and temporarily open them for seeding
-const originalRules = readFileSync(rulesPath, 'utf8');
-const openRules = `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if true;\n    }\n  }\n}\n`;
-
-function deployRules(label) {
-  console.log(`📋 Deploying ${label} rules...`);
-  execSync('firebase deploy --only firestore:rules', {
-    cwd: resolve(__dirname, '..'),
-    stdio: 'inherit',
-  });
-}
+initializeApp({ projectId: 'pantherlearn-d6f7c' });
+const db = getFirestore();
 
 // ═══════════════════════════════════════════════════════════════
 // LESSON 6: Gaming & Esports (Week 3, Day 1)
@@ -715,15 +701,6 @@ const lesson10 = {
 
 async function seed() {
   try {
-    // Step 1: Temporarily open rules
-    writeFileSync(rulesPath, openRules);
-    deployRules('OPEN (temporary)');
-
-    // Wait a moment for rules to propagate
-    console.log("⏳ Waiting for rules to propagate...");
-    await new Promise((r) => setTimeout(r, 5000));
-
-    // Step 2: Seed lessons
     console.log("\n🚀 Seeding Digital Literacy Week 3 lessons (6-10)...\n");
 
     const lessons = [
@@ -735,10 +712,7 @@ async function seed() {
     ];
 
     for (const { slug, data } of lessons) {
-      await setDoc(
-        doc(db, 'courses', 'digital-literacy', 'lessons', slug),
-        data
-      );
+      await db.doc(`courses/digital-literacy/lessons/${slug}`).set(data);
       console.log(`✅ Lesson seeded: courses/digital-literacy/lessons/${slug}`);
       console.log(`   "${data.title}" — ${data.blocks.length} blocks, order: ${data.order}`);
     }
@@ -747,11 +721,6 @@ async function seed() {
   } catch (err) {
     console.error("❌ Error seeding:", err);
   } finally {
-    // Step 3: Always restore original rules
-    console.log("\n🔒 Restoring original Firestore rules...");
-    writeFileSync(rulesPath, originalRules);
-    deployRules('ORIGINAL (restored)');
-    console.log("✅ Rules restored. Seeding complete.");
     process.exit(0);
   }
 }

@@ -33,6 +33,7 @@ export default function ChatToggle({ courseId }) {
     <button
       onClick={toggle}
       disabled={saving}
+      aria-label="Toggle class chat"
       style={{
         display: "inline-flex", alignItems: "center", gap: 6,
         padding: "4px 10px", borderRadius: 6, border: "none", fontSize: 12,

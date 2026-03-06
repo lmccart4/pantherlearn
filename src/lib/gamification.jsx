@@ -3,7 +3,7 @@
 // XP curve: base × level^1.5 — early levels come fast, later ones require sustained effort.
 // Preserves all existing badge, streak, and XP functionality.
 
-import { doc, getDoc, setDoc, collection, getDocs, query, where, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, query, where, updateDoc, runTransaction } from "firebase/firestore";
 import { db } from "./firebase";
 import { createNotification } from "./notifications";
 
@@ -522,75 +522,79 @@ function getPreviousWeekday(dateStr) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// ─── Award XP ───
+// ─── Award XP (transactional to prevent race conditions) ───
 export async function awardXP(uid, amount, source, courseId) {
   try {
     const ref = courseId
       ? doc(db, "courses", courseId, "gamification", uid)
       : doc(db, "gamification", uid);
-    const snap = await getDoc(ref);
-    const data = snap.exists() ? snap.data() : { totalXP: 0 };
 
-    // Check for active multiplier
+    // Check for active multiplier (read outside transaction — it's ok if slightly stale)
     let multiplier = 1;
     if (courseId) {
-      const courseRef = doc(db, "courses", courseId);
-      const courseSnap = await getDoc(courseRef);
-      if (courseSnap.exists()) {
-        const courseData = courseSnap.data();
-        if (courseData.xpMultiplier && courseData.xpMultiplierExpires) {
-          const expires = courseData.xpMultiplierExpires?.toDate?.() || new Date(courseData.xpMultiplierExpires);
-          if (expires > new Date()) {
-            multiplier = courseData.xpMultiplier;
+      try {
+        const courseRef = doc(db, "courses", courseId);
+        const courseSnap = await getDoc(courseRef);
+        if (courseSnap.exists()) {
+          const courseData = courseSnap.data();
+          if (courseData.xpMultiplier && courseData.xpMultiplierExpires) {
+            const expires = courseData.xpMultiplierExpires?.toDate?.() || new Date(courseData.xpMultiplierExpires);
+            if (expires > new Date()) {
+              multiplier = courseData.xpMultiplier;
+            }
           }
         }
-      }
+      } catch { /* proceed with default multiplier */ }
     }
 
     const finalAmount = Math.round(amount * multiplier);
-    const oldTotal = data.totalXP || 0;
-    const newTotal = oldTotal + finalAmount;
 
-    // Detect level-up
-    const oldLevel = getLevelInfo(oldTotal).current.level;
-    const newLevelInfo = getLevelInfo(newTotal);
-    const newLevel = newLevelInfo.current.level;
+    const result = await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(ref);
+      const data = snap.exists() ? snap.data() : { totalXP: 0 };
 
-    // Track activity date for streaks (deduplicated per day)
-    const today = new Date().toISOString().slice(0, 10);
-    const existingDates = data.activityDates || [];
-    const isNewDay = !existingDates.includes(today);
-    const updatedDates = isNewDay ? [...existingDates, today] : existingDates;
+      const oldTotal = data.totalXP || 0;
+      const newTotal = oldTotal + finalAmount;
 
-    // Recalculate streak from activity dates
-    const currentStreak = calculateStreak(updatedDates);
-    const longestStreak = Math.max(currentStreak, data.longestStreak || 0);
+      const oldLevel = getLevelInfo(oldTotal).current.level;
+      const newLevelInfo = getLevelInfo(newTotal);
+      const newLevel = newLevelInfo.current.level;
 
-    // Award streak freezes: +1 for every 7-day streak milestone, max 3
-    let streakFreezes = data.streakFreezes || 0;
-    if (isNewDay && currentStreak > 0 && currentStreak % 7 === 0 && streakFreezes < 3) {
-      streakFreezes = Math.min(streakFreezes + 1, 3);
-    }
+      const today = new Date().toISOString().slice(0, 10);
+      const existingDates = data.activityDates || [];
+      const isNewDay = !existingDates.includes(today);
+      const updatedDates = isNewDay ? [...existingDates, today] : existingDates;
 
-    await setDoc(ref, {
-      ...data,
-      totalXP: newTotal,
-      lastXPSource: source,
-      lastXPAmount: finalAmount,
-      lastXPAt: new Date(),
-      activityDates: updatedDates,
-      currentStreak,
-      longestStreak,
-      streakFreezes,
-    }, { merge: true });
+      const currentStreak = calculateStreak(updatedDates);
+      const longestStreak = Math.max(currentStreak, data.longestStreak || 0);
 
-    // Send level-up notification if the student leveled up
-    if (newLevel > oldLevel) {
+      let streakFreezes = data.streakFreezes || 0;
+      if (isNewDay && currentStreak > 0 && currentStreak % 7 === 0 && streakFreezes < 3) {
+        streakFreezes = Math.min(streakFreezes + 1, 3);
+      }
+
+      transaction.set(ref, {
+        ...data,
+        totalXP: newTotal,
+        lastXPSource: source,
+        lastXPAmount: finalAmount,
+        lastXPAt: new Date(),
+        activityDates: updatedDates,
+        currentStreak,
+        longestStreak,
+        streakFreezes,
+      }, { merge: true });
+
+      return { newTotal, awarded: finalAmount, multiplier, currentStreak, leveledUp: newLevel > oldLevel, newLevel, newLevelInfo };
+    });
+
+    // Send level-up notification outside transaction
+    if (result.leveledUp) {
       try {
         await createNotification(uid, {
           type: "level_up",
-          title: `🎉 Level Up! You're now Level ${newLevel}`,
-          body: `${newLevelInfo.current.tierIcon} ${newLevelInfo.current.tierName} — keep it up!`,
+          title: `🎉 Level Up! You're now Level ${result.newLevel}`,
+          body: `${result.newLevelInfo.current.tierIcon} ${result.newLevelInfo.current.tierName} — keep it up!`,
           icon: "⬆️",
           link: "/",
           courseId: courseId || null,
@@ -600,7 +604,7 @@ export async function awardXP(uid, amount, source, courseId) {
       }
     }
 
-    return { newTotal, awarded: finalAmount, multiplier, currentStreak, leveledUp: newLevel > oldLevel, newLevel };
+    return { newTotal: result.newTotal, awarded: result.awarded, multiplier: result.multiplier, currentStreak: result.currentStreak, leveledUp: result.leveledUp, newLevel: result.newLevel };
   } catch (err) {
     console.error("Error awarding XP:", err);
     return null;
@@ -758,29 +762,32 @@ export async function getLeaderboard(courseId, limit = 50) {
       : collection(db, "gamification");
     const snap = await getDocs(ref);
 
-    // Get user docs to check roles
-    const usersSnap = await getDocs(collection(db, "users"));
+    // Collect gamification entries, then batch-fetch only needed user docs
+    const gamEntries = [];
+    snap.forEach((d) => { gamEntries.push({ uid: d.id, ...d.data() }); });
+
+    // Batch-fetch user docs in chunks of 30 (Firestore `in` query limit)
     const usersMap = {};
-    usersSnap.forEach((d) => { usersMap[d.id] = d.data(); });
+    const uids = gamEntries.map(e => e.uid);
+    for (let i = 0; i < uids.length; i += 30) {
+      const batch = uids.slice(i, i + 30);
+      const usersSnap = await getDocs(
+        query(collection(db, "users"), where("__name__", "in", batch))
+      );
+      usersSnap.forEach((d) => { usersMap[d.id] = d.data(); });
+    }
 
     const entries = [];
-    snap.forEach((d) => {
-      const data = d.data();
-      const uid = d.id;
-      const userData = usersMap[uid];
-
-      // Exclude teachers
-      if (userData?.role === "teacher") return;
-
+    for (const entry of gamEntries) {
+      const userData = usersMap[entry.uid];
+      if (userData?.role === "teacher") continue;
       entries.push({
-        uid,
-        ...data,
-        // Merge user doc fields for display
-        displayName: data.displayName || userData?.displayName || userData?.name || null,
-        nickname: data.nickname || userData?.nickname || null,
-        photoURL: data.photoURL || userData?.photoURL || null,
+        ...entry,
+        displayName: entry.displayName || userData?.displayName || userData?.name || null,
+        nickname: entry.nickname || userData?.nickname || null,
+        photoURL: entry.photoURL || userData?.photoURL || null,
       });
-    });
+    }
 
     entries.sort((a, b) => (b.totalXP || 0) - (a.totalXP || 0));
     return entries.slice(0, limit);

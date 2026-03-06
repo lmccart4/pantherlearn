@@ -93,25 +93,35 @@ export function useTelemetry(courseId, lessonId) {
       Object.assign(payload, lessonPayload);
     }
 
-    // Reset deltas
-    d.activeTime = 0;
-    d.idleTime = 0;
-    d.questionsAnswered = 0;
-    d.questionsCorrect = 0;
-    d.chatMessages = 0;
-    d.reflectionsSubmitted = 0;
-    d.lessonsCompleted = 0;
-    d.lessonActiveTime = 0;
-    d.lessonQuestionsAnswered = 0;
-    d.lessonQuestionsCorrect = 0;
-    d.lessonChatMessages = 0;
-    d.lessonBlocksInteracted = new Set();
+    // Save deltas before resetting so we can restore on failure
+    const savedDeltas = { ...d, lessonBlocksInteracted: new Set(d.lessonBlocksInteracted) };
+
+    // Reset deltas optimistically
+    d.activeTime = 0; d.idleTime = 0;
+    d.questionsAnswered = 0; d.questionsCorrect = 0;
+    d.chatMessages = 0; d.reflectionsSubmitted = 0;
+    d.lessonsCompleted = 0; d.lessonActiveTime = 0;
+    d.lessonQuestionsAnswered = 0; d.lessonQuestionsCorrect = 0;
+    d.lessonChatMessages = 0; d.lessonBlocksInteracted = new Set();
 
     try {
       await setDoc(ref, payload, { merge: true });
       lastFlushRef.current = Date.now();
     } catch (err) {
-      console.warn("Telemetry flush failed:", err);
+      console.warn("Telemetry flush failed, restoring deltas:", err);
+      // Restore deltas so they aren't lost
+      d.activeTime += savedDeltas.activeTime;
+      d.idleTime += savedDeltas.idleTime;
+      d.questionsAnswered += savedDeltas.questionsAnswered;
+      d.questionsCorrect += savedDeltas.questionsCorrect;
+      d.chatMessages += savedDeltas.chatMessages;
+      d.reflectionsSubmitted += savedDeltas.reflectionsSubmitted;
+      d.lessonsCompleted += savedDeltas.lessonsCompleted;
+      d.lessonActiveTime += savedDeltas.lessonActiveTime;
+      d.lessonQuestionsAnswered += savedDeltas.lessonQuestionsAnswered;
+      d.lessonQuestionsCorrect += savedDeltas.lessonQuestionsCorrect;
+      d.lessonChatMessages += savedDeltas.lessonChatMessages;
+      savedDeltas.lessonBlocksInteracted.forEach(b => d.lessonBlocksInteracted.add(b));
     }
   }, [getBucketRef, lessonId]);
 

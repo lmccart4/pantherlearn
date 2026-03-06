@@ -63,7 +63,9 @@ function ProtectedLayout() {
     <>
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <TopBar />
-      <Outlet />
+      <main id="main-content">
+        <Outlet />
+      </main>
     </>
   );
 }
@@ -135,11 +137,11 @@ function AppRoutes() {
         </Routes>
       </Suspense>
       {showOptIn && <Suspense fallback={null}><PushOptIn onEnable={handleEnable} onDismiss={handleDismiss} /></Suspense>}
-      {user && <Suspense fallback={null}><ClassChat /></Suspense>}
-      {user && <Suspense fallback={null}><FloatingMusicPlayer /></Suspense>}
-      {user && <Suspense fallback={null}><AnnotationOverlay /></Suspense>}
-      {user && <Suspense fallback={null}><ScreenReader /></Suspense>}
-      {user && <Suspense fallback={null}><BugReporter /></Suspense>}
+      {user && <ErrorBoundary><Suspense fallback={null}><ClassChat /></Suspense></ErrorBoundary>}
+      {user && <ErrorBoundary><Suspense fallback={null}><FloatingMusicPlayer /></Suspense></ErrorBoundary>}
+      {user && <ErrorBoundary><Suspense fallback={null}><AnnotationOverlay /></Suspense></ErrorBoundary>}
+      {user && <ErrorBoundary><Suspense fallback={null}><ScreenReader /></Suspense></ErrorBoundary>}
+      {user && <ErrorBoundary><Suspense fallback={null}><BugReporter /></Suspense></ErrorBoundary>}
       <OfflineBanner />
     </PreviewProvider>
   );

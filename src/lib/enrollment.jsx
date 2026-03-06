@@ -86,24 +86,8 @@ export async function findCourseByEnrollCode(code) {
     return { id: courseDoc.id, ...data, matchedSectionId: null, matchedSectionName: null };
   }
 
-  // Backward compat: scan legacy section codes
-  const coursesSnap = await getDocs(collection(db, "courses"));
-  for (const courseDoc of coursesSnap.docs) {
-    const data = courseDoc.data();
-    if (data.hidden) continue; // skip hidden courses
-    if (data.sections) {
-      for (const [sectionId, section] of Object.entries(data.sections)) {
-        if (section.enrollCode === normalizedCode) {
-          return {
-            id: courseDoc.id,
-            ...data,
-            matchedSectionId: null,
-            matchedSectionName: null,
-          };
-        }
-      }
-    }
-  }
+  // Legacy section code fallback removed — all courses should use enrollCode field directly.
+  // If legacy courses exist without enrollCode, run the migration script.
   return null;
 }
 

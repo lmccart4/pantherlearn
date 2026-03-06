@@ -62,12 +62,21 @@ export function AuthProvider({ children }) {
         setUserRole(role);
 
         // Sync user profile in Firestore (create or update)
-        const userNickname = await syncUserProfile(firebaseUser, role);
-        setNickname(userNickname);
+        try {
+          const userNickname = await syncUserProfile(firebaseUser, role);
+          setNickname(userNickname);
+        } catch (err) {
+          console.error("Failed to sync user profile:", err);
+          // Don't block login — profile will sync on next load
+        }
 
         // Auto-link enrollment records for students
         if (role === "student") {
-          await autoLinkEnrollments(firebaseUser);
+          try {
+            await autoLinkEnrollments(firebaseUser);
+          } catch (err) {
+            console.error("Failed to auto-link enrollments:", err);
+          }
         }
       } else {
         setUser(null);

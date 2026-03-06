@@ -32,7 +32,13 @@ service cloud.firestore {
     }
     match /users/{uid} {
       allow read: if isLoggedIn();
-      allow write: if isOwner(uid) || isTeacher();
+      // Owner can update their own doc, but CANNOT change their role
+      allow write: if isOwner(uid)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["role"]));
+      // Teachers can update student docs in their courses (for enrollment linking etc.)
+      // but cannot change role fields
+      allow write: if isTeacher()
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["role"]));
 
       // Notifications: owner can read/write, teachers can create (for fan-out)
       match /notifications/{notifId} {
@@ -41,6 +47,8 @@ service cloud.firestore {
       }
     }
     match /courses/{courseId} {
+      // Any logged-in user can read courses (needed for enrollment lookup)
+      // enrollCode is exposed but codes are the enrollment mechanism by design
       allow read: if isLoggedIn();
       allow create: if isTeacher();
       // Co-teachers can update course doc; only owner can delete
@@ -165,14 +173,14 @@ service cloud.firestore {
         }
       }
     }
-    // Legacy global gamification (backward compat)
+    // Legacy global gamification (backward compat) — scoped to owner + course teachers only
     match /gamification/{uid} {
-      allow read: if isLoggedIn();
-      allow write: if isOwner(uid) || isTeacher();
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid);
     }
     match /progress/{uid}/{document=**} {
       allow read: if isOwner(uid) || isTeacher();
-      allow write: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid);
     }
     // Weekly evidence log (photos + reflections per week per course)
     match /evidence/{uid}/courses/{courseId}/weeks/{weekKey} {
@@ -182,7 +190,7 @@ service cloud.firestore {
     // Telemetry buckets (daily engagement metrics per student per course)
     match /telemetry/{uid}/{document=**} {
       allow read: if isOwner(uid) || isTeacher();
-      allow write: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid);
     }
     match /enrollments/{enrollmentId} {
       allow read: if isLoggedIn();
@@ -191,14 +199,17 @@ service cloud.firestore {
     }
     match /chatLogs/{uid}/{document=**} {
       allow read: if isOwner(uid) || isTeacher();
-      allow write: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid);
     }
     match /rateLimits/{uid} {
       allow read, write: if isOwner(uid);
     }
     // Build-a-Chatbot Workshop
     match /botProjects/{projectId} {
-      allow read: if isLoggedIn();
+      // Published bots are readable by all logged-in users (for Bot Arcade)
+      // Unpublished bots only readable by owner or teachers
+      allow read: if isLoggedIn()
+        && (resource.data.published == true || resource.data.ownerId == request.auth.uid || isTeacher());
       allow create: if isLoggedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isLoggedIn()
         && (resource.data.ownerId == request.auth.uid || isTeacher());

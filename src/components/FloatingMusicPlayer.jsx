@@ -321,6 +321,7 @@ export default function FloatingMusicPlayer() {
             }
           }}
           className="floating-music-btn"
+          aria-label="Music player"
           style={{ transform: open ? "scale(0.9)" : "scale(1)" }}
         >
           {open ? "✕" : (isPlaying ? "🎵" : "🎶")}

@@ -16,6 +16,8 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 // Google Apps Script URL for feedback/bug report sheet
 // Set with: firebase functions:secrets:set FEEDBACK_SHEET_URL
 const feedbackSheetUrl = defineSecret("FEEDBACK_SHEET_URL");
+const openaiApiKey = defineSecret("OPENAI_API_KEY");
+const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 
 /**
  * Helper: call Gemini API with automatic retry on 429 (quota exceeded).
@@ -64,7 +66,7 @@ async function callGeminiWithRetry(url, body, maxRetries = 2) {
  */
 exports.geminiChat = onRequest(
   {
-    cors: true,
+    cors: ["https://pantherlearn-d6f7c.web.app", "https://pantherlearn-d6f7c.firebaseapp.com", "http://localhost:5173"],
     secrets: [geminiApiKey],
     maxInstances: 20,
     timeoutSeconds: 60,
@@ -112,8 +114,9 @@ exports.geminiChat = onRequest(
       if (rateLimited) {
         return res.status(429).json({ error: "Slow down! Please wait a moment before sending another message." });
       }
-    } catch (err) {
-      console.warn("Rate limit check failed:", err);
+    } catch (rlErr) {
+      console.error("Rate limit check failed:", rlErr);
+      return res.status(503).json({ error: "Service temporarily unavailable. Please try again." });
     }
 
     const geminiContents = messages.map((msg) => ({
@@ -203,7 +206,7 @@ exports.geminiChat = onRequest(
  */
 exports.botChat = onRequest(
   {
-    cors: true,
+    cors: ["https://pantherlearn-d6f7c.web.app", "https://pantherlearn-d6f7c.firebaseapp.com", "http://localhost:5173"],
     secrets: [geminiApiKey],
     maxInstances: 20,
     timeoutSeconds: 60,
@@ -261,8 +264,9 @@ exports.botChat = onRequest(
       if (rateLimited) {
         return res.status(429).json({ error: "Slow down! Please wait a moment before sending another message." });
       }
-    } catch (err) {
-      console.warn("Rate limit check failed:", err);
+    } catch (rlErr) {
+      console.error("Rate limit check failed:", rlErr);
+      return res.status(503).json({ error: "Service temporarily unavailable. Please try again." });
     }
 
     // Build Gemini request — student's system prompt with safety wrapper
@@ -357,7 +361,7 @@ exports.botChat = onRequest(
  */
 exports.botEmbed = onRequest(
   {
-    cors: true,
+    cors: ["https://pantherlearn-d6f7c.web.app", "https://pantherlearn-d6f7c.firebaseapp.com", "http://localhost:5173"],
     secrets: [geminiApiKey],
     maxInstances: 20,
     timeoutSeconds: 120,
@@ -417,8 +421,9 @@ exports.botEmbed = onRequest(
       if (rateLimited) {
         return res.status(429).json({ error: "Slow down! Please wait a moment before trying again." });
       }
-    } catch (err) {
-      console.warn("Rate limit check failed:", err);
+    } catch (rlErr) {
+      console.error("Rate limit check failed:", rlErr);
+      return res.status(503).json({ error: "Service temporarily unavailable. Please try again." });
     }
 
     const apiKey = geminiApiKey.value();
@@ -470,7 +475,7 @@ exports.botEmbed = onRequest(
  */
 exports.validateReflection = onRequest(
   {
-    cors: true,
+    cors: ["https://pantherlearn-d6f7c.web.app", "https://pantherlearn-d6f7c.firebaseapp.com", "http://localhost:5173"],
     secrets: [geminiApiKey],
     maxInstances: 20,
     timeoutSeconds: 60,
@@ -617,7 +622,7 @@ or
  */
 exports.generateQuestion = onRequest(
   {
-    cors: true,
+    cors: ["https://pantherlearn-d6f7c.web.app", "https://pantherlearn-d6f7c.firebaseapp.com", "http://localhost:5173"],
     secrets: [geminiApiKey],
     maxInstances: 10,
     timeoutSeconds: 60,
@@ -754,7 +759,7 @@ Notes:
  */
 exports.submitFeedback = onRequest(
   {
-    cors: true,
+    cors: ["https://pantherlearn-d6f7c.web.app", "https://pantherlearn-d6f7c.firebaseapp.com", "http://localhost:5173"],
     secrets: [feedbackSheetUrl],
     maxInstances: 10,
     timeoutSeconds: 30,
@@ -849,8 +854,8 @@ exports.submitFeedback = onRequest(
  */
 exports.generateBaselines = onRequest(
   {
-    cors: true,
-    secrets: [geminiApiKey],
+    cors: ["https://pantherlearn-d6f7c.web.app", "https://pantherlearn-d6f7c.firebaseapp.com", "http://localhost:5173"],
+    secrets: [geminiApiKey, openaiApiKey, anthropicApiKey],
     maxInstances: 10,
     timeoutSeconds: 90,
   },
@@ -900,7 +905,7 @@ exports.generateBaselines = onRequest(
       })(),
 
       (async () => {
-        const key = process.env.OPENAI_API_KEY;
+        const key = openaiApiKey.value();
         if (!key) throw new Error("No OpenAI key configured");
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -922,7 +927,7 @@ exports.generateBaselines = onRequest(
       })(),
 
       (async () => {
-        const key = process.env.ANTHROPIC_API_KEY;
+        const key = anthropicApiKey.value();
         if (!key) throw new Error("No Anthropic key configured");
         const response = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
@@ -1052,7 +1057,7 @@ exports.computeEngagementScores = onSchedule(
 
       const expectedQuestions = 10;
 
-      const batch = db.batch();
+      let batch = db.batch();
       let batchCount = 0;
 
       for (const uid of studentUids) {
@@ -1100,6 +1105,7 @@ exports.computeEngagementScores = onSchedule(
 
         if (batchCount >= 490) {
           await batch.commit();
+          batch = db.batch();
           batchCount = 0;
         }
       }
@@ -1225,7 +1231,7 @@ exports.sendDueDateReminders = onSchedule("every day 08:00", async () => {
 // ─────────────────────────────────────────────────────────────────
 exports.queryRecipeBot = onRequest(
   {
-    cors: true,
+    cors: ["https://pantherlearn-d6f7c.web.app", "https://pantherlearn-d6f7c.firebaseapp.com", "http://localhost:5173"],
     secrets: [geminiApiKey],
     maxInstances: 10,
     timeoutSeconds: 60,
@@ -1387,13 +1393,13 @@ Keep responses concise (2-3 paragraphs max). Be helpful but let your training da
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Prompt Duel — Gemini Proxy (no auth required)
+// Prompt Duel — Gemini Proxy
 // Students write prompts, AI generates output, AI judges quality.
-// Uses the same geminiApiKey secret. No login needed.
+// Uses the same geminiApiKey secret.
 // ─────────────────────────────────────────────────────────────────
 exports.geminiProxy = onRequest(
   {
-    cors: true,
+    cors: ["https://pantherlearn-d6f7c.web.app", "https://pantherlearn-d6f7c.firebaseapp.com", "http://localhost:5173"],
     secrets: [geminiApiKey],
     maxInstances: 30,
     timeoutSeconds: 60,
@@ -1401,6 +1407,16 @@ exports.geminiProxy = onRequest(
   async (req, res) => {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "POST only" });
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    try {
+      await admin.auth().verifyIdToken(authHeader.split("Bearer ")[1]);
+    } catch {
+      return res.status(401).json({ error: "Invalid token" });
     }
 
     const { action, payload } = req.body;

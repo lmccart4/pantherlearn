@@ -3,7 +3,7 @@
 // When a teacher enters "Preview as Student" mode, this context
 // tells every component to hide teacher-only UI and simulate student behavior.
 
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useMemo } from "react";
 
 const PreviewContext = createContext(null);
 
@@ -61,7 +61,7 @@ export function PreviewProvider({ children }) {
     setScenario(scenarioKey);
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     isPreview,
     scenario,
     scenarioConfig: STUDENT_SCENARIOS[scenario],
@@ -70,7 +70,7 @@ export function PreviewProvider({ children }) {
     enterPreview,
     exitPreview,
     switchScenario,
-  };
+  }), [isPreview, scenario, sourceLocation, enterPreview, exitPreview, switchScenario]);
 
   return (
     <PreviewContext.Provider value={value}>
