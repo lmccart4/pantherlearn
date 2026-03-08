@@ -51,7 +51,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["coTeachers"]);
       allow delete: if isCourseOwner(courseId);
       match /lessons/{lessonId} {
-        allow read: if hasCourseAccess(courseId);
+        allow read: if isTeacher() || isEnrolledStudent(courseId);
         allow write: if isCourseTeacher(courseId);
       }
       // Announcements: enrolled students + teacher can read, course teachers can write
@@ -195,6 +195,19 @@ service cloud.firestore {
     }
     match /rateLimits/{uid} {
       allow read, write: if isOwner(uid);
+    }
+    // Standalone activity labs (Data Labeling, Ethics Courtroom, AI Training Sim)
+    match /dataLabelingLab/{uid} {
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid) || isTeacher();
+    }
+    match /ethicsCourtroom/{uid} {
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid);
+    }
+    match /aiTrainingSim/{uid} {
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid);
     }
     // Build-a-Chatbot Workshop
     match /botProjects/{projectId} {

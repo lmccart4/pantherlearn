@@ -19,44 +19,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{
-      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: "transparent", flexDirection: "column", gap: 32, padding: 24,
-    }}>
-      <div style={{ textAlign: "center" }}>
-        <h1 style={{
-          fontFamily: "var(--font-display)", fontSize: 48, fontWeight: 700,
-          color: "var(--amber)", marginBottom: 8,
-        }}>
-          PantherLearn
-        </h1>
-        <p style={{ color: "var(--text2)", fontSize: 16 }}>
-          Your AI-powered learning platform
-        </p>
+    <div className="login-page">
+      <div className="login-hero">
+        <div className="login-glow" />
+        <h1 className="login-title">PantherLearn</h1>
+        <p className="login-subtitle">Your AI-powered learning platform</p>
       </div>
 
       {authError && (
-        <div style={{
-          background: "var(--red-dim)", border: "1px solid rgba(248,113,113,0.3)",
-          borderRadius: 10, padding: "14px 24px", maxWidth: 360, textAlign: "center",
-          color: "var(--red)", fontSize: 14, lineHeight: 1.6,
-        }}>
+        <div className="login-error">
           {authError}
         </div>
       )}
 
-      <button
-        onClick={handleSignIn}
-        style={{
-          padding: "14px 32px", borderRadius: 10, border: "1px solid var(--border)",
-          background: "var(--surface)", color: "var(--text)",
-          fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 500,
-          cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
-          transition: "all 0.2s",
-        }}
-        onMouseOver={(e) => e.currentTarget.style.borderColor = "var(--amber)"}
-        onMouseOut={(e) => e.currentTarget.style.borderColor = "var(--border)"}
-      >
+      <button onClick={handleSignIn} className="login-btn">
         <svg width="20" height="20" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -66,8 +42,8 @@ export default function LoginPage() {
         Sign in with Google
       </button>
 
-      <p style={{ color: "var(--text3)", fontSize: 13, maxWidth: 300, textAlign: "center", lineHeight: 1.6 }}>
-        Sign in with your <strong style={{ color: "var(--text2)" }}>@paps.net</strong> school account.
+      <p className="login-footer">
+        Sign in with your <strong>@paps.net</strong> school account.
       </p>
     </div>
   );

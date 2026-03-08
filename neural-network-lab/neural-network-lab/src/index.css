@@ -1,0 +1,102 @@
+:root {
+  --bg: #080c08;
+  --bg-tint: #0a120a;
+  --surface: #0f1a10;
+  --surface-2: #142014;
+  --surface-3: #1a2a1a;
+  --border: #1e3320;
+  --border-bright: #2a4a2c;
+  --text-1: #d4e8d0;
+  --text-2: #8aaa82;
+  --text-3: #4a6a44;
+  --accent: #39ff14;
+  --accent-dim: rgba(57, 255, 20, 0.15);
+  --accent-glow: rgba(57, 255, 20, 0.08);
+  --accent-2: #e8ff2c;
+  --warning: #ff6b2c;
+  --danger: #ff3333;
+  --success: #39ff14;
+  --grid-line: rgba(57, 255, 20, 0.04);
+  --phosphor: #39ff14;
+  --phosphor-dim: rgba(57, 255, 20, 0.3);
+
+  --font-lab: 'Courier Prime', 'Courier New', monospace;
+  --font-body: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  /* Subtle scanline effect */
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(57, 255, 20, 0.008) 2px,
+      rgba(57, 255, 20, 0.008) 4px
+    );
+}
+
+::selection {
+  background: var(--accent);
+  color: #000;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input, textarea {
+  font-family: inherit;
+}
+
+/* Graph paper background for cards */
+.graph-paper {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Phosphor glow text */
+.glow-text {
+  color: var(--accent);
+  text-shadow: 0 0 10px var(--phosphor-dim), 0 0 20px rgba(57, 255, 20, 0.1);
+}
+
+/* Flicker animation */
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.8; }
+  94% { opacity: 1; }
+  96% { opacity: 0.9; }
+  97% { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px var(--phosphor-dim); }
+  50% { box-shadow: 0 0 16px var(--phosphor-dim), 0 0 24px rgba(57, 255, 20, 0.05); }
+}
+
+@keyframes data-flow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}

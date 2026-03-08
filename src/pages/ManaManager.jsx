@@ -139,7 +139,7 @@ export default function ManaManager() {
 
   if (loading) {
     return (
-      <div className="page-container" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}>
+      <div className="page-wrapper" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}>
         <div className="spinner" />
       </div>
     );
@@ -168,20 +168,20 @@ export default function ManaManager() {
   const poolLabel = course?.title || "Course";
 
   return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
+    <main id="main-content" className="page-wrapper">
       <div style={{ maxWidth: 800, margin: "0 auto" }}>
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
           <button onClick={() => navigate(`/course/${courseId}`)} style={{ ...btnSecondary, padding: "6px 12px" }}>← Back</button>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700 }}>🔮 Mana Pool</h1>
+          <h1 className="page-title">🔮 Mana Pool</h1>
         </div>
-        <p style={{ color: "var(--text2)", fontSize: 14, marginBottom: 20 }}>
+        <p className="page-subtitle" style={{ marginBottom: 20 }}>
           {course?.title} — Manage course mana pool
         </p>
 
         {!state ? (
-          <div style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>Loading mana state...</div>
+          <div className="empty-state"><div className="empty-state-text">Loading mana state...</div></div>
         ) : (
           <>
             {/* Enable Toggle + Pool Status */}

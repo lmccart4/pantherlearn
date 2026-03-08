@@ -216,36 +216,34 @@ export default function StudentDashboard() {
 
   if (loading) {
     return (
-      <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto" }}>
-          {/* Avatar placeholder */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-            <div className="skeleton skeleton-rect" style={{ width: 200, height: 220, borderRadius: 20 }} />
-          </div>
-          {/* Welcome + level */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div className="skeleton skeleton-line" style={{ width: 200, height: 28 }} />
-            <div className="skeleton skeleton-line" style={{ width: 100, height: 14 }} />
-          </div>
-          {/* XP bar */}
-          <div className="skeleton skeleton-rect" style={{ width: "100%", height: 8, marginBottom: 16 }} />
-          {/* Stats row */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 32 }}>
-            <div className="skeleton skeleton-card" style={{ flex: 1, height: 80 }} />
-            <div className="skeleton skeleton-card" style={{ flex: 1, height: 80 }} />
-          </div>
-          {/* Section header */}
-          <div className="skeleton skeleton-line" style={{ width: 140, height: 20, marginBottom: 16 }} />
-          {/* Course cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="skeleton skeleton-card" style={{ height: 140 }}>
-                <div className="skeleton skeleton-circle" style={{ width: 40, height: 40, marginBottom: 12 }} />
-                <div className="skeleton skeleton-line" style={{ width: "70%", height: 16 }} />
-                <div className="skeleton skeleton-line" style={{ width: "50%", height: 12, marginTop: 8 }} />
-              </div>
-            ))}
-          </div>
+      <main id="main-content" className="page-wrapper page-wrapper--medium">
+        {/* Avatar placeholder */}
+        <div className="sd-avatar-hero">
+          <div className="skeleton skeleton-rect sd-skeleton-avatar" />
+        </div>
+        {/* Welcome + level */}
+        <div className="sd-welcome-header" style={{ marginBottom: 8 }}>
+          <div className="skeleton skeleton-line" style={{ width: 200, height: 28 }} />
+          <div className="skeleton skeleton-line" style={{ width: 100, height: 14 }} />
+        </div>
+        {/* XP bar */}
+        <div className="skeleton skeleton-rect" style={{ width: "100%", height: 8, marginBottom: 16 }} />
+        {/* Stats row */}
+        <div className="sd-stats" style={{ marginBottom: 32 }}>
+          <div className="skeleton skeleton-card" style={{ flex: 1, height: 80 }} />
+          <div className="skeleton skeleton-card" style={{ flex: 1, height: 80 }} />
+        </div>
+        {/* Section header */}
+        <div className="skeleton skeleton-line" style={{ width: 140, height: 20, marginBottom: 16 }} />
+        {/* Course cards */}
+        <div className="sd-skeleton-grid">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="skeleton skeleton-card" style={{ height: 140 }}>
+              <div className="skeleton skeleton-circle" style={{ width: 40, height: 40, marginBottom: 12 }} />
+              <div className="skeleton skeleton-line" style={{ width: "70%", height: 16 }} />
+              <div className="skeleton skeleton-line" style={{ width: "50%", height: 12, marginTop: 8 }} />
+            </div>
+          ))}
         </div>
       </main>
     );
@@ -255,8 +253,7 @@ export default function StudentDashboard() {
   const enrolledCourses = allCourses.filter((c) => enrolledIds?.has(c.id));
 
   return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-      <div style={{ maxWidth: 960, margin: "0 auto" }}>
+    <main id="main-content" className="page-wrapper page-wrapper--medium">
 
         {/* Announcements for enrolled courses */}
         {enrolledCourses.map((course) => (
@@ -268,20 +265,9 @@ export default function StudentDashboard() {
 
         {/* Avatar — centered hero */}
         {avatar && (
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+          <div className="sd-avatar-hero">
             <Link to="/avatar" style={{ textDecoration: "none" }}>
-              <div style={{
-                position: "relative",
-                background: "var(--surface1)",
-                border: "2px solid var(--border)",
-                borderRadius: 20,
-                padding: "16px 16px 10px",
-                cursor: "pointer",
-                transition: "border-color 0.2s, box-shadow 0.2s",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--amber)"; e.currentTarget.style.boxShadow = "0 0 16px rgba(243,156,18,0.15)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}
-              >
+              <div className="sd-avatar-card">
                 <AvatarWithPet
                   avatar={avatar}
                   level={level?.level || 1}
@@ -289,13 +275,7 @@ export default function StudentDashboard() {
                   petSize={156}
                   animate
                 />
-                <div style={{
-                  textAlign: "center",
-                  marginTop: 6,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: hasCustomAvatar ? "var(--text3)" : "var(--amber)",
-                }}>
+                <div className={`sd-avatar-label ${hasCustomAvatar ? "sd-avatar-label--custom" : "sd-avatar-label--new"}`}>
                   {hasCustomAvatar ? "✏️ Edit Character" : "⚔️ Customize Me!"}
                 </div>
               </div>
@@ -304,44 +284,40 @@ export default function StudentDashboard() {
         )}
 
         {/* Welcome + Stats */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <div className="sd-welcome">
+          <div className="sd-welcome-header">
             <div>
-              <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, marginBottom: 4 }}>
+              <h1 className="sd-welcome-heading">
                 Hey {firstName} 👋
               </h1>
               <NicknameEditor nickname={nickname} onSave={updateNickname} />
             </div>
             {level && (
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: "var(--amber)" }} data-translatable>
+              <div className="sd-level-badge">
+                <div className="sd-level-title" data-translatable>
                   {ui(14, "Level")} {level.level} — {level.tierName}
                 </div>
-                <div style={{ fontSize: 12, color: "var(--text3)" }}>{gamification.totalXP} XP</div>
+                <div className="sd-level-xp">{gamification.totalXP} XP</div>
               </div>
             )}
           </div>
 
           {/* XP Bar */}
           {level && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text3)", marginBottom: 3 }}>
+            <div className="sd-xp-section">
+              <div className="sd-xp-labels">
                 <span>Lv {level.level}</span>
                 <span>{level.xpIntoLevel}/{level.xpForNext} XP</span>
                 <span>Lv {level.level + 1}</span>
               </div>
-              <div style={{ height: 8, background: "var(--surface2)", borderRadius: 4 }}>
-                <div style={{
-                  width: `${level.progress * 100}%`, height: "100%",
-                  background: "linear-gradient(90deg, var(--amber), #f39c12)",
-                  borderRadius: 4, transition: "width 0.5s",
-                }} />
+              <div className="sd-xp-bar">
+                <div className="sd-xp-fill" style={{ width: `${level.progress * 100}%` }} />
               </div>
             </div>
           )}
 
           {/* Stats Row */}
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "stretch" }}>
+          <div className="sd-stats">
             {gamification && <StreakDisplay
               currentStreak={gamification.currentStreak || 0}
               longestStreak={gamification.longestStreak || 0}
@@ -352,7 +328,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* My Courses (enrolled) */}
-        <div style={{ marginBottom: 32 }}>
+        <div className="sd-courses">
           {enrolledCourses.length > 0 && (
             <div style={{ marginBottom: 20 }}>
               {enrolledCourses.map((course) => (
@@ -360,8 +336,8 @@ export default function StudentDashboard() {
               ))}
             </div>
           )}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: "var(--text2)" }} data-translatable>{ui(1, "My Courses")}</h2>
+          <div className="sd-courses-header">
+            <h2 className="section-heading" style={{ marginBottom: 0 }} data-translatable>{ui(1, "My Courses")}</h2>
             <button
               className="btn btn-primary"
               style={{ fontSize: 13, padding: "8px 16px" }}
@@ -373,67 +349,62 @@ export default function StudentDashboard() {
           </div>
 
           {enrolledCourses.length === 0 ? (
-            <div className="card" style={{ textAlign: "center", padding: 60 }}>
-              <p style={{ fontSize: 40, marginBottom: 12 }}>🔑</p>
-              <p style={{ fontWeight: 600 }} data-translatable>{ui(3, "No courses yet")}</p>
-              <p style={{ color: "var(--text2)", fontSize: 14, marginTop: 8, marginBottom: 16 }} data-translatable>
+            <div className="card empty-state">
+              <div className="empty-state-icon">🔑</div>
+              <p className="empty-state-title" data-translatable>{ui(3, "No courses yet")}</p>
+              <p className="empty-state-text" data-translatable>
                 {ui(4, "Get an enroll code from your teacher to get started.")}
               </p>
-              <button className="btn btn-primary" onClick={() => setShowJoinModal(true)} data-translatable>
+              <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setShowJoinModal(true)} data-translatable>
                 {ui(5, "Enter Enroll Code")}
               </button>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+            <div className="card-grid card-grid--3">
               {enrolledCourses.map((course) => {
                 const prog = courseProgress[course.id] || {};
                 return (
                   <Link key={course.id} to={`/course/${course.id}`} style={{ textDecoration: "none", color: "inherit" }}>
                     <div className="card fade-in" style={{ cursor: "pointer" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                        <div style={{
-                          fontSize: 28, width: 48, height: 48, borderRadius: 10, background: "var(--amber-dim)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}>{course.icon || "📚"}</div>
+                      <div className="sd-course-top">
+                        <div className="sd-course-icon">{course.icon || "📚"}</div>
                         <div>
-                          <div className="card-title" style={{ fontSize: 16, marginBottom: 2 }}>{course.title}</div>
-                          <div className="card-subtitle">{prog.totalLessons || 0} {ui(9, "lessons")}</div>
+                          <div className="sd-course-title">{course.title}</div>
+                          <div className="sd-course-subtitle">{prog.totalLessons || 0} {ui(9, "lessons")}</div>
                         </div>
                       </div>
-                      <div style={{ marginBottom: 10 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                          <span style={{ color: "var(--text3)" }} data-translatable>{ui(8, "Progress")}</span>
-                          <span style={{ color: "var(--amber)", fontWeight: 600 }}>{prog.completion || 0}%</span>
+                      <div className="sd-course-progress">
+                        <div className="sd-course-progress-header">
+                          <span className="sd-course-progress-label" data-translatable>{ui(8, "Progress")}</span>
+                          <span className="sd-course-progress-value">{prog.completion || 0}%</span>
                         </div>
-                        <div style={{ height: 6, background: "var(--surface2)", borderRadius: 3 }}>
-                          <div style={{ width: `${prog.completion || 0}%`, height: "100%", background: "var(--amber)", borderRadius: 3, transition: "width 0.3s" }} />
+                        <div className="sd-course-bar">
+                          <div className="sd-course-bar-fill" style={{ width: `${prog.completion || 0}%` }} />
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--text3)" }}>
+                      <div className="sd-course-stats">
                         <span>{prog.answeredQuestions || 0}/{prog.totalQuestions || 0} {ui(10, "questions")}</span>
                         {prog.accuracy !== null && prog.accuracy !== undefined && (
-                          <span style={{ color: prog.accuracy >= 70 ? "var(--green)" : "var(--red)" }}>{prog.accuracy}% {ui(11, "accuracy")}</span>
+                          <span className={prog.accuracy >= 70 ? "sd-accuracy-good" : "sd-accuracy-low"}>{prog.accuracy}% {ui(11, "accuracy")}</span>
                         )}
                       </div>
                     </div>
                   </Link>
                 );
               })}
-
             </div>
           )}
         </div>
 
         {/* Badges */}
         {gamification && (
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: "var(--text2)", marginBottom: 14 }} data-translatable>
+          <div className="sd-badges">
+            <h2 className="section-heading" data-translatable>
               {ui(0, "Badges")}
             </h2>
             <BadgeGrid earnedBadgeIds={gamification.badges || []} />
           </div>
         )}
-      </div>
 
       {/* Join Course Modal */}
       {showJoinModal && (

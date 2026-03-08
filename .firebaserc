@@ -1,5 +1,21 @@
 {
   "projects": {
     "default": "pantherlearn-d6f7c"
-  }
+  },
+  "targets": {
+    "pantherlearn-d6f7c": {
+      "hosting": {
+        "data-labeling-lab-paps": [
+          "data-labeling-lab-paps"
+        ],
+        "hallucination-lab": [
+          "hallucination-lab"
+        ],
+        "attention-visualizer": [
+          "attention-visualizer"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

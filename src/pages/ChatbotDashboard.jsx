@@ -198,10 +198,10 @@ export default function ChatbotDashboard() {
 
   if (!isTeacher) {
     return (
-      <main className="page-container" style={{ padding: "48px 40px" }}>
-        <div style={{ maxWidth: 600, margin: "0 auto", textAlign: "center", color: "var(--text3)" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-          <div style={{ fontSize: 18, fontWeight: 600 }}>Teacher access only</div>
+      <main className="page-wrapper">
+        <div className="empty-state">
+          <div className="empty-state-icon">🔒</div>
+          <div className="empty-state-title">Teacher access only</div>
         </div>
       </main>
     );
@@ -209,7 +209,7 @@ export default function ChatbotDashboard() {
 
   if (loading) {
     return (
-      <main className="page-container" style={{ padding: "48px 40px" }}>
+      <main className="page-wrapper">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300 }}>
           <div className="spinner" />
         </div>
@@ -218,7 +218,7 @@ export default function ChatbotDashboard() {
   }
 
   return (
-    <main className="page-container" style={{ padding: "48px 40px" }}>
+    <main className="page-wrapper">
       <style>{`
         .cbd-stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 28px; }
         .cbd-stat-card {
@@ -365,10 +365,10 @@ export default function ChatbotDashboard() {
   function renderOverview() {
     if (bots.length === 0) {
       return (
-        <div style={{ textAlign: "center", padding: 60, color: "var(--text3)" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-          <div style={{ fontSize: 16, fontWeight: 600 }}>No bots created yet</div>
-          <div style={{ fontSize: 13, marginTop: 6 }}>Students will appear here once they start building chatbots.</div>
+        <div className="empty-state">
+          <div className="empty-state-icon">📭</div>
+          <div className="empty-state-title">No bots created yet</div>
+          <div className="empty-state-text">Students will appear here once they start building chatbots.</div>
         </div>
       );
     }
@@ -526,9 +526,9 @@ export default function ChatbotDashboard() {
         </div>
 
         {!selectedBotId && (
-          <div style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>💬</div>
-            <div style={{ fontSize: 14 }}>Select a bot above to view its conversation logs.</div>
+          <div className="empty-state">
+            <div className="empty-state-icon">💬</div>
+            <div className="empty-state-text">Select a bot above to view its conversation logs.</div>
           </div>
         )}
 
@@ -537,8 +537,8 @@ export default function ChatbotDashboard() {
         )}
 
         {selectedBotId && !logsLoading && filteredLogs.length === 0 && (
-          <div style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>
-            <div style={{ fontSize: 14 }}>No conversation logs found{logPhaseFilter ? ` for Phase ${logPhaseFilter}` : ""}.</div>
+          <div className="empty-state">
+            <div className="empty-state-text">No conversation logs found{logPhaseFilter ? ` for Phase ${logPhaseFilter}` : ""}.</div>
           </div>
         )}
 
@@ -617,9 +617,9 @@ export default function ChatbotDashboard() {
         </div>
 
         {filteredReflections.length === 0 && (
-          <div style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>💭</div>
-            <div style={{ fontSize: 14 }}>No reflections submitted yet{reflPhaseFilter ? ` for Phase ${reflPhaseFilter}` : ""}.</div>
+          <div className="empty-state">
+            <div className="empty-state-icon">💭</div>
+            <div className="empty-state-text">No reflections submitted yet{reflPhaseFilter ? ` for Phase ${reflPhaseFilter}` : ""}.</div>
           </div>
         )}
 

@@ -97,63 +97,59 @@ export default function CoursePage() {
   }, [visibleLessons]);
 
   if (loading) return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-      <div style={{ maxWidth: 700, margin: "0 auto" }}>
-        <div className="skeleton skeleton-line" style={{ width: 140, height: 13, marginBottom: 16 }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
-          <div className="skeleton skeleton-rect" style={{ width: 64, height: 64, borderRadius: 14 }} />
-          <div style={{ flex: 1 }}>
-            <div className="skeleton skeleton-line" style={{ width: "60%", height: 24 }} />
-            <div className="skeleton skeleton-line" style={{ width: "40%", height: 14 }} />
-          </div>
+    <main id="main-content" className="page-wrapper page-wrapper--narrow">
+      <div className="skeleton skeleton-line" style={{ width: 140, height: 13, marginBottom: 16 }} />
+      <div className="cp-hero">
+        <div className="skeleton skeleton-rect" style={{ width: 64, height: 64, borderRadius: 14 }} />
+        <div style={{ flex: 1 }}>
+          <div className="skeleton skeleton-line" style={{ width: "60%", height: 24 }} />
+          <div className="skeleton skeleton-line" style={{ width: "40%", height: 14 }} />
         </div>
-        {/* Unit header */}
-        <div className="skeleton skeleton-line" style={{ width: 120, height: 16, marginBottom: 12 }} />
-        {/* Lesson rows */}
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="skeleton skeleton-card" style={{ height: 52, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
-            <div className="skeleton skeleton-circle" style={{ width: 28, height: 28 }} />
-            <div className="skeleton skeleton-line" style={{ width: `${50 + i * 5}%`, height: 14, marginBottom: 0 }} />
-          </div>
-        ))}
       </div>
+      <div className="skeleton skeleton-line" style={{ width: 120, height: 16, marginBottom: 12 }} />
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="skeleton skeleton-card" style={{ height: 52, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
+          <div className="skeleton skeleton-circle" style={{ width: 28, height: 28 }} />
+          <div className="skeleton skeleton-line" style={{ width: `${50 + i * 5}%`, height: 14, marginBottom: 0 }} />
+        </div>
+      ))}
     </main>
   );
-  if (!course) return <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}><h2 data-translatable>{ui(0, "Course not found")}</h2></div>;
+  if (!course) return (
+    <div className="page-wrapper empty-state" style={{ paddingTop: 120 }}>
+      <h2 className="empty-state-title" data-translatable>{ui(0, "Course not found")}</h2>
+    </div>
+  );
 
   return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-      <div style={{ maxWidth: 700, margin: "0 auto" }}>
-        <Link to="/" style={{ fontSize: 13, color: "var(--text3)", marginBottom: 16, display: "block" }} data-translatable>{ui(1, "← Back to Dashboard")}</Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
-          <div style={{
-            fontSize: 40, width: 64, height: 64, borderRadius: 14,
-            background: "var(--amber-dim)", display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
+    <main id="main-content" className="page-wrapper page-wrapper--narrow">
+        <Link to="/" className="cp-back-link" data-translatable>{ui(1, "← Back to Dashboard")}</Link>
+        <div className="cp-hero">
+          <div className="cp-hero-icon">
             {course.icon || "📚"}
           </div>
           <div>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700 }} data-translatable>{translatedTitle}</h1>
-            <p style={{ color: "var(--text2)", fontSize: 14 }} data-translatable>{translatedDesc}</p>
+            <h1 className="cp-hero-title" data-translatable>{translatedTitle}</h1>
+            <p className="cp-hero-desc" data-translatable>{translatedDesc}</p>
           </div>
         </div>
 
         {/* Teacher quick links — English only */}
         {isTeacher && (
-          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-            <Link to={`/xp-controls/${courseId}`} style={{ fontSize: 13, color: "var(--amber)", textDecoration: "none", fontWeight: 600, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)" }}>
+          <div className="cp-teacher-links">
+            <Link to={`/xp-controls/${courseId}`} className="cp-teacher-link cp-teacher-link--amber">
               ⚙️ XP Controls
             </Link>
-            <Link to={`/teams/${courseId}`} style={{ fontSize: 13, color: "var(--amber)", textDecoration: "none", fontWeight: 600, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)" }}>
+            <Link to={`/teams/${courseId}`} className="cp-teacher-link cp-teacher-link--amber">
               👥 Manage Teams
             </Link>
-            <Link to={`/mana/${courseId}`} style={{ fontSize: 13, color: "#8b5cf6", textDecoration: "none", fontWeight: 600, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)" }}>
+            <Link to={`/mana/${courseId}`} className="cp-teacher-link cp-teacher-link--purple">
               🔮 Mana Pool
             </Link>
-            <Link to={`/boss-battle/${courseId}`} style={{ fontSize: 13, color: "#e74c3c", textDecoration: "none", fontWeight: 600, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)" }}>
+            <Link to={`/boss-battle/${courseId}`} className="cp-teacher-link cp-teacher-link--red">
               ⚔️ Boss Battle
             </Link>
-            <Link to={`/course/${courseId}/evidence`} style={{ fontSize: 13, color: "var(--green, #10b981)", textDecoration: "none", fontWeight: 600, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)" }}>
+            <Link to={`/course/${courseId}/evidence`} className="cp-teacher-link cp-teacher-link--green">
               📸 Evidence Log
             </Link>
           </div>
@@ -161,19 +157,13 @@ export default function CoursePage() {
 
         {/* Evidence Log link for students */}
         {!isTeacher && course.evidenceConfig?.enabled && (
-          <Link to={`/course/${courseId}/evidence`} className="card" style={{
-            display: "flex", alignItems: "center", gap: 14, marginBottom: 16,
-            textDecoration: "none", color: "inherit", cursor: "pointer",
-          }}>
-            <div style={{
-              fontSize: 24, width: 44, height: 44, borderRadius: 10,
-              background: "rgba(16, 185, 129, 0.12)", display: "flex", alignItems: "center", justifyContent: "center",
-            }}>📸</div>
+          <Link to={`/course/${courseId}/evidence`} className="card cp-evidence-card">
+            <div className="cp-evidence-icon">📸</div>
             <div>
               <div style={{ fontWeight: 600, fontSize: 15 }}>Weekly Evidence Log</div>
               <div style={{ fontSize: 12, color: "var(--text3)" }}>Upload photos and reflections each week</div>
             </div>
-            <div style={{ marginLeft: "auto", color: "var(--text3)", fontSize: 18 }}>→</div>
+            <div className="cp-evidence-arrow">→</div>
           </Link>
         )}
 
@@ -188,14 +178,13 @@ export default function CoursePage() {
 
         {/* Lessons */}
         <div>
-          <div>
             {lessons.length === 0 ? (
-              <div className="card" style={{ textAlign: "center", padding: 60 }}>
-                <p data-translatable>{ui(2, "No lessons yet")}</p>
-                <p style={{ color: "var(--text2)", fontSize: 14, marginTop: 8 }} data-translatable>{ui(3, "Your teacher is still building this course.")}</p>
+              <div className="card empty-state">
+                <p className="empty-state-title" data-translatable>{ui(2, "No lessons yet")}</p>
+                <p className="empty-state-text" data-translatable>{ui(3, "Your teacher is still building this course.")}</p>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="cp-lesson-list">
                 {lessonGroups.map((group) => {
                   const hasUnit = group.unit.trim() !== "";
                   const isCollapsed = hasUnit && collapsedUnits[group.unit];
@@ -206,28 +195,15 @@ export default function CoursePage() {
                       {hasUnit && (
                         <button
                           onClick={() => setCollapsedUnits((prev) => ({ ...prev, [group.unit]: !prev[group.unit] }))}
-                          className="card"
-                          style={{
-                            display: "flex", alignItems: "center", gap: 14, width: "100%",
-                            padding: "16px 20px", marginBottom: 8, marginTop: lessonGroups.indexOf(group) > 0 ? 20 : 0,
-                            cursor: "pointer", transition: "all 0.15s",
-                            borderLeft: "4px solid var(--amber)",
-                            textAlign: "left", color: "inherit",
-                          }}
+                          className="card cp-unit-header"
+                          style={{ marginTop: lessonGroups.indexOf(group) > 0 ? 20 : 0 }}
                         >
-                          <span style={{
-                            transition: "transform 0.2s",
-                            transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
-                            display: "inline-block", fontSize: 14, color: "var(--amber)",
-                          }}>▼</span>
+                          <span className={`cp-unit-chevron ${isCollapsed ? "collapsed" : ""}`}>▼</span>
                           <div style={{ flex: 1 }}>
-                            <div style={{
-                              fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18,
-                              color: "var(--text1, #e8e8e8)",
-                            }}>
+                            <div className="cp-unit-title">
                               {group.unit}
                             </div>
-                            <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>
+                            <div className="cp-unit-count">
                               {group.lessons.length} {group.lessons.length === 1 ? "lesson" : "lessons"}
                             </div>
                           </div>
@@ -244,31 +220,24 @@ export default function CoursePage() {
                         return (
                           <Link key={lesson.id} to={`/course/${courseId}/lesson/${lesson.id}`}
                             style={{ textDecoration: "none", color: "inherit" }}>
-                            <div className="card fade-in" style={{
-                              display: "flex", alignItems: "center", gap: 16, cursor: "pointer",
+                            <div className="card fade-in cp-lesson-row" style={{
                               animationDelay: `${i * 0.05}s`,
                               marginLeft: hasUnit ? 12 : 0,
-                              borderLeft: isCompleted ? "3px solid var(--green, #10b981)" : undefined,
+                              borderLeft: isCompleted ? "3px solid var(--green)" : undefined,
                             }}>
-                              <div style={{
-                                width: 36, height: 36, borderRadius: 8,
-                                background: isCompleted ? "rgba(16, 185, 129, 0.15)" : "var(--surface2)",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14,
-                                color: isCompleted ? "var(--green, #10b981)" : "var(--amber)",
-                              }}>
+                              <div className={`cp-lesson-number ${isCompleted ? "cp-lesson-number--completed" : "cp-lesson-number--default"}`}>
                                 {isCompleted ? "✓" : num}
                               </div>
                               <div>
                                 <div style={{ fontWeight: 600, fontSize: 15 }} data-translatable>{tTitle}</div>
                                 {isCompleted && (
-                                  <div style={{ fontSize: 11, color: "var(--green, #10b981)", fontWeight: 600, marginTop: 1 }}>
+                                  <div style={{ fontSize: 11, color: "var(--green)", fontWeight: 600, marginTop: 1 }}>
                                     Completed
                                   </div>
                                 )}
                               </div>
-                              <div style={{ marginLeft: "auto", textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-                                <div style={{ color: "var(--text3)", fontSize: 13 }}>
+                              <div className="cp-lesson-meta">
+                                <div className="cp-question-count">
                                   {qCount} {ui(4, "questions")}
                                 </div>
                                 {(() => {
@@ -280,20 +249,17 @@ export default function CoursePage() {
                                   const isToday = effectiveDue === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
                                   const isSoon = !isPastDue && !isToday && (due - now) < 2 * 24 * 60 * 60 * 1000;
 
-                                  // Don't show stress-inducing warnings on completed lessons
                                   if (isCompleted) {
                                     return (
-                                      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)" }}>
+                                      <div className="cp-due-date cp-due-date--normal">
                                         Due {new Date(effectiveDue + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                       </div>
                                     );
                                   }
 
+                                  const dateClass = isPastDue ? "cp-due-date--overdue" : isToday || isSoon ? "cp-due-date--today" : "cp-due-date--normal";
                                   return (
-                                    <div style={{
-                                      fontSize: 11, fontWeight: 600,
-                                      color: isPastDue ? "var(--red)" : isToday ? "var(--amber)" : isSoon ? "var(--amber)" : "var(--text3)",
-                                    }}>
+                                    <div className={`cp-due-date ${dateClass}`}>
                                       {isPastDue ? "⚠️ " : isToday ? "📌 " : ""}
                                       Due {new Date(effectiveDue + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                     </div>
@@ -309,9 +275,7 @@ export default function CoursePage() {
                 })}
               </div>
             )}
-          </div>
         </div>
-      </div>
     </main>
   );
 }

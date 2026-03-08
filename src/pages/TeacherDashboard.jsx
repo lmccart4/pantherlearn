@@ -170,30 +170,25 @@ export default function TeacherDashboard() {
 
   if (loading) {
     return (
-      <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ marginBottom: 32 }}>
-            <div className="skeleton skeleton-line" style={{ width: 220, height: 28, marginBottom: 8 }} />
-            <div className="skeleton skeleton-line" style={{ width: 320, height: 14 }} />
-          </div>
-          {/* Quick links */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 36 }}>
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton skeleton-rect" style={{ width: 130, height: 36, borderRadius: 8 }} />
-            ))}
-          </div>
-          {/* Section header */}
-          <div className="skeleton skeleton-line" style={{ width: 140, height: 20, marginBottom: 16 }} />
-          {/* Course cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="skeleton skeleton-card" style={{ height: 160 }}>
-                <div className="skeleton skeleton-circle" style={{ width: 44, height: 44, marginBottom: 12 }} />
-                <div className="skeleton skeleton-line" style={{ width: "65%", height: 18 }} />
-                <div className="skeleton skeleton-line" style={{ width: "45%", height: 13, marginTop: 8 }} />
-              </div>
-            ))}
-          </div>
+      <main id="main-content" className="page-wrapper">
+        <div className="page-header">
+          <div className="skeleton skeleton-line" style={{ width: 220, height: 28, marginBottom: 8 }} />
+          <div className="skeleton skeleton-line" style={{ width: 320, height: 14 }} />
+        </div>
+        <div className="td-quick-links">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton skeleton-rect" style={{ width: 130, height: 36, borderRadius: 8 }} />
+          ))}
+        </div>
+        <div className="skeleton skeleton-line" style={{ width: 140, height: 20, marginBottom: 16 }} />
+        <div className="card-grid card-grid--3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="skeleton skeleton-card" style={{ height: 160 }}>
+              <div className="skeleton skeleton-circle" style={{ width: 44, height: 44, marginBottom: 12 }} />
+              <div className="skeleton skeleton-line" style={{ width: "65%", height: 18 }} />
+              <div className="skeleton skeleton-line" style={{ width: "45%", height: 13, marginTop: 8 }} />
+            </div>
+          ))}
         </div>
       </main>
     );
@@ -202,25 +197,25 @@ export default function TeacherDashboard() {
   const ICONS = ["📚", "🧪", "💻", "🎨", "📐", "🌍", "🧬", "📊", "🎵", "🏛️", "🔬", "📖", "🤖", "⚡", "🧮", "🎭"];
 
   return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, marginBottom: 6 }}>Hey {firstName} 👋</h1>
-          <p style={{ color: "var(--text2)", fontSize: 15 }}>Manage your courses, edit lessons, and review student progress.</p>
+    <main id="main-content" className="page-wrapper">
+
+        <div className="page-header">
+          <h1 className="page-title">Hey {firstName} 👋</h1>
+          <p className="page-subtitle">Manage your courses, edit lessons, and review student progress.</p>
         </div>
 
-        <div style={{ display: "flex", gap: 12, marginBottom: 36, flexWrap: "wrap" }}>
-          <Link to="/editor" className="btn btn-secondary" style={{ textDecoration: "none" }}>✏️ Lesson Editor</Link>
-          <Link to="/progress" className="btn btn-secondary" style={{ textDecoration: "none" }}>📈 Student Progress</Link>
-          <Link to="/grading" className="btn btn-secondary" style={{ textDecoration: "none" }}>📊 Grading Dashboard</Link>
-          <Link to="/rosters" className="btn btn-secondary" style={{ textDecoration: "none" }}>📋 Roster</Link>
+        <div className="td-quick-links">
+          <Link to="/editor" className="btn btn-secondary">✏️ Lesson Editor</Link>
+          <Link to="/progress" className="btn btn-secondary">📈 Student Progress</Link>
+          <Link to="/grading" className="btn btn-secondary">📊 Grading Dashboard</Link>
+          <Link to="/rosters" className="btn btn-secondary">📋 Roster</Link>
         </div>
 
         {/* ============ MY COURSES ============ */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: "var(--text2)" }}>Your Courses</h2>
-            <div style={{ display: "flex", gap: 8 }}>
+        <div className="td-section">
+          <div className="td-section-header">
+            <h2 className="section-heading" style={{ marginBottom: 0 }}>Your Courses</h2>
+            <div className="td-section-actions">
               <button
                 className="btn btn-secondary"
                 style={{ fontSize: 13, padding: "8px 16px" }}
@@ -234,13 +229,13 @@ export default function TeacherDashboard() {
             </div>
           </div>
           {myCourses.length === 0 ? (
-            <div className="card" style={{ textAlign: "center", padding: 48 }}>
-              <p style={{ fontSize: 32, marginBottom: 8 }}>📚</p>
-              <p style={{ fontWeight: 600, marginBottom: 4 }}>No courses yet</p>
-              <p style={{ color: "var(--text3)", fontSize: 13 }}>Create a new course or copy one from the template library below.</p>
+            <div className="card empty-state">
+              <div className="empty-state-icon">📚</div>
+              <p className="empty-state-title">No courses yet</p>
+              <p className="empty-state-text">Create a new course or copy one from the template library below.</p>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+            <div className="card-grid card-grid--3">
               {myCourses.map((course) => {
                 const isOwner = course.ownerUid === user.uid;
                 const isCoTeacher = !isOwner;
@@ -251,14 +246,7 @@ export default function TeacherDashboard() {
                   <div key={course.id} className="card fade-in" style={{ position: "relative" }}>
                     {/* Co-Teacher badge */}
                     {isCoTeacher && (
-                      <div style={{
-                        position: "absolute", top: 12, right: 12,
-                        fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                        letterSpacing: "0.05em", color: "#8b5cf6",
-                        background: "rgba(139, 92, 246, 0.12)", padding: "3px 8px", borderRadius: 6,
-                      }}>
-                        Co-Teacher
-                      </div>
+                      <div className="td-card-badge td-card-badge--coteacher">Co-Teacher</div>
                     )}
 
                     <Link to={`/course/${course.id}`} style={{ textDecoration: "none", color: "inherit" }}>
@@ -267,18 +255,10 @@ export default function TeacherDashboard() {
                           <div
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingIcon(editingIcon === course.id ? null : course.id); }}
                             title="Change icon"
-                            style={{
-                              fontSize: 32, width: 56, height: 56, borderRadius: 12,
-                              background: "var(--amber-dim)", display: "flex", alignItems: "center", justifyContent: "center",
-                              cursor: "pointer", border: editingIcon === course.id ? "2px solid var(--amber)" : "2px solid transparent",
-                              transition: "border-color 0.15s",
-                            }}
+                            className={`td-course-icon td-course-icon--editable ${editingIcon === course.id ? "editing" : ""}`}
                           >{course.icon || "📚"}</div>
                         ) : (
-                          <div style={{
-                            fontSize: 32, width: 56, height: 56, borderRadius: 12,
-                            background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center",
-                          }}>{course.icon || "📚"}</div>
+                          <div className="td-course-icon td-course-icon--readonly">{course.icon || "📚"}</div>
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div className="card-title">{course.title}</div>
@@ -289,7 +269,7 @@ export default function TeacherDashboard() {
 
                     {/* Icon picker — owner only */}
                     {isOwner && editingIcon === course.id && (
-                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10, padding: "8px 0" }}>
+                      <div className="td-icon-picker">
                         {ICONS.map((icon) => (
                           <button
                             key={icon}
@@ -298,12 +278,7 @@ export default function TeacherDashboard() {
                               setEditingIcon(null);
                               fetchCourses();
                             }}
-                            style={{
-                              fontSize: 22, width: 36, height: 36, borderRadius: 8, cursor: "pointer",
-                              border: (course.icon || "📚") === icon ? "2px solid var(--amber)" : "1px solid var(--border)",
-                              background: (course.icon || "📚") === icon ? "var(--amber-dim)" : "transparent",
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                            }}
+                            className={`td-icon-btn ${(course.icon || "📚") === icon ? "active" : ""}`}
                           >{icon}</button>
                         ))}
                       </div>
@@ -311,56 +286,37 @@ export default function TeacherDashboard() {
 
                     {/* Enrollment code — owner only */}
                     {isOwner && (
-                      <div style={{
-                        marginTop: 12, padding: "10px 12px", background: "var(--surface2)",
-                        borderRadius: 8, fontSize: 12, display: "flex", justifyContent: "space-between", alignItems: "center",
-                      }}>
-                        <span style={{ color: "var(--text3)", fontWeight: 600 }}>Enroll Code:</span>
-                        <span style={{
-                          fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14,
-                          color: "var(--amber)", letterSpacing: 1.5,
-                        }}>{displayCode}</span>
+                      <div className="td-enroll-code">
+                        <span className="td-enroll-label">Enroll Code:</span>
+                        <span className="td-enroll-value">{displayCode}</span>
                       </div>
                     )}
 
                     {/* Co-teacher indicator for co-teachers */}
                     {isCoTeacher && course.ownerEmail && (
-                      <div style={{
-                        marginTop: 12, padding: "10px 12px", background: "var(--surface2)",
-                        borderRadius: 8, fontSize: 12, color: "var(--text3)",
-                      }}>
+                      <div className="td-owner-info">
                         Owner: {course.ownerEmail.split("@")[0]}
                       </div>
                     )}
 
                     {/* Co-teachers list — owner only */}
                     {isOwner && coTeacherList.length > 0 && (
-                      <div style={{ marginTop: 8 }}>
+                      <div>
                         <button
                           onClick={() => setExpandedCoTeachers(expandedCoTeachers === course.id ? null : course.id)}
-                          style={{
-                            fontSize: 12, color: "#8b5cf6", background: "none", border: "none",
-                            cursor: "pointer", fontWeight: 600, padding: 0,
-                          }}
+                          className="td-coteacher-toggle"
                         >
                           👥 {coTeacherList.length} co-teacher{coTeacherList.length !== 1 ? "s" : ""} {expandedCoTeachers === course.id ? "▲" : "▼"}
                         </button>
                         {expandedCoTeachers === course.id && (
-                          <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div className="td-coteacher-list">
                             {coTeacherList.map((uid) => (
-                              <div key={uid} style={{
-                                display: "flex", alignItems: "center", justifyContent: "space-between",
-                                padding: "4px 8px", background: "var(--surface2)", borderRadius: 6, fontSize: 12,
-                              }}>
-                                <span style={{ color: "var(--text2)" }}>{coTeacherNames[uid] || uid}</span>
+                              <div key={uid} className="td-coteacher-row">
+                                <span>{coTeacherNames[uid] || uid}</span>
                                 <button
                                   onClick={() => handleRemoveCoTeacher(course.id, uid)}
                                   title="Remove co-teacher"
-                                  style={{
-                                    background: "none", border: "none", cursor: "pointer",
-                                    color: "var(--text3)", fontSize: 14, padding: "0 4px",
-                                    lineHeight: 1,
-                                  }}
+                                  className="td-coteacher-remove"
                                 >✕</button>
                               </div>
                             ))}
@@ -369,19 +325,19 @@ export default function TeacherDashboard() {
                       </div>
                     )}
 
-                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", gap: 14, flexWrap: "wrap" }}>
-                      <Link to={`/xp-controls/${course.id}`} style={{ fontSize: 13, color: "var(--amber)", textDecoration: "none", fontWeight: 600 }}>
+                    <div className="td-card-actions">
+                      <Link to={`/xp-controls/${course.id}`} className="td-action-link td-action-link--amber">
                         ⚙️ XP Controls
                       </Link>
-                      <Link to={`/teams/${course.id}`} style={{ fontSize: 13, color: "var(--amber)", textDecoration: "none", fontWeight: 600 }}>
+                      <Link to={`/teams/${course.id}`} className="td-action-link td-action-link--amber">
                         👥 Teams
                       </Link>
-                      <Link to={`/mana/${course.id}`} style={{ fontSize: 13, color: "#8b5cf6", textDecoration: "none", fontWeight: 600 }}>
+                      <Link to={`/mana/${course.id}`} className="td-action-link td-action-link--purple">
                         🔮 Mana
                       </Link>
                       <button
                         onClick={() => setAnnounceCourse({ id: course.id, title: course.title })}
-                        style={{ fontSize: 13, color: "var(--amber)", background: "none", border: "none", cursor: "pointer", fontWeight: 600, padding: 0 }}
+                        className="td-action-btn"
                       >
                         📢 Announce
                       </button>
@@ -395,46 +351,35 @@ export default function TeacherDashboard() {
 
         {/* ============ TEMPLATE LIBRARY ============ */}
         {otherCourses.length > 0 && (
-          <div>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: "var(--text2)", marginBottom: 6 }}>
+          <div className="td-section">
+            <h2 className="section-heading">
               📖 Template Library
             </h2>
-            <p style={{ color: "var(--text3)", fontSize: 13, marginBottom: 14 }}>
+            <p className="td-template-desc">
               Courses shared by other teachers. Browse read-only or copy one to make it your own.
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+            <div className="card-grid card-grid--3">
               {otherCourses.map((course) => (
                 <div key={course.id} className="card fade-in" style={{ position: "relative" }}>
-                  <div style={{
-                    position: "absolute", top: 12, right: 12,
-                    fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                    letterSpacing: "0.05em", color: "var(--text3)",
-                    background: "var(--surface2)", padding: "3px 8px", borderRadius: 6,
-                  }}>
-                    View Only
-                  </div>
+                  <div className="td-card-badge td-card-badge--viewonly">View Only</div>
 
                   <Link to={`/course/${course.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-                    <div style={{ fontSize: 32, marginBottom: 12, width: 56, height: 56, borderRadius: 12, background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center" }}>{course.icon || "📚"}</div>
+                    <div className="td-template-icon">{course.icon || "📚"}</div>
                     <div className="card-title">{course.title}</div>
                     <div className="card-subtitle">{course.description}</div>
                   </Link>
 
                   {course.ownerEmail && (
-                    <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 8 }}>
+                    <div className="td-template-by">
                       By {course.ownerEmail.split("@")[0]}
                     </div>
                   )}
 
-                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+                  <div className="td-card-actions">
                     <button
                       onClick={() => handleForkCourse(course)}
                       disabled={copying === course.id}
-                      style={{
-                        fontSize: 13, fontWeight: 700, color: "var(--amber)",
-                        background: "none", border: "none", cursor: "pointer",
-                        padding: 0, opacity: copying === course.id ? 0.5 : 1,
-                      }}
+                      className="td-fork-btn"
                     >
                       {copying === course.id ? "Copying..." : "📋 Copy to My Courses"}
                     </button>
@@ -444,7 +389,6 @@ export default function TeacherDashboard() {
             </div>
           </div>
         )}
-      </div>
 
       {/* ============ ANNOUNCEMENT COMPOSER MODAL ============ */}
       {announceCourse && (
@@ -468,37 +412,18 @@ export default function TeacherDashboard() {
 
       {/* ============ CREATE COURSE MODAL ============ */}
       {showCreateModal && (
-        <div
-          onClick={() => setShowCreateModal(false)}
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "var(--surface)", borderRadius: 16, padding: "32px 28px",
-              width: "100%", maxWidth: 440, border: "1px solid var(--border)",
-            }}
-          >
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, marginBottom: 20 }}>
-              Create New Course
-            </h2>
+        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
+            <h2 className="modal-title">Create New Course</h2>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Course Icon</label>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <div className="td-modal-field">
+              <label className="td-modal-label">Course Icon</label>
+              <div className="td-modal-icon-picker">
                 {ICONS.map((icon) => (
                   <button
                     key={icon}
                     onClick={() => setNewIcon(icon)}
-                    style={{
-                      fontSize: 24, width: 40, height: 40, borderRadius: 8, cursor: "pointer",
-                      border: newIcon === icon ? "2px solid var(--amber)" : "1px solid var(--border)",
-                      background: newIcon === icon ? "var(--amber-dim)" : "transparent",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
+                    className={`td-modal-icon-btn ${newIcon === icon ? "active" : ""}`}
                   >
                     {icon}
                   </button>
@@ -506,30 +431,28 @@ export default function TeacherDashboard() {
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Course Title *</label>
+            <div className="td-modal-field">
+              <label className="td-modal-label">Course Title *</label>
               <input
-                className="editor-input"
+                className="input-field"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 placeholder="e.g. AP Physics 1"
                 autoFocus
-                style={{ width: "100%" }}
               />
             </div>
 
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Description</label>
+            <div className="td-modal-field" style={{ marginBottom: 24 }}>
+              <label className="td-modal-label">Description</label>
               <input
-                className="editor-input"
+                className="input-field"
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
                 placeholder="e.g. Mechanics, energy, and waves"
-                style={{ width: "100%" }}
               />
             </div>
 
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <div className="td-modal-actions">
               <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>Cancel</button>
               <button
                 className="btn btn-primary"

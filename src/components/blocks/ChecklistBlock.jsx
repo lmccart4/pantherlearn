@@ -1,14 +1,38 @@
 // src/components/blocks/ChecklistBlock.jsx
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 import { useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
 
-export default function ChecklistBlock({ block }) {
+export default function ChecklistBlock({ block, studentData = {}, onAnswer }) {
   const translatedTitle = useTranslatedText(block.title);
   const translatedItems = useTranslatedTexts(block.items || []);
-  const [checked, setChecked] = useState({});
+  const saved = (studentData && studentData[block.id]) || {};
+  const [checked, setChecked] = useState(saved.checked || {});
+  const hydrated = useRef(false);
 
-  const toggle = (i) => setChecked((prev) => ({ ...prev, [i]: !prev[i] }));
+  useEffect(() => {
+    const s = studentData?.[block.id];
+    if (!s) {
+      if (hydrated.current && (!studentData || Object.keys(studentData).length === 0)) {
+        setChecked({});
+        hydrated.current = false;
+      }
+      return;
+    }
+    if (hydrated.current) return;
+    hydrated.current = true;
+    if (s.checked) setChecked(s.checked);
+  }, [studentData, block.id]);
+
+  const toggle = useCallback((i) => {
+    setChecked((prev) => {
+      const updated = { ...prev, [i]: !prev[i] };
+      if (onAnswer) {
+        onAnswer(block.id, { checked: updated, savedAt: new Date().toISOString() });
+      }
+      return updated;
+    });
+  }, [block.id, onAnswer]);
 
   const items = block.items || [];
   const doneCount = Object.values(checked).filter(Boolean).length;

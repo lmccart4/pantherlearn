@@ -1,6 +1,6 @@
 // src/pages/StudentProgress.jsx
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, getDoc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
@@ -41,6 +41,11 @@ export default function StudentProgress() {
   const [gradePopup, setGradePopup] = useState(null); // { studentUid, lessonId, x, y } or { studentUid, type: "overall", x, y }
   const [confirmComplete, setConfirmComplete] = useState(null); // { studentUid, lessonId, studentName, x, y }
   const [completingLesson, setCompletingLesson] = useState(false);
+
+  // Grade override state
+  const [pendingOverride, setPendingOverride] = useState(null); // { studentUid, lessonId, blockId, tier }
+  const [gradeAllPending, setGradeAllPending] = useState(null); // { studentUid, lessonId, tier }
+  const [savingGrade, setSavingGrade] = useState(false);
   const [confirmResetXP, setConfirmResetXP] = useState(null); // { studentUid, studentName }
   const [resettingXP, setResettingXP] = useState(false);
   const [xpConfig, setXpConfig] = useState(null);
@@ -194,7 +199,7 @@ export default function StudentProgress() {
 
   if (userRole !== "teacher") {
     return (
-      <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}>
+      <div className="page-wrapper" style={{ textAlign: "center", paddingTop: 120 }}>
         <h2 style={{ fontFamily: "var(--font-display)" }}>Teacher access only</h2>
       </div>
     );
@@ -236,11 +241,11 @@ export default function StudentProgress() {
       const a = answers[q.id];
       if (a?.submitted && a.writtenScore !== undefined && a.writtenScore !== null) {
         const tier = getTierInfo(a.writtenScore);
-        saItems.push({ type: "sa", prompt: q.prompt, points: a.writtenScore, max: 1, label: a.writtenLabel || tier?.label, tier });
+        saItems.push({ type: "sa", prompt: q.prompt, points: a.writtenScore, max: 1, label: a.writtenLabel || tier?.label, tier, blockId: q.id, gradedBy: a.gradedBy ?? null, autogradeOriginal: a.autogradeOriginal ?? null });
       } else if (a?.submitted) {
-        saItems.push({ type: "sa", prompt: q.prompt, points: null, max: 1, label: "Ungraded", tier: null, ungraded: true });
+        saItems.push({ type: "sa", prompt: q.prompt, points: null, max: 1, label: "Ungraded", tier: null, ungraded: true, blockId: q.id, gradedBy: null, autogradeOriginal: null });
       } else if (isPastDue) {
-        saItems.push({ type: "sa", prompt: q.prompt, points: 0, max: 1, label: "Missing", tier: GRADE_TIERS[0], missing: true });
+        saItems.push({ type: "sa", prompt: q.prompt, points: 0, max: 1, label: "Missing", tier: GRADE_TIERS[0], missing: true, blockId: q.id, gradedBy: null, autogradeOriginal: null });
       }
     });
 
@@ -666,6 +671,90 @@ export default function StudentProgress() {
     );
   };
 
+  // --- Grade Override Handlers ---
+  const OVERRIDE_OPTIONS = [
+    { label: "Agent got it wrong", value: null },
+    { label: "Data glitch", value: "glitch" },
+    { label: "Mercy credit", value: "mercy" },
+    { label: "Don't train on this", value: "ignore" },
+  ];
+
+  const handleGradeOverride = async (studentUid, lessonId, blockId, tier, overrideReason) => {
+    setSavingGrade(true);
+    try {
+      const progressRef = doc(db, "progress", studentUid, "courses", selectedCourse, "lessons", lessonId);
+      const updatePayload = {
+        [`answers.${blockId}.writtenScore`]: tier.value,
+        [`answers.${blockId}.writtenLabel`]: tier.label,
+        [`answers.${blockId}.needsGrading`]: false,
+        [`answers.${blockId}.gradedAt`]: new Date(),
+        [`answers.${blockId}.gradedBy`]: "teacher",
+      };
+      if (overrideReason !== undefined) {
+        updatePayload[`answers.${blockId}.overrideReason`] = overrideReason;
+      }
+      await updateDoc(progressRef, updatePayload);
+
+      // Update local state so popup reflects the change immediately
+      setProgressData((prev) => {
+        const updated = { ...prev };
+        if (updated[studentUid]?.[lessonId]?.[blockId]) {
+          updated[studentUid] = { ...updated[studentUid] };
+          updated[studentUid][lessonId] = { ...updated[studentUid][lessonId] };
+          updated[studentUid][lessonId][blockId] = {
+            ...updated[studentUid][lessonId][blockId],
+            writtenScore: tier.value,
+            writtenLabel: tier.label,
+            needsGrading: false,
+            gradedBy: "teacher",
+            overrideReason: overrideReason ?? null,
+          };
+        }
+        return updated;
+      });
+    } catch (err) {
+      console.error("Failed to override grade:", err);
+      alert("Failed to save grade. Please try again.");
+    }
+    setSavingGrade(false);
+    setPendingOverride(null);
+    setGradeAllPending(null);
+  };
+
+  const handleGradeTierClick = (studentUid, lessonId, blockId, tier, gradedBy, autogradeOriginal) => {
+    const wasAutoGraded = !!(autogradeOriginal || gradedBy === "autograde-agent");
+    if (wasAutoGraded) {
+      setPendingOverride({ studentUid, lessonId, blockId, tier });
+    } else {
+      handleGradeOverride(studentUid, lessonId, blockId, tier, undefined);
+    }
+  };
+
+  const handleGradeAll = (studentUid, lessonId, tier, saItems) => {
+    const hasAutoGraded = saItems.some((item) => !!(item.autogradeOriginal || item.gradedBy === "autograde-agent"));
+    if (hasAutoGraded) {
+      setGradeAllPending({ studentUid, lessonId, tier, saItems });
+    } else {
+      // No auto-graded items, save all immediately
+      saItems.forEach((item) => {
+        if (!item.missing) {
+          handleGradeOverride(studentUid, lessonId, item.blockId, tier, undefined);
+        }
+      });
+    }
+  };
+
+  const handleGradeAllConfirm = (overrideReason) => {
+    if (!gradeAllPending) return;
+    const { studentUid, lessonId, tier, saItems } = gradeAllPending;
+    saItems.forEach((item) => {
+      if (!item.missing) {
+        handleGradeOverride(studentUid, lessonId, item.blockId, tier, overrideReason);
+      }
+    });
+    setGradeAllPending(null);
+  };
+
   // --- Grade Breakdown Popup ---
   const renderGradePopup = () => {
     if (!gradePopup) return null;
@@ -750,25 +839,121 @@ export default function StudentProgress() {
 
           {result.saItems.length > 0 && (
             <>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 8 }}>
-                Written Responses ({result.saGraded}/{result.saTotal} graded)
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  Written Responses ({result.saGraded}/{result.saTotal} graded)
+                </div>
+                {result.saItems.filter((i) => !i.missing).length > 0 && (
+                  <div style={{ display: "flex", gap: 2 }}>
+                    <span style={{ fontSize: 10, color: "var(--text3)", marginRight: 4, alignSelf: "center" }}>All:</span>
+                    {GRADE_TIERS.map((t) => (
+                      <button key={t.label} onClick={() => handleGradeAll(gradePopup.studentUid, gradePopup.lessonId, t, result.saItems)}
+                        disabled={savingGrade}
+                        style={{
+                          fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4, border: "1px solid var(--border)",
+                          background: "transparent", color: t.color, cursor: savingGrade ? "wait" : "pointer", lineHeight: 1,
+                        }}>
+                        {t.label[0]}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              {result.saItems.map((item, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, padding: "2px 0" }}>
-                  <span style={{ color: "var(--text2)", flex: 1 }}>{item.prompt?.slice(0, 50)}{item.prompt?.length > 50 ? "..." : ""}</span>
-                  {item.ungraded ? (
-                    <span style={{ fontSize: 11, fontStyle: "italic", color: "var(--text3)", marginLeft: 8 }}>ungraded</span>
-                  ) : (
-                    <span style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8 }}>
-                      <span style={{
-                        fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 600,
-                        background: item.tier?.bg || "var(--surface2)", color: item.tier?.color || "var(--text3)",
-                      }}>{item.label}</span>
-                      <span style={{ fontWeight: 600, color: "var(--text)" }}>{item.points.toFixed(2)} / 1</span>
+
+              {/* Grade All override reason picker */}
+              {gradeAllPending && gradeAllPending.lessonId === gradePopup.lessonId && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, padding: "6px 0", borderBottom: "1px solid var(--border)", marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, color: "var(--text3)", width: "100%", marginBottom: 2 }}>
+                    Set all to <strong style={{ color: gradeAllPending.tier.color }}>{gradeAllPending.tier.label}</strong> — why?
+                  </span>
+                  {OVERRIDE_OPTIONS.map((opt) => (
+                    <button key={opt.label} onClick={() => handleGradeAllConfirm(opt.value)}
+                      disabled={savingGrade}
+                      style={{
+                        fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--border)",
+                        background: "var(--bg)", color: "var(--text2)", cursor: savingGrade ? "wait" : "pointer",
+                      }}>
+                      {opt.label}
+                    </button>
+                  ))}
+                  <button onClick={() => setGradeAllPending(null)}
+                    style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "none", background: "none", color: "var(--text3)", cursor: "pointer" }}>
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {result.saItems.map((item, i) => {
+                const itemWasAutoGraded = !!(item.autogradeOriginal || item.gradedBy === "autograde-agent");
+                const graderIcon = item.gradedBy === "teacher" ? "👩‍🏫" : item.gradedBy === "autograde-agent" ? "🤖" : null;
+                const graderLabel = item.gradedBy === "teacher"
+                  ? (itemWasAutoGraded ? "Teacher override" : "Teacher")
+                  : item.gradedBy === "autograde-agent" ? "Auto-graded" : null;
+                return (
+                <div key={i} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "4px 0", borderBottom: i < result.saItems.length - 1 ? "1px solid var(--border)" : "none" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
+                    <span style={{ color: "var(--text2)", flex: 1, display: "flex", alignItems: "center", gap: 4 }}>
+                      {item.prompt?.slice(0, 50)}{item.prompt?.length > 50 ? "..." : ""}
+                      {graderIcon && (
+                        <span title={graderLabel} style={{
+                          fontSize: 9, padding: "1px 5px", borderRadius: 4, fontWeight: 600, whiteSpace: "nowrap",
+                          background: item.gradedBy === "autograde-agent" ? "rgba(139,92,246,0.12)" : "rgba(59,130,246,0.12)",
+                          color: item.gradedBy === "autograde-agent" ? "#8b5cf6" : "#3b82f6",
+                        }}>
+                          {graderIcon} {graderLabel}
+                        </span>
+                      )}
                     </span>
+                    {item.missing ? (
+                      <span style={{ fontSize: 10, fontStyle: "italic", color: "var(--text3)", marginLeft: 8 }}>missing</span>
+                    ) : (
+                      <div style={{ display: "flex", gap: 2, marginLeft: 8 }}>
+                        {GRADE_TIERS.map((t) => {
+                          const isActive = item.points === t.value && !item.ungraded;
+                          return (
+                            <button key={t.label}
+                              onClick={() => handleGradeTierClick(gradePopup.studentUid, gradePopup.lessonId, item.blockId, t, item.gradedBy, item.autogradeOriginal)}
+                              disabled={savingGrade}
+                              style={{
+                                fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4, lineHeight: 1,
+                                border: isActive ? "none" : "1px solid var(--border)",
+                                background: isActive ? t.bg : "transparent",
+                                color: isActive ? t.color : "var(--text3)",
+                                cursor: savingGrade ? "wait" : "pointer",
+                              }}>
+                              {t.label[0]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Per-item override reason picker */}
+                  {pendingOverride && pendingOverride.blockId === item.blockId && pendingOverride.lessonId === gradePopup.lessonId && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, padding: "4px 0" }}>
+                      <span style={{ fontSize: 10, color: "var(--text3)", width: "100%", marginBottom: 2 }}>
+                        Changing to <strong style={{ color: pendingOverride.tier.color }}>{pendingOverride.tier.label}</strong> — why?
+                      </span>
+                      {OVERRIDE_OPTIONS.map((opt) => (
+                        <button key={opt.label}
+                          onClick={() => handleGradeOverride(pendingOverride.studentUid, pendingOverride.lessonId, pendingOverride.blockId, pendingOverride.tier, opt.value)}
+                          disabled={savingGrade}
+                          style={{
+                            fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--border)",
+                            background: "var(--bg)", color: "var(--text2)", cursor: savingGrade ? "wait" : "pointer",
+                          }}>
+                          {opt.label}
+                        </button>
+                      ))}
+                      <button onClick={() => setPendingOverride(null)}
+                        style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "none", background: "none", color: "var(--text3)", cursor: "pointer" }}>
+                        Cancel
+                      </button>
+                    </div>
                   )}
                 </div>
-              ))}
+              );})}
             </>
           )}
 
@@ -975,7 +1160,7 @@ export default function StudentProgress() {
           </div>
         )}
 
-        <h3 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: "var(--text2)", marginBottom: 12 }}>Lesson Grades</h3>
+        <h3 className="section-heading" style={{ marginBottom: 12 }}>Lesson Grades</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {lessons.map((lesson) => {
             const result = getStudentLessonGrade(s.uid, lesson.id);
@@ -1045,25 +1230,84 @@ export default function StudentProgress() {
                   const a = answers[q.id];
                   if (!a?.submitted) return null;
                   const tier = a.writtenScore !== undefined && a.writtenScore !== null ? getTierInfo(a.writtenScore) : null;
+                  const cardWasAutoGraded = !!(a.autogradeOriginal || a.gradedBy === "autograde-agent");
                   return (
                     <div key={q.id} style={{
                       marginTop: 10, background: "var(--bg)", borderRadius: 8,
                       padding: "10px 14px", border: "1px solid var(--border)",
                     }} onClick={(e) => e.stopPropagation()}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)" }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", flex: 1 }}>
                           Written: {q.prompt?.slice(0, 60)}{q.prompt?.length > 60 ? "..." : ""}
                         </div>
-                        {tier ? (
-                          <span style={{
-                            fontSize: 10, padding: "2px 8px", borderRadius: 4, fontWeight: 600,
-                            background: tier.bg, color: tier.color,
-                          }}>{a.writtenLabel || tier.label} ({Math.round(a.writtenScore * 100)}%)</span>
-                        ) : (
-                          <span style={{ fontSize: 10, fontStyle: "italic", color: "var(--text3)" }}>Awaiting grade</span>
-                        )}
+                        <div style={{ display: "flex", gap: 3, marginLeft: 8 }}>
+                          {GRADE_TIERS.map((t) => {
+                            const isActive = tier && a.writtenScore === t.value;
+                            return (
+                              <button key={t.label}
+                                onClick={() => handleGradeTierClick(s.uid, lesson.id, q.id, t, a.gradedBy, a.autogradeOriginal)}
+                                disabled={savingGrade}
+                                style={{
+                                  fontSize: 10, fontWeight: 700, padding: "3px 7px", borderRadius: 5, lineHeight: 1,
+                                  border: isActive ? "none" : "1px solid var(--border)",
+                                  background: isActive ? t.bg : "transparent",
+                                  color: isActive ? t.color : "var(--text3)",
+                                  cursor: savingGrade ? "wait" : "pointer",
+                                  transition: "all 0.15s",
+                                }}
+                                title={t.label}>
+                                {t.label.slice(0, 3)}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
+
+                      {/* Override reason picker for this card */}
+                      {pendingOverride && pendingOverride.blockId === q.id && pendingOverride.lessonId === lesson.id && pendingOverride.studentUid === s.uid && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, padding: "6px 0", borderBottom: "1px solid var(--border)", marginBottom: 6 }}>
+                          <span style={{ fontSize: 11, color: "var(--text3)", width: "100%", marginBottom: 2 }}>
+                            Changing to <strong style={{ color: pendingOverride.tier.color }}>{pendingOverride.tier.label}</strong> — why?
+                          </span>
+                          {OVERRIDE_OPTIONS.map((opt) => (
+                            <button key={opt.label}
+                              onClick={() => handleGradeOverride(s.uid, lesson.id, q.id, pendingOverride.tier, opt.value)}
+                              disabled={savingGrade}
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)",
+                                background: "var(--surface2)", color: "var(--text2)", cursor: savingGrade ? "wait" : "pointer",
+                              }}>
+                              {opt.label}
+                            </button>
+                          ))}
+                          <button onClick={() => setPendingOverride(null)}
+                            style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "none", background: "none", color: "var(--text3)", cursor: "pointer" }}>
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+
                       <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text2)" }}>{a.answer}</div>
+                      {a.feedback && (
+                        <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 6, fontStyle: "italic" }}>
+                          Feedback: {a.feedback}
+                        </div>
+                      )}
+                      {/* Grader badge */}
+                      {a.gradedBy && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+                          <span style={{
+                            fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 4,
+                            background: a.gradedBy === "autograde-agent" ? "rgba(139,92,246,0.12)" : "rgba(59,130,246,0.12)",
+                            color: a.gradedBy === "autograde-agent" ? "#8b5cf6" : "#3b82f6",
+                          }}>
+                            {a.gradedBy === "autograde-agent" ? "🤖 Auto-graded" : "👩‍🏫 Teacher"}
+                          </span>
+                          {cardWasAutoGraded && a.gradedBy === "teacher" && (
+                            <span style={{ fontSize: 10, color: "var(--text3)", fontStyle: "italic" }}>overridden</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1095,14 +1339,14 @@ export default function StudentProgress() {
       <div>
         {renderBreadcrumb()}
 
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{lesson.title}</h2>
+        <h2 className="section-heading" style={{ marginBottom: 6 }}>{lesson.title}</h2>
         <p style={{ color: "var(--text3)", fontSize: 13, marginBottom: 24 }}>
           {mc.length} multiple choice · {sa.length} written response · {filteredStudents.length} students
         </p>
 
         {mc.length > 0 && (
           <div style={{ marginBottom: 28 }}>
-            <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, color: "var(--text2)", marginBottom: 12 }}>Question Performance</h3>
+            <h3 className="section-heading" style={{ marginBottom: 12 }}>Question Performance</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {questionStats.map((qs) => (
                 <div key={qs.id} className="card" style={{ padding: "12px 18px" }}>
@@ -1133,7 +1377,7 @@ export default function StudentProgress() {
           </div>
         )}
 
-        <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, color: "var(--text2)", marginBottom: 12 }}>Student Results</h3>
+        <h3 className="section-heading" style={{ marginBottom: 12 }}>Student Results</h3>
         <div style={{ overflowX: "auto", borderRadius: 12, border: "1px solid var(--border)" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
@@ -1278,12 +1522,11 @@ export default function StudentProgress() {
 
   // =================== MAIN RENDER ===================
   return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
+    <main id="main-content" className="page-wrapper">
+        <h1 className="page-title" style={{ marginBottom: 8 }}>
           Student Progress
         </h1>
-        <p style={{ color: "var(--text2)", fontSize: 15, marginBottom: 28 }}>
+        <p className="page-subtitle" style={{ marginBottom: 28 }}>
           Track grades, question performance, and student engagement.
         </p>
 
@@ -1337,7 +1580,7 @@ export default function StudentProgress() {
                   })()}
                 </div>
 
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: "var(--text2)", marginBottom: 12 }}>📚 Lessons</h3>
+                <h3 className="section-heading" style={{ marginBottom: 12 }}>📚 Lessons</h3>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10, marginBottom: 28 }}>
                   {lessons.map((lesson) => {
                     let totalAttempted = 0, gradeSum = 0;
@@ -1369,7 +1612,7 @@ export default function StudentProgress() {
                   })}
                 </div>
 
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: "var(--text2)", marginBottom: 12 }}>👥 Students</h3>
+                <h3 className="section-heading" style={{ marginBottom: 12 }}>👥 Students</h3>
                 {filteredStudents.length === 0 ? (
                   <div className="card" style={{ textAlign: "center", padding: 40 }}>
                     <p>No students found</p>
@@ -1452,7 +1695,6 @@ export default function StudentProgress() {
             )}
           </>
         )}
-      </div>
 
       {/* Grade breakdown popup */}
       {renderGradePopup()}

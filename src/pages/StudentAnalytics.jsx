@@ -317,15 +317,18 @@ export default function StudentAnalytics() {
 
   if (userRole !== "teacher") {
     return (
-      <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}>
-        <h2 style={{ fontFamily: "var(--font-display)" }}>Teacher access only</h2>
+      <div className="page-wrapper">
+        <div className="empty-state">
+          <div className="empty-state-icon">🔒</div>
+          <div className="empty-state-title">Teacher access only</div>
+        </div>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="page-container" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}>
+      <div className="page-wrapper" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}>
         <div className="spinner" />
       </div>
     );
@@ -341,7 +344,7 @@ export default function StudentAnalytics() {
   ];
 
   return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
+    <main id="main-content" className="page-wrapper">
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
@@ -381,7 +384,7 @@ export default function StudentAnalytics() {
         {dataLoading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><div className="spinner" /></div>
         ) : !analytics ? (
-          <div style={{ textAlign: "center", color: "var(--text3)", padding: 60 }}>No data yet.</div>
+          <div className="empty-state"><div className="empty-state-text">No data yet.</div></div>
         ) : (
           <>
             {tab === "engagement" && <EngagementTab analytics={analytics} progressData={progressData} />}
@@ -580,7 +583,7 @@ function DifficultyTab({ analytics }) {
   const { questionDifficulty } = analytics;
 
   if (questionDifficulty.length === 0) {
-    return <div style={{ textAlign: "center", color: "var(--text3)", padding: 60 }}>No MC question data yet.</div>;
+    return <div className="empty-state"><div className="empty-state-text">No MC question data yet.</div></div>;
   }
 
   return (
@@ -640,12 +643,12 @@ function AtRiskTab({ analytics }) {
       </p>
 
       {atRisk.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 60 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600, color: "var(--green)" }}>
+        <div className="empty-state">
+          <div className="empty-state-icon">🎉</div>
+          <div className="empty-state-title" style={{ color: "var(--green)" }}>
             All students are on track!
           </div>
-          <div style={{ color: "var(--text3)", fontSize: 13, marginTop: 6 }}>
+          <div className="empty-state-text">
             {activeStudents.length} students analyzed — no risk indicators found.
           </div>
         </div>
@@ -919,12 +922,10 @@ function EngagementScoresTab({ analytics, telemetryData }) {
       </div>
 
       {!hasData ? (
-        <div style={{ textAlign: "center", color: "var(--text3)", padding: 60 }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>📡</div>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
-            No telemetry data yet
-          </div>
-          <div style={{ fontSize: 13 }}>
+        <div className="empty-state">
+          <div className="empty-state-icon">📡</div>
+          <div className="empty-state-title">No telemetry data yet</div>
+          <div className="empty-state-text">
             Engagement scores will appear after students interact with lessons and the nightly computation runs.
           </div>
         </div>

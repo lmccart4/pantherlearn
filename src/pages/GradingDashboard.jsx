@@ -2,8 +2,9 @@
 // Optimized: lazy-loads data by course → section → lesson instead of fetching everything upfront.
 import { useState, useEffect, useRef } from "react";
 import { collection, getDocs, query, orderBy, where, doc, getDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db, signInWithClassroom } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
+import { fetchClassroomCourses, fetchClassroomStudents, createCourseWork, listStudentSubmissions, patchStudentGrade } from "../lib/classroom";
 import CourseOverview from "../components/grading/CourseOverview";
 import LessonView from "../components/grading/LessonView";
 import StudentView from "../components/grading/StudentView";
@@ -20,6 +21,7 @@ export default function GradingDashboard() {
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [activeTab, setActiveTab] = useState("written");
+  const [showGraded, setShowGraded] = useState(false);
 
   // Data state
   const [lessonMap, setLessonMap] = useState({});
@@ -35,6 +37,14 @@ export default function GradingDashboard() {
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [loadingCourse, setLoadingCourse] = useState(false);
   const [loadingLesson, setLoadingLesson] = useState(false);
+
+  // Google Classroom sync state
+  const [syncModal, setSyncModal] = useState(false);
+  const [syncStep, setSyncStep] = useState("idle"); // idle | picking | syncing | done
+  const [syncToken, setSyncToken] = useState(null);
+  const [classroomCourses, setClassroomCourses] = useState([]);
+  const [syncLog, setSyncLog] = useState([]);
+  const [syncSummary, setSyncSummary] = useState(null);
 
   // Use refs to avoid stale closures in loadResponses
   const enrollmentsRef = useRef([]);
@@ -170,6 +180,11 @@ export default function GradingDashboard() {
   }, [selectedCourse]);
 
   // ─── Step 3: Load responses for filtered students, scoped to lesson if selected ───
+  // TODO: The current filter (needsGrading && submitted && writtenScore == null) excludes
+  // already-graded items, including auto-graded ones. For the teacher override flow to work
+  // on auto-graded responses, add a "Show graded" toggle or separate tab that loads items
+  // where gradedBy === "autograde-agent" && writtenScore != null, so teachers can review
+  // and override auto-grades.
   async function loadResponses(lessonId, section) {
     if (!selectedCourse) return;
     setLoadingLesson(true);
@@ -204,12 +219,17 @@ export default function GradingDashboard() {
           const data = progressDoc.data();
           if (!data.answers) continue;
           Object.entries(data.answers).forEach(([blockId, answer]) => {
-            if (answer.needsGrading && answer.submitted && answer.writtenScore == null) {
+            const needsReview = answer.needsGrading && answer.submitted && answer.writtenScore == null;
+            const isAutoGraded = answer.gradedBy === "autograde-agent" && answer.writtenScore != null;
+            if (needsReview || (showGraded && isAutoGraded)) {
               writtenResponses.push({
                 id: `${progressDoc.ref.path}-${blockId}`,
                 studentId: uid, lessonId, courseId: selectedCourse, blockId,
                 answer: answer.answer, submittedAt: answer.submittedAt,
                 writtenScore: answer.writtenScore ?? null, writtenLabel: answer.writtenLabel ?? null,
+                gradedBy: answer.gradedBy ?? null,
+                autogradeOriginal: answer.autogradeOriginal ?? null,
+                feedback: answer.feedback ?? null,
                 path: progressDoc.ref.path,
               });
             }
@@ -232,12 +252,17 @@ export default function GradingDashboard() {
             const data = d.data();
             if (!data.answers) return;
             Object.entries(data.answers).forEach(([blockId, answer]) => {
-              if (answer.needsGrading && answer.submitted && answer.writtenScore == null) {
+              const needsReview = answer.needsGrading && answer.submitted && answer.writtenScore == null;
+              const isAutoGraded = answer.gradedBy === "autograde-agent" && answer.writtenScore != null;
+              if (needsReview || (showGraded && isAutoGraded)) {
                 writtenResponses.push({
                   id: `${d.ref.path}-${blockId}`,
                   studentId: uid, lessonId: d.id, courseId: selectedCourse, blockId,
                   answer: answer.answer, submittedAt: answer.submittedAt,
                   writtenScore: answer.writtenScore ?? null, writtenLabel: answer.writtenLabel ?? null,
+                  gradedBy: answer.gradedBy ?? null,
+                  autogradeOriginal: answer.autogradeOriginal ?? null,
+                  feedback: answer.feedback ?? null,
                   path: d.ref.path,
                 });
               }
@@ -293,7 +318,7 @@ export default function GradingDashboard() {
     if (!loadingCourse && enrollments.length > 0) {
       loadResponses(selectedLesson, selectedSection);
     }
-  }, [enrollments, selectedSection, loadingCourse]);
+  }, [enrollments, selectedSection, loadingCourse, showGraded]);
 
   // ─── Handle lesson selection ───
   function handleSelectLesson(lessonId) {
@@ -304,11 +329,151 @@ export default function GradingDashboard() {
 
   if (userRole !== "teacher") {
     return (
-      <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}>
+      <div className="page-wrapper" style={{ textAlign: "center", paddingTop: 120 }}>
         <h2 style={{ fontFamily: "var(--font-display)" }}>Teacher access only</h2>
         <p style={{ color: "var(--text2)", marginTop: 8 }}>This page is only available to teachers.</p>
       </div>
     );
+  }
+
+  // ─── Google Classroom Sync ───
+  async function handleSyncToClassroom() {
+    setSyncModal(true);
+    setSyncStep("picking");
+    setSyncLog([]);
+    setSyncSummary(null);
+    try {
+      const token = await signInWithClassroom();
+      setSyncToken(token);
+      const gcCourses = await fetchClassroomCourses(token);
+      setClassroomCourses(gcCourses);
+    } catch (err) {
+      setSyncLog([`Error: ${err.message}`]);
+      setSyncStep("done");
+    }
+  }
+
+  async function executeSyncForCourse(classroomCourseId) {
+    setSyncStep("syncing");
+    const log = [];
+    let totalGrades = 0;
+    let totalLessons = 0;
+
+    try {
+      // 1. Fetch Classroom students and match by email
+      log.push("Fetching Classroom roster...");
+      setSyncLog([...log]);
+      const gcStudents = await fetchClassroomStudents(syncToken, classroomCourseId);
+
+      // Build email → classroomUserId map
+      const emailToClassroomId = {};
+      gcStudents.forEach((s) => {
+        if (s.email) emailToClassroomId[s.email.toLowerCase()] = s.userId;
+      });
+
+      // Build pantherlearn uid → email map from enrollments
+      const uidToEmail = {};
+      enrollments.forEach((e) => {
+        if (e.email) uidToEmail[e.uid || e.id] = e.email.toLowerCase();
+      });
+
+      log.push(`Matched ${Object.keys(emailToClassroomId).length} Classroom students`);
+      setSyncLog([...log]);
+
+      // 2. Fetch ALL progress for enrolled students in this course
+      const currentEnrollments = enrollmentsRef.current;
+      const studentUids = currentEnrollments.map((e) => e.uid || e.id);
+
+      // Collect per-lesson per-student grades
+      const lessonGrades = {}; // { lessonId: { uid: [scores] } }
+
+      const results = await Promise.allSettled(
+        studentUids.map(async (uid) => {
+          const lessonDocs = await getDocs(
+            collection(db, "progress", uid, "courses", selectedCourse, "lessons")
+          );
+          return { uid, lessonDocs };
+        })
+      );
+
+      for (const result of results) {
+        if (result.status !== "fulfilled") continue;
+        const { uid, lessonDocs } = result.value;
+        lessonDocs.forEach((d) => {
+          const data = d.data();
+          if (!data.answers) return;
+          Object.values(data.answers).forEach((answer) => {
+            if (answer.writtenScore != null) {
+              if (!lessonGrades[d.id]) lessonGrades[d.id] = {};
+              if (!lessonGrades[d.id][uid]) lessonGrades[d.id][uid] = [];
+              lessonGrades[d.id][uid].push(answer.writtenScore);
+            }
+          });
+        });
+      }
+
+      // 3. For each lesson with grades, create assignment and push grades
+      const currentLessonMap = lessonMapRef.current;
+      const lessonsWithGrades = Object.keys(lessonGrades).filter(
+        (lid) => currentLessonMap[lid] && Object.keys(lessonGrades[lid]).length > 0
+      );
+
+      log.push(`Found ${lessonsWithGrades.length} lessons with grades to sync`);
+      setSyncLog([...log]);
+
+      for (const lessonId of lessonsWithGrades) {
+        const lessonTitle = currentLessonMap[lessonId]?.title || lessonId;
+
+        // Create assignment
+        log.push(`Creating assignment: ${lessonTitle}...`);
+        setSyncLog([...log]);
+        const courseWork = await createCourseWork(syncToken, classroomCourseId, lessonTitle, 100);
+
+        // Get auto-created submissions
+        const submissions = await listStudentSubmissions(syncToken, classroomCourseId, courseWork.id);
+
+        // Build classroomUserId → submissionId map
+        const userToSubmission = {};
+        submissions.forEach((s) => {
+          userToSubmission[s.userId] = s.id;
+        });
+
+        // Push grades for each matched student
+        let lessonGradeCount = 0;
+        for (const [uid, scores] of Object.entries(lessonGrades[lessonId])) {
+          const email = uidToEmail[uid];
+          if (!email) continue;
+          const classroomUserId = emailToClassroomId[email];
+          if (!classroomUserId) continue;
+          const submissionId = userToSubmission[classroomUserId];
+          if (!submissionId) continue;
+
+          const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+          const grade = Math.round(avg * 100);
+
+          try {
+            await patchStudentGrade(syncToken, classroomCourseId, courseWork.id, submissionId, grade);
+            lessonGradeCount++;
+          } catch (err) {
+            log.push(`  Warning: could not grade ${email}: ${err.message}`);
+            setSyncLog([...log]);
+          }
+        }
+
+        log.push(`  Synced ${lessonGradeCount} grades for "${lessonTitle}"`);
+        setSyncLog([...log]);
+        totalGrades += lessonGradeCount;
+        totalLessons++;
+      }
+
+      setSyncSummary({ totalGrades, totalLessons });
+      log.push(`\nDone! Synced ${totalGrades} grades across ${totalLessons} lessons.`);
+      setSyncLog([...log]);
+    } catch (err) {
+      log.push(`Error: ${err.message}`);
+      setSyncLog([...log]);
+    }
+    setSyncStep("done");
   }
 
   // Helpers
@@ -362,12 +527,11 @@ export default function GradingDashboard() {
   const isLoading = loadingCourses || loadingCourse;
 
   return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
+    <main id="main-content" className="page-wrapper">
+        <h1 className="page-title" style={{ marginBottom: 8 }}>
           Grading Dashboard
         </h1>
-        <p style={{ color: "var(--text2)", fontSize: 15, marginBottom: 28 }}>
+        <p className="page-subtitle" style={{ marginBottom: 28 }}>
           Review student written responses and AI chat activity.
         </p>
 
@@ -413,9 +577,22 @@ export default function GradingDashboard() {
                   ))}
                 </div>
 
+                <button
+                  onClick={handleSyncToClassroom}
+                  style={{
+                    fontSize: 12, fontWeight: 600, padding: "6px 14px", borderRadius: 8,
+                    border: "1px solid var(--border)", background: "transparent", color: "var(--text2)",
+                    cursor: "pointer", display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.borderColor = "var(--text3)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border)"; }}
+                >
+                  Sync to Classroom
+                </button>
               </div>
 
               {/* Content type tabs */}
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3, width: "fit-content" }}>
                 <button className={`top-nav-link ${activeTab === "written" ? "active" : ""}`}
                   onClick={() => { setActiveTab("written"); setSelectedLesson(null); setSelectedStudent(null); }}>
@@ -433,6 +610,18 @@ export default function GradingDashboard() {
                   onClick={() => { setActiveTab("evidence"); setSelectedLesson(null); setSelectedStudent(null); }}>
                   📸 Evidence
                 </button>
+              </div>
+              {activeTab === "written" && (
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text3)", cursor: "pointer", userSelect: "none" }}>
+                  <input
+                    type="checkbox"
+                    checked={showGraded}
+                    onChange={(e) => setShowGraded(e.target.checked)}
+                    style={{ accentColor: "var(--blue)" }}
+                  />
+                  Show auto-graded
+                </label>
+              )}
               </div>
             </div>
 
@@ -480,7 +669,105 @@ export default function GradingDashboard() {
             )}
           </>
         )}
-      </div>
+
+      {/* Google Classroom Sync Modal */}
+      {syncModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }} onClick={() => { if (syncStep !== "syncing") { setSyncModal(false); setSyncStep("idle"); } }}>
+          <div className="card" style={{
+            width: 520, maxHeight: "80vh", overflow: "auto", padding: 24,
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: 18 }}>Sync to Google Classroom</h3>
+              {syncStep !== "syncing" && (
+                <button onClick={() => { setSyncModal(false); setSyncStep("idle"); }}
+                  style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "var(--text3)" }}>x</button>
+              )}
+            </div>
+
+            {syncStep === "picking" && classroomCourses.length > 0 && (
+              <div>
+                <p style={{ fontSize: 13, color: "var(--text2)", marginBottom: 12 }}>
+                  Select which Google Classroom course to sync grades to:
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {classroomCourses.map((gc) => (
+                    <button key={gc.id} onClick={() => executeSyncForCourse(gc.id)}
+                      className="card" style={{
+                        padding: "10px 14px", cursor: "pointer", textAlign: "left",
+                        border: "1px solid var(--border)", background: "var(--bg)",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--blue)"; e.currentTarget.style.background = "var(--surface2)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg)"; }}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{gc.name}</div>
+                      {gc.section && <div style={{ fontSize: 12, color: "var(--text3)" }}>{gc.section}</div>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {syncStep === "picking" && classroomCourses.length === 0 && syncLog.length === 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text3)" }}>
+                <div className="spinner" style={{ width: 16, height: 16 }} />
+                Connecting to Google Classroom...
+              </div>
+            )}
+
+            {(syncStep === "syncing" || syncStep === "done") && (
+              <div>
+                <div style={{
+                  background: "var(--bg)", borderRadius: 8, padding: 12, fontSize: 12,
+                  fontFamily: "monospace", maxHeight: 300, overflow: "auto", lineHeight: 1.6,
+                  border: "1px solid var(--border)",
+                }}>
+                  {syncLog.map((line, i) => (
+                    <div key={i} style={{ color: line.startsWith("Error") || line.startsWith("  Warning") ? "var(--red)" : "var(--text2)" }}>
+                      {line}
+                    </div>
+                  ))}
+                  {syncStep === "syncing" && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text3)", marginTop: 4 }}>
+                      <div className="spinner" style={{ width: 12, height: 12 }} /> Working...
+                    </div>
+                  )}
+                </div>
+
+                {syncSummary && (
+                  <div style={{
+                    marginTop: 12, padding: "10px 14px", borderRadius: 8,
+                    background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)",
+                    fontSize: 13, color: "var(--green)", fontWeight: 600,
+                  }}>
+                    Synced {syncSummary.totalGrades} grades across {syncSummary.totalLessons} lessons
+                  </div>
+                )}
+
+                {syncStep === "done" && (
+                  <button onClick={() => { setSyncModal(false); setSyncStep("idle"); }}
+                    style={{
+                      marginTop: 12, fontSize: 13, fontWeight: 600, padding: "8px 20px",
+                      borderRadius: 8, border: "none", background: "var(--blue)", color: "#fff",
+                      cursor: "pointer",
+                    }}>
+                    Close
+                  </button>
+                )}
+              </div>
+            )}
+
+            {syncLog.length > 0 && syncStep === "picking" && (
+              <div style={{ marginTop: 12, fontSize: 12, color: "var(--red)" }}>
+                {syncLog.map((line, i) => <div key={i}>{line}</div>)}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

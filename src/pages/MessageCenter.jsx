@@ -248,7 +248,7 @@ export default function MessageCenter() {
   // ─── Teacher guard ───
   if (userRole !== "teacher") {
     return (
-      <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}>
+      <div className="page-wrapper" style={{ textAlign: "center", paddingTop: 120 }}>
         <h2 style={{ fontFamily: "var(--font-display)" }}>Teacher access only</h2>
         <p style={{ color: "var(--text2)", marginTop: 8 }}>This page is only available to teachers.</p>
       </div>
@@ -264,12 +264,11 @@ export default function MessageCenter() {
   const totalGroups = chats.filter((c) => c.type === "group" || c.type === "team").length;
 
   return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
+    <main id="main-content" className="page-wrapper">
+        <h1 className="page-title" style={{ marginBottom: 8 }}>
           Message Center
         </h1>
-        <p style={{ color: "var(--text2)", fontSize: 15, marginBottom: 28 }}>
+        <p className="page-subtitle" style={{ marginBottom: 28 }}>
           View all student conversations organized by section.
         </p>
 
@@ -420,7 +419,6 @@ export default function MessageCenter() {
             )}
           </>
         )}
-      </div>
     </main>
   );
 }

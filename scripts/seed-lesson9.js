@@ -1,9 +1,12 @@
 // seed-lesson9.js
-// Run this from your pantherlearn directory: node seed-lesson9.js
-// Make sure you have your Firebase config set up
+// Run from the pantherlearn ROOT directory: node scripts/seed-lesson9.js
+// Uses firebase-admin (bypasses security rules) — requires ADC or service account.
 
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from './firebase-config.js';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+
+initializeApp({ projectId: "pantherlearn-d6f7c" });
+const db = getFirestore();
 
 const lesson = {
   title: "Who's Making the Choices?",
@@ -156,7 +159,7 @@ const lesson = {
         "The chatbot randomly generates different responses each time",
         "The second student's chatbot was a newer version"
       ],
-      correctAnswer: 1,
+      correctIndex: 1,
       explanation: "The framing of the prompt — specifically the words 'dangers' vs. 'connect' — directed the chatbot's attention mechanism toward different patterns in its training data. The AI doesn't have opinions; it responds based on the language cues in the prompt."
     },
     {
@@ -170,7 +173,7 @@ const lesson = {
         "Attention only works with neutral prompts, not framed ones",
         "Attention means the chatbot remembers your previous conversations"
       ],
-      correctAnswer: 1,
+      correctIndex: 1,
       explanation: "Attention is the process that looks at all the words in the input and determines their relationships. When you change the words in a prompt (like 'safe' to 'unsafe'), the attention mechanism focuses on different patterns, leading to different outputs."
     },
     {
@@ -184,7 +187,7 @@ const lesson = {
         "They should only use neutral prompts so the AI gives the 'right' answer",
         "AI can't be used for news because it always gives different answers"
       ],
-      correctAnswer: 1,
+      correctIndex: 1,
       explanation: "The way prompts are framed can introduce bias into AI outputs. This is especially important in contexts like news where framing can shape public understanding. Being aware of this is key to using AI responsibly."
     },
 
@@ -258,16 +261,16 @@ const lesson = {
         "AI chatbots always give the same response regardless of how you ask",
         "Only professional prompt engineers can influence AI responses"
       ],
-      correctAnswer: 1,
+      correctIndex: 1,
       explanation: "The key takeaway is that prompt wording matters. Through the attention mechanism, different words activate different patterns, which means the human writing the prompt plays a major role in shaping the AI's output."
     }
   ]
 };
 
 async function seed() {
-  const docRef = doc(db, 'lessons', 'lesson-9-whos-making-choices');
-  await setDoc(docRef, lesson);
+  await db.collection('courses').doc('ai-literacy').collection('lessons').doc('whos-making-choices').set(lesson);
   console.log('✅ Lesson 9 "Who\'s Making the Choices?" seeded successfully!');
+  console.log('   Path: courses/ai-literacy/lessons/whos-making-choices');
   console.log('   - Warm Up: School safety scenario, attention connection, AI Hype vs Skeptic');
   console.log('   - Activity Part 1: Base vs Framed prompt comparisons (Prompt Comparison Bot)');
   console.log('   - Activity Part 2: Free experimentation with variations (Prompt Laboratory)');

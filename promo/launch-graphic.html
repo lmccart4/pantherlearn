@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PantherLearn — Launch Day</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Space+Mono:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root {
+    --amber: #f5a623;
+    --amber-bright: #ffcf5c;
+    --purple: #b08eff;
+    --purple-deep: #7c5cbf;
+    --cyan: #22d3ee;
+    --bg: #07090e;
+    --surface: #0e1119;
+    --text: #f0f0f4;
+    --text-dim: #8891aa;
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ============ CANVAS ============ */
+  .canvas {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    overflow: hidden;
+  }
+
+  /* Radial glow behind hero */
+  .canvas::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140vw;
+    height: 100vh;
+    background: radial-gradient(
+      ellipse 60% 55% at 50% 30%,
+      rgba(245,166,35,0.12) 0%,
+      rgba(176,142,255,0.06) 40%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Noise texture overlay */
+  .canvas::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    background-size: 256px;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.6;
+  }
+
+  /* ============ GRID LINES ============ */
+  .grid-lines {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    opacity: 0.08;
+  }
+  .grid-lines .v-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--amber), transparent);
+  }
+  .grid-lines .h-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--purple), transparent);
+  }
+
+  /* ============ FLOATING ORBS ============ */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: 0;
+    animation: drift 12s ease-in-out infinite alternate;
+  }
+  .orb-1 {
+    width: 400px; height: 400px;
+    background: rgba(245,166,35,0.15);
+    top: 10%; left: -5%;
+    animation-delay: 0s;
+  }
+  .orb-2 {
+    width: 350px; height: 350px;
+    background: rgba(176,142,255,0.12);
+    bottom: 5%; right: -8%;
+    animation-delay: -4s;
+  }
+  .orb-3 {
+    width: 200px; height: 200px;
+    background: rgba(34,211,238,0.08);
+    top: 60%; left: 20%;
+    animation-delay: -8s;
+  }
+
+  @keyframes drift {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(30px, -20px) scale(1.08); }
+  }
+
+  /* ============ CONTENT ============ */
+  .content {
+    position: relative;
+    z-index: 2;
+    max-width: 860px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* Date pill */
+  .date-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 1.2rem;
+    border: 1px solid rgba(245,166,35,0.3);
+    border-radius: 100px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber-bright);
+    background: rgba(245,166,35,0.06);
+    backdrop-filter: blur(10px);
+    margin-bottom: 2.5rem;
+    animation: fadeSlideDown 0.8s ease-out both;
+  }
+  .date-pill .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(245,166,35,0.6); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(245,166,35,0); }
+  }
+
+  /* Panther icon */
+  .panther-icon {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 1.5rem;
+    animation: fadeSlideDown 0.8s 0.15s ease-out both;
+    position: relative;
+  }
+  .panther-icon svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 20px rgba(245,166,35,0.3));
+  }
+
+  /* Main title */
+  .title {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: clamp(3.2rem, 8vw, 6.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.4rem;
+    animation: fadeSlideDown 0.8s 0.25s ease-out both;
+  }
+  .title .panther {
+    display: block;
+    background: linear-gradient(135deg, var(--amber-bright) 0%, var(--amber) 40%, var(--purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .title .learn {
+    display: block;
+    color: var(--text);
+    font-weight: 300;
+    font-style: italic;
+    font-size: 0.55em;
+    letter-spacing: 0.02em;
+    opacity: 0.9;
+  }
+
+  /* Tagline */
+  .tagline {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(0.7rem, 1.5vw, 0.85rem);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 3rem;
+    animation: fadeSlideDown 0.8s 0.4s ease-out both;
+  }
+
+  /* Divider */
+  .divider {
+    width: 160px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--amber), var(--purple), transparent);
+    margin-bottom: 3rem;
+    animation: fadeSlideDown 0.8s 0.5s ease-out both;
+  }
+
+  /* Feature grid */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    width: 100%;
+    max-width: 720px;
+    margin-bottom: 3.5rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 16px;
+    overflow: hidden;
+    animation: fadeSlideUp 0.8s 0.6s ease-out both;
+  }
+  .feature {
+    padding: 1.8rem 1.2rem;
+    background: rgba(14,17,25,0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+    transition: background 0.3s ease;
+  }
+  .feature:hover {
+    background: rgba(245,166,35,0.04);
+  }
+  .feature-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+  }
+  .feature-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .feature-desc {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* CTA section */
+  .cta-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2rem;
+    animation: fadeSlideUp 0.8s 0.75s ease-out both;
+  }
+
+  .cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 1rem 2.4rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--bg);
+    background: linear-gradient(135deg, var(--amber-bright) 0%, var(--amber) 100%);
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+    box-shadow: 0 0 30px rgba(245,166,35,0.25), 0 4px 15px rgba(0,0,0,0.3);
+  }
+  .cta-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 50px rgba(245,166,35,0.35), 0 8px 25px rgba(0,0,0,0.3);
+  }
+  .cta-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent 60%);
+    pointer-events: none;
+  }
+  .cta-btn .arrow {
+    font-size: 1.2rem;
+    transition: transform 0.2s ease;
+  }
+  .cta-btn:hover .arrow {
+    transform: translateX(3px);
+  }
+
+  .url-hint {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    opacity: 0.6;
+  }
+
+  /* Activity badges - horizontal scroll */
+  .activity-strip {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 720px;
+    margin-bottom: 3rem;
+    animation: fadeSlideUp 0.8s 0.65s ease-out both;
+  }
+  .activity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 100px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+    color: var(--text-dim);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+  .activity-badge:hover {
+    border-color: var(--amber);
+    color: var(--amber-bright);
+    background: rgba(245,166,35,0.06);
+    transform: translateY(-1px);
+  }
+  .activity-badge .badge-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+  }
+  .badge-dot.amber { background: var(--amber); }
+  .badge-dot.purple { background: var(--purple); }
+  .badge-dot.cyan { background: var(--cyan); }
+
+  /* Bottom flourish */
+  .bottom-bar {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+    animation: fadeSlideUp 0.8s 0.9s ease-out both;
+  }
+  .bottom-bar span {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    opacity: 0.4;
+  }
+
+  /* ============ ANIMATIONS ============ */
+  @keyframes fadeSlideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ GEOMETRIC ACCENTS ============ */
+  .geo {
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .geo-diamond {
+    width: 18px; height: 18px;
+    border: 1px solid rgba(245,166,35,0.2);
+    transform: rotate(45deg);
+    top: 18%; right: 12%;
+    animation: spin-slow 20s linear infinite;
+  }
+  .geo-circle {
+    width: 10px; height: 10px;
+    border: 1px solid rgba(176,142,255,0.25);
+    border-radius: 50%;
+    bottom: 25%; left: 8%;
+    animation: spin-slow 30s linear infinite reverse;
+  }
+  .geo-cross {
+    top: 40%; right: 6%;
+    color: rgba(34,211,238,0.15);
+    font-size: 1.4rem;
+    font-weight: 100;
+    animation: spin-slow 25s linear infinite;
+  }
+  .geo-ring {
+    width: 50px; height: 50px;
+    border: 1px solid rgba(245,166,35,0.07);
+    border-radius: 50%;
+    bottom: 18%; right: 15%;
+  }
+  .geo-dot-cluster {
+    top: 30%; left: 5%;
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 6px;
+  }
+  .geo-dot-cluster span {
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: rgba(176,142,255,0.2);
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 640px) {
+    .features {
+      grid-template-columns: 1fr;
+    }
+    .feature {
+      flex-direction: row;
+      justify-content: flex-start;
+      text-align: left;
+      padding: 1.2rem 1.5rem;
+    }
+    .activity-strip {
+      padding: 0 1rem;
+    }
+    .canvas {
+      padding: 2rem 1.2rem;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <!-- Background elements -->
+  <div class="grid-lines">
+    <div class="v-line" style="left:20%"></div>
+    <div class="v-line" style="left:40%"></div>
+    <div class="v-line" style="left:60%"></div>
+    <div class="v-line" style="left:80%"></div>
+    <div class="h-line" style="top:25%"></div>
+    <div class="h-line" style="top:50%"></div>
+    <div class="h-line" style="top:75%"></div>
+  </div>
+
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- Geometric accents -->
+  <div class="geo geo-diamond"></div>
+  <div class="geo geo-circle"></div>
+  <div class="geo geo-cross">+</div>
+  <div class="geo geo-ring"></div>
+  <div class="geo geo-dot-cluster">
+    <span></span><span></span><span></span>
+    <span></span><span></span><span></span>
+    <span></span><span></span><span></span>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <div class="date-pill">
+      <span class="dot"></span>
+      <span>Launching Tuesday, March 10</span>
+    </div>
+
+    <!-- Panther SVG icon -->
+    <div class="panther-icon">
+      <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="72" y2="72" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#ffcf5c"/>
+            <stop offset="100%" stop-color="#b08eff"/>
+          </linearGradient>
+        </defs>
+        <!-- Stylized panther head -->
+        <path d="M12 18 L20 8 L26 16 L36 6 L46 16 L52 8 L60 18 L58 30 L54 38 L48 42 L42 44 L36 46 L30 44 L24 42 L18 38 L14 30 Z" stroke="url(#g1)" stroke-width="1.5" fill="none" opacity="0.9"/>
+        <!-- Eyes -->
+        <circle cx="28" cy="28" r="3" fill="#f5a623" opacity="0.9"/>
+        <circle cx="44" cy="28" r="3" fill="#b08eff" opacity="0.9"/>
+        <!-- Inner eye -->
+        <circle cx="28" cy="28" r="1.2" fill="#07090e"/>
+        <circle cx="44" cy="28" r="1.2" fill="#07090e"/>
+        <!-- Nose -->
+        <path d="M33 35 L36 38 L39 35" stroke="url(#g1)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <!-- Whiskers -->
+        <line x1="10" y1="32" x2="22" y2="34" stroke="url(#g1)" stroke-width="0.5" opacity="0.4"/>
+        <line x1="10" y1="36" x2="22" y2="36" stroke="url(#g1)" stroke-width="0.5" opacity="0.3"/>
+        <line x1="50" y1="34" x2="62" y2="32" stroke="url(#g1)" stroke-width="0.5" opacity="0.4"/>
+        <line x1="50" y1="36" x2="62" y2="36" stroke="url(#g1)" stroke-width="0.5" opacity="0.3"/>
+        <!-- Jaw -->
+        <path d="M24 42 Q30 52 36 54 Q42 52 48 42" stroke="url(#g1)" stroke-width="0.8" fill="none" opacity="0.3"/>
+      </svg>
+    </div>
+
+    <h1 class="title">
+      <span class="panther">Panther</span>
+      <span class="learn">Learn</span>
+    </h1>
+
+    <p class="tagline">AI-Powered Learning for Educators</p>
+
+    <div class="divider"></div>
+
+    <!-- Feature grid -->
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">&#9889;</div>
+        <div class="feature-label">9 AI Labs</div>
+        <div class="feature-desc">Hands-on activities from Bias Detective to Prompt Duel</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#127922;</div>
+        <div class="feature-label">Gamified XP</div>
+        <div class="feature-desc">Levels, badges, streaks &amp; perks that keep students engaged</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#128218;</div>
+        <div class="feature-label">Lesson Builder</div>
+        <div class="feature-desc">30+ block types with drag-and-drop editing</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#129302;</div>
+        <div class="feature-label">AI Chatbots</div>
+        <div class="feature-desc">Custom chatbot interactions embedded in lessons</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#128200;</div>
+        <div class="feature-label">Auto-Grading</div>
+        <div class="feature-desc">AI-assisted grading with teacher override controls</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#127891;</div>
+        <div class="feature-label">Classroom Sync</div>
+        <div class="feature-desc">Google Classroom integration for rosters &amp; grades</div>
+      </div>
+    </div>
+
+    <!-- Activity badges -->
+    <div class="activity-strip">
+      <div class="activity-badge"><span class="badge-dot amber"></span> Prompt Duel</div>
+      <div class="activity-badge"><span class="badge-dot purple"></span> Bias Detective</div>
+      <div class="activity-badge"><span class="badge-dot cyan"></span> Ethics Courtroom</div>
+      <div class="activity-badge"><span class="badge-dot amber"></span> Data Labeling</div>
+      <div class="activity-badge"><span class="badge-dot purple"></span> AI Trainer</div>
+      <div class="activity-badge"><span class="badge-dot cyan"></span> Space Rescue</div>
+      <div class="activity-badge"><span class="badge-dot amber"></span> Embedding Explorer</div>
+      <div class="activity-badge"><span class="badge-dot purple"></span> RecipeBot Lab</div>
+      <div class="activity-badge"><span class="badge-dot cyan"></span> Chatbot Workshop</div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <a href="https://paps-ai-pd.firebaseapp.com" class="cta-btn" target="_blank">
+        <span>Explore PantherLearn</span>
+        <span class="arrow">&rarr;</span>
+      </a>
+      <span class="url-hint">paps-ai-pd.firebaseapp.com</span>
+    </div>
+
+  </div>
+
+  <div class="bottom-bar">
+    <span>Built for Educators &mdash; Powered by AI &mdash; 2026</span>
+  </div>
+
+</div>
+</body>
+</html>

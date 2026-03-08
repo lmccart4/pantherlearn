@@ -1,5 +1,5 @@
 // src/components/blocks/QuestionBlock.jsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES, getBloomLevel } from "../../lib/gamification";
 import { useTranslatedText, useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
@@ -17,28 +17,51 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
 
   // Sync state when studentData arrives after initial mount (e.g. async Firestore fetch)
   // or is cleared (e.g. teacher resets progress via dashboard).
+  const hydrated = useRef(false);
   useEffect(() => {
     const d = (studentData && studentData[block.id]) || {};
-    // Sync submitted flag — both directions
-    if (d.submitted && !submitted) {
+    const hasAnswer = d.answer !== undefined && d.answer !== null;
+
+    if (!hasAnswer && !d.submitted) {
+      // No server data for this block — either initial empty state or teacher reset.
+      // Only treat as a reset if the ENTIRE studentData is empty (teacher deletes
+      // the whole progress document). If other blocks still have data, this block's
+      // data is just missing from a stale snapshot — leave local state as-is.
+      if (hydrated.current) {
+        const isFullReset = !studentData || Object.keys(studentData).length === 0;
+        if (isFullReset) {
+          setSubmitted(false);
+          if (block.questionType === "multiple_choice") setSelected(null);
+          if (block.questionType === "short_answer" || block.questionType === "linked") setTextAnswer("");
+          if (block.questionType === "ranking") setRankingOrder(null);
+          hydrated.current = false;
+        }
+      }
+      return;
+    }
+
+    // Server has submitted data — always sync to keep answer locked in
+    if (d.submitted) {
+      hydrated.current = true;
       setSubmitted(true);
-    } else if (!d.submitted && submitted) {
-      // Progress was reset (document deleted) — unlock the question
-      setSubmitted(false);
+      if (hasAnswer) {
+        if (block.questionType === "multiple_choice") setSelected(d.answer);
+        if (block.questionType === "short_answer" || block.questionType === "linked") setTextAnswer(d.answer);
+        if (block.questionType === "ranking") setRankingOrder(d.answer);
+      }
+      return;
     }
-    // Sync answer data when local state is still in its default/empty state
-    // (prevents overwriting the student's in-progress typing)
-    if (d.answer !== undefined && d.answer !== null) {
-      if (block.questionType === "multiple_choice" && selected === null) setSelected(d.answer);
-      if ((block.questionType === "short_answer" || block.questionType === "linked") && !textAnswer) setTextAnswer(d.answer);
-      if (block.questionType === "ranking" && !rankingOrder) setRankingOrder(d.answer);
-    } else if (submitted === false) {
-      // No saved answer and not submitted — reset local state (handles teacher reset)
-      if (block.questionType === "multiple_choice") setSelected(null);
-      if (block.questionType === "short_answer" || block.questionType === "linked") setTextAnswer("");
-      if (block.questionType === "ranking") setRankingOrder(null);
+
+    // Server has draft data (not submitted) — only sync on first hydration
+    // to avoid overwriting the student's in-progress typing
+    if (hydrated.current) return;
+    hydrated.current = true;
+    if (hasAnswer) {
+      if (block.questionType === "multiple_choice") setSelected(d.answer);
+      if (block.questionType === "short_answer" || block.questionType === "linked") setTextAnswer(d.answer);
+      if (block.questionType === "ranking") setRankingOrder(d.answer);
     }
-  }, [studentData, block.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [studentData, block.id, block.questionType]);
   const [xpToast, setXpToast] = useState(null);
   const [xpConfig, setXpConfig] = useState(null);
 
@@ -66,14 +89,21 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
     }
   }, [courseId]);
 
-  // Auto-save draft for short answer (saves text without officially submitting)
+  // Auto-save draft for text-based and ranking questions (saves without officially submitting)
   const performDraftSave = useCallback(() => {
-    if (block.questionType !== "short_answer") return;
     if (submitted) return; // don't overwrite a submitted answer with a draft
-    if (!textAnswer.trim()) return;
-    // Save as draft (submitted: false) so it doesn't count as turned in
-    onAnswer(block.id, { answer: textAnswer, submitted: false, draft: true });
-  }, [block.id, block.questionType, textAnswer, submitted, onAnswer]);
+
+    if (block.questionType === "short_answer" || block.questionType === "linked") {
+      if (!textAnswer.trim()) return;
+      onAnswer(block.id, { answer: textAnswer, submitted: false, draft: true });
+      return;
+    }
+
+    if (block.questionType === "ranking" && rankingOrder) {
+      onAnswer(block.id, { answer: rankingOrder, submitted: false, draft: true });
+      return;
+    }
+  }, [block.id, block.questionType, textAnswer, rankingOrder, submitted, onAnswer]);
 
   const { markDirty: markSADirty, saveNow: saveSANow, clearDirty: clearSADirty, lastSaved: saLastSaved, saveError: saSaveError } = useAutoSave(performDraftSave);
 
@@ -165,6 +195,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
   // Ranking question handler
   const handleSubmitRanking = async () => {
     if (!rankingOrder || rankingOrder.length === 0) return;
+    clearSADirty(); // Prevent stale draft from overwriting on unmount
     // Score: count items in correct position
     const correctItems = block.items || [];
     let correctCount = 0;
@@ -288,25 +319,39 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
           <div className="sa-submitted">
             <div className="sa-answer-display">{textAnswer}</div>
             {data.writtenLabel ? (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 10, marginTop: 8,
-              }}>
-                <span style={{
-                  fontSize: 13, fontWeight: 700, padding: "4px 14px", borderRadius: 6,
-                  background: data.writtenScore >= 1.0 ? "rgba(16,185,129,0.12)"
-                    : data.writtenScore >= 0.85 ? "rgba(34,211,238,0.12)"
-                    : data.writtenScore >= 0.65 ? "rgba(245,166,35,0.12)"
-                    : data.writtenScore >= 0.55 ? "rgba(239,68,68,0.12)"
-                    : "var(--surface2)",
-                  color: data.writtenScore >= 1.0 ? "var(--green)"
-                    : data.writtenScore >= 0.85 ? "var(--cyan)"
-                    : data.writtenScore >= 0.65 ? "var(--amber)"
-                    : data.writtenScore >= 0.55 ? "#ef4444"
-                    : "var(--text3)",
+              <>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10, marginTop: 8,
                 }}>
-                  ✓ Graded: {data.writtenLabel} ({Math.round((data.writtenScore ?? 0) * 100)}%)
-                </span>
-              </div>
+                  <span style={{
+                    fontSize: 13, fontWeight: 700, padding: "4px 14px", borderRadius: 6,
+                    background: data.writtenScore >= 1.0 ? "rgba(16,185,129,0.12)"
+                      : data.writtenScore >= 0.85 ? "rgba(34,211,238,0.12)"
+                      : data.writtenScore >= 0.65 ? "rgba(245,166,35,0.12)"
+                      : data.writtenScore >= 0.55 ? "rgba(239,68,68,0.12)"
+                      : "var(--surface2)",
+                    color: data.writtenScore >= 1.0 ? "var(--green)"
+                      : data.writtenScore >= 0.85 ? "var(--cyan)"
+                      : data.writtenScore >= 0.65 ? "var(--amber)"
+                      : data.writtenScore >= 0.55 ? "#ef4444"
+                      : "var(--text3)",
+                  }}>
+                    ✓ Graded: {data.writtenLabel} ({Math.round((data.writtenScore ?? 0) * 100)}%)
+                  </span>
+                </div>
+                {data.feedback && (
+                  <div style={{
+                    marginTop: 10, padding: "10px 14px", borderRadius: 8,
+                    background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.12)",
+                    fontSize: 13, lineHeight: 1.6, color: "var(--text2)",
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#8b5cf6", marginBottom: 4 }}>
+                      💬 Feedback
+                    </div>
+                    {data.feedback}
+                  </div>
+                )}
+              </>
             ) : (
               <div className="sa-status" data-translatable>✓ {ui(6) || "Submitted — awaiting teacher review"}</div>
             )}
@@ -339,6 +384,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
       const [moved] = newOrder.splice(fromIdx, 1);
       newOrder.splice(toIdx, 0, moved);
       setRankingOrder(newOrder);
+      markSADirty();
     };
 
     return (
@@ -417,22 +463,39 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
           <>
             <textarea className="sa-input" rows={4} placeholder="Type your follow-up answer..."
               aria-label={translatedPrompt || block.prompt}
-              value={textAnswer} onChange={(e) => setTextAnswer(e.target.value)} />
+              value={textAnswer}
+              onChange={(e) => { setTextAnswer(e.target.value); markSADirty(); }}
+              onBlur={saveSANow}
+            />
             <button className="btn btn-primary" onClick={handleSubmitLinked} disabled={!textAnswer.trim()}>Submit Response</button>
           </>
         ) : (
           <div className="sa-submitted">
             <div className="sa-answer-display">{textAnswer}</div>
             {data.writtenLabel ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
-                <span style={{
-                  fontSize: 13, fontWeight: 700, padding: "4px 14px", borderRadius: 6,
-                  background: data.writtenScore >= 0.85 ? "rgba(52,216,168,0.12)" : "rgba(245,166,35,0.12)",
-                  color: data.writtenScore >= 0.85 ? "var(--green)" : "var(--amber)",
-                }}>
-                  ✓ Graded: {data.writtenLabel}
-                </span>
-              </div>
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+                  <span style={{
+                    fontSize: 13, fontWeight: 700, padding: "4px 14px", borderRadius: 6,
+                    background: data.writtenScore >= 0.85 ? "rgba(52,216,168,0.12)" : "rgba(245,166,35,0.12)",
+                    color: data.writtenScore >= 0.85 ? "var(--green)" : "var(--amber)",
+                  }}>
+                    ✓ Graded: {data.writtenLabel}
+                  </span>
+                </div>
+                {data.feedback && (
+                  <div style={{
+                    marginTop: 10, padding: "10px 14px", borderRadius: 8,
+                    background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.12)",
+                    fontSize: 13, lineHeight: 1.6, color: "var(--text2)",
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#8b5cf6", marginBottom: 4 }}>
+                      💬 Feedback
+                    </div>
+                    {data.feedback}
+                  </div>
+                )}
+              </>
             ) : (
               <div className="sa-status">✓ Submitted — awaiting teacher review</div>
             )}

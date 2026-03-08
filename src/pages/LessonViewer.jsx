@@ -1,7 +1,7 @@
 // src/pages/LessonViewer.jsx
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { doc, setDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import BlockRenderer from "../components/blocks/BlockRenderer";
@@ -62,7 +62,20 @@ export default function LessonViewer() {
     const progressRef = doc(db, "progress", user.uid, "courses", courseId, "lessons", lessonId);
     const unsub = onSnapshot(progressRef, (snap) => {
       if (snap.exists()) {
-        setRealStudentData(snap.data().answers || {});
+        const serverAnswers = snap.data().answers || {};
+        // Merge instead of replace: server data is authoritative, but preserve
+        // any locally-written answers that the server snapshot hasn't confirmed yet.
+        // This prevents optimistic updates from handleAnswer being clobbered by a
+        // snapshot that fired before the local Firestore cache processed our write.
+        setRealStudentData((prev) => {
+          const merged = { ...serverAnswers };
+          for (const [blockId, localData] of Object.entries(prev)) {
+            if (localData && !merged[blockId]) {
+              merged[blockId] = localData;
+            }
+          }
+          return merged;
+        });
         if (snap.data().completed) setLessonCompleted(true);
       } else {
         // Document was deleted (e.g. teacher reset) — clear local state
@@ -96,19 +109,29 @@ export default function LessonViewer() {
       setRealStudentData((prev) => ({ ...prev, [blockId]: data }));
 
       // Persist ONLY this block using dot-notation so other blocks are never overwritten.
-      // Previous approach wrote the entire answers object which caused data loss when:
-      // - getDoc hadn't completed yet (answers ref was {})
-      // - onBlur draft and onClick submit raced each other
-      // - Teacher grading fields were absent from local state
+      // IMPORTANT: updateDoc interprets "answers.blockId" as a nested field path.
+      // setDoc with merge:true does NOT — it creates a literal field named "answers.blockId".
       if (user) {
         try {
           const progressRef = doc(
             db, "progress", user.uid, "courses", courseId, "lessons", lessonId
           );
-          await setDoc(progressRef, {
-            [`answers.${blockId}`]: data,
-            lastUpdated: new Date(),
-          }, { merge: true });
+          try {
+            await updateDoc(progressRef, {
+              [`answers.${blockId}`]: data,
+              lastUpdated: new Date(),
+            });
+          } catch (updateErr) {
+            // Document doesn't exist yet (first answer) — create it
+            if (updateErr.code === "not-found") {
+              await setDoc(progressRef, {
+                answers: { [blockId]: data },
+                lastUpdated: new Date(),
+              });
+            } else {
+              throw updateErr;
+            }
+          }
         } catch (err) {
           console.error("Failed to save answer:", err);
         }
@@ -150,6 +173,16 @@ export default function LessonViewer() {
         extraProps.courseId = courseId;
         extraProps.getToken = getToken;
         extraProps.onLog = handleChatLog;
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+      }
+      if (block.type === "sorting") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+      }
+      if (block.type === "checklist") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
       }
       if (block.type === "question") {
         extraProps.studentData = studentData;

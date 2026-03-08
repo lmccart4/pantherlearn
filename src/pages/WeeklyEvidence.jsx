@@ -151,8 +151,8 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
           <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} multiple />
         </label>
       ) : (
-        <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text3)", fontSize: 13, marginBottom: 14 }}>
-          No photos uploaded
+        <div className="empty-state" style={{ marginBottom: 14 }}>
+          <div className="empty-state-text">No photos uploaded</div>
         </div>
       )}
 
@@ -481,12 +481,12 @@ function TeacherView({ courseId, course }) {
           style={{ fontSize: 13, color: "var(--text3)", background: "none", border: "none", cursor: "pointer", marginBottom: 16 }}>
           ← Back to all students
         </button>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, marginBottom: 16 }}>{name}</h2>
+        <h2 className="section-heading" style={{ marginBottom: 16 }}>{name}</h2>
 
         {loadingStudent ? (
           <div className="skeleton skeleton-card" style={{ height: 200 }} />
         ) : weekKeys.length === 0 ? (
-          <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>No evidence submitted yet</div>
+          <div className="empty-state"><div className="empty-state-text">No evidence submitted yet</div></div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {weekKeys.map(wk => {
@@ -605,7 +605,7 @@ export default function WeeklyEvidence() {
   }, [courseId]);
 
   if (loading) return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
+    <main id="main-content" className="page-wrapper">
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <div className="skeleton skeleton-line" style={{ width: 140, height: 13, marginBottom: 16 }} />
         <div className="skeleton skeleton-line" style={{ width: "60%", height: 24, marginBottom: 8 }} />
@@ -617,20 +617,20 @@ export default function WeeklyEvidence() {
   );
 
   if (!course) return (
-    <main id="main-content" className="page-container" style={{ textAlign: "center", paddingTop: 120 }}>
+    <main id="main-content" className="page-wrapper" style={{ textAlign: "center", paddingTop: 120 }}>
       <h2>Course not found</h2>
     </main>
   );
 
   if (!course.evidenceConfig?.enabled && !isTeacher) return (
-    <main id="main-content" className="page-container" style={{ textAlign: "center", paddingTop: 120 }}>
+    <main id="main-content" className="page-wrapper" style={{ textAlign: "center", paddingTop: 120 }}>
       <h2>Evidence log not enabled for this course</h2>
       <Link to={`/course/${courseId}`} style={{ color: "var(--amber)", fontSize: 14 }}>← Back to course</Link>
     </main>
   );
 
   return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
+    <main id="main-content" className="page-wrapper">
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <Link to={`/course/${courseId}`} style={{ fontSize: 13, color: "var(--text3)", marginBottom: 16, display: "block" }}>
           ← Back to {course.title || "Course"}

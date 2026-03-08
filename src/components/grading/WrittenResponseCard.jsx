@@ -15,11 +15,21 @@ const GRADE_TIERS = [
   { label: "Refining", value: 1.0, xpKey: "written_refining", color: "var(--green)", bg: "rgba(16,185,129,0.12)" },
 ];
 
+const OVERRIDE_OPTIONS = [
+  { label: "Agent got it wrong", value: null },
+  { label: "Data glitch", value: "glitch" },
+  { label: "Mercy credit", value: "mercy" },
+  { label: "Don't train on this", value: "ignore" },
+];
+
 export default function WrittenResponseCard({ item, helpers, onSelectStudent, selectedLesson }) {
   const [isAnalysisExpanded, setIsAnalysisExpanded] = useState(false);
   const [grading, setGrading] = useState(false);
   const [savedGrade, setSavedGrade] = useState(item.writtenScore ?? null);
+  const [pendingTier, setPendingTier] = useState(null);
   const { getStudentName, getStudentEmail, getStudentPhoto, getBlockPrompt, lessonMap, responses } = helpers;
+
+  const wasAutoGraded = !!(item.autogradeOriginal || item.gradedBy === "autograde-agent");
 
   // Build per-student writing history for comparison
   const history = responses
@@ -38,21 +48,43 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
     compareToBaselines,
   });
 
-  const handleGrade = async (tier) => {
+  const handleGradeClick = (tier) => {
+    if (grading) return;
+    // If item was auto-graded, show override reason selector before saving
+    if (wasAutoGraded) {
+      setPendingTier(tier);
+    } else {
+      saveGrade(tier, undefined);
+    }
+  };
+
+  const handleOverrideSelect = (overrideReason) => {
+    if (!pendingTier) return;
+    saveGrade(pendingTier, overrideReason);
+    setPendingTier(null);
+  };
+
+  const saveGrade = async (tier, overrideReason) => {
     if (grading) return;
     setGrading(true);
     try {
       // Update only the grading fields using dot-notation so the student's
       // original answer, submitted flag, and submittedAt are preserved.
+      // autogradeOriginal is NOT included here — Firestore merge: true preserves it.
       const progressRef = doc(
         db, "progress", item.studentId, "courses", item.courseId, "lessons", item.lessonId
       );
-      await updateDoc(progressRef, {
+      const updatePayload = {
         [`answers.${item.blockId}.writtenScore`]: tier.value,
         [`answers.${item.blockId}.writtenLabel`]: tier.label,
         [`answers.${item.blockId}.needsGrading`]: false,
         [`answers.${item.blockId}.gradedAt`]: new Date(),
-      });
+        [`answers.${item.blockId}.gradedBy`]: "teacher",
+      };
+      if (overrideReason !== undefined) {
+        updatePayload[`answers.${item.blockId}.overrideReason`] = overrideReason;
+      }
+      await updateDoc(progressRef, updatePayload);
 
       setSavedGrade(tier.value);
 
@@ -204,33 +236,91 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
         {item.answer}
       </div>
 
+      {/* Agent feedback (shown when auto-graded) */}
+      {item.feedback && wasAutoGraded && (
+        <div style={{
+          background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.15)", borderRadius: 8,
+          padding: "10px 14px", marginBottom: 12, fontSize: 12, lineHeight: 1.5, color: "var(--text2)",
+        }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#8b5cf6", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            🤖 Agent Feedback
+          </span>
+          <div style={{ marginTop: 4, fontStyle: "italic" }}>{item.feedback}</div>
+        </div>
+      )}
+
       {/* Grading buttons */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
         <span style={{ fontSize: 11, color: "var(--text3)", fontWeight: 600, marginRight: 4 }}>Grade:</span>
         {GRADE_TIERS.map((tier) => {
           const isSelected = savedGrade === tier.value;
+          const isPending = pendingTier?.value === tier.value;
           return (
             <button
               key={tier.label}
-              onClick={() => handleGrade(tier)}
+              onClick={() => handleGradeClick(tier)}
               disabled={grading}
               style={{
                 fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 6,
-                border: isSelected ? `2px solid ${tier.color}` : "1px solid var(--border)",
-                background: isSelected ? tier.bg : "transparent",
-                color: isSelected ? tier.color : "var(--text3)",
+                border: (isSelected || isPending) ? `2px solid ${tier.color}` : "1px solid var(--border)",
+                background: (isSelected || isPending) ? tier.bg : "transparent",
+                color: (isSelected || isPending) ? tier.color : "var(--text3)",
                 cursor: grading ? "default" : "pointer",
                 transition: "all 0.15s",
                 opacity: grading ? 0.5 : 1,
               }}
-              onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.background = tier.bg; e.currentTarget.style.color = tier.color; } }}
-              onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text3)"; } }}
+              onMouseEnter={(e) => { if (!isSelected && !isPending) { e.currentTarget.style.background = tier.bg; e.currentTarget.style.color = tier.color; } }}
+              onMouseLeave={(e) => { if (!isSelected && !isPending) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text3)"; } }}
             >
               {tier.label} {Math.round(tier.value * 100)}%
             </button>
           );
         })}
+        {item.gradedBy && !pendingTier && (
+          <span style={{
+            fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 4, marginLeft: 4,
+            background: item.gradedBy === "autograde-agent" ? "rgba(139,92,246,0.12)" : "rgba(59,130,246,0.12)",
+            color: item.gradedBy === "autograde-agent" ? "#8b5cf6" : "#3b82f6",
+          }}>
+            {item.gradedBy === "autograde-agent" ? "🤖 Auto-graded" : "👩‍🏫 Teacher"}
+          </span>
+        )}
       </div>
+
+      {/* Override reason selector — shown when teacher re-grades an auto-graded item */}
+      {pendingTier && wasAutoGraded && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 8,
+          padding: "8px 12px", background: "var(--bg)", borderRadius: 8, border: "1px solid var(--border)",
+        }}>
+          <span style={{ fontSize: 11, color: "var(--text2)", fontWeight: 600, marginRight: 2 }}>Why override?</span>
+          {OVERRIDE_OPTIONS.map((opt) => (
+            <button
+              key={opt.label}
+              onClick={() => handleOverrideSelect(opt.value)}
+              style={{
+                fontSize: 10, fontWeight: 600, padding: "4px 10px", borderRadius: 12,
+                border: "1px solid var(--border)", background: "transparent", color: "var(--text2)",
+                cursor: "pointer", transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.borderColor = "var(--text3)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border)"; }}
+            >
+              {opt.label}
+            </button>
+          ))}
+          <button
+            onClick={() => setPendingTier(null)}
+            style={{
+              fontSize: 10, padding: "4px 8px", borderRadius: 12,
+              border: "1px solid var(--border)", background: "transparent", color: "var(--text3)",
+              cursor: "pointer", marginLeft: 2,
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {item.submittedAt && (
         <div style={{ fontSize: 11, color: "var(--text3)" }}>

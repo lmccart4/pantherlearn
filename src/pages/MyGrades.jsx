@@ -206,38 +206,34 @@ export default function MyGrades() {
 
   if (loading) {
     return (
-      <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          <div style={{ marginBottom: 24 }}>
-            <div className="skeleton skeleton-line" style={{ width: 180, height: 28, marginBottom: 8 }} />
-            <div className="skeleton skeleton-line" style={{ width: 280, height: 14 }} />
-          </div>
-          {/* Stats cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton skeleton-card" style={{ height: 90, textAlign: "center" }} />
-            ))}
-          </div>
-          {/* Lesson rows */}
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="skeleton skeleton-card" style={{ height: 56, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
-              <div className="skeleton skeleton-line" style={{ width: `${40 + i * 6}%`, height: 14, marginBottom: 0 }} />
-              <div style={{ marginLeft: "auto" }}>
-                <div className="skeleton skeleton-rect" style={{ width: 48, height: 24, borderRadius: 12 }} />
-              </div>
-            </div>
+      <main id="main-content" className="page-wrapper page-wrapper--narrow">
+        <div className="page-header">
+          <div className="skeleton skeleton-line" style={{ width: 180, height: 28, marginBottom: 8 }} />
+          <div className="skeleton skeleton-line" style={{ width: 280, height: 14 }} />
+        </div>
+        <div className="mg-stats">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton skeleton-card" style={{ height: 90 }} />
           ))}
         </div>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="skeleton skeleton-card" style={{ height: 56, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
+            <div className="skeleton skeleton-line" style={{ width: `${40 + i * 6}%`, height: 14, marginBottom: 0 }} />
+            <div style={{ marginLeft: "auto" }}>
+              <div className="skeleton skeleton-rect" style={{ width: 48, height: 24, borderRadius: 12 }} />
+            </div>
+          </div>
+        ))}
       </main>
     );
   }
 
   if (courses.length === 0) {
     return (
-      <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}>
-        <p style={{ fontSize: 40, marginBottom: 12 }}>📊</p>
-        <h2 style={{ fontFamily: "var(--font-display)" }}>No Courses Yet</h2>
-        <p style={{ color: "var(--text2)", marginTop: 8 }}>Join a course to see your grades here.</p>
+      <div className="page-wrapper empty-state" style={{ paddingTop: 120 }}>
+        <div className="empty-state-icon">📊</div>
+        <h2 className="empty-state-title">No Courses Yet</h2>
+        <p className="empty-state-text">Join a course to see your grades here.</p>
       </div>
     );
   }
@@ -262,24 +258,21 @@ export default function MyGrades() {
   }
 
   return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-      <div style={{ maxWidth: 800, margin: "0 auto" }}>
+    <main id="main-content" className="page-wrapper page-wrapper--narrow">
 
         {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, marginBottom: 6 }}>
-            📊 My Grades
-          </h1>
-          <p style={{ color: "var(--text2)", fontSize: 14 }}>Track your progress and grades across your courses.</p>
+        <div className="page-header">
+          <h1 className="page-title">📊 My Grades</h1>
+          <p className="page-subtitle">Track your progress and grades across your courses.</p>
         </div>
 
         {/* Course tabs */}
         {courses.length > 1 && (
-          <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3, marginBottom: 24, flexWrap: "wrap" }}>
+          <div className="tab-bar" style={{ marginBottom: 24 }}>
             {courses.map((c) => (
               <button
                 key={c.id}
-                className={`top-nav-link ${selectedCourse === c.id ? "active" : ""}`}
+                className={`tab-item ${selectedCourse === c.id ? "active" : ""}`}
                 onClick={() => setSelectedCourse(c.id)}
               >
                 {c.icon || "📚"} {c.title}
@@ -290,13 +283,11 @@ export default function MyGrades() {
 
         {dataLoading ? (
           <div>
-            {/* Stats cards skeleton */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
+            <div className="mg-stats">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="skeleton skeleton-card" style={{ height: 90 }} />
               ))}
             </div>
-            {/* Lesson rows skeleton */}
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="skeleton skeleton-card" style={{ height: 56, marginBottom: 8 }} />
             ))}
@@ -304,45 +295,43 @@ export default function MyGrades() {
         ) : (
           <>
             {/* Stats cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
-              <div className="card" style={{ textAlign: "center", padding: "16px 12px" }}>
-                <div style={{ fontSize: 18, marginBottom: 4 }}>📊</div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: overall ? gradeColor(overall.grade) : "var(--text3)" }}>
+            <div className="mg-stats">
+              <div className="card mg-stat">
+                <div className="mg-stat-icon">📊</div>
+                <div className="mg-stat-value" style={{ color: overall ? gradeColor(overall.grade) : "var(--text3)" }}>
                   {overall ? `${overall.grade}%` : "—"}
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Overall Grade</div>
+                <div className="mg-stat-label">Overall Grade</div>
               </div>
-              <div className="card" style={{ textAlign: "center", padding: "16px 12px" }}>
-                <div style={{ fontSize: 18, marginBottom: 4 }}>✅</div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: "var(--cyan)" }}>
+              <div className="card mg-stat">
+                <div className="mg-stat-icon">✅</div>
+                <div className="mg-stat-value" style={{ color: "var(--cyan)" }}>
                   {completedCount}/{lessons.length}
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Lessons Done</div>
+                <div className="mg-stat-label">Lessons Done</div>
               </div>
-              <div className="card" style={{ textAlign: "center", padding: "16px 12px" }}>
-                <div style={{ fontSize: 18, marginBottom: 4 }}>💭</div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: reflectionCount > 0 ? "var(--green)" : "var(--text3)" }}>
+              <div className="card mg-stat">
+                <div className="mg-stat-icon">💭</div>
+                <div className="mg-stat-value" style={{ color: reflectionCount > 0 ? "var(--green)" : "var(--text3)" }}>
                   {reflectionCount}/{completedCount || 0}
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Reflections</div>
+                <div className="mg-stat-label">Reflections</div>
               </div>
               {level && (
-                <div className="card" style={{ textAlign: "center", padding: "16px 12px" }}>
-                  <div style={{ fontSize: 18, marginBottom: 4 }}>⚡</div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: "var(--amber)" }}>
+                <div className="card mg-stat">
+                  <div className="mg-stat-icon">⚡</div>
+                  <div className="mg-stat-value" style={{ color: "var(--amber)" }}>
                     {gamification?.totalXP || 0}
                   </div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Total XP</div>
+                  <div className="mg-stat-label">Total XP</div>
                 </div>
               )}
             </div>
 
             {/* Lesson breakdown by unit */}
             {unitGroups.map((group) => (
-              <div key={group.unit} style={{ marginBottom: 24 }}>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, color: "var(--text2)", marginBottom: 10 }}>
-                  {group.unit}
-                </h3>
+              <div key={group.unit} className="mg-unit-group">
+                <h3 className="mg-unit-title">{group.unit}</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {group.lessons.map((lesson) => {
                     const result = getLessonGrade(lesson.id);
@@ -352,25 +341,20 @@ export default function MyGrades() {
                     const mc = getMCQuestions(lesson);
                     const sa = getSAQuestions(lesson);
 
-                    // Count answered MC
                     const mcAnswered = mc.filter((q) => answers[q.id]?.submitted).length;
                     const mcCorrect = mc.filter((q) => answers[q.id]?.submitted && answers[q.id]?.correct).length;
-                    // Count graded SA
                     const saGraded = sa.filter((q) => answers[q.id]?.writtenScore !== undefined && answers[q.id]?.writtenScore !== null).length;
                     const saSubmitted = sa.filter((q) => answers[q.id]?.submitted).length;
 
                     return (
-                      <div key={lesson.id} className="card" style={{ padding: "16px 20px" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-                          {/* Left: lesson info */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <div key={lesson.id} className="card mg-lesson-card">
+                        <div className="mg-lesson-header">
+                          <div className="mg-lesson-info">
+                            <div className="mg-lesson-title-row">
                               {prog.completed && <span style={{ fontSize: 14 }}>✅</span>}
-                              <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                {lesson.title}
-                              </div>
+                              <div className="mg-lesson-title">{lesson.title}</div>
                             </div>
-                            <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--text3)", flexWrap: "wrap" }}>
+                            <div className="mg-lesson-meta">
                               {mc.length > 0 && (
                                 <span>{mcCorrect}/{mc.length} MC correct</span>
                               )}
@@ -388,25 +372,21 @@ export default function MyGrades() {
                                 </span>
                               )}
                               {prog.completed && !reflection && (
-                                <span style={{ color: "var(--text3)" }}>💭 No reflection</span>
+                                <span>💭 No reflection</span>
                               )}
                             </div>
                           </div>
 
-                          {/* Right: grade */}
-                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <div className="mg-grade">
                             {result ? (
-                              <div style={{
-                                fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700,
-                                color: gradeColor(result.grade),
-                              }}>
+                              <div className="mg-grade-value" style={{ color: gradeColor(result.grade) }}>
                                 {result.grade}%
                               </div>
                             ) : (
                               <div style={{ fontSize: 13, color: "var(--text3)", fontStyle: "italic" }}>No items</div>
                             )}
                             {result && (
-                              <div style={{ fontSize: 11, color: "var(--text3)" }}>
+                              <div className="mg-grade-detail">
                                 {Math.round(result.earnedPoints * 10) / 10}/{result.totalPoints} pts
                               </div>
                             )}
@@ -415,8 +395,8 @@ export default function MyGrades() {
 
                         {/* Detail breakdown for lessons with content */}
                         {result && (mc.length > 0 || sa.length > 0) && (
-                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
-                            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          <div className="mg-breakdown">
+                            <div className="mg-indicators">
                               {/* MC dots */}
                               {mc.map((q, i) => {
                                 const a = answers[q.id];
@@ -425,16 +405,7 @@ export default function MyGrades() {
                                   <div
                                     key={q.id}
                                     title={`MC ${i + 1}: ${status}`}
-                                    style={{
-                                      width: 24, height: 24, borderRadius: 6, fontSize: 11,
-                                      fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
-                                      background: status === "correct" ? "rgba(16,185,129,0.15)"
-                                        : status === "incorrect" ? "rgba(239,68,68,0.15)"
-                                        : "var(--surface2)",
-                                      color: status === "correct" ? "var(--green)"
-                                        : status === "incorrect" ? "var(--red)"
-                                        : "var(--text3)",
-                                    }}
+                                    className={`mg-mc-dot mg-mc-dot--${status}`}
                                   >
                                     {i + 1}
                                   </div>
@@ -448,27 +419,38 @@ export default function MyGrades() {
                                 return (
                                   <div
                                     key={q.id}
-                                    title={`Written ${i + 1}: ${tierInfo ? tierInfo.label : a?.submitted ? "Pending review" : "Not submitted"}`}
+                                    title={`Written ${i + 1}: ${tierInfo ? tierInfo.label : a?.submitted ? "Pending review" : "Not submitted"}${a?.feedback ? ` — ${a.feedback}` : ""}`}
+                                    className="mg-written-pill"
                                     style={{
-                                      height: 24, borderRadius: 6, fontSize: 10,
-                                      fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
-                                      padding: "0 8px",
                                       background: tierInfo ? "rgba(16,185,129,0.1)" : a?.submitted ? "rgba(245,166,35,0.1)" : "var(--surface2)",
                                       color: tierInfo ? tierInfo.color : a?.submitted ? "var(--amber)" : "var(--text3)",
                                     }}
                                   >
                                     ✏️{tierInfo ? ` ${tierInfo.label.slice(0, 3)}` : a?.submitted ? " ⏳" : ""}
+                                    {a?.feedback && " 💬"}
                                   </div>
                                 );
                               })}
+                              {/* Feedback from grading (shown inline) */}
+                              {sa.some((q) => answers[q.id]?.feedback) && (
+                                <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
+                                  {sa.filter((q) => answers[q.id]?.feedback).map((q) => {
+                                    const a = answers[q.id];
+                                    return (
+                                      <div key={`fb-${q.id}`} className="mg-feedback-row">
+                                        <span className="mg-feedback-icon">💬 </span>
+                                        {a.feedback}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                               {/* Reflection indicator */}
                               {result.hasReflection && (
                                 <div
                                   title={`Reflection: ${reflection?.valid ? "Complete" : reflection ? "Skipped" : "Missing"}`}
+                                  className="mg-reflection-pill"
                                   style={{
-                                    height: 24, borderRadius: 6, fontSize: 10,
-                                    fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
-                                    padding: "0 8px",
                                     background: reflection?.valid ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.1)",
                                     color: reflection?.valid ? "var(--green)" : "var(--red)",
                                   }}
@@ -487,10 +469,8 @@ export default function MyGrades() {
             ))}
             {/* Activities & Evidence grades */}
             {Object.keys(activityData).length > 0 && (
-              <div style={{ marginBottom: 24 }}>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, color: "var(--text2)", marginBottom: 10 }}>
-                  Activities & Evidence
-                </h3>
+              <div className="mg-unit-group">
+                <h3 className="mg-unit-title">Activities & Evidence</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {Object.entries(activityData)
                     .sort((a, b) => (a[1].activityTitle || a[0]).localeCompare(b[1].activityTitle || b[0]))
@@ -500,18 +480,15 @@ export default function MyGrades() {
                       const gradePercent = hasScore ? Math.round(data.activityScore * 100) : null;
 
                       return (
-                        <div key={actId} className="card" style={{ padding: "16px 20px" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <div key={actId} className="card mg-activity-card">
+                          <div className="mg-activity-row">
+                            <div className="mg-lesson-info">
+                              <div className="mg-activity-title">
                                 {data.activityTitle || actId}
                               </div>
                               <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>
                                 {hasScore ? (
-                                  <span style={{
-                                    fontWeight: 700,
-                                    color: tierInfo?.color || "var(--text3)",
-                                  }}>
+                                  <span style={{ fontWeight: 700, color: tierInfo?.color || "var(--text3)" }}>
                                     {data.activityLabel || tierInfo?.label || "Graded"}
                                   </span>
                                 ) : (
@@ -519,12 +496,9 @@ export default function MyGrades() {
                                 )}
                               </div>
                             </div>
-                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <div className="mg-grade">
                               {hasScore ? (
-                                <div style={{
-                                  fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700,
-                                  color: gradeColor(gradePercent),
-                                }}>
+                                <div className="mg-grade-value" style={{ color: gradeColor(gradePercent) }}>
                                   {gradePercent}%
                                 </div>
                               ) : (
@@ -540,7 +514,6 @@ export default function MyGrades() {
             )}
           </>
         )}
-      </div>
     </main>
   );
 }

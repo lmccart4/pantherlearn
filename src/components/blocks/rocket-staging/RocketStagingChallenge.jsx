@@ -393,6 +393,12 @@ export default function RocketStagingChallenge({ onComplete, initialState }) {
     return initialState?.completedMissions || [];
   });
 
+  // Sync completedMissions when initialState changes (async data arrival or teacher reset)
+  useEffect(() => {
+    const missions = initialState?.completedMissions || [];
+    setCompletedMissions(missions);
+  }, [initialState?.completedMissions]);
+
   const mission = MISSIONS[missionIndex];
 
   const initMission = useCallback((idx) => {

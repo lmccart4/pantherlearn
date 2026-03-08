@@ -529,8 +529,11 @@ export default function RosterSync() {
 
   if (userRole !== "teacher") {
     return (
-      <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}>
-        <h2 style={{ fontFamily: "var(--font-display)" }}>Teacher access only</h2>
+      <div className="page-wrapper">
+        <div className="empty-state">
+          <div className="empty-state-icon">🔒</div>
+          <div className="empty-state-title">Teacher access only</div>
+        </div>
       </div>
     );
   }
@@ -538,12 +541,11 @@ export default function RosterSync() {
   const courseName = courses.find((c) => c.id === selectedCourse)?.title || "";
 
   return (
-    <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
+    <main id="main-content" className="page-wrapper page-wrapper--medium">
+        <h1 className="page-title" style={{ marginBottom: 8 }}>
           Roster
         </h1>
-        <p style={{ color: "var(--text2)", fontSize: 15, marginBottom: 32 }}>
+        <p className="page-subtitle" style={{ marginBottom: 32 }}>
           Manage student enrollment by CSV import or add students individually.
         </p>
 
@@ -747,7 +749,7 @@ export default function RosterSync() {
         {/* Current Roster */}
         {enrolledStudents.length > 0 && (
           <div style={{ marginTop: csvData ? 0 : 32 }}>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
+            <h2 className="section-heading" style={{ marginBottom: 6 }}>
               Current Roster — {courseName}
             </h2>
             <p style={{ color: "var(--text3)", fontSize: 13, marginBottom: 16 }}>
@@ -842,13 +844,12 @@ export default function RosterSync() {
             </div>
 
             {filteredEnrolled.length === 0 && rosterSearch && (
-              <div style={{ textAlign: "center", padding: 20, color: "var(--text3)", fontSize: 13 }}>
-                No students match "{rosterSearch}"
+              <div className="empty-state">
+                <div className="empty-state-text">No students match "{rosterSearch}"</div>
               </div>
             )}
           </div>
         )}
-      </div>
     </main>
   );
 }

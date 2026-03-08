@@ -63,6 +63,86 @@ export async function fetchClassroomStudents(accessToken, courseId) {
   }));
 }
 
+// ─── Grade Sync Helpers ───────────────────────────────────────────────────────
+
+// Create a coursework assignment in a Classroom course
+export async function createCourseWork(accessToken, classroomCourseId, title, maxPoints = 100) {
+  const res = await fetch(`${CLASSROOM_API}/courses/${classroomCourseId}/courseWork`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      title,
+      maxPoints,
+      workType: "ASSIGNMENT",
+      state: "PUBLISHED",
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || "Failed to create coursework");
+  }
+
+  return res.json();
+}
+
+// List all student submissions for a coursework item
+export async function listStudentSubmissions(accessToken, classroomCourseId, courseWorkId) {
+  const submissions = [];
+  let pageToken = null;
+
+  do {
+    const params = new URLSearchParams({ pageSize: "30" });
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const res = await fetch(
+      `${CLASSROOM_API}/courses/${classroomCourseId}/courseWork/${courseWorkId}/studentSubmissions?${params}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || "Failed to fetch submissions");
+    }
+
+    const data = await res.json();
+    if (data.studentSubmissions) submissions.push(...data.studentSubmissions);
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+
+  return submissions;
+}
+
+// Patch a student submission with a grade (0-100)
+export async function patchStudentGrade(accessToken, classroomCourseId, courseWorkId, submissionId, grade) {
+  const res = await fetch(
+    `${CLASSROOM_API}/courses/${classroomCourseId}/courseWork/${courseWorkId}/studentSubmissions/${submissionId}?updateMask=assignedGrade,draftGrade`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        assignedGrade: grade,
+        draftGrade: grade,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || "Failed to patch grade");
+  }
+
+  return res.json();
+}
+
+// ─── Roster Helpers ───────────────────────────────────────────────────────────
+
 // Fetch courses + all their rosters in one go
 export async function fetchFullRosters(accessToken) {
   const courses = await fetchClassroomCourses(accessToken);

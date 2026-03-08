@@ -136,10 +136,10 @@ export default function BiasDetectiveDashboard() {
   // Access guard
   if (!isTeacher) {
     return (
-      <main className="page-container" style={{ padding: "48px 40px" }}>
-        <div style={{ maxWidth: 600, margin: "0 auto", textAlign: "center", color: "var(--text3)" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-          <div style={{ fontSize: 18, fontWeight: 600 }}>Teacher access only</div>
+      <main className="page-wrapper">
+        <div className="empty-state">
+          <div className="empty-state-icon">🔒</div>
+          <div className="empty-state-title">Teacher access only</div>
         </div>
       </main>
     );
@@ -147,7 +147,7 @@ export default function BiasDetectiveDashboard() {
 
   if (loading) {
     return (
-      <main className="page-container" style={{ padding: "48px 40px" }}>
+      <main className="page-wrapper">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300 }}>
           <div className="spinner" />
         </div>
@@ -156,7 +156,7 @@ export default function BiasDetectiveDashboard() {
   }
 
   return (
-    <main className="page-container" style={{ padding: "48px 40px" }}>
+    <main className="page-wrapper">
       <style>{`
         .bdd-stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 28px; }
         .bdd-stat-card {
@@ -264,10 +264,10 @@ export default function BiasDetectiveDashboard() {
   function renderOverview() {
     if (enriched.length === 0) {
       return (
-        <div style={{ textAlign: "center", padding: 60, color: "var(--text3)" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-          <div style={{ fontSize: 16, fontWeight: 600 }}>No investigations yet</div>
-          <div style={{ fontSize: 13, marginTop: 6 }}>Students will appear here once they start an investigation.</div>
+        <div className="empty-state">
+          <div className="empty-state-icon">📭</div>
+          <div className="empty-state-title">No investigations yet</div>
+          <div className="empty-state-text">Students will appear here once they start an investigation.</div>
         </div>
       );
     }
@@ -405,9 +405,9 @@ export default function BiasDetectiveDashboard() {
         </div>
 
         {caseInvs.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>📭</div>
-            <div style={{ fontSize: 14 }}>No investigations for {caseData?.title || "this case"} yet.</div>
+          <div className="empty-state">
+            <div className="empty-state-icon">📭</div>
+            <div className="empty-state-text">No investigations for {caseData?.title || "this case"} yet.</div>
           </div>
         ) : (
           <table className="bdd-table">

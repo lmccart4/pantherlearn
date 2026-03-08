@@ -252,6 +252,7 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
   const textRef = useRef(null);
   const moveRef = useRef(null); // { strokeIdx, lastPoint }
   const [selectedIdx, setSelectedIdx] = useState(-1);
+  const hydrated = useRef(false);
 
   useEffect(() => { strokesRef.current = strokes; }, [strokes]);
 
@@ -305,6 +306,28 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
     const { width, height } = getDims();
     redrawCanvas(ctxRef.current, list, width, height);
   }, [getDims]);
+
+  // Sync strokes from studentData (async load + teacher reset)
+  useEffect(() => {
+    const saved = (studentData || {})[block.id];
+    if (!saved) {
+      if (hydrated.current && (!studentData || Object.keys(studentData).length === 0)) {
+        strokesRef.current = [];
+        setStrokes([]);
+        setRedoStack([]);
+        hydrated.current = false;
+        doRedraw([]);
+      }
+      return;
+    }
+    if (hydrated.current) return;
+    hydrated.current = true;
+    if (saved.strokes) {
+      strokesRef.current = saved.strokes;
+      setStrokes(saved.strokes);
+      doRedraw(saved.strokes);
+    }
+  }, [studentData, block.id, doRedraw]);
 
   function getCanvasPoint(e) {
     const container = containerRef.current;

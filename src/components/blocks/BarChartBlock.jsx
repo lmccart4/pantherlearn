@@ -7,7 +7,7 @@
 // Values are unclamped — any number is allowed; the Y-axis rescales dynamically.
 // Labels rendered with KaTeX for proper math typesetting (K_{E,i} etc.).
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 
 // Lazy-load KaTeX (~130KB) only when this component mounts
@@ -64,6 +64,27 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
   const [editingBar, setEditingBar] = useState(null);
   const [editingValue, setEditingValue] = useState("");
   const [editingLabel, setEditingLabel] = useState(null); // "section-idx" or null
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    const saved = (studentData || {})[block.id];
+    if (!saved) {
+      if (hydrated.current && (!studentData || Object.keys(studentData).length === 0)) {
+        setInitialBars(defaultSection(defaultCount));
+        setDeltaBars(defaultSection(1));
+        setFinalBars(defaultSection(defaultCount));
+        setDeltaLabel("");
+        hydrated.current = false;
+      }
+      return;
+    }
+    if (hydrated.current) return;
+    hydrated.current = true;
+    if (saved.initialBars) setInitialBars(saved.initialBars);
+    if (saved.deltaBars) setDeltaBars(saved.deltaBars);
+    if (saved.finalBars) setFinalBars(saved.finalBars);
+    if (saved.deltaLabel !== undefined) setDeltaLabel(saved.deltaLabel);
+  }, [studentData, block.id, defaultCount]);
 
   const [katexReady, setKatexReady] = useState(!!katexModule);
   const containerRef = useRef(null);

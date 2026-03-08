@@ -1,12 +1,27 @@
 // src/components/blocks/SimulationBlock.jsx
 // Interactive simulation embed (e.g., PhET) with optional observation prompt.
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 
 export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
   const data = (studentData && studentData[block.id]) || {};
   const [observation, setObservation] = useState(data.observation || "");
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    const saved = studentData?.[block.id];
+    if (!saved) {
+      if (hydrated.current && (!studentData || Object.keys(studentData).length === 0)) {
+        setObservation("");
+        hydrated.current = false;
+      }
+      return;
+    }
+    if (hydrated.current) return;
+    hydrated.current = true;
+    if (saved.observation !== undefined) setObservation(saved.observation);
+  }, [studentData, block.id]);
 
   const performSave = useCallback(() => {
     if (!observation.trim()) return;

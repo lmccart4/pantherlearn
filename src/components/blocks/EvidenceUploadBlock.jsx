@@ -2,13 +2,30 @@
 // Students upload photos of lab work with optional reflections.
 // Uses base64 data URLs stored directly in the progress document (no Firebase Storage needed for MVP).
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 
 export default function EvidenceUploadBlock({ block, studentData = {}, onAnswer }) {
   const data = (studentData && studentData[block.id]) || {};
   const [images, setImages] = useState(data.images || []);
   const [reflection, setReflection] = useState(data.reflection || "");
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    const saved = studentData?.[block.id];
+    if (!saved) {
+      if (hydrated.current && (!studentData || Object.keys(studentData).length === 0)) {
+        setImages([]);
+        setReflection("");
+        hydrated.current = false;
+      }
+      return;
+    }
+    if (hydrated.current) return;
+    hydrated.current = true;
+    if (saved.images !== undefined) setImages(saved.images);
+    if (saved.reflection !== undefined) setReflection(saved.reflection);
+  }, [studentData, block.id]);
 
   const performSave = useCallback(() => {
     onAnswer(block.id, {

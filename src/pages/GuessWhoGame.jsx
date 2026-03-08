@@ -143,7 +143,7 @@ export default function GuessWhoGame() {
 
   if (loading) {
     return (
-      <div className="page-container" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}>
+      <div className="page-wrapper" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}>
         <div className="spinner" />
       </div>
     );
@@ -151,7 +151,7 @@ export default function GuessWhoGame() {
 
   if (!game) {
     return (
-      <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}>
+      <div className="page-wrapper" style={{ textAlign: "center", paddingTop: 120 }}>
         <h2 style={{ color: "var(--text)" }}>Game not found</h2>
         <button onClick={() => navigate(-1)} style={linkBtnStyle}>← Go back</button>
       </div>

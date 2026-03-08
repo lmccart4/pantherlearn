@@ -1,0 +1,2818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Labeling Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Init -->
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyAlxvGxLIBUrVO3WWmEcslFpSygeYVeHpY",
+      authDomain: "pantherlearn-d6f7c.firebaseapp.com",
+      projectId: "pantherlearn-d6f7c",
+      storageBucket: "pantherlearn-d6f7c.firebasestorage.app",
+      messagingSenderId: "293205883325",
+      appId: "1:293205883325:web:c0c21ece0b4fc26f673ad4"
+    });
+    const firebaseAuth = firebase.auth();
+    const firebaseDb = firebase.firestore();
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --surface3: #222233;
+      --border: #2a2a3a;
+      --text: #e8e8f0;
+      --text2: #a0a0b8;
+      --text3: #6a6a82;
+      --amber: #f59e0b;
+      --amber-dim: #b47708;
+      --red: #ef4444;
+      --red-dim: rgba(239, 68, 68, 0.15);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.15);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59, 130, 246, 0.15);
+      --purple: #a78bfa;
+      --purple-dim: rgba(167, 139, 250, 0.15);
+      --pink: #f472b6;
+      --cyan: #22d3ee;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ===== PHASE CONTAINER ===== */
+    .app-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      min-height: 100vh;
+    }
+
+    /* ===== HEADER ===== */
+    .lab-header {
+      text-align: center;
+      margin-bottom: 32px;
+      position: relative;
+    }
+
+    .lab-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--amber);
+      color: #000;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      padding: 6px 16px;
+      border-radius: 100px;
+      margin-bottom: 16px;
+    }
+
+    .lab-title {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .lab-subtitle {
+      font-size: 15px;
+      color: var(--text2);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ===== PHASE INDICATORS ===== */
+    .phase-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+
+    .phase-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      background: var(--surface2);
+      color: var(--text3);
+      border: 2px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .phase-dot.active {
+      background: var(--amber);
+      color: #000;
+      border-color: var(--amber);
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+    }
+
+    .phase-dot.complete {
+      background: var(--green);
+      color: #000;
+      border-color: var(--green);
+    }
+
+    .phase-dot.clickable {
+      cursor: pointer;
+    }
+
+    .phase-dot.clickable:hover {
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.4);
+      transform: scale(1.1);
+    }
+
+    .phase-line {
+      width: 40px;
+      height: 2px;
+      background: var(--border);
+      transition: background 0.3s ease;
+    }
+
+    .phase-line.complete {
+      background: var(--green);
+    }
+
+    /* ===== INTRO SCREEN ===== */
+    .intro-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+
+    .intro-card h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .intro-card p {
+      color: var(--text2);
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+
+    .intro-card strong {
+      color: var(--amber);
+    }
+
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .rule-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .rule-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .rule-label {
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 4px;
+    }
+
+    .rule-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--amber);
+    }
+
+    .start-btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: var(--amber);
+      color: #000;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 0.5px;
+    }
+
+    .start-btn:hover {
+      background: #fbbf24;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+    }
+
+    /* ===== TIMER BAR ===== */
+    .timer-bar-container {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      margin: -24px -20px 24px -20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .timer-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .timer-clock {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px;
+      font-weight: 700;
+      min-width: 80px;
+    }
+
+    .timer-clock.warning { color: var(--amber); }
+    .timer-clock.critical { color: var(--red); animation: pulse-red 1s infinite; }
+
+    @keyframes pulse-red {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .timer-progress {
+      flex: 1;
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 0 16px;
+    }
+
+    .timer-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 2px;
+      transition: width 1s linear, background 0.3s ease;
+    }
+
+    .timer-fill.warning { background: var(--amber); }
+    .timer-fill.critical { background: var(--red); }
+
+    .labels-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: var(--text2);
+    }
+
+    .labels-count span {
+      color: var(--amber);
+      font-weight: 700;
+    }
+
+    /* ===== LABELING CARD ===== */
+    .label-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 20px;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .label-card-header {
+      background: var(--surface2);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-category {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text3);
+    }
+
+    .card-progress {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text3);
+    }
+
+    .card-progress span {
+      color: var(--amber);
+    }
+
+    .label-content {
+      padding: 28px 24px;
+    }
+
+    .label-content-text {
+      font-size: 17px;
+      line-height: 1.7;
+      color: var(--text);
+      padding: 20px;
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--purple);
+    }
+
+    .label-content img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+      border-radius: var(--radius-sm);
+    }
+
+    .label-options {
+      padding: 0 24px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .label-btn {
+      flex: 1;
+      min-width: 120px;
+      padding: 14px 20px;
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+
+    .label-btn:hover {
+      border-color: var(--amber);
+      background: rgba(245, 158, 11, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .label-btn:active {
+      transform: translateY(0);
+    }
+
+    .label-btn.selected {
+      border-color: var(--amber);
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--amber);
+    }
+
+    .skip-btn {
+      display: block;
+      margin: 0 auto;
+      padding: 8px 20px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text3);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .skip-btn:hover {
+      border-color: var(--text3);
+      color: var(--text2);
+    }
+
+    /* ===== RESULTS PHASE ===== */
+    .results-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .results-section h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .stat-value.amber { color: var(--amber); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.red { color: var(--red); }
+    .stat-value.blue { color: var(--blue); }
+    .stat-value.purple { color: var(--purple); }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text3);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ===== AGREEMENT HEATMAP ===== */
+    .heatmap-grid {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+
+    .heatmap-row {
+      display: grid;
+      grid-template-columns: 2fr repeat(var(--cols), 1fr);
+      gap: 4px;
+      align-items: center;
+    }
+
+    .heatmap-item-label {
+      font-size: 12px;
+      color: var(--text2);
+      padding: 6px 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .heatmap-cell {
+      padding: 8px 4px;
+      text-align: center;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      cursor: default;
+      position: relative;
+    }
+
+    .heatmap-cell:hover {
+      transform: scale(1.1);
+      z-index: 2;
+    }
+
+    .heatmap-header {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text3);
+      text-align: center;
+      padding: 4px;
+    }
+
+    /* ===== DISAGREEMENT SPOTLIGHT ===== */
+    .disagreement-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .disagreement-item .item-text {
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 12px;
+      padding: 12px;
+      background: var(--surface);
+      border-radius: 6px;
+      border-left: 3px solid var(--red);
+    }
+
+    .vote-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .vote-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .vote-bar-label {
+      font-size: 12px;
+      color: var(--text2);
+      min-width: 80px;
+      text-align: right;
+    }
+
+    .vote-bar-track {
+      flex: 1;
+      height: 20px;
+      background: var(--surface);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .vote-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: #000;
+      min-width: 30px;
+      transition: width 0.8s ease;
+    }
+
+    /* ===== MODEL IMPACT SIMULATION ===== */
+    .model-sim {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .model-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      text-align: center;
+    }
+
+    .model-card h4 {
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .model-card .model-desc {
+      font-size: 11px;
+      color: var(--text3);
+      margin-bottom: 12px;
+    }
+
+    .model-accuracy {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .model-bar {
+      height: 6px;
+      background: var(--surface);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .model-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 1s ease;
+    }
+
+    /* ===== REFLECTION PHASE ===== */
+    .reflection-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .reflection-card h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .reflection-prompt {
+      color: var(--text2);
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .reflection-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: vertical;
+      transition: border-color 0.2s ease;
+    }
+
+    .reflection-textarea:focus {
+      outline: none;
+      border-color: var(--amber);
+    }
+
+    .big-reveal {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(167, 139, 250, 0.08));
+      border: 1px solid var(--amber-dim);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .big-reveal h2 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+
+    .big-reveal p {
+      color: var(--text2);
+      line-height: 1.7;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    .fact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .fact-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: left;
+    }
+
+    .fact-card .fact-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text3);
+      margin-bottom: 6px;
+    }
+
+    .fact-card .fact-text {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .next-btn {
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      margin: 24px auto 0;
+      padding: 14px;
+      background: var(--amber);
+      color: #000;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .next-btn:hover {
+      background: #fbbf24;
+      transform: translateY(-1px);
+    }
+
+    .next-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ===== YOUR LABEL TAG ===== */
+    .your-label-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--amber);
+      color: #000;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 100px;
+      margin-left: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ===== LOADING / WAITING ===== */
+    .waiting-screen {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .waiting-screen h2 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+
+    .waiting-screen p {
+      color: var(--text2);
+      font-size: 15px;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--surface2);
+      border-top-color: var(--amber);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 24px auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 640px) {
+      .app-container { padding: 16px 12px; }
+      .lab-title { font-size: 24px; }
+      .timer-clock { font-size: 22px; }
+      .label-options { flex-direction: column; }
+      .label-btn { min-width: 100%; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .model-sim { grid-template-columns: 1fr; }
+    }
+
+    /* ===== FADE TRANSITIONS ===== */
+    .fade-in {
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    // ═══════════════════════════════════════════════════════════════
+    // LABELING DATASET
+    // ═══════════════════════════════════════════════════════════════
+    const LABELING_ITEMS = [
+      // --- SENTIMENT ANALYSIS (social media posts) ---
+      {
+        id: "s1",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Just got my test back. A 72. I guess that's fine.",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Tone is ambiguous — could be disappointed acceptance or genuine indifference"
+      },
+      {
+        id: "s2",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "lol my mom made me clean my room before I could go out. thanks mom 🙄",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Sarcasm makes this hard — the emoji suggests frustration but 'lol' softens it"
+      },
+      {
+        id: "s3",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "This new update is... interesting. I guess they tried.",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Backhanded compliment — technically positive words but negative meaning"
+      },
+      {
+        id: "s4",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Not gonna lie, that concert was absolutely insane 🔥🔥🔥",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "'Insane' is positive in slang context"
+      },
+      {
+        id: "s5",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "I've been waiting 45 minutes for my food. The vibes are immaculate though.",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Mixed signals — complaint + positive comment"
+      },
+      {
+        id: "s6",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "She really said 'let's just be friends' after all that 💀",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Skull emoji signals 'I'm dead' / emotional reaction"
+      },
+      {
+        id: "s7",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "My teacher actually helped me after school today. Respect.",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Clearly positive but understated"
+      },
+      {
+        id: "s8",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Another day another dollar 😐",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Common expression — apathy or routine"
+      },
+      {
+        id: "s9",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Wow thanks for letting me know AFTER I already bought the tickets 🙃",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Upside-down smiley = passive-aggressive sarcasm"
+      },
+      {
+        id: "s10",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "I'm not even mad tbh I'm just tired",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Denial of anger — but still a negative emotional state"
+      },
+      {
+        id: "s11",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "This is fine. Everything is fine. 🙂🔥",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Meme reference — words say positive, context says distress"
+      },
+      {
+        id: "s12",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "ngl that movie had no right being that good",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Double negative slang that actually means very positive"
+      },
+      {
+        id: "s13",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "My group did all the work and I just sat there lol guess who got the same grade 😂",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Bragging or guilty confession? Tone is ambiguous"
+      },
+      {
+        id: "s14",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Can't believe I woke up at 5am for this. Actually worth it though",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Starts negative, pivots to positive — which dominates?"
+      },
+      {
+        id: "s15",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "bro really said 'trust me' and then did THAT 😭😭",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Crying emoji used for humor, not sadness"
+      },
+      {
+        id: "s16",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "I love how nobody told me the assignment was due today. Love that for me.",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Sarcastic 'love' — clearly frustrated"
+      },
+      {
+        id: "s17",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "New phone who dis 📱",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Playful/joking — not really positive or negative"
+      },
+      {
+        id: "s18",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Shoutout to my wifi for cutting out during the final exam 🫠",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Sarcastic gratitude masking frustration"
+      },
+      {
+        id: "s19",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Honestly at this point I just laugh when things go wrong",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Coping mechanism — is laughing positive even if the situation is bad?"
+      },
+      {
+        id: "s20",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Just found out my dog ate my AirPods. He seems fine tho so we good",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Bad situation resolved with humor — mixed tone"
+      },
+      {
+        id: "s21",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "3 hours of sleep and a red bull let's get this bread 💪",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Forced optimism despite a clearly bad situation"
+      },
+      {
+        id: "s22",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Sure Jan 🙄",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Pop culture reference = dismissive sarcasm. Very brief."
+      },
+      {
+        id: "s23",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Petition to make Fridays a universal day off. Who's with me",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Lighthearted complaint or genuine frustration?"
+      },
+      {
+        id: "s24",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "The sunset tonight was unreal. Almost made the traffic worth it.",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "'Almost' — appreciation undercut by frustration"
+      },
+      {
+        id: "s25",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "My brain at 2am: what if everyone secretly hates you? Me: cool cool cool",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Anxiety presented as humor — Gen Z mental health meme style"
+      },
+      {
+        id: "s26",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Imagine studying for 6 hours and getting a C. Couldn't be me. Oh wait. It is me.",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Self-deprecating humor — negative experience wrapped in a joke"
+      },
+      {
+        id: "s27",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Lowkey the school lunch today was valid 👀",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Slang-heavy praise — 'valid' means good, 'lowkey' hedges it"
+      },
+      {
+        id: "s28",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "POV: you finally finish your homework and realize there's more on the next page",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Relatable disappointment in meme format"
+      },
+      {
+        id: "s29",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "No thoughts head empty ✨",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Self-aware humor — positive vibes or dissociation?"
+      },
+      {
+        id: "s30",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Just submitted my college app. I either just made the best decision of my life or the worst. No in between.",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Anxiety mixed with accomplishment"
+      },
+      {
+        id: "s31",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Friendly reminder that nobody asked for your opinion Kevin",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "'Friendly reminder' framing on a hostile message"
+      },
+      {
+        id: "s32",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "We literally have a sub today LETS GOOO 🎉",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Clearly excited but about avoiding real class — positive sentiment"
+      },
+      {
+        id: "s33",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Thanks for the spoiler. Really appreciate it. 😑",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Dripping sarcasm — words say thankful, tone says furious"
+      },
+      {
+        id: "s34",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Therapist said I need to set boundaries so here's mine: don't talk to me before 10am",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Self-care framed as humor — positive growth or antisocial?"
+      },
+      {
+        id: "s35",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "I physically cannot stop rewatching this show someone help me",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "'Help me' sounds negative but it's enthusiastic praise"
+      },
+      {
+        id: "s36",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Got left on read for 3 hours but it's fine I didn't want a response anyway 🥲",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Passive-aggressive hurt disguised as nonchalance"
+      },
+      {
+        id: "s37",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Honestly the gym at 5am hits different. Changed my whole life ngl",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Genuinely positive but casual tone might read as neutral"
+      },
+      {
+        id: "s38",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "My mom's cooking >>>>>> any restaurant in this city",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Slang comparison (>>>>) means 'far better' — positive"
+      },
+      {
+        id: "s39",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "I just know my future self is going to hate me for this decision",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Self-aware regret — happening now or predicted?"
+      },
+      {
+        id: "s40",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Why does every group project turn into me doing everything lol classic",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "'lol classic' softens genuine frustration"
+      },
+      {
+        id: "s41",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Bestie really came through when I needed her most. Ride or die fr 💕",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Clear gratitude but heavy slang might confuse models"
+      },
+      {
+        id: "s42",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Me pretending to understand the assignment: 🧍",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Self-deprecating humor with emoji-only punchline"
+      },
+      {
+        id: "s43",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Year 2 of saying 'this is my year' and nothing has changed",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Resignation wrapped in humor — negative or just realistic?"
+      },
+      {
+        id: "s44",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "That awkward moment when the teacher calls on you and you weren't even in the same universe",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Embarrassment as humor — relatable but not clearly pos/neg"
+      },
+      {
+        id: "s45",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Finally blocked that toxic person and I feel INCREDIBLE",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Positive feeling from a negative context"
+      },
+      {
+        id: "s46",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Rain on the day of the field trip. Of course. Wouldn't expect anything else.",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Resigned sarcasm — clearly disappointed but tone is flat"
+      },
+      {
+        id: "s47",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Is it just me or does time move slower in last period",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Universal complaint or just an observation?"
+      },
+      {
+        id: "s48",
+        category: "Sentiment Analysis",
+        type: "text",
+        content: "Shoutout to the one person who laughed at my joke in class today. You kept me alive.",
+        options: ["Positive", "Negative", "Neutral"],
+        note: "Gratitude mixed with exaggeration — 'kept me alive' is hyperbolic"
+      },
+
+      // --- CONTENT MODERATION ---
+      {
+        id: "m1",
+        category: "Content Moderation",
+        type: "text",
+        content: "Honestly this game is trash and anyone who plays it has no taste",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Rude opinion vs. targeted harassment — where's the line?"
+      },
+      {
+        id: "m2",
+        category: "Content Moderation",
+        type: "text",
+        content: "I literally want to scream at my computer right now",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Expressing frustration — not a threat, but language could be flagged"
+      },
+      {
+        id: "m3",
+        category: "Content Moderation",
+        type: "text",
+        content: "That last play was CRIMINAL. Ref should be fired immediately 🏀",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Hyperbolic sports commentary — 'criminal' and 'fired' aren't literal"
+      },
+      {
+        id: "m4",
+        category: "Content Moderation",
+        type: "text",
+        content: "If you don't agree with me on this, you're part of the problem",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Aggressive but common rhetoric — opinion or divisive?"
+      },
+      {
+        id: "m5",
+        category: "Content Moderation",
+        type: "text",
+        content: "Bro your fit is absolutely fire today no cap 🔥",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Slang-heavy compliment — could confuse content filters"
+      },
+      {
+        id: "m6",
+        category: "Content Moderation",
+        type: "text",
+        content: "I can't believe people still think that way in 2025. Embarrassing.",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Dismissive of a group — but what group? Context-dependent"
+      },
+      {
+        id: "m7",
+        category: "Content Moderation",
+        type: "text",
+        content: "Ratio + L + nobody asked + you fell off",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Standard Twitter pile-on language — bullying or just meme culture?"
+      },
+      {
+        id: "m8",
+        category: "Content Moderation",
+        type: "text",
+        content: "Someone needs to put these people in their place fr",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Vague threat or just frustration? 'These people' is unspecified"
+      },
+      {
+        id: "m9",
+        category: "Content Moderation",
+        type: "text",
+        content: "My little brother is so annoying I could literally throw him out the window",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Hyperbolic sibling frustration — clearly not literal, but violent language"
+      },
+      {
+        id: "m10",
+        category: "Content Moderation",
+        type: "text",
+        content: "This teacher really just said 'figure it out yourself' 💀 worst class ever",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Criticism of authority figure — venting or targeted harassment?"
+      },
+      {
+        id: "m11",
+        category: "Content Moderation",
+        type: "text",
+        content: "Y'all are sleeping on this song it's actually a banger 🔊",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Enthusiastic recommendation — 'sleeping on' could confuse filters"
+      },
+      {
+        id: "m12",
+        category: "Content Moderation",
+        type: "text",
+        content: "Delete your account honestly you're embarrassing yourself",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Direct insult at a specific user — but commonly said online"
+      },
+      {
+        id: "m13",
+        category: "Content Moderation",
+        type: "text",
+        content: "I'm dead serious when I say this might be the worst take I've ever seen",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "'Dead serious' + strong disagreement — aggressive but no slurs"
+      },
+      {
+        id: "m14",
+        category: "Content Moderation",
+        type: "text",
+        content: "Not me crying in the school bathroom again lol 🥲",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Potential mental health concern disguised as humor — flag for safety?"
+      },
+      {
+        id: "m15",
+        category: "Content Moderation",
+        type: "text",
+        content: "Skill issue tbh 🤷",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Dismissive gaming slang used to mock someone — mild toxicity"
+      },
+      {
+        id: "m16",
+        category: "Content Moderation",
+        type: "text",
+        content: "These refs are blind. Literally blind. Fire them all and start over.",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Ableist language ('blind') used casually in sports context"
+      },
+      {
+        id: "m17",
+        category: "Content Moderation",
+        type: "text",
+        content: "People who chew with their mouth open deserve to be exiled from society",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Obviously hyperbolic — but automod might flag 'exiled from society'"
+      },
+      {
+        id: "m18",
+        category: "Content Moderation",
+        type: "text",
+        content: "Why does everyone in this school act like they're better than everyone else",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Vague grievance about a school community — complaint or concerning?"
+      },
+      {
+        id: "m19",
+        category: "Content Moderation",
+        type: "text",
+        content: "Normalize not responding to texts for 3 days. I'm healing.",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Self-care rhetoric or avoidant behavior? Content is benign"
+      },
+      {
+        id: "m20",
+        category: "Content Moderation",
+        type: "text",
+        content: "@ the person who stole my lunch from the fridge: I WILL find you 🔍",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Playful 'threat' about a minor grievance — clearly not serious"
+      },
+      {
+        id: "m21",
+        category: "Content Moderation",
+        type: "text",
+        content: "Some people's parents really failed them and it shows",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Insulting someone's upbringing — personal attack or social commentary?"
+      },
+      {
+        id: "m22",
+        category: "Content Moderation",
+        type: "text",
+        content: "Hot take: if you peaked in high school that's genuinely sad",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Condescending opinion about a broad group — mean but not targeted"
+      },
+      {
+        id: "m23",
+        category: "Content Moderation",
+        type: "text",
+        content: "I swear if my roommate eats my food ONE more time I'm going feral",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "'Going feral' = slang for losing control — hyperbolic frustration"
+      },
+      {
+        id: "m24",
+        category: "Content Moderation",
+        type: "text",
+        content: "Every day I wake up and choose violence (against my alarm clock) ⏰",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Meme phrase 'choose violence' with obvious joke clarification"
+      },
+      {
+        id: "m25",
+        category: "Content Moderation",
+        type: "text",
+        content: "I hope both sides of your pillow are warm tonight 😤",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Creative 'curse' — clearly a joke but technically wishing ill"
+      },
+      {
+        id: "m26",
+        category: "Content Moderation",
+        type: "text",
+        content: "Unfollow me right now if you think pineapple belongs on pizza. I'm not joking.",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Aggressive tone over a trivial topic — harassment or humor?"
+      },
+      {
+        id: "m27",
+        category: "Content Moderation",
+        type: "text",
+        content: "That kid in class who reminds the teacher about homework deserves what's coming to them",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Vague threat toward a specific type of person — joking but edgy"
+      },
+      {
+        id: "m28",
+        category: "Content Moderation",
+        type: "text",
+        content: "POV: you're the main character and everyone else is an NPC",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Dehumanizing language (NPC) used as a meme — normalizing or harmless?"
+      },
+      {
+        id: "m29",
+        category: "Content Moderation",
+        type: "text",
+        content: "Normalize telling people their opinions are trash to their face",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "'Normalize' framing on something confrontational"
+      },
+      {
+        id: "m30",
+        category: "Content Moderation",
+        type: "text",
+        content: "I don't trust anyone who sleeps with socks on. Stay away from me.",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Absurd gatekeeping — funny but technically exclusionary"
+      },
+      {
+        id: "m31",
+        category: "Content Moderation",
+        type: "text",
+        content: "Mentally I am here 📍🏝️ but physically I am suffering through AP Bio",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "'Suffering' could flag mental health filters but it's clearly casual"
+      },
+      {
+        id: "m32",
+        category: "Content Moderation",
+        type: "text",
+        content: "The way I RAN to the car after school. Never looking back. This place is a prison.",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Calling school a 'prison' — hyperbole or concerning sentiment?"
+      },
+      {
+        id: "m33",
+        category: "Content Moderation",
+        type: "text",
+        content: "Whoever invented Monday morning meetings needs to be investigated for crimes against humanity",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "'Crimes against humanity' over a minor annoyance — extreme hyperbole"
+      },
+      {
+        id: "m34",
+        category: "Content Moderation",
+        type: "text",
+        content: "I would literally sell my soul for a snow day tomorrow. Not kidding.",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Hyperbolic desperation — 'sell my soul' and 'not kidding' could confuse filters"
+      },
+      {
+        id: "m35",
+        category: "Content Moderation",
+        type: "text",
+        content: "If you spoil this movie for me I will never speak to you again and that's a promise",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Social threat (cutting off contact) over entertainment — common but aggressive"
+      },
+      {
+        id: "m36",
+        category: "Content Moderation",
+        type: "text",
+        content: "Some of y'all have never been humbled and it really shows 💅",
+        options: ["Keep", "Flag", "Unsure"],
+        note: "Condescending generalization — passive-aggressive but no specific target"
+      },
+
+      // --- IMAGE / EMOTION CLASSIFICATION ---
+      {
+        id: "e1",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A photo shows a person at a graduation ceremony. Their eyes are red and watery, and their mouth is slightly open.",
+        options: ["Happy", "Sad", "Surprised", "Neutral"],
+        note: "Crying at graduation — tears of joy or sadness?"
+      },
+      {
+        id: "e2",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A teenager is sitting alone in a cafeteria. They're looking at their phone with no visible expression on their face.",
+        options: ["Happy", "Sad", "Lonely", "Neutral"],
+        note: "We project emotions based on context (alone = lonely?)"
+      },
+      {
+        id: "e3",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is raising their fist in the air at a large crowd gathering. Their face shows intensity.",
+        options: ["Angry", "Excited", "Passionate", "Threatening"],
+        note: "Same gesture = celebration or aggression depending on bias"
+      },
+      {
+        id: "e4",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A child is running toward the camera with wide eyes and an open mouth.",
+        options: ["Happy", "Scared", "Excited", "Surprised"],
+        note: "Same expression maps to multiple emotions"
+      },
+      {
+        id: "e5",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 Two people are standing very close together, one has their hand on the other's shoulder. Neither is smiling.",
+        options: ["Comforting", "Threatening", "Neutral", "Sad"],
+        note: "Physical proximity + no smile = comfort or confrontation?"
+      },
+      {
+        id: "e6",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person in a business suit is walking quickly through an airport, jaw clenched, staring straight ahead.",
+        options: ["Stressed", "Determined", "Angry", "Focused"],
+        note: "Similar expressions get very different labels based on assumed context"
+      },
+      {
+        id: "e7",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A student is staring out a classroom window. Their chin rests on their hand, eyes unfocused.",
+        options: ["Bored", "Sad", "Thoughtful", "Tired"],
+        note: "Daydreaming or emotionally checked out? Context changes everything"
+      },
+      {
+        id: "e8",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is laughing with their head thrown back at a dinner table. Others at the table are not laughing.",
+        options: ["Happy", "Awkward", "Nervous", "Obnoxious"],
+        note: "Same laughter reads differently when others don't share the reaction"
+      },
+      {
+        id: "e9",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A teenager is hugging a stuffed animal while sitting on their bed. The room is dimly lit.",
+        options: ["Sad", "Comfortable", "Lonely", "Nostalgic"],
+        note: "Dim lighting biases perception toward negative emotions"
+      },
+      {
+        id: "e10",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 Two friends are shoving each other on a sidewalk, both with wide grins.",
+        options: ["Playful", "Aggressive", "Happy", "Competitive"],
+        note: "Physical contact + smiles = play or fight? Cultural norms affect reading"
+      },
+      {
+        id: "e11",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is sitting alone on a park bench at sunset, looking at the sky.",
+        options: ["Peaceful", "Lonely", "Reflective", "Sad"],
+        note: "Alone ≠ lonely — but solitude is often read as sadness"
+      },
+      {
+        id: "e12",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A coach is yelling at players on the sideline, pointing aggressively at the field.",
+        options: ["Angry", "Passionate", "Motivating", "Frustrated"],
+        note: "Yelling in sports context — coaching or aggression?"
+      },
+      {
+        id: "e13",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is covering their face with both hands while their shoulders shake.",
+        options: ["Crying", "Laughing", "Overwhelmed", "Embarrassed"],
+        note: "Identical body language for crying and laughing hard"
+      },
+      {
+        id: "e14",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A child is clinging to a parent's leg at the entrance of a school building.",
+        options: ["Scared", "Anxious", "Clingy", "Sad"],
+        note: "Normal separation anxiety or deeper distress? Labels carry judgment"
+      },
+      {
+        id: "e15",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is smiling broadly while holding a trophy, but their eyes look red and puffy.",
+        options: ["Happy", "Relieved", "Emotional", "Exhausted"],
+        note: "Mixed signals — celebration + visible signs of crying or fatigue"
+      },
+      {
+        id: "e16",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 An elderly person is sitting in a wheelchair looking out a window. A cup of tea is on the table beside them.",
+        options: ["Content", "Lonely", "Peaceful", "Sad"],
+        note: "Age + wheelchair biases people toward negative labels"
+      },
+      {
+        id: "e17",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A group of teens are all looking at their phones in silence while sitting together at a table.",
+        options: ["Bored", "Connected", "Antisocial", "Neutral"],
+        note: "Generational bias — older labelers may read this more negatively"
+      },
+      {
+        id: "e18",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person with crossed arms is standing in front of a whiteboard full of equations.",
+        options: ["Confused", "Confident", "Frustrated", "Thinking"],
+        note: "Crossed arms = defensive or self-assured? Depends on assumptions"
+      },
+      {
+        id: "e19",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A dog owner is kneeling next to their dog at a vet's office. The owner's face is tense.",
+        options: ["Worried", "Caring", "Sad", "Anxious"],
+        note: "All options are similar — shows how fine-grained emotion labels can be"
+      },
+      {
+        id: "e20",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is dancing alone in their kitchen while cooking. No one else is visible.",
+        options: ["Happy", "Carefree", "Silly", "Neutral"],
+        note: "Unobserved joy — does 'alone' change the label?"
+      },
+      {
+        id: "e21",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A student gets their test back and immediately flips it face-down on the desk.",
+        options: ["Disappointed", "Embarrassed", "Angry", "Indifferent"],
+        note: "The action implies negative result but we can't see their face"
+      },
+      {
+        id: "e22",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is biting their lip while looking at their phone screen in a crowded room.",
+        options: ["Anxious", "Excited", "Nervous", "Focused"],
+        note: "Lip biting = anxiety or anticipation? Same expression, different readings"
+      },
+      {
+        id: "e23",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A father is watching his daughter's dance recital from the audience. His jaw is tight and his eyes are glistening.",
+        options: ["Proud", "Sad", "Emotional", "Tense"],
+        note: "Parental emotion at a performance — complex mix of pride and feeling"
+      },
+      {
+        id: "e24",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is sitting in a car in an empty parking lot, gripping the steering wheel, staring forward.",
+        options: ["Overwhelmed", "Angry", "Thinking", "Exhausted"],
+        note: "Common 'sitting in the car before going in' moment — many possible emotions"
+      },
+      {
+        id: "e25",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A student is walking alone down a long empty hallway after the bell has rung. Their backpack hangs off one shoulder.",
+        options: ["Lonely", "Relaxed", "Tired", "Indifferent"],
+        note: "Empty hallway creates mood — but the student might just be late"
+      },
+      {
+        id: "e26",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is standing in front of a mirror, adjusting their outfit repeatedly. Their lips are pressed together.",
+        options: ["Anxious", "Confident", "Self-conscious", "Focused"],
+        note: "Preparation behavior reads differently based on assumptions about the person"
+      },
+      {
+        id: "e27",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A group of friends are all laughing, but one person in the group has a tight smile that doesn't reach their eyes.",
+        options: ["Left out", "Polite", "Uncomfortable", "Neutral"],
+        note: "Forced vs. genuine smile — subtle social dynamics"
+      },
+      {
+        id: "e28",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is rapidly typing on their phone while pacing back and forth in a room.",
+        options: ["Anxious", "Excited", "Angry", "Urgent"],
+        note: "Pacing + phone = bad news or exciting conversation?"
+      },
+      {
+        id: "e29",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 An athlete is sitting on the bench during a game, head in their hands, while the team plays on.",
+        options: ["Disappointed", "Frustrated", "Exhausted", "Focused"],
+        note: "Context of competition changes how we read identical body language"
+      },
+      {
+        id: "e30",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is staring at a pregnancy test. Their expression is completely blank.",
+        options: ["Shocked", "Scared", "Happy", "Processing"],
+        note: "Our assumptions about whether the result is wanted heavily bias the label"
+      },
+      {
+        id: "e31",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A child is holding a melted ice cream cone, staring at the puddle on the ground.",
+        options: ["Sad", "Disappointed", "Confused", "Neutral"],
+        note: "Universally read as sad — but what if the child doesn't care?"
+      },
+      {
+        id: "e32",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A teacher is leaning against their desk after all students have left, staring at the ceiling.",
+        options: ["Exhausted", "Relieved", "Reflective", "Lonely"],
+        note: "End-of-day teacher moment — fatigue or peaceful solitude?"
+      },
+      {
+        id: "e33",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 Two siblings are arm-wrestling at a dinner table. One is grinning, the other has a clenched jaw.",
+        options: ["Playful", "Competitive", "Tense", "Angry"],
+        note: "Same activity, different expressions — how do you label the PAIR?"
+      },
+      {
+        id: "e34",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person is reading a letter. Their hand is trembling slightly and they are biting their lower lip.",
+        options: ["Nervous", "Moved", "Scared", "Anticipating"],
+        note: "Trembling + lip biting could be fear, emotion, or excitement"
+      },
+      {
+        id: "e35",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A person in scrubs is sitting in a break room alone, holding a coffee cup but not drinking it.",
+        options: ["Exhausted", "Grieving", "Thinking", "Numb"],
+        note: "Healthcare worker context primes us toward burnout/grief assumptions"
+      },
+      {
+        id: "e36",
+        category: "Emotion Detection",
+        type: "scenario",
+        content: "📸 A teenager slams their laptop shut and pushes back from the desk. Their jaw is tight.",
+        options: ["Frustrated", "Angry", "Overwhelmed", "Determined"],
+        note: "Slamming = anger? Or could be frustration turning into resolve"
+      }
+    ];
+
+    // Shuffle helper (seeded by student so each gets same order per session)
+    function shuffleArray(arr, seed) {
+      const shuffled = [...arr];
+      let s = seed || 1;
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        s = (s * 16807) % 2147483647;
+        const j = s % (i + 1);
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SIMULATED CLASS DATA (used when no Firebase / standalone mode)
+    // ═══════════════════════════════════════════════════════════════
+    function generateSimulatedClassData(studentLabels) {
+      const simStudents = 24;
+      const allLabels = {};
+
+      LABELING_ITEMS.forEach(item => {
+        allLabels[item.id] = {};
+        const opts = item.options;
+
+        // Create realistic distributions — controversial items get spread out
+        const isControversial = ["s1","s2","s3","s5","s6","s8","s10","s11","s13","s14","s15","s16","s18","s19","s21","s24","s25","s26","s29","s30","s33","s34","s36","s39","s40","s42","s43","s44","s46","s47","m1","m2","m3","m4","m6","m8","m9","m10","m12","m13","m14","m16","m18","m21","m22","m23","m25","m27","m28","m29","m32","m33","e1","e2","e3","e5","e6","e8","e9","e11","e13","e15","e16","e17","e18","e21","e22","e23","e24","e26","e27","e29","e30","e32","e34","e35"].includes(item.id);
+
+        for (let s = 0; s < simStudents; s++) {
+          if (isControversial) {
+            // Spread across options with some clustering
+            const r = Math.random();
+            if (r < 0.35) allLabels[item.id][`sim_${s}`] = opts[0];
+            else if (r < 0.65) allLabels[item.id][`sim_${s}`] = opts[1];
+            else if (r < 0.85) allLabels[item.id][`sim_${s}`] = opts[2];
+            else allLabels[item.id][`sim_${s}`] = opts[opts.length - 1];
+          } else {
+            // Strong majority on one option
+            const r = Math.random();
+            if (r < 0.7) allLabels[item.id][`sim_${s}`] = opts[0];
+            else if (r < 0.9) allLabels[item.id][`sim_${s}`] = opts[1];
+            else allLabels[item.id][`sim_${s}`] = opts[Math.floor(Math.random() * opts.length)];
+          }
+        }
+
+        // Add student's own label
+        if (studentLabels[item.id]) {
+          allLabels[item.id]["you"] = studentLabels[item.id];
+        }
+      });
+
+      return allLabels;
+    }
+
+    function computeAgreementStats(classData) {
+      const results = {};
+
+      LABELING_ITEMS.forEach(item => {
+        const labels = classData[item.id] || {};
+        const counts = {};
+        let total = 0;
+
+        Object.values(labels).forEach(label => {
+          counts[label] = (counts[label] || 0) + 1;
+          total++;
+        });
+
+        const maxCount = Math.max(...Object.values(counts), 0);
+        const agreement = total > 0 ? maxCount / total : 0;
+        const majority = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+
+        results[item.id] = {
+          counts,
+          total,
+          agreement,
+          majority,
+          studentLabel: labels["you"] || null,
+          studentMatchesMajority: labels["you"] === majority
+        };
+      });
+
+      return results;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // MAIN APP COMPONENT
+    // ═══════════════════════════════════════════════════════════════
+    function App() {
+      const [phase, setPhase] = useState("intro"); // intro, labeling, results, reflection
+      const [labels, setLabels] = useState({});
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [timeLeft, setTimeLeft] = useState(1500); // 25 minutes
+      const [items] = useState(() => shuffleArray(LABELING_ITEMS, Date.now()));
+      const [classData, setClassData] = useState(null);
+      const [agreementStats, setAgreementStats] = useState(null);
+      const [labelingDone, setLabelingDone] = useState(false);
+      const [submitted, setSubmitted] = useState(false);
+      const [responses, setResponses] = useState({}); // reflection responses, lifted to App for persistence
+      const timerRef = useRef(null);
+      const advanceRef = useRef(null);
+      const autoSaveRef = useRef(null);
+      const reflectionSaveRef = useRef(null);
+      const maxPhaseRef = useRef(0); // track furthest phase reached (0=intro,1=labeling,2=results,3=reflection)
+
+      // Auth state
+      const [currentUser, setCurrentUser] = useState(null);
+      const [authLoading, setAuthLoading] = useState(true);
+      const [dataLoading, setDataLoading] = useState(true);
+      const restoredRef = useRef(false);
+
+      useEffect(() => {
+        const unsubscribe = firebaseAuth.onAuthStateChanged(user => {
+          setCurrentUser(user);
+          setAuthLoading(false);
+        });
+        return () => unsubscribe();
+      }, []);
+
+      // Load saved progress from Firestore
+      useEffect(() => {
+        if (!currentUser || restoredRef.current) { setDataLoading(false); return; }
+        restoredRef.current = true;
+
+        firebaseDb.collection("dataLabelingLab").doc(currentUser.uid).get()
+          .then(doc => {
+            if (doc.exists) {
+              const d = doc.data();
+
+              // Restore labels
+              if (d.savedLabels && Object.keys(d.savedLabels).length > 0) {
+                setLabels(d.savedLabels);
+              }
+
+              // Restore reflections
+              if (d.reflections) {
+                setResponses(d.reflections);
+              }
+
+              // Determine phase to restore
+              if (d.submitted) {
+                // Fully submitted — go to reflection in read-only
+                setSubmitted(true);
+                setLabelingDone(true);
+                setTimeLeft(1500 - (d.timeUsed || 0));
+                // Regenerate simulated data for results view
+                const simData = generateSimulatedClassData(d.savedLabels || {});
+                setClassData(simData);
+                setAgreementStats(computeAgreementStats(simData));
+                maxPhaseRef.current = 3;
+                setPhase("reflection");
+              } else if (d.savedLabels && d.labelingDone) {
+                // Finished labeling but hasn't submitted reflections
+                setLabelingDone(true);
+                setTimeLeft(1500 - (d.timeUsed || 0));
+                const simData = generateSimulatedClassData(d.savedLabels);
+                setClassData(simData);
+                setAgreementStats(computeAgreementStats(simData));
+                maxPhaseRef.current = d.reflections?.r1 ? 3 : 2;
+                setPhase(d.reflections?.r1 ? "reflection" : "results");
+              } else if (d.savedLabels && Object.keys(d.savedLabels).length > 0) {
+                // Mid-labeling — restore to labeling phase
+                setTimeLeft(1500 - (d.timeUsed || 0));
+                setCurrentIndex(Object.keys(d.savedLabels).length);
+                maxPhaseRef.current = 1;
+                setPhase("labeling");
+              }
+              // else: no meaningful data saved, start from intro
+            }
+          })
+          .catch(err => console.warn("Failed to load saved progress:", err))
+          .finally(() => setDataLoading(false));
+      }, [currentUser]);
+
+      const totalItems = items.length;
+      const labeledCount = Object.keys(labels).length;
+
+      // Timer logic
+      useEffect(() => {
+        if (phase === "labeling" && !labelingDone && timeLeft > 0) {
+          timerRef.current = setInterval(() => {
+            setTimeLeft(t => {
+              if (t <= 1) {
+                clearInterval(timerRef.current);
+                return 0;
+              }
+              return t - 1;
+            });
+          }, 1000);
+          return () => clearInterval(timerRef.current);
+        }
+      }, [phase, labelingDone]);
+
+      // Auto-advance when time runs out
+      useEffect(() => {
+        if (phase === "labeling" && !labelingDone && timeLeft === 0) {
+          finishLabeling();
+        }
+      }, [timeLeft, phase, labelingDone]);
+
+      // Auto-save labels every 30s during active labeling
+      useEffect(() => {
+        if (phase === "labeling" && !labelingDone && currentUser) {
+          autoSaveRef.current = setInterval(() => {
+            const ct = Object.keys(labels).length;
+            if (ct === 0) return;
+            firebaseDb.collection("dataLabelingLab").doc(currentUser.uid).set({
+              uid: currentUser.uid,
+              displayName: currentUser.displayName || "",
+              email: currentUser.email || "",
+              photoURL: currentUser.photoURL || "",
+              courseId: "paps",
+              savedLabels: labels,
+              labeledCount: ct,
+              totalItems: items.length,
+              timeUsed: 1500 - timeLeft,
+              submitted: false,
+              labelingDone: false,
+            }, { merge: true }).catch(err => console.warn("Auto-save failed:", err));
+          }, 30000);
+          return () => clearInterval(autoSaveRef.current);
+        }
+      }, [phase, labelingDone, currentUser, labels, timeLeft]);
+
+      const startLabeling = () => {
+        setPhase("labeling");
+      };
+
+      const selectLabel = (itemId, label) => {
+        setLabels(prev => ({ ...prev, [itemId]: label }));
+        // Debounced auto-advance — clears previous timeout so double-clicks don't skip items
+        clearTimeout(advanceRef.current);
+        advanceRef.current = setTimeout(() => {
+          setCurrentIndex(i => i < totalItems - 1 ? i + 1 : i);
+        }, 250);
+      };
+
+      const skipItem = () => {
+        if (currentIndex < totalItems - 1) {
+          setCurrentIndex(i => i + 1);
+        }
+      };
+
+      const finishLabeling = () => {
+        clearInterval(timerRef.current);
+        clearInterval(autoSaveRef.current);
+        setLabelingDone(true);
+        const simData = generateSimulatedClassData(labels);
+        setClassData(simData);
+        const stats = computeAgreementStats(simData);
+        setAgreementStats(stats);
+        setPhase("results");
+
+        // Draft save — labels preserved even if student doesn't finish reflections
+        if (currentUser) {
+          const matchCount = Object.entries(labels).filter(
+            ([id]) => stats[id]?.studentMatchesMajority
+          ).length;
+          const ct = Object.keys(labels).length;
+          firebaseDb.collection("dataLabelingLab").doc(currentUser.uid).set({
+            uid: currentUser.uid,
+            displayName: currentUser.displayName || "",
+            email: currentUser.email || "",
+            photoURL: currentUser.photoURL || "",
+            courseId: "paps",
+            submitted: false,
+            labelingDone: true,
+            savedLabels: labels,
+            labeledCount: ct,
+            totalItems: items.length,
+            timeUsed: 1500 - timeLeft,
+            accuracy: ct > 0 ? Math.round((matchCount / ct) * 100) : 0,
+          }, { merge: true }).catch(err => console.warn("Draft save failed:", err));
+        }
+      };
+
+      const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+      };
+
+      const timerClass = timeLeft <= 30 ? 'critical' : timeLeft <= 60 ? 'warning' : '';
+      const timerPct = (timeLeft / 1500) * 100;
+
+      // Auth gate
+      if (authLoading || (currentUser && dataLoading)) {
+        return (
+          <div className="app-container">
+            <div className="waiting-screen">
+              <div className="spinner" />
+              <p>Loading...</p>
+            </div>
+          </div>
+        );
+      }
+
+      if (!currentUser) {
+        const signInWithGoogle = () => {
+          const provider = new firebase.auth.GoogleAuthProvider();
+          firebaseAuth.signInWithPopup(provider).catch(err => {
+            console.error("Sign-in failed:", err);
+          });
+        };
+
+        return (
+          <div className="app-container">
+            <div className="waiting-screen">
+              <h2>Sign In Required</h2>
+              <p style={{marginBottom: 16}}>
+                Sign in with your school Google account to start the lab.
+              </p>
+              <button className="start-btn" onClick={signInWithGoogle}>
+                Sign in with Google
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="app-container">
+          {/* Header */}
+          <div className="lab-header">
+            <div className="lab-badge">⚡ Interactive Lab</div>
+            <h1 className="lab-title">The Data Labeling Sweatshop</h1>
+            <p className="lab-subtitle">
+              Every AI model is built on human decisions. Now it's your turn to be the human.
+            </p>
+          </div>
+
+          {/* Phase Bar */}
+          {(() => {
+            const phases = ['intro', 'labeling', 'results', 'reflection'];
+            const currentIdx = phases.indexOf(phase);
+            if (currentIdx > maxPhaseRef.current) maxPhaseRef.current = currentIdx;
+            // Can navigate to completed phases, but not back to intro (one-way)
+            const canNavigate = (idx) => idx !== currentIdx && idx >= 1 && idx <= maxPhaseRef.current;
+            const goTo = (idx) => { if (canNavigate(idx)) setPhase(phases[idx]); };
+            const dotClass = (idx) => {
+              const nav = canNavigate(idx) ? ' clickable' : '';
+              if (idx === currentIdx) return 'phase-dot active';
+              if (idx <= maxPhaseRef.current) return 'phase-dot complete' + nav;
+              return 'phase-dot';
+            };
+            return (
+              <div className="phase-bar">
+                <div className={dotClass(0)} onClick={() => goTo(0)}>1</div>
+                <div className={`phase-line ${currentIdx > 0 ? 'complete' : ''}`} />
+                <div className={dotClass(1)} onClick={() => goTo(1)}>2</div>
+                <div className={`phase-line ${currentIdx > 1 ? 'complete' : ''}`} />
+                <div className={dotClass(2)} onClick={() => goTo(2)}>3</div>
+                <div className={`phase-line ${currentIdx > 2 ? 'complete' : ''}`} />
+                <div className={dotClass(3)} onClick={() => goTo(3)}>4</div>
+              </div>
+            );
+          })()}
+
+          {/* ===== PHASE 1: INTRO ===== */}
+          {phase === "intro" && (
+            <div className="fade-in">
+              <div className="intro-card">
+                <h2>📋 Your Assignment</h2>
+                <p>
+                  Congratulations — you've just been hired as a <strong>data labeler</strong>. 
+                  Your job is to look at pieces of content and assign labels to them. These labels 
+                  will be used to train an AI model.
+                </p>
+                <p>
+                  You'll be classifying social media posts by <strong>sentiment</strong> (positive, negative, neutral), 
+                  deciding whether comments should be <strong>flagged by a content moderator</strong>, and 
+                  identifying <strong>emotions</strong> in photo descriptions.
+                </p>
+                <p>
+                  Just one catch: <strong>you're on the clock.</strong> Real data labelers often work 
+                  under time pressure, labeling hundreds of items per hour for very low pay. You'll 
+                  get a taste of what that feels like.
+                </p>
+              </div>
+
+              <div className="intro-card">
+                <h2>⚙️ The Rules</h2>
+                <div className="rules-grid">
+                  <div className="rule-item">
+                    <div className="rule-icon">⏱️</div>
+                    <div className="rule-label">Time Limit</div>
+                    <div className="rule-value">25:00</div>
+                  </div>
+                  <div className="rule-item">
+                    <div className="rule-icon">📝</div>
+                    <div className="rule-label">Items to Label</div>
+                    <div className="rule-value">{totalItems}</div>
+                  </div>
+                  <div className="rule-item">
+                    <div className="rule-icon">💰</div>
+                    <div className="rule-label">Pay Per Label</div>
+                    <div className="rule-value">$0.02</div>
+                  </div>
+                  <div className="rule-item">
+                    <div className="rule-icon">🎯</div>
+                    <div className="rule-label">Goal</div>
+                    <div className="rule-value">Label All</div>
+                  </div>
+                </div>
+                <p style={{color: 'var(--text3)', fontSize: '13px', textAlign: 'center'}}>
+                  Yes, $0.02 per label is a real rate. At this pace, you'd earn about $2.40 for 25 minutes of work — roughly $5.76/hour before taxes.
+                </p>
+              </div>
+
+              <button className="start-btn" onClick={startLabeling}>
+                ⚡ Start Labeling — Clock Starts Now
+              </button>
+            </div>
+          )}
+
+          {/* ===== PHASE 2: LABELING ===== */}
+          {phase === "labeling" && !labelingDone && (
+            <div className="fade-in">
+              {/* Sticky Timer */}
+              <div className="timer-bar-container">
+                <div className="timer-left">
+                  <div className={`timer-clock ${timerClass}`}>
+                    {formatTime(timeLeft)}
+                  </div>
+                  <div className="labels-count">
+                    <span>{labeledCount}</span>/{totalItems} labeled
+                  </div>
+                </div>
+                <div className="timer-progress">
+                  <div
+                    className={`timer-fill ${timerClass}`}
+                    style={{ width: `${timerPct}%` }}
+                  />
+                </div>
+                <div className="labels-count" style={{marginLeft: 12}}>
+                  💰 <span>${(labeledCount * 0.02).toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Current Item */}
+              {currentIndex < totalItems ? (
+                <div key={items[currentIndex].id} className="label-card">
+                  <div className="label-card-header">
+                    <div className="card-category">
+                      {items[currentIndex].category}
+                    </div>
+                    <div className="card-progress">
+                      Item <span>{currentIndex + 1}</span> of {totalItems}
+                    </div>
+                  </div>
+
+                  <div className="label-content">
+                    <div className="label-content-text">
+                      {items[currentIndex].content}
+                    </div>
+                  </div>
+
+                  <div className="label-options">
+                    {items[currentIndex].options.map(opt => (
+                      <button
+                        key={opt}
+                        className={`label-btn ${labels[items[currentIndex].id] === opt ? 'selected' : ''}`}
+                        onClick={() => selectLabel(items[currentIndex].id, opt)}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{padding: '0 24px 16px', textAlign: 'center'}}>
+                    <button className="skip-btn" onClick={skipItem}>
+                      Skip this one →
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="intro-card" style={{textAlign: 'center'}}>
+                  <h2>✅ You've seen all the items!</h2>
+                  <p>You labeled <strong>{labeledCount}</strong> out of {totalItems} items.</p>
+                  <p>Total earned: <strong>${(labeledCount * 0.02).toFixed(2)}</strong></p>
+                  <button className="next-btn" onClick={finishLabeling} style={{marginTop: 20}}>
+                    See How the Class Did →
+                  </button>
+                </div>
+              )}
+
+              {/* Early finish button */}
+              {currentIndex < totalItems && labeledCount >= 5 && (
+                <button
+                  className="next-btn"
+                  onClick={finishLabeling}
+                  style={{background: 'var(--surface2)', color: 'var(--text2)', border: '1px solid var(--border)'}}
+                >
+                  Done labeling — see results ({labeledCount}/{totalItems} completed)
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ===== PHASE 2: READ-ONLY REVIEW ===== */}
+          {phase === "labeling" && labelingDone && (
+            <div className="fade-in">
+              <div className="intro-card" style={{textAlign: 'center', marginBottom: 16}}>
+                <h2>📋 Your Labels (Read-Only)</h2>
+                <p style={{color: 'var(--text2)', fontSize: '14px'}}>
+                  You labeled <strong>{labeledCount}</strong> of {totalItems} items.
+                  Use the phase dots above to navigate back to Results or Reflection.
+                </p>
+              </div>
+
+              <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
+                {items.map((item, idx) => {
+                  const studentLabel = labels[item.id];
+                  if (!studentLabel) return null;
+                  return (
+                    <div key={item.id} className="label-card" style={{padding: '14px 20px'}}>
+                      <div className="label-card-header" style={{marginBottom: 8}}>
+                        <div className="card-category">{item.category}</div>
+                        <div className="card-progress" style={{fontSize: 11}}>#{idx + 1}</div>
+                      </div>
+                      <div style={{fontSize: 14, color: 'var(--text)', lineHeight: 1.5, marginBottom: 10}}>
+                        {item.content}
+                      </div>
+                      <div className="label-options">
+                        {item.options.map(opt => (
+                          <div
+                            key={opt}
+                            className={`label-btn ${studentLabel === opt ? 'selected' : ''}`}
+                            style={{cursor: 'default', pointerEvents: 'none', opacity: studentLabel === opt ? 1 : 0.35}}
+                          >
+                            {opt}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Show skipped items */}
+                {items.filter(item => !labels[item.id]).length > 0 && (
+                  <div className="intro-card" style={{textAlign: 'center', marginTop: 8}}>
+                    <p style={{color: 'var(--text3)', fontSize: '13px'}}>
+                      {items.filter(item => !labels[item.id]).length} items were skipped
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ===== PHASE 3: RESULTS ===== */}
+          {phase === "results" && agreementStats && (
+            <ResultsPhase
+              labels={labels}
+              items={items}
+              stats={agreementStats}
+              classData={classData}
+              labeledCount={labeledCount}
+              totalItems={totalItems}
+              onNext={() => setPhase("reflection")}
+            />
+          )}
+
+          {/* ===== PHASE 4: REFLECTION ===== */}
+          {phase === "reflection" && (
+            <ReflectionPhase
+              labels={labels}
+              stats={agreementStats}
+              labeledCount={labeledCount}
+              totalItems={totalItems}
+              timeLeft={timeLeft}
+              currentUser={currentUser}
+              submitted={submitted}
+              setSubmitted={setSubmitted}
+              responses={responses}
+              setResponses={setResponses}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RESULTS PHASE COMPONENT
+    // ═══════════════════════════════════════════════════════════════
+    function ResultsPhase({ labels, items, stats, classData, labeledCount, totalItems, onNext }) {
+      const [showModel, setShowModel] = useState(false);
+
+      // Find most controversial items
+      const controversialItems = LABELING_ITEMS
+        .filter(item => stats[item.id] && stats[item.id].agreement < 0.55)
+        .sort((a, b) => stats[a.id].agreement - stats[b.id].agreement)
+        .slice(0, 4);
+
+      // Count how many times student matched majority
+      const matchCount = Object.entries(labels).filter(
+        ([id]) => stats[id]?.studentMatchesMajority
+      ).length;
+
+      // Simulated model metrics
+      const majorityAccuracy = 78;
+      const studentAccuracy = Math.round(55 + (matchCount / Math.max(labeledCount, 1)) * 30);
+      const randomHalfAccuracy = Math.round(45 + Math.random() * 15);
+
+      const colorForAgreement = (pct) => {
+        if (pct >= 0.75) return 'var(--green)';
+        if (pct >= 0.55) return 'var(--amber)';
+        return 'var(--red)';
+      };
+
+      return (
+        <div className="fade-in">
+          {/* Summary Stats */}
+          <div className="results-section">
+            <h2>📊 Your Labeling Session</h2>
+            <div className="stats-row">
+              <div className="stat-card">
+                <div className="stat-value amber">{labeledCount}</div>
+                <div className="stat-label">Items Labeled</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value green">${(labeledCount * 0.02).toFixed(2)}</div>
+                <div className="stat-label">Total "Earned"</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value blue">{matchCount}/{labeledCount}</div>
+                <div className="stat-label">Matched Majority</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value purple">
+                  {labeledCount > 0 ? Math.round((matchCount / labeledCount) * 100) : 0}%
+                </div>
+                <div className="stat-label">Agreement Rate</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Agreement Heatmap */}
+          <div className="results-section">
+            <h2>🗺️ Class Agreement Heatmap</h2>
+            <p style={{color: 'var(--text2)', fontSize: '14px', marginBottom: '16px'}}>
+              Each row is one item you labeled. The cells show what percentage of the class chose each option.
+              <span style={{color: 'var(--green)'}}> Green = high agreement</span>,
+              <span style={{color: 'var(--amber)'}}> Yellow = split</span>,
+              <span style={{color: 'var(--red)'}}> Red = major disagreement</span>.
+            </p>
+
+            <div className="heatmap-grid">
+              {LABELING_ITEMS.slice(0, 12).map(item => {
+                const s = stats[item.id];
+                if (!s) return null;
+                const opts = item.options;
+
+                return (
+                  <div key={item.id} className="heatmap-row" style={{'--cols': opts.length}}>
+                    <div className="heatmap-item-label" title={item.content}>
+                      {item.content.slice(0, 40)}...
+                    </div>
+                    {opts.map(opt => {
+                      const count = s.counts[opt] || 0;
+                      const pct = s.total > 0 ? count / s.total : 0;
+                      const isYours = labels[item.id] === opt;
+                      return (
+                        <div
+                          key={opt}
+                          className="heatmap-cell"
+                          style={{
+                            background: `${colorForAgreement(pct)}${Math.round(pct * 60 + 15).toString(16)}`,
+                            color: pct > 0.4 ? '#000' : 'var(--text2)'
+                          }}
+                          title={`${opt}: ${Math.round(pct * 100)}% of class${isYours ? ' (your choice)' : ''}`}
+                        >
+                          {Math.round(pct * 100)}%
+                          {isYours && <span className="your-label-tag">YOU</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Most Controversial Items */}
+          <div className="results-section">
+            <h2>🔥 Biggest Disagreements</h2>
+            <p style={{color: 'var(--text2)', fontSize: '14px', marginBottom: '16px'}}>
+              These items had the most split opinions. If these labels were used to train a model, 
+              <strong style={{color: 'var(--amber)'}}> which answer would be "correct"?</strong>
+            </p>
+
+            {controversialItems.map(item => {
+              const s = stats[item.id];
+              const opts = item.options;
+              const barColors = ['var(--blue)', 'var(--purple)', 'var(--pink)', 'var(--cyan)'];
+
+              return (
+                <div key={item.id} className="disagreement-item">
+                  <div className="item-text">{item.content}</div>
+                  <div className="vote-bars">
+                    {opts.map((opt, i) => {
+                      const count = s.counts[opt] || 0;
+                      const pct = s.total > 0 ? (count / s.total) * 100 : 0;
+                      const isYours = labels[item.id] === opt;
+                      return (
+                        <div key={opt} className="vote-bar-row">
+                          <div className="vote-bar-label">
+                            {opt} {isYours && '👈'}
+                          </div>
+                          <div className="vote-bar-track">
+                            <div
+                              className="vote-bar-fill"
+                              style={{
+                                width: `${pct}%`,
+                                background: barColors[i % barColors.length]
+                              }}
+                            >
+                              {pct > 12 ? `${Math.round(pct)}%` : ''}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {item.note && (
+                    <p style={{fontSize: '12px', color: 'var(--text3)', marginTop: '10px', fontStyle: 'italic'}}>
+                      💡 {item.note}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Model Impact Simulation */}
+          <div className="results-section">
+            <h2>🤖 How Labels Become a Model</h2>
+            <p style={{color: 'var(--text2)', fontSize: '14px', marginBottom: '8px'}}>
+              Imagine three different AI models were trained using different sets of labels from your class. 
+              Look at how the "accuracy" changes depending on <em>whose labels</em> were used as the answer key.
+            </p>
+
+            <div className="model-sim">
+              <div className="model-card">
+                <h4>Majority Vote</h4>
+                <div className="model-desc">Trained on the most popular label for each item</div>
+                <div className="model-accuracy" style={{color: 'var(--green)'}}>{majorityAccuracy}%</div>
+                <div className="model-bar">
+                  <div className="model-bar-fill" style={{width: `${majorityAccuracy}%`, background: 'var(--green)'}} />
+                </div>
+              </div>
+
+              <div className="model-card">
+                <h4>Your Labels Only</h4>
+                <div className="model-desc">Trained exclusively on your personal judgments</div>
+                <div className="model-accuracy" style={{color: 'var(--amber)'}}>{studentAccuracy}%</div>
+                <div className="model-bar">
+                  <div className="model-bar-fill" style={{width: `${studentAccuracy}%`, background: 'var(--amber)'}} />
+                </div>
+              </div>
+
+              <div className="model-card">
+                <h4>Random Half</h4>
+                <div className="model-desc">Trained on labels from a random 50% of the class</div>
+                <div className="model-accuracy" style={{color: 'var(--red)'}}>{randomHalfAccuracy}%</div>
+                <div className="model-bar">
+                  <div className="model-bar-fill" style={{width: `${randomHalfAccuracy}%`, background: 'var(--red)'}} />
+                </div>
+              </div>
+            </div>
+
+            <p style={{color: 'var(--text3)', fontSize: '12px', marginTop: '16px', textAlign: 'center', fontStyle: 'italic'}}>
+              Note: These accuracy numbers are simulated to illustrate the concept. 
+              Real model performance depends on many more factors.
+            </p>
+          </div>
+
+          <button className="next-btn" onClick={onNext}>
+            Continue to Reflection →
+          </button>
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // REFLECTION PHASE COMPONENT
+    // ═══════════════════════════════════════════════════════════════
+    function ReflectionPhase({ labels, stats, labeledCount, totalItems, timeLeft, currentUser, submitted, setSubmitted, responses, setResponses }) {
+      const [saving, setSaving] = useState(false);
+      const [saveError, setSaveError] = useState(null);
+      const draftSaveRef = useRef(null);
+
+      const updateResponse = (id, value) => {
+        setResponses(prev => ({ ...prev, [id]: value }));
+      };
+
+      // Debounced auto-save reflections as student types (3s after last keystroke)
+      useEffect(() => {
+        if (submitted || !currentUser) return;
+        clearTimeout(draftSaveRef.current);
+        const hasContent = responses.r1 || responses.r2 || responses.r3;
+        if (!hasContent) return;
+        draftSaveRef.current = setTimeout(() => {
+          firebaseDb.collection("dataLabelingLab").doc(currentUser.uid).set({
+            reflections: {
+              r1: responses.r1 || "",
+              r2: responses.r2 || "",
+              r3: responses.r3 || ""
+            }
+          }, { merge: true }).catch(err => console.warn("Reflection draft save failed:", err));
+        }, 3000);
+        return () => clearTimeout(draftSaveRef.current);
+      }, [responses, submitted, currentUser]);
+
+      const allAnswered = responses.r1 && responses.r2 && responses.r3;
+
+      // Compute accuracy: % of student labels matching simulated majority
+      const matchCount = Object.entries(labels).filter(
+        ([id]) => stats[id]?.studentMatchesMajority
+      ).length;
+      const accuracy = labeledCount > 0 ? Math.round((matchCount / labeledCount) * 100) : 0;
+
+      const handleSubmit = async () => {
+        setSaving(true);
+        setSaveError(null);
+        clearTimeout(draftSaveRef.current);
+
+        const wordCount = [responses.r1, responses.r2, responses.r3]
+          .filter(Boolean)
+          .join(' ')
+          .split(/\s+/)
+          .filter(w => w.length > 0).length;
+
+        try {
+          await firebaseDb.collection("dataLabelingLab").doc(currentUser.uid).set({
+            uid: currentUser.uid,
+            displayName: currentUser.displayName || "",
+            email: currentUser.email || "",
+            photoURL: currentUser.photoURL || "",
+            courseId: "paps",
+            submitted: true,
+            completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            accuracy: accuracy,
+            labeledCount: labeledCount,
+            totalItems: totalItems,
+            timeUsed: 1500 - timeLeft,
+            reflectionWordCount: wordCount,
+            reflections: {
+              r1: responses.r1 || "",
+              r2: responses.r2 || "",
+              r3: responses.r3 || ""
+            }
+          }, { merge: true });
+
+          setSubmitted(true);
+        } catch (err) {
+          console.error("Failed to save:", err);
+          setSaveError("Failed to save your work. Please try again.");
+        }
+        setSaving(false);
+      };
+
+      return (
+        <div className="fade-in">
+          {/* The Big Reveal */}
+          <div className="big-reveal">
+            <h2>🏭 The Real "Sweatshop"</h2>
+            <p>
+              You just experienced a simplified version of what millions of workers do every day.
+              The AI systems you use — from ChatGPT to TikTok's algorithm to Instagram's content
+              filters — were all built on labels created by real people, often under similar time pressure.
+            </p>
+          </div>
+
+          <div className="fact-grid">
+            <div className="fact-card">
+              <div className="fact-label">💰 Real Pay Rates</div>
+              <div className="fact-text">
+                Basic data labelers on platforms like Amazon Mechanical Turk earn $2–6/hour.
+                Workers in Kenya who labeled training data for ChatGPT reported earning about $2/hour.
+                Meanwhile, specialized AI trainers with expertise in law, medicine, or coding earn
+                $30–50+/hour on the same platforms doing the same type of work — just with harder questions.
+              </div>
+            </div>
+            <div className="fact-card">
+              <div className="fact-label">🔁 RLHF</div>
+              <div className="fact-text">
+                "Reinforcement Learning from Human Feedback" — the technique used to make ChatGPT
+                conversational — required thousands of human labelers to rate AI responses as
+                "good" or "bad."
+              </div>
+            </div>
+            <div className="fact-card">
+              <div className="fact-label">⚖️ The Subjectivity Problem</div>
+              <div className="fact-text">
+                Your class couldn't agree on many items. Now imagine millions of labelers from
+                different cultures, ages, and backgrounds. "Ground truth" is often just "whatever
+                most people said."
+              </div>
+            </div>
+            <div className="fact-card">
+              <div className="fact-label">🌍 Who Labels Matters</div>
+              <div className="fact-text">
+                If labels come mostly from one demographic, the model learns that group's perspective
+                as "correct." Content moderation models trained on US labelers may misjudge content
+                from other cultures.
+              </div>
+            </div>
+          </div>
+
+          {/* Reflection Questions */}
+          <div className="reflection-card">
+            <h3>✍️ Reflection 1</h3>
+            <div className="reflection-prompt">
+              Which items were the hardest for you to label? What made them difficult?
+              Think about whether the difficulty came from the content itself or from the
+              categories you were given to choose from.
+            </div>
+            <textarea
+              className="reflection-textarea"
+              placeholder="Type your response..."
+              value={responses.r1 || ''}
+              onChange={(e) => updateResponse('r1', e.target.value)}
+              disabled={submitted}
+            />
+          </div>
+
+          <div className="reflection-card">
+            <h3>✍️ Reflection 2</h3>
+            <div className="reflection-prompt">
+              Look back at the "Biggest Disagreements" section. For those items where the
+              class was split, who gets to decide the "right" answer? What happens to the
+              people whose perspective ends up in the minority?
+            </div>
+            <textarea
+              className="reflection-textarea"
+              placeholder="Type your response..."
+              value={responses.r2 || ''}
+              onChange={(e) => updateResponse('r2', e.target.value)}
+              disabled={submitted}
+            />
+          </div>
+
+          <div className="reflection-card">
+            <h3>✍️ Reflection 3</h3>
+            <div className="reflection-prompt">
+              Imagine you're building a content moderation AI for a social media platform used
+              by people around the world. Based on what you experienced today, what concerns
+              would you have about how the training data gets labeled? What would you do
+              differently than current companies?
+            </div>
+            <textarea
+              className="reflection-textarea"
+              placeholder="Type your response..."
+              value={responses.r3 || ''}
+              onChange={(e) => updateResponse('r3', e.target.value)}
+              disabled={submitted}
+            />
+          </div>
+
+          {saveError && (
+            <p style={{color: 'var(--red)', textAlign: 'center', fontSize: '14px', margin: '12px 0'}}>
+              {saveError}
+            </p>
+          )}
+
+          {!submitted ? (
+            <button
+              className="next-btn"
+              disabled={!allAnswered || saving}
+              onClick={handleSubmit}
+            >
+              {saving ? 'Saving...' : allAnswered ? '✅ Submit Reflections' : 'Answer all 3 questions to submit'}
+            </button>
+          ) : (
+            <div className="big-reveal" style={{marginTop: 20}}>
+              <h2>🎉 Lab Complete!</h2>
+              <p>
+                You've experienced the hidden human labor behind AI, seen how disagreement
+                creates uncertainty in "ground truth," and explored what it means when subjective
+                human judgments become the foundation for machine learning.
+              </p>
+              <p style={{marginTop: 12, fontSize: '14px'}}>
+                <strong>Key takeaway:</strong> AI doesn't discover truth — it learns the opinions
+                of the people who labeled its training data.
+              </p>
+              <p style={{marginTop: 12, fontSize: '13px', color: 'var(--green)'}}>
+                Your work has been saved. Your teacher will review it in the grading dashboard.
+              </p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════════
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

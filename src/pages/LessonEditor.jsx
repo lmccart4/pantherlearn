@@ -945,7 +945,7 @@ export default function LessonEditor() {
 
   if (userRole !== "teacher") {
     return (
-      <div className="page-container" style={{ textAlign: "center", paddingTop: 120 }}>
+      <div className="page-wrapper" style={{ textAlign: "center", paddingTop: 120 }}>
         <h2 style={{ fontFamily: "var(--font-display)" }}>Teacher access only</h2>
       </div>
     );

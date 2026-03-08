@@ -1,6 +1,6 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 
@@ -13,6 +13,7 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 // Optional: set these to enable multi-provider baselines for AI plagiarism detection
 // firebase functions:secrets:set OPENAI_API_KEY
 // firebase functions:secrets:set ANTHROPIC_API_KEY
+const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 // Google Apps Script URL for feedback/bug report sheet
 // Set with: firebase functions:secrets:set FEEDBACK_SHEET_URL
 const feedbackSheetUrl = defineSecret("FEEDBACK_SHEET_URL");
@@ -55,6 +56,85 @@ async function callGeminiWithRetry(url, body, maxRetries = 2) {
     await new Promise((r) => setTimeout(r, waitMs));
   }
 }
+
+// ─── Auto-Grading Constants & Helpers ─────────────────────────────────────────
+
+const GRADING_SYSTEM_PROMPT = `You are an expert grading assistant for a high school classroom. You grade student responses using a strict 5-bucket system. You must assign EXACTLY one of these grades — no in-between values.
+
+## Grade Buckets
+
+| writtenScore | writtenLabel | Meaning |
+|-------------|-------------|---------|
+| 0 | "Missing" | No submission, completely off-task, nonsensical, or academic dishonesty |
+| 0.55 | "Emerging" | Attempted but surface-level, no real understanding demonstrated |
+| 0.65 | "Approaching" | Some understanding but incomplete, vague, or has significant gaps |
+| 0.85 | "Developing" | Solid, demonstrates real comprehension of the material |
+| 1.0 | "Refining" | Exceptional — shows deep internalization, original connections, goes beyond baseline understanding |
+
+## Key Distinguishing Questions
+
+- **0 vs 0.55**: Did the student even try? A 0 is no attempt or bad faith. A 0.55 means they at least read the question and responded (even poorly).
+- **0.55 vs 0.65**: A 0.55 is going through the motions. A 0.65 shows genuine (if incomplete) thinking — you can see the gears turning.
+- **0.65 vs 0.85**: A 0.65 has gaps you'd want to follow up on. An 0.85 doesn't leave you with doubts about comprehension.
+- **0.85 vs 1.0**: An 0.85 says "I understand this." A 1.0 says "I understand this AND here's how I'm thinking about it at a deeper level." The student verbalizes comprehension that goes above and beyond.
+
+## Important Notes
+
+- Grade the THINKING, not the writing quality. These are 9th graders. Grammar and spelling don't matter — understanding does.
+- Consider the question's difficulty when calibrating. A solid answer to a recall question is different from a solid answer to a synthesis question.
+
+## Response Format
+
+Respond with ONLY valid JSON, no markdown fences, no preamble:
+{
+  "writtenScore": <number>,
+  "writtenLabel": "<string>",
+  "feedback": "<1-2 sentence constructive feedback for the student>",
+  "reasoning": "<brief internal note explaining the grading decision>"
+}`;
+
+/**
+ * Helper: call Anthropic Messages API with retry on 429.
+ * Returns parsed JSON grade object or null on failure.
+ */
+async function callAnthropicForGrade(apiKey, systemPrompt, userPrompt, maxRetries = 1) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+
+    if (response.status === 429 && attempt < maxRetries) {
+      const retryAfter = response.headers.get("retry-after");
+      const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
+      console.log(`Anthropic 429 — retrying in ${Math.min(waitMs, 15000)}ms`);
+      await new Promise((r) => setTimeout(r, Math.min(waitMs, 15000)));
+      continue;
+    }
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`Anthropic API ${response.status}: ${JSON.stringify(data.error || data)}`);
+    }
+
+    const text = (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
+    const cleaned = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(cleaned);
+  }
+  return null;
+}
+
+// ─── Existing Cloud Functions ─────────────────────────────────────────────────
 
 /**
  * Cloud Function: geminiChat
@@ -1466,5 +1546,268 @@ exports.geminiProxy = onRequest(
       console.error("[geminiProxy] Server error:", err);
       return res.status(500).json({ error: err.message });
     }
+  }
+);
+
+// ─── Auto-Grading Trigger ─────────────────────────────────────────────────────
+
+/**
+ * Cloud Function: autogradeShortAnswer
+ *
+ * Fires on every write to a student progress document. Detects blocks that
+ * newly have needsGrading: true, calls Claude to grade them, and writes the
+ * grade back. The write-back sets needsGrading: false, which prevents an
+ * infinite loop (the re-trigger sees no new blocks to grade).
+ */
+exports.autogradeShortAnswer = onDocumentWritten(
+  {
+    document: "progress/{uid}/courses/{courseId}/lessons/{lessonId}",
+    secrets: [anthropicApiKey],
+    maxInstances: 10,
+    timeoutSeconds: 60,
+    memory: "256MiB",
+  },
+  async (event) => {
+    const { uid, courseId, lessonId } = event.params;
+
+    const beforeAnswers = event.data.before?.data()?.answers || {};
+    const afterAnswers = event.data.after?.data()?.answers || {};
+
+    // Find blocks that newly transitioned to needsGrading: true
+    const blocksToGrade = [];
+    for (const [blockId, answer] of Object.entries(afterAnswers)) {
+      const before = beforeAnswers[blockId] || {};
+      if (
+        answer.needsGrading === true &&
+        answer.submitted === true &&
+        answer.writtenScore == null &&
+        before.needsGrading !== true
+      ) {
+        blocksToGrade.push({ blockId, answer });
+      }
+    }
+
+    if (blocksToGrade.length === 0) return;
+
+    console.log(`[autograde] ${blocksToGrade.length} block(s) to grade for ${uid} in ${courseId}/${lessonId}`);
+
+    // Fetch lesson to get question prompts
+    const lessonDoc = await db
+      .collection("courses").doc(courseId)
+      .collection("lessons").doc(lessonId)
+      .get();
+
+    if (!lessonDoc.exists) {
+      console.error(`[autograde] Lesson not found: courses/${courseId}/lessons/${lessonId}`);
+      return;
+    }
+
+    const lessonData = lessonDoc.data();
+    const blocks = lessonData.blocks || [];
+    const lessonTitle = lessonData.title || lessonId;
+
+    // Read cached calibration (built daily by updateCalibrationCache)
+    let systemPrompt = GRADING_SYSTEM_PROMPT;
+    try {
+      const calibDoc = await db
+        .collection("courses").doc(courseId)
+        .collection("autogradeConfig").doc("calibration")
+        .get();
+      if (calibDoc.exists && calibDoc.data().calibrationBlock) {
+        systemPrompt += calibDoc.data().calibrationBlock;
+        console.log(`[autograde] Using calibration (${calibDoc.data().overrideCount} overrides)`);
+      }
+    } catch (calibErr) {
+      console.warn("[autograde] Could not read calibration cache:", calibErr.message);
+    }
+
+    // Grade each block
+    const progressRef = db.doc(`progress/${uid}/courses/${courseId}/lessons/${lessonId}`);
+    const updatePayload = {};
+
+    for (const { blockId, answer } of blocksToGrade) {
+      const block = blocks.find((b) => b.id === blockId);
+      const prompt = block?.prompt || block?.title || blockId;
+
+      const userPrompt = `Grade this student response.\n\nLESSON: "${lessonTitle}"\nQUESTION: "${prompt}"\nSTUDENT ANSWER: "${answer.answer}"`;
+
+      try {
+        const grade = await callAnthropicForGrade(
+          anthropicApiKey.value(),
+          systemPrompt,
+          userPrompt
+        );
+
+        // Validate grade bucket
+        const validScores = [0, 0.55, 0.65, 0.85, 1.0];
+        if (!grade || !validScores.includes(grade.writtenScore)) {
+          console.warn(`[autograde] Invalid grade for ${blockId}:`, grade);
+          continue;
+        }
+
+        // Build dot-notation update for this block
+        updatePayload[`answers.${blockId}.needsGrading`] = false;
+        updatePayload[`answers.${blockId}.writtenScore`] = grade.writtenScore;
+        updatePayload[`answers.${blockId}.writtenLabel`] = grade.writtenLabel;
+        updatePayload[`answers.${blockId}.feedback`] = grade.feedback || null;
+        updatePayload[`answers.${blockId}.gradingReasoning`] = grade.reasoning || null;
+        updatePayload[`answers.${blockId}.gradedBy`] = "autograde-agent";
+        updatePayload[`answers.${blockId}.gradedAt`] = admin.firestore.FieldValue.serverTimestamp();
+        updatePayload[`answers.${blockId}.autogradeOriginal`] = {
+          writtenScore: grade.writtenScore,
+          writtenLabel: grade.writtenLabel,
+          feedback: grade.feedback || null,
+          reasoning: grade.reasoning || null,
+          gradedAt: new Date().toISOString(),
+        };
+
+        // Notify the student
+        try {
+          const shortPrompt = prompt.length > 50 ? prompt.slice(0, 50) + "..." : prompt;
+          await db.collection("users").doc(uid).collection("notifications").add({
+            type: "grade_result",
+            title: `Response graded: ${grade.writtenLabel}`,
+            body: `Your answer to "${shortPrompt}" received ${grade.writtenLabel} (${Math.round(grade.writtenScore * 100)}%)`,
+            icon: "\u{1F4DD}",
+            link: `/course/${courseId}/lesson/${lessonId}`,
+            courseId,
+            read: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        } catch (notifErr) {
+          console.warn("[autograde] Failed to send notification:", notifErr);
+        }
+
+        console.log(`[autograde] Graded ${uid}/${lessonId}/${blockId}: ${grade.writtenLabel} (${grade.writtenScore})`);
+      } catch (err) {
+        console.error(`[autograde] Failed to grade ${blockId} for ${uid}:`, err.message);
+        // Leave needsGrading: true so teacher dashboard still shows it
+      }
+    }
+
+    // Write all grades in a single update
+    if (Object.keys(updatePayload).length > 0) {
+      await progressRef.update(updatePayload);
+    }
+  }
+);
+
+// ─── Calibration Cache (Self-Improvement) ─────────────────────────────────────
+
+/**
+ * Cloud Function: updateCalibrationCache
+ *
+ * Runs daily at 6:30 AM ET. Scans all courses for teacher overrides of
+ * auto-graded responses and builds a calibration prompt block per course.
+ * The autogradeShortAnswer trigger reads this cache to improve grading.
+ */
+exports.updateCalibrationCache = onSchedule(
+  {
+    schedule: "30 6 * * *",
+    timeZone: "America/New_York",
+    maxInstances: 1,
+    timeoutSeconds: 300,
+  },
+  async () => {
+    console.log("[calibration] Starting override harvest...");
+
+    const coursesSnap = await db.collection("courses").get();
+    let totalOverrides = 0;
+    let coursesUpdated = 0;
+
+    for (const courseDoc of coursesSnap.docs) {
+      if (courseDoc.data().hidden) continue;
+      const courseId = courseDoc.id;
+
+      // Get enrolled students
+      const enrollSnap = await db
+        .collection("courses").doc(courseId)
+        .collection("enrollments").get();
+      const studentUids = enrollSnap.docs.map((d) => d.id);
+      if (studentUids.length === 0) continue;
+
+      // Get lesson blocks for question prompt lookup
+      const lessonsSnap = await db
+        .collection("courses").doc(courseId)
+        .collection("lessons").get();
+      const lessonMap = {};
+      lessonsSnap.forEach((d) => {
+        lessonMap[d.id] = { title: d.data().title || d.id, blocks: d.data().blocks || [] };
+      });
+
+      // Scan all student progress for teacher overrides
+      const overrides = [];
+      for (const uid of studentUids) {
+        let progressSnap;
+        try {
+          progressSnap = await db
+            .collection("progress").doc(uid)
+            .collection("courses").doc(courseId)
+            .collection("lessons").get();
+        } catch (e) {
+          continue;
+        }
+
+        progressSnap.forEach((lessonDoc) => {
+          const answers = lessonDoc.data().answers || {};
+          for (const [blockId, answer] of Object.entries(answers)) {
+            if (
+              answer.gradedBy === "teacher" &&
+              answer.autogradeOriginal &&
+              answer.overrideReason !== "glitch" &&
+              answer.overrideReason !== "mercy" &&
+              answer.overrideReason !== "ignore"
+            ) {
+              const lesson = lessonMap[lessonDoc.id];
+              const block = (lesson?.blocks || []).find((b) => b.id === blockId);
+              const prompt = block?.prompt || block?.title || blockId;
+
+              overrides.push({
+                questionPrompt: prompt,
+                studentAnswer: answer.answer,
+                agentScore: answer.autogradeOriginal.writtenScore,
+                agentLabel: answer.autogradeOriginal.writtenLabel,
+                teacherScore: answer.writtenScore,
+                teacherLabel: answer.writtenLabel,
+                gradedAt: answer.gradedAt,
+              });
+            }
+          }
+        });
+      }
+
+      // Build calibration block (cap at 15 most recent)
+      let calibrationBlock = "";
+      if (overrides.length > 0) {
+        // Sort by gradedAt descending, take most recent 15
+        overrides.sort((a, b) => {
+          const aTime = a.gradedAt?.toMillis?.() || a.gradedAt?.seconds * 1000 || 0;
+          const bTime = b.gradedAt?.toMillis?.() || b.gradedAt?.seconds * 1000 || 0;
+          return bTime - aTime;
+        });
+        const recent = overrides.slice(0, 15);
+
+        calibrationBlock = "\n\n## CALIBRATION FROM PAST TEACHER CORRECTIONS\n\nThe teacher has corrected your grading in the past. Study these corrections carefully and adjust your judgment accordingly:\n";
+        for (const o of recent) {
+          const shortAnswer = (o.studentAnswer || "[no answer]").slice(0, 150);
+          const ellipsis = (o.studentAnswer || "").length > 150 ? "..." : "";
+          calibrationBlock += `\n- Question: "${o.questionPrompt}"\n  Student answer: "${shortAnswer}${ellipsis}"\n  You graded: ${o.agentLabel} (${o.agentScore})\n  Teacher corrected to: ${o.teacherLabel} (${o.teacherScore})`;
+        }
+        calibrationBlock += "\n\nUse these corrections to calibrate your grading. If you see similar patterns, apply the teacher's judgment.";
+      }
+
+      // Write cache doc
+      await db.collection("courses").doc(courseId).collection("autogradeConfig").doc("calibration").set({
+        calibrationBlock,
+        overrideCount: overrides.length,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      totalOverrides += overrides.length;
+      if (overrides.length > 0) coursesUpdated++;
+      console.log(`[calibration] ${courseDoc.data().title || courseId}: ${overrides.length} overrides`);
+    }
+
+    console.log(`[calibration] Done. ${totalOverrides} total overrides across ${coursesUpdated} course(s).`);
   }
 );

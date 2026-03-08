@@ -2,7 +2,7 @@
 // Review component for Data Labeling Lab activity in the Grading Dashboard.
 
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, doc, setDoc, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { createNotification } from "../../../lib/notifications";
 import { awardXP, getXPConfig, DEFAULT_XP_VALUES } from "../../../lib/gamification";
@@ -26,15 +26,13 @@ export default function DataLabelingReview({ activity, studentMap }) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const snap = await getDocs(
-          query(collection(db, "dataLabelingLab"), orderBy("completedAt", "desc"))
-        );
+        const snap = await getDocs(collection(db, "dataLabelingLab"));
 
         const subs = [];
         snap.forEach((d) => {
-          const data = d.data();
-          if (data.submitted) subs.push({ id: d.id, ...data });
+          subs.push({ id: d.id, ...d.data() });
         });
+        subs.sort((a, b) => (b.completedAt?.toMillis?.() || 0) - (a.completedAt?.toMillis?.() || 0));
         setSubmissions(subs);
 
         // Fetch existing grades
@@ -111,6 +109,25 @@ export default function DataLabelingReview({ activity, studentMap }) {
     setGrading(null);
   };
 
+  const handleReset = async (uid) => {
+    const sub = submissions.find((s) => s.uid === uid);
+    const name = studentMap[uid]?.displayName || sub?.displayName || uid.slice(0, 8) + "...";
+    if (!window.confirm(`Reset ${name}'s Data Labeling Lab? This will delete their submission and let them start over.`)) return;
+    try {
+      // Doc ID in Firestore may differ from uid — use the actual doc id
+      if (sub) await deleteDoc(doc(db, "dataLabelingLab", sub.id));
+      const courseId = grades[uid]?.courseId || sub?.courseId;
+      if (courseId) {
+        await deleteDoc(doc(db, "progress", uid, "courses", courseId, "activities", "data-labeling-lab"));
+      }
+      setSubmissions((prev) => prev.filter((s) => s.uid !== uid));
+      setGrades((prev) => { const next = { ...prev }; delete next[uid]; return next; });
+    } catch (err) {
+      console.error("Failed to reset student:", err);
+      alert("Failed to reset student. Please try again.");
+    }
+  };
+
   const getName = (uid) => studentMap[uid]?.displayName || submissions.find((s) => s.uid === uid)?.displayName || uid.slice(0, 8) + "...";
   const getPhoto = (uid) => studentMap[uid]?.photoURL || submissions.find((s) => s.uid === uid)?.photoURL || "";
   const getEmail = (uid) => studentMap[uid]?.email || submissions.find((s) => s.uid === uid)?.email || "";
@@ -129,10 +146,11 @@ export default function DataLabelingReview({ activity, studentMap }) {
     );
   }
 
+  const submitted = submissions.filter((s) => s.submitted);
   const graded = Object.keys(grades).length;
-  const ungraded = submissions.length - graded;
-  const avgAccuracy = submissions.length > 0
-    ? Math.round(submissions.reduce((s, sub) => s + (sub.accuracy || 0), 0) / submissions.length)
+  const ungraded = submitted.length - graded;
+  const avgAccuracy = submitted.length > 0
+    ? Math.round(submitted.reduce((s, sub) => s + (sub.accuracy || 0), 0) / submitted.length)
     : 0;
 
   return (
@@ -140,7 +158,7 @@ export default function DataLabelingReview({ activity, studentMap }) {
       {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 24 }}>
         {[
-          { label: "Submissions", value: submissions.length, color: "var(--text)" },
+          { label: "Total", value: submissions.length, color: "var(--text)" },
           { label: "Avg Accuracy", value: `${avgAccuracy}%`, color: "var(--cyan)" },
           { label: "Graded", value: graded, color: "var(--green)" },
           { label: "Needs Review", value: ungraded, color: ungraded > 0 ? "var(--amber)" : "var(--text3)" },
@@ -188,9 +206,13 @@ export default function DataLabelingReview({ activity, studentMap }) {
                     <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 4, fontWeight: 600, background: tier.bg, color: tier.color }}>
                       {tier.label}
                     </span>
-                  ) : (
+                  ) : sub.submitted ? (
                     <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 4, background: "var(--blue-dim)", color: "var(--blue)", fontWeight: 600 }}>
                       Needs review
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 4, background: "rgba(245,166,35,0.12)", color: "var(--amber)", fontWeight: 600 }}>
+                      In progress
                     </span>
                   )}
                 </div>
@@ -229,25 +251,42 @@ export default function DataLabelingReview({ activity, studentMap }) {
                   <span style={{ fontSize: 11, color: "var(--text3)", fontWeight: 600, marginRight: 4 }}>Grade:</span>
                   {GRADE_TIERS.map((t) => {
                     const isSelected = grades[sub.uid]?.score === t.value;
+                    const disabled = grading === sub.uid || !sub.submitted;
                     return (
                       <button key={t.label} onClick={() => handleGrade(sub.uid, t)}
-                        disabled={grading === sub.uid}
+                        disabled={disabled}
                         style={{
                           fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 6,
                           border: isSelected ? `2px solid ${t.color}` : "1px solid var(--border)",
                           background: isSelected ? t.bg : "transparent",
                           color: isSelected ? t.color : "var(--text3)",
-                          cursor: grading === sub.uid ? "default" : "pointer",
+                          cursor: disabled ? "default" : "pointer",
                           transition: "all 0.15s",
-                          opacity: grading === sub.uid ? 0.5 : 1,
+                          opacity: disabled ? 0.5 : 1,
                         }}
-                        onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.background = t.bg; e.currentTarget.style.color = t.color; } }}
-                        onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text3)"; } }}
+                        onMouseEnter={(e) => { if (!isSelected && !disabled) { e.currentTarget.style.background = t.bg; e.currentTarget.style.color = t.color; } }}
+                        onMouseLeave={(e) => { if (!isSelected && !disabled) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text3)"; } }}
                       >
                         {t.label} {Math.round(t.value * 100)}%
                       </button>
                     );
                   })}
+                </div>
+                {/* Reset button */}
+                <div style={{ marginTop: 8 }}>
+                  <button onClick={() => handleReset(sub.uid)}
+                    disabled={grading === sub.uid}
+                    style={{
+                      fontSize: 11, fontWeight: 700, padding: "4px 14px", borderRadius: 6,
+                      border: "1px solid rgba(239,68,68,0.5)", background: "rgba(239,68,68,0.15)", color: "#ef4444",
+                      cursor: grading === sub.uid ? "default" : "pointer", transition: "all 0.15s",
+                      opacity: grading === sub.uid ? 0.5 : 1,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.25)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; }}
+                  >
+                    Reset Student
+                  </button>
                 </div>
               </div>
             );

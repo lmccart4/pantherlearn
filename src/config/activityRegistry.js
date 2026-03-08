@@ -167,4 +167,36 @@ export const ACTIVITIES = [
     url: null,
     course: null,
   },
+
+  {
+    id: "embedding-explorer",
+    title: "Embedding Explorer",
+    icon: "🧬",
+    description: "Interactive introduction to AI embeddings — students sort words, decode vectors, explore embedding plots, and reflect on real-world applications.",
+    collection: "embedding_explorer",
+    userIdField: "studentId",
+    timestampField: "completedAt",
+    completionCheck: (sub) => sub.score != null,
+    scoreCalculator: (sub) => sub.score ?? 0,
+    maxScore: 105,
+    component: lazy(() => import("../components/grading/activities/EmbeddingExplorerReview")),
+    url: "https://embedding-explorer-paps.web.app",
+    course: "ai-literacy",
+  },
+
+  {
+    id: "neural-network-lab",
+    title: "Neural Network Lab",
+    icon: "🧪",
+    description: "Students build, train, and test a neural network — manually wiring creature classifiers, watching automated training, and exploring real-world applications and bias.",
+    collection: "neural_network_lab",
+    userIdField: "studentId",
+    timestampField: "completedAt",
+    completionCheck: (sub) => sub.score != null,
+    scoreCalculator: (sub) => sub.score ?? 0,
+    maxScore: 105,
+    component: lazy(() => import("../components/grading/activities/NeuralNetworkLabReview")),
+    url: "https://neural-network-lab-paps.web.app",  // ← update after Firebase deploy
+    course: "ai-literacy",
+  },
 ];

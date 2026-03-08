@@ -2,9 +2,9 @@
 // Tinder-style swipe sorting activity — students swipe items left or right into two categories.
 // After all items are sorted, a "Check Answers" button reveals correct/incorrect with XP-style feedback.
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
-export default function SortingBlock({ block }) {
+export default function SortingBlock({ block, studentData = {}, onAnswer }) {
   const {
     title = "Sort It!",
     icon = "🔀",
@@ -14,6 +14,7 @@ export default function SortingBlock({ block }) {
     items = [],       // [{ text, correct: "left"|"right" }, ...]
   } = block;
 
+  const saved = (studentData && studentData[block.id]) || {};
   const [deck, setDeck] = useState([]);           // remaining items to sort
   const [leftPile, setLeftPile] = useState([]);    // items swiped left
   const [rightPile, setRightPile] = useState([]);  // items swiped right
@@ -25,16 +26,57 @@ export default function SortingBlock({ block }) {
   const startX = useRef(0);
   const startY = useRef(0);
   const isDragging = useRef(false);
+  const hydrated = useRef(false);
 
-  // Shuffle items on mount
+  const persist = useCallback((state) => {
+    if (onAnswer) {
+      onAnswer(block.id, { ...state, savedAt: new Date().toISOString() });
+    }
+  }, [block.id, onAnswer]);
+
+  // Shuffle items on mount, or restore from saved data
   useEffect(() => {
-    const shuffled = [...items].sort(() => Math.random() - 0.5);
-    setDeck(shuffled);
-    setLeftPile([]);
-    setRightPile([]);
-    setChecked(false);
-    setScore(null);
+    const s = (studentData && studentData[block.id]) || {};
+    if (s.deck || s.leftPile || s.rightPile) {
+      setDeck(s.deck || []);
+      setLeftPile(s.leftPile || []);
+      setRightPile(s.rightPile || []);
+      setChecked(s.checked || false);
+      setScore(s.score || null);
+      hydrated.current = true;
+    } else {
+      const shuffled = [...items].sort(() => Math.random() - 0.5);
+      setDeck(shuffled);
+      setLeftPile([]);
+      setRightPile([]);
+      setChecked(false);
+      setScore(null);
+    }
   }, [items.length]);
+
+  // Sync from async studentData arrival or teacher reset
+  useEffect(() => {
+    const s = studentData?.[block.id];
+    if (!s) {
+      if (hydrated.current && (!studentData || Object.keys(studentData).length === 0)) {
+        const shuffled = [...items].sort(() => Math.random() - 0.5);
+        setDeck(shuffled);
+        setLeftPile([]);
+        setRightPile([]);
+        setChecked(false);
+        setScore(null);
+        hydrated.current = false;
+      }
+      return;
+    }
+    if (hydrated.current) return;
+    hydrated.current = true;
+    if (s.deck) setDeck(s.deck);
+    if (s.leftPile) setLeftPile(s.leftPile);
+    if (s.rightPile) setRightPile(s.rightPile);
+    if (s.checked !== undefined) setChecked(s.checked);
+    if (s.score !== undefined) setScore(s.score);
+  }, [studentData, block.id, items]);
 
   const currentCard = deck[0];
   const SWIPE_THRESHOLD = 80;
@@ -69,12 +111,12 @@ export default function SortingBlock({ block }) {
 
   const swipe = (direction) => {
     if (!currentCard) return;
-    if (direction === "left") {
-      setLeftPile(prev => [...prev, currentCard]);
-    } else {
-      setRightPile(prev => [...prev, currentCard]);
-    }
-    setDeck(prev => prev.slice(1));
+    const newLeft = direction === "left" ? [...leftPile, currentCard] : leftPile;
+    const newRight = direction === "right" ? [...rightPile, currentCard] : rightPile;
+    const newDeck = deck.slice(1);
+    if (direction === "left") setLeftPile(newLeft); else setRightPile(newRight);
+    setDeck(newDeck);
+    persist({ deck: newDeck, leftPile: newLeft, rightPile: newRight, checked, score });
   };
 
   // Button swipe (accessibility fallback)
@@ -89,8 +131,10 @@ export default function SortingBlock({ block }) {
     const total = items.length;
     leftPile.forEach(item => { if (item.correct === "left") correct++; });
     rightPile.forEach(item => { if (item.correct === "right") correct++; });
-    setScore({ correct, total });
+    const newScore = { correct, total };
+    setScore(newScore);
     setChecked(true);
+    persist({ deck, leftPile, rightPile, checked: true, score: newScore });
   };
 
   // Reset
@@ -101,6 +145,8 @@ export default function SortingBlock({ block }) {
     setRightPile([]);
     setChecked(false);
     setScore(null);
+    hydrated.current = false;
+    persist({ deck: shuffled, leftPile: [], rightPile: [], checked: false, score: null });
   };
 
   const allSorted = deck.length === 0 && items.length > 0;

@@ -6,10 +6,11 @@ import { useTranslatedText, useTranslatedTexts } from "../../hooks/useTranslated
 import { usePreview } from "../../contexts/PreviewContext";
 import { useTelemetryContext } from "../../contexts/TelemetryContext";
 
-export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLog }) {
-  const [messages, setMessages] = useState([
-    { role: "assistant", content: block.starterMessage },
-  ]);
+export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLog, studentData = {}, onAnswer }) {
+  const saved = (studentData && studentData[block.id]) || {};
+  const [messages, setMessages] = useState(
+    saved.messages || [{ role: "assistant", content: block.starterMessage }]
+  );
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -17,6 +18,21 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
   const inputRef = useRef(null);
   const { isPreview } = usePreview();
   const { trackEvent } = useTelemetryContext();
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    const s = studentData?.[block.id];
+    if (!s) {
+      if (hydrated.current && (!studentData || Object.keys(studentData).length === 0)) {
+        setMessages([{ role: "assistant", content: block.starterMessage }]);
+        hydrated.current = false;
+      }
+      return;
+    }
+    if (hydrated.current) return;
+    hydrated.current = true;
+    if (s.messages) setMessages(s.messages);
+  }, [studentData, block.id, block.starterMessage]);
 
   // Translate static block content
   const translatedTitle = useTranslatedText(block.title);
@@ -62,7 +78,9 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
         role: "assistant",
         content: "*(Preview mode — this is a simulated response. Students will see real AI responses here.)*",
       };
-      setMessages((prev) => [...prev, simMsg]);
+      const simAll = [...newMessages, simMsg];
+      setMessages(simAll);
+      if (onAnswer) onAnswer(block.id, { messages: simAll, savedAt: new Date().toISOString() });
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
       return;
@@ -82,8 +100,10 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
       });
 
       const assistantMsg = { role: "assistant", content: responseText };
-      setMessages((prev) => [...prev, assistantMsg]);
-      if (onLog) onLog(block.id, [...newMessages, assistantMsg]);
+      const allMsgs = [...newMessages, assistantMsg];
+      setMessages(allMsgs);
+      if (onLog) onLog(block.id, allMsgs);
+      if (onAnswer) onAnswer(block.id, { messages: allMsgs, savedAt: new Date().toISOString() });
       trackEvent("chat_message", { blockId: block.id });
     } catch (err) {
       const errorMsg = err.message.includes("Slow down")

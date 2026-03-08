@@ -283,7 +283,7 @@ export default function BossBattle() {
   }
 
   if (loading) {
-    return <div className="page-container" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}><div className="spinner" /></div>;
+    return <div className="page-wrapper" style={{ display: "flex", justifyContent: "center", paddingTop: 120 }}><div className="spinner" /></div>;
   }
 
   // ═══════════════════════════════════════════════
@@ -296,13 +296,13 @@ export default function BossBattle() {
     }, 0) + customQuestions.length;
 
     return (
-      <main id="main-content" className="page-container" style={{ padding: "48px 40px" }}>
+      <main id="main-content" className="page-wrapper">
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
             <button onClick={() => navigate(`/course/${courseId}`)} style={btnS}>← Back</button>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700 }}>⚔️ Boss Battle Setup</h1>
+            <h1 className="page-title">⚔️ Boss Battle Setup</h1>
           </div>
-          <p style={{ color: "var(--text2)", fontSize: 14, marginBottom: 28 }}>
+          <p className="page-subtitle" style={{ marginBottom: 28 }}>
             {course?.title} — Co-op raid: all teams fight simultaneously!
           </p>
 

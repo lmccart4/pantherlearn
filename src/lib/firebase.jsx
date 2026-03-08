@@ -73,11 +73,12 @@ export async function onForegroundMessage(callback) {
   }
 }
 
-// Sign in with additional Classroom scopes (for teacher roster sync)
+// Sign in with additional Classroom scopes (for teacher roster + grade sync)
 export const signInWithClassroom = async () => {
   const classroomProvider = new GoogleAuthProvider();
   classroomProvider.addScope("https://www.googleapis.com/auth/classroom.courses.readonly");
   classroomProvider.addScope("https://www.googleapis.com/auth/classroom.rosters.readonly");
+  classroomProvider.addScope("https://www.googleapis.com/auth/classroom.coursework.students");
   classroomProvider.setCustomParameters({ prompt: "consent" });
   const result = await signInWithPopup(auth, classroomProvider);
   const credential = GoogleAuthProvider.credentialFromResult(result);
