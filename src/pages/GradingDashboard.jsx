@@ -638,7 +638,7 @@ export default function GradingDashboard() {
             {activeTab === "evidence" ? (
               <WeeklyEvidenceTab selectedCourse={selectedCourse} studentMap={studentMap} />
             ) : activeTab === "activities" ? (
-              <ActivitiesTab selectedCourse={selectedCourse} studentMap={studentMap} />
+              <ActivitiesTab selectedCourse={selectedCourse} studentMap={studentMap} courses={courses} />
             ) : viewLevel === "student" ? (
               <StudentView
                 courseResponses={courseResponses}

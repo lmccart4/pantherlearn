@@ -10,15 +10,22 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { ACTIVITIES } from "../../config/activityRegistry";
 
-export default function ActivitiesTab({ selectedCourse, studentMap }) {
+export default function ActivitiesTab({ selectedCourse, studentMap, courses = [] }) {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [activityCounts, setActivityCounts] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Filter activities for the selected course
-  const visibleActivities = ACTIVITIES.filter(
-    (a) => a.course === null || a.course === selectedCourse
-  );
+  // Filter activities for the selected course.
+  // Matches by exact course ID, OR by course title prefix for period-based courses
+  // (e.g. activity.course "ai-literacy" matches "AI Literacy — Period 4").
+  const courseObj = courses.find((c) => c.id === selectedCourse);
+  const courseTitle = (courseObj?.title || "").toLowerCase();
+  const visibleActivities = ACTIVITIES.filter((a) => {
+    if (a.course === null) return true;
+    if (a.course === selectedCourse) return true;
+    const tag = a.course.replace(/-/g, " ").toLowerCase();
+    return courseTitle.startsWith(tag);
+  });
 
   // Fetch submission counts for all visible activities
   useEffect(() => {

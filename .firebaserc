@@ -8,11 +8,20 @@
         "data-labeling-lab-paps": [
           "data-labeling-lab-paps"
         ],
-        "hallucination-lab": [
-          "hallucination-lab"
+        "hallucination-lab-paps": [
+          "hallucination-lab-paps"
         ],
-        "attention-visualizer": [
-          "attention-visualizer"
+        "attention-visualizer-paps": [
+          "attention-visualizer-paps"
+        ],
+        "battleship-energy-paps": [
+          "battleship-energy-paps"
+        ],
+        "battleship-ai-paps": [
+          "battleship-ai-paps"
+        ],
+        "lesson-plans-paps": [
+          "lesson-plans-paps"
         ]
       }
     }

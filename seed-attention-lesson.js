@@ -23,7 +23,7 @@ const lesson = {
   course: "AI Literacy",
   unit: "Foundations of Generative AI",
   order: 10,
-  visible: true,
+  visible: false,
   blocks: [
 
     // ═══════════════════════════════════════════════════════
@@ -85,7 +85,7 @@ const lesson = {
     {
       id: "b7",
       type: "embed",
-      url: "https://attention-visualizer.web.app/?studentId={{studentId}}&courseId={{courseId}}&blockId=b7&lessonId=attention-visualizer",
+      url: "https://attention-visualizer-paps.web.app/?studentId={{studentId}}&courseId={{courseId}}&blockId=b7&lessonId=attention-visualizer",
       caption: "Attention Visualizer — 9 sentences across 3 stages",
       height: 720
     },
@@ -163,6 +163,7 @@ async function seed() {
     { courseId: "Y9Gdhw5MTY8wMFt6Tlvj", label: "Period 4" },
     { courseId: "DacjJ93vUDcwqc260OP3", label: "Period 5" },
     { courseId: "M2MVSXrKuVCD9JQfZZyp", label: "Period 7" },
+    { courseId: "fUw67wFhAtobWFhjwvZ5", label: "Period 9" },
   ];
 
   const lessonId = "attention-visualizer";

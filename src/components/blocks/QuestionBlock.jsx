@@ -89,19 +89,20 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
     }
   }, [courseId]);
 
-  // Auto-save draft for text-based and ranking questions (saves without officially submitting)
+  // Auto-save draft for text-based and ranking questions (saves without officially submitting).
+  // Returns the promise from onAnswer so useAutoSave can detect failures and retry.
+  // Previously this was fire-and-forget, which meant useAutoSave's retry with
+  // exponential backoff was completely bypassed for question block drafts.
   const performDraftSave = useCallback(() => {
     if (submitted) return; // don't overwrite a submitted answer with a draft
 
     if (block.questionType === "short_answer" || block.questionType === "linked") {
       if (!textAnswer.trim()) return;
-      onAnswer(block.id, { answer: textAnswer, submitted: false, draft: true });
-      return;
+      return onAnswer(block.id, { answer: textAnswer, submitted: false, draft: true });
     }
 
     if (block.questionType === "ranking" && rankingOrder) {
-      onAnswer(block.id, { answer: rankingOrder, submitted: false, draft: true });
-      return;
+      return onAnswer(block.id, { answer: rankingOrder, submitted: false, draft: true });
     }
   }, [block.id, block.questionType, textAnswer, rankingOrder, submitted, onAnswer]);
 

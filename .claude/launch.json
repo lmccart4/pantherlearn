@@ -1,0 +1,32 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "battleship-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173,
+      "cwd": "battleship-energy"
+    },
+    {
+      "name": "battleship-prod",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "preview", "--port", "4174"],
+      "port": 4174,
+      "cwd": "battleship-energy"
+    },
+    {
+      "name": "battleship-ai-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5174"],
+      "port": 5174,
+      "cwd": "battleship-ai"
+    },
+    {
+      "name": "lesson-plans",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "lesson-plans-public", "-l", "5175"],
+      "port": 5175
+    }
+  ]
+}

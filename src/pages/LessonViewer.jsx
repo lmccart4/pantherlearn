@@ -63,15 +63,32 @@ export default function LessonViewer() {
     const unsub = onSnapshot(progressRef, (snap) => {
       if (snap.exists()) {
         const serverAnswers = snap.data().answers || {};
-        // Merge instead of replace: server data is authoritative, but preserve
-        // any locally-written answers that the server snapshot hasn't confirmed yet.
-        // This prevents optimistic updates from handleAnswer being clobbered by a
-        // snapshot that fired before the local Firestore cache processed our write.
+        // Merge strategy: never let a snapshot DOWNGRADE local data.
+        // The engagement timer writes to this same document every 30s, each
+        // write triggers onSnapshot. If an answer write (updateDoc) is in-flight
+        // when the engagement-timer snapshot arrives, that snapshot may contain
+        // STALE answers. Without this guard, the stale snapshot would overwrite
+        // the optimistic local state from handleAnswer, silently losing the answer.
         setRealStudentData((prev) => {
           const merged = { ...serverAnswers };
           for (const [blockId, localData] of Object.entries(prev)) {
-            if (localData && !merged[blockId]) {
+            if (!localData) continue;
+            const serverData = merged[blockId];
+            if (!serverData) {
+              // Server doesn't have this block yet — keep local optimistic data
               merged[blockId] = localData;
+            } else {
+              // Both exist — never downgrade:
+              // 1. Never replace submitted answer with non-submitted (stale draft)
+              // 2. Never replace data that has an answer with data that doesn't
+              if (localData.submitted && !serverData.submitted) {
+                merged[blockId] = localData;
+              } else if (
+                localData.answer !== undefined && localData.answer !== null &&
+                (serverData.answer === undefined || serverData.answer === null)
+              ) {
+                merged[blockId] = localData;
+              }
             }
           }
           return merged;
@@ -90,6 +107,13 @@ export default function LessonViewer() {
   const studentDataRef = useRef({});
   useEffect(() => { studentDataRef.current = realStudentData; }, [realStudentData]);
 
+  // Track per-block write sequence numbers to abort stale retries.
+  // If a new write starts for a block while a retry is in-flight,
+  // the old retry aborts so it can't overwrite the newer data.
+  const writeSeqRef = useRef({});
+
+  // Track save failures so the UI can display a warning
+  const [saveError, setSaveError] = useState(null);
 
   const handleAnswer = useCallback(
     async (blockId, data) => {
@@ -109,31 +133,58 @@ export default function LessonViewer() {
       setRealStudentData((prev) => ({ ...prev, [blockId]: data }));
 
       // Persist ONLY this block using dot-notation so other blocks are never overwritten.
-      // IMPORTANT: updateDoc interprets "answers.blockId" as a nested field path.
-      // setDoc with merge:true does NOT — it creates a literal field named "answers.blockId".
+      // updateDoc uses "answers.blockId" as a nested field path (correct).
+      // The setDoc fallback uses a nested object + merge:true to achieve the same safely.
+      //
+      // Retries with exponential backoff on failure — previously, a single failed
+      // updateDoc would silently drop the answer (only logged to console). With
+      // school wifi that can be spotty, transient Firestore errors are expected.
+      // The engagement timer always saves the cumulative total so it self-heals,
+      // but answer writes are per-block and must each succeed individually.
       if (user) {
-        try {
-          const progressRef = doc(
-            db, "progress", user.uid, "courses", courseId, "lessons", lessonId
-          );
+        const seq = (writeSeqRef.current[blockId] || 0) + 1;
+        writeSeqRef.current[blockId] = seq;
+        const MAX_RETRIES = 3;
+
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          // Abort if a newer write has started for this block
+          if (writeSeqRef.current[blockId] !== seq) return;
+
           try {
-            await updateDoc(progressRef, {
-              [`answers.${blockId}`]: data,
-              lastUpdated: new Date(),
-            });
-          } catch (updateErr) {
-            // Document doesn't exist yet (first answer) — create it
-            if (updateErr.code === "not-found") {
-              await setDoc(progressRef, {
-                answers: { [blockId]: data },
+            const progressRef = doc(
+              db, "progress", user.uid, "courses", courseId, "lessons", lessonId
+            );
+            try {
+              await updateDoc(progressRef, {
+                [`answers.${blockId}`]: data,
                 lastUpdated: new Date(),
               });
+            } catch (updateErr) {
+              // Document doesn't exist yet (first answer) — create it.
+              // Use setDoc with merge:true and a nested answers object so
+              // concurrent first-answer saves don't overwrite each other.
+              if (updateErr.code === "not-found") {
+                await setDoc(progressRef, {
+                  answers: { [blockId]: data },
+                  lastUpdated: new Date(),
+                }, { merge: true });
+              } else {
+                throw updateErr;
+              }
+            }
+            // Write succeeded — clear any previous save error
+            setSaveError(null);
+            return;
+          } catch (err) {
+            if (attempt < MAX_RETRIES) {
+              // Exponential backoff: 1s, 2s, 4s
+              const backoff = Math.min(1000 * Math.pow(2, attempt), 8000);
+              await new Promise((resolve) => setTimeout(resolve, backoff));
             } else {
-              throw updateErr;
+              console.error(`Failed to save answer for ${blockId} after ${MAX_RETRIES + 1} attempts:`, err);
+              setSaveError(`Some answers may not have saved. Check your connection and try again.`);
             }
           }
-        } catch (err) {
-          console.error("Failed to save answer:", err);
         }
       }
     },
@@ -197,6 +248,8 @@ export default function LessonViewer() {
       if (block.type === "data_table") {
         extraProps.lessonId = lessonId;
         extraProps.courseId = courseId;
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
       }
       if (block.type === "bar_chart") {
         extraProps.studentData = studentData;
@@ -206,7 +259,7 @@ export default function LessonViewer() {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
       }
-      if (block.type === "evidence_upload") {
+      if (block.type === "evidence_upload" || block.type === "media_upload") {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
       }
@@ -225,6 +278,11 @@ export default function LessonViewer() {
       if (block.type === "bias_detective") {
         extraProps.courseId = courseId;
         extraProps.lessonId = lessonId;
+      }
+      if (block.type === "embed") {
+        extraProps.courseId = courseId;
+        extraProps.lessonId = lessonId;
+        extraProps.user = user;
       }
       if (block.type === "rocket_staging") {
         extraProps.studentData = studentData;
@@ -304,6 +362,19 @@ export default function LessonViewer() {
                 🔄 Reset My Progress
               </button>
               <PreviewLauncher sourceLocation={{ courseId, lessonId }} />
+            </div>
+          )}
+
+          {/* Save error banner — visible when Firestore writes fail after retries */}
+          {saveError && (
+            <div role="alert" style={{
+              background: "rgba(245,166,35,0.1)", border: "1px solid var(--amber)",
+              borderRadius: 10, padding: "10px 16px", marginBottom: 16,
+              display: "flex", alignItems: "center", gap: 10, fontSize: 13,
+              color: "var(--amber)", fontWeight: 600,
+            }}>
+              <span>⚠️</span>
+              <span>{saveError}</span>
             </div>
           )}
 

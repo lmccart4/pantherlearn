@@ -371,6 +371,7 @@ async function seed() {
     { courseId: "Y9Gdhw5MTY8wMFt6Tlvj", label: "Period 4" },
     { courseId: "DacjJ93vUDcwqc260OP3", label: "Period 5" },
     { courseId: "M2MVSXrKuVCD9JQfZZyp", label: "Period 7" },
+    { courseId: "fUw67wFhAtobWFhjwvZ5", label: "Period 9" },
   ];
 
   const lessonId = "demystifying-ai";

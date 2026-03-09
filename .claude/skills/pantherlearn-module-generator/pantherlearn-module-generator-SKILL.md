@@ -28,9 +28,12 @@ PantherLearn is a React + Vite app hosted on Firebase Hosting. Lesson content is
   course: "Course Name",       // e.g. "Exploring Generative AI"
   unit: "Lesson N",            // e.g. "Lesson 1"
   order: 0,                    // 0-indexed sort order within the course
+  visible: false,              // ALWAYS false on seed — teacher makes it visible when ready
   blocks: [ /* array of block objects */ ]
 }
 ```
+
+> **Important:** Always set `visible: false` when seeding. Lessons should never go live to students automatically — the teacher controls visibility from the dashboard.
 
 The `order` field determines lesson sequence. It is 0-indexed, so Lesson 1 = `order: 0`, Lesson 7 = `order: 6`. Ask the user what position the lesson should occupy if unclear.
 
@@ -104,6 +107,7 @@ const lesson = {
   course: "COURSE_NAME",
   unit: "Lesson N",
   order: N,
+  visible: false,              // Always false — teacher enables when ready
   blocks: [
     // Block array goes here
   ]

@@ -268,9 +268,20 @@ const lesson = {
 };
 
 async function seed() {
-  await db.collection('courses').doc('ai-literacy').collection('lessons').doc('whos-making-choices').set(lesson);
-  console.log('✅ Lesson 9 "Who\'s Making the Choices?" seeded successfully!');
-  console.log('   Path: courses/ai-literacy/lessons/whos-making-choices');
+  const targets = [
+    { courseId: "ai-literacy",            label: "ai-literacy (source)" },
+    { courseId: "Y9Gdhw5MTY8wMFt6Tlvj",  label: "Period 4" },
+    { courseId: "DacjJ93vUDcwqc260OP3",  label: "Period 5" },
+    { courseId: "M2MVSXrKuVCD9JQfZZyp",  label: "Period 7" },
+    { courseId: "fUw67wFhAtobWFhjwvZ5",  label: "Period 9" },
+  ];
+
+  for (const { courseId, label } of targets) {
+    await db.collection('courses').doc(courseId).collection('lessons').doc('whos-making-choices').set(lesson);
+    console.log(`✅ Seeded → ${label} (${courseId})`);
+  }
+
+  console.log('\n✅ Lesson 9 "Who\'s Making the Choices?" seeded to all courses!');
   console.log('   - Warm Up: School safety scenario, attention connection, AI Hype vs Skeptic');
   console.log('   - Activity Part 1: Base vs Framed prompt comparisons (Prompt Comparison Bot)');
   console.log('   - Activity Part 2: Free experimentation with variations (Prompt Laboratory)');

@@ -17,13 +17,28 @@
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     },
     {
-      "target": "hallucination-lab",
+      "target": "hallucination-lab-paps",
       "public": "full-session-build/hallucination-lab/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     },
     {
-      "target": "attention-visualizer",
+      "target": "attention-visualizer-paps",
       "public": "full-session-build/attention-visualizer/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    },
+    {
+      "target": "battleship-energy-paps",
+      "public": "battleship-energy/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    },
+    {
+      "target": "battleship-ai-paps",
+      "public": "battleship-ai/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    },
+    {
+      "target": "lesson-plans-paps",
+      "public": "lesson-plans-public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
   ],

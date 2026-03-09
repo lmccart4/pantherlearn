@@ -260,7 +260,7 @@ const styles = {
   },
 };
 
-export default function DataTableBlock({ block, lessonId, courseId }) {
+export default function DataTableBlock({ block, lessonId, courseId, studentData = {}, onAnswer }) {
   const { user } = useAuth();
   const translatedTitle = useTranslatedText(block.title);
   const [data, setData] = useState({});
@@ -271,7 +271,9 @@ export default function DataTableBlock({ block, lessonId, courseId }) {
   const summaryColKeys = columns.filter((c) => !c.input).map((c) => c.key);
   const inputColCount = columns.filter((c) => c.input).length;
 
-  // Auto-save function
+  // Auto-save function — writes to BOTH the detailed responses path (for table data)
+  // AND the standard progress path via onAnswer (so the grading system can see it).
+  // Previously only wrote to responses/, which the grading system never reads.
   const performSave = useCallback(async () => {
     if (!user || !db || !lessonId || !courseId) return;
     const showScalar = block.showScalar !== false;
@@ -293,6 +295,7 @@ export default function DataTableBlock({ block, lessonId, courseId }) {
       allRows[section.summary.key] = summaryData;
     });
 
+    // 1. Save detailed table data to responses path (for data analysis / export)
     const ref = doc(db, "courses", courseId, "lessons", lessonId, "responses", user.uid, "blocks", block.id);
     await setDoc(ref, {
       type: "data_table",
@@ -304,25 +307,46 @@ export default function DataTableBlock({ block, lessonId, courseId }) {
       studentName: user.displayName || "Unknown",
       submittedAt: serverTimestamp(),
     }, { merge: true });
-  }, [user, lessonId, courseId, block, data, sections]);
+
+    // 2. Save a summary to the standard progress path so grading system sees it
+    if (onAnswer) {
+      const filledCells = Object.values(data).reduce(
+        (acc, row) => acc + Object.values(row || {}).filter((v) => v !== "" && v !== undefined).length, 0
+      );
+      onAnswer(block.id, {
+        submitted: filledCells > 0,
+        answer: { tableData: data, computedData: allRows },
+        filledCells,
+        savedAt: new Date().toISOString(),
+      });
+    }
+  }, [user, lessonId, courseId, block, data, sections, onAnswer]);
 
   const { markDirty, saveNow, lastSaved, saveError } = useAutoSave(performSave);
 
-  // Load saved data
+  // Load saved data — try responses path first (detailed), fall back to progress path
   useEffect(() => {
     if (!user || !db || !lessonId || !courseId) return;
     const load = async () => {
       try {
+        // Primary: detailed table data from responses path
         const ref = doc(db, "courses", courseId, "lessons", lessonId, "responses", user.uid, "blocks", block.id);
         const snap = await getDoc(ref);
         if (snap.exists() && snap.data().tableData) {
           setData(snap.data().tableData);
+          return;
+        }
+        // Fallback: summary data from progress path (if responses path is empty)
+        const progressData = studentData?.[block.id];
+        if (progressData?.answer?.tableData) {
+          setData(progressData.answer.tableData);
         }
       } catch (e) {
         console.warn("Failed to load data table:", e);
       }
     };
     load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, lessonId, courseId, block.id]);
 
   const handleInput = useCallback((rowKey, colKey, value) => {

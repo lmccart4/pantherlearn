@@ -199,4 +199,38 @@ export const ACTIVITIES = [
     url: "https://neural-network-lab-paps.web.app",  // ← update after Firebase deploy
     course: "ai-literacy",
   },
+
+  {
+    id: "battleship-energy",
+    title: "Battleship Energy Quiz",
+    icon: "🚢",
+    description: "Cold War–themed battleship game where students answer energy questions to fire at enemy ships. Covers energy types, transfers, conservation, and systems.",
+    collection: "battleshipEnergy",
+    courseScoped: true,
+    userIdField: "studentId",
+    timestampField: "completedAt",
+    completionCheck: (sub) => sub.score != null,
+    scoreCalculator: (sub) => sub.score ?? 0,
+    maxScore: 5000,
+    component: null,   // Add custom review component later if needed
+    url: "https://battleship-energy-paps.web.app",
+    course: "physics",
+  },
+
+  {
+    id: "battleship-ai",
+    title: "Battleship AI Literacy Quiz",
+    icon: "🚢",
+    description: "Cold War–themed battleship game where students answer AI literacy questions to fire at enemy ships. Covers generative AI, bias, tokenization, embeddings, and neural networks.",
+    collection: "battleshipAI",
+    courseScoped: true,
+    userIdField: "uid",
+    timestampField: "completedAt",
+    completionCheck: (sub) => sub.totalScore != null,
+    scoreCalculator: (sub) => sub.totalScore ?? 0,
+    maxScore: 5000,
+    component: null,
+    url: "https://battleship-ai-paps.web.app",
+    course: "ai-literacy",
+  },
 ];

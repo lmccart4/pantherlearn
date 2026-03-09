@@ -66,6 +66,7 @@ const BLOCK_MAP = {
   ai_ethics_courtroom: ExternalActivityBlock,
   rocket_staging: RocketStagingBlock,
   concept_builder: ConceptBuilderBlock,
+  media_upload: EvidenceUploadBlock,  // alias — media_upload blocks use the same upload UI
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {
