@@ -204,7 +204,7 @@ export const ACTIVITIES = [
     id: "battleship-energy",
     title: "Battleship Energy Quiz",
     icon: "🚢",
-    description: "Cold War–themed battleship game where students answer energy questions to fire at enemy ships. Covers energy types, transfers, conservation, and systems.",
+    description: "Cold War--themed battleship game where students answer energy questions to fire at enemy ships. Covers energy types, transfers, conservation, and systems.",
     collection: "battleshipEnergy",
     courseScoped: true,
     userIdField: "studentId",
@@ -221,7 +221,7 @@ export const ACTIVITIES = [
     id: "battleship-ai",
     title: "Battleship AI Literacy Quiz",
     icon: "🚢",
-    description: "Cold War–themed battleship game where students answer AI literacy questions to fire at enemy ships. Covers generative AI, bias, tokenization, embeddings, and neural networks.",
+    description: "Cold War--themed battleship game where students answer AI literacy questions to fire at enemy ships. Covers generative AI, bias, tokenization, embeddings, and neural networks.",
     collection: "battleshipAI",
     courseScoped: true,
     userIdField: "uid",
@@ -232,5 +232,21 @@ export const ACTIVITIES = [
     component: null,
     url: "https://battleship-ai-paps.web.app",
     course: "ai-literacy",
+  },
+
+  {
+    id: "momentum-mystery-lab",
+    title: "Momentum Mystery Lab",
+    icon: "🔭",
+    description: "Students solve momentum physics mysteries and earn XP based on accuracy and speed. Best score counts; students can replay.",
+    collection: "momentumAttempts",               // subcollection under courses/{courseId}/
+    courseScoped: true,                            // data lives in courses/{courseId}/{collection}
+    userIdField: "studentId",
+    timestampField: "completedAt",
+    completionCheck: (sub) => sub.activityScore != null,
+    scoreCalculator: (sub) => Math.round((sub.activityScore ?? 0) * 100),
+    component: lazy(() => import("../components/grading/activities/MomentumMysteryLabReview")),
+    url: null,  // in-app activity, no external URL
+    course: null,
   },
 ];

@@ -44,6 +44,7 @@ const BLOCK_TYPES = [
   { type: "data_labeling_lab", label: "Data Labeling Lab", icon: "🏷️" },
   { type: "ai_ethics_courtroom", label: "AI Ethics Courtroom", icon: "⚖️" },
   { type: "rocket_staging", label: "Rocket Staging", icon: "🚀" },
+  { type: "momentum_mystery_lab", label: "Momentum Mystery Lab", icon: "🔭" },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -90,6 +91,7 @@ function defaultBlockData(typeInfo) {
     case "data_labeling_lab": return { ...base, icon: "🏷️", title: "Data Labeling Lab", instructions: "Practice labeling data for machine learning. Understand how human decisions shape AI behavior.", url: "https://data-labeling-lab-paps.firebaseapp.com" };
     case "ai_ethics_courtroom": return { ...base, icon: "⚖️", title: "AI Ethics Courtroom", instructions: "Debate AI ethics dilemmas in a structured courtroom role-play. Argue cases from multiple perspectives.", url: "https://ai-ethics-courtroom-paps.firebaseapp.com" };
     case "rocket_staging": return { ...base, icon: "🚀", title: "Rocket Staging Challenge" };
+    case "momentum_mystery_lab": return { ...base, icon: "🔭", title: "Momentum Mystery Lab", instructions: "Solve collision mysteries using conservation of momentum. Earn XP and compete for the best grade!" };
     default: return base;
   }
 }
@@ -536,6 +538,11 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
           <Field label="Title" value={block.title} onChange={(v) => update("title", v)} />
           <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline />
           <Field label="URL" value={block.url} onChange={(v) => update("url", v)} placeholder="https://..." />
+        </>);
+      case "momentum_mystery_lab":
+        return (<>
+          <Field label="Title" value={block.title} onChange={(v) => update("title", v)} placeholder="Momentum Mystery Lab" />
+          <Field label="Instructions" value={block.instructions} onChange={(v) => update("instructions", v)} multiline placeholder="Solve collision mysteries using conservation of momentum..." />
         </>);
       default: return <p style={{ color: "var(--text3)" }}>Unknown block type</p>;
     }

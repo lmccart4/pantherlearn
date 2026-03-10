@@ -293,6 +293,10 @@ export default function LessonViewer() {
         extraProps.onAnswer = handleAnswer;
         extraProps.courseId = courseId;
       }
+      if (block.type === "momentum_mystery_lab") {
+        extraProps.courseId = courseId;
+        extraProps.lessonId = lessonId;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted]);

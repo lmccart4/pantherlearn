@@ -46,6 +46,7 @@ const BiasDetectiveDashboard = lazy(() => import("./pages/BiasDetectiveDashboard
 const SpaceRescueMission = lazy(() => import("./pages/SpaceRescueMission"));
 const EmbeddingExplorer = lazy(() => import("./pages/EmbeddingExplorer"));
 const EmbeddingExplorerDashboard = lazy(() => import("./pages/EmbeddingExplorerDashboard"));
+const MomentumMysteryLab = lazy(() => import("./pages/MomentumMysteryLab"));
 
 const TRANSLATE_URL = import.meta.env.VITE_TRANSLATE_URL || "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
 
@@ -135,6 +136,7 @@ function AppRoutes() {
             <Route path="/space-rescue/:courseId" element={<SpaceRescueMission />} />
             <Route path="/embedding-explorer/:courseId" element={<EmbeddingExplorer />} />
             <Route path="/embedding-explorer-dashboard/:courseId" element={<EmbeddingExplorerDashboard />} />
+            <Route path="/momentum-mystery-lab/:courseId" element={<MomentumMysteryLab />} />
           </Route>
         </Routes>
       </Suspense>
