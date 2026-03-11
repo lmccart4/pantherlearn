@@ -392,16 +392,13 @@ function injectStyles() {
       background: rgba(255,255,255,0.08);
       border-radius: 3px;
       overflow: hidden;
-      position: relative;
     }
 
     .cd-countdown-fill {
       height: 100%;
       border-radius: 3px;
-      position: absolute;
-      right: 0;
       transition: width 1s linear;
-      background: linear-gradient(90deg, transparent, #eab308);
+      background: var(--cd-accent, #e8a838);
     }
 
     .cd-main {
@@ -650,7 +647,7 @@ export default function ClassroomDisplay() {
         )}
         {period.status === "upcoming" && (
           <div className="cd-countdown-track">
-            <div className="cd-countdown-fill" style={{ width: `${100 - countdownPct}%` }} />
+            <div className="cd-countdown-fill" style={{ width: `${100 - countdownPct}%`, background: accent }} />
           </div>
         )}
       </div>
