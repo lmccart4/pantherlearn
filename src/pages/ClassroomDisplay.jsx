@@ -115,7 +115,7 @@ const PERIODS = [
   { period: 4, label: "Period 4", course: "AI Literacy",        courseId: "Y9Gdhw5MTY8wMFt6Tlvj", start: "10:29", end: "11:11", accent: "#e8a838" },
   { period: 5, label: "Period 5", course: "AI Literacy",        courseId: "DacjJ93vUDcwqc260OP3", start: "11:15", end: "11:57", accent: "#e8a838" },
   { period: 7, label: "Period 7", course: "AI Literacy",        courseId: "M2MVSXrKuVCD9JQfZZyp", start: "12:47", end: "13:29", accent: "#e8a838" },
-  { period: 9, label: "Period 9", course: "AI Literacy",        courseId: "fUw67wFhAtobWFhjwvZ5", start: "02:19", end: "03:01", accent: "#e8a838" },
+  { period: 9, label: "Period 9", course: "AI Literacy",        courseId: "fUw67wFhAtobWFhjwvZ5", start: "14:19", end: "15:01", accent: "#e8a838" },
 ];
 
 function timeToMinutes(hhmm) {
@@ -141,8 +141,8 @@ function getTodayStr() {
 }
 
 // ── Question of the Day generator ────────────────────────────────────────────
-// Priority: 1) Author-written QOTD in callouts, 2) Lesson questions,
-// 3) Definitions/vocab, 4) Objectives, 5) Title fallback
+// Priority: 0) lesson.questionOfTheDay field, 1) Author-written QOTD in callouts,
+// 2) Lesson questions, 3) Definitions/vocab, 4) Objectives, 5) Title fallback
 
 function seededPick(arr, seed) {
   return arr[seed % arr.length];
@@ -152,6 +152,11 @@ function generateQuestion(lesson) {
   if (!lesson) return null;
   const blocks = lesson.blocks || [];
   const seed = new Date().getDate() * 7 + new Date().getMonth() * 31;
+
+  // 0. Check for an authored questionOfTheDay field on the lesson document
+  if (lesson.questionOfTheDay && typeof lesson.questionOfTheDay === "string") {
+    return lesson.questionOfTheDay.trim();
+  }
 
   // 1. Check for an author-written "Question of the Day" in callout blocks
   const callouts = blocks.filter((b) => b.type === "callout" && b.content);
@@ -341,6 +346,22 @@ function injectStyles() {
       transition: color 2s ease;
     }
 
+    .cd-inline-sep {
+      color: #6b6560;
+      font-size: 18px;
+    }
+
+    .cd-inline-lesson {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 20px;
+      font-style: italic;
+      color: #d6d3cd;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 400px;
+    }
+
     .cd-time-left {
       font-family: 'JetBrains Mono', monospace;
       font-size: 16px;
@@ -369,8 +390,8 @@ function injectStyles() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px 72px;
-      gap: 24px;
+      padding: 16px 72px 32px;
+      gap: 28px;
       position: relative;
       z-index: 2;
     }
@@ -379,30 +400,12 @@ function injectStyles() {
       animation: cd-fadeUp 0.8s ease-out both;
     }
 
-    .cd-lesson-title {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(40px, 6vw, 72px);
-      font-weight: 800;
-      text-align: center;
-      line-height: 1.1;
-      color: #f4efe6;
-      max-width: 1000px;
-      letter-spacing: -1px;
-    }
-
-    .cd-divider {
-      width: 60px;
-      height: 2px;
-      background: var(--cd-accent, #e8a838);
-      opacity: 0.5;
-      transition: background 2s ease;
-    }
 
     .cd-objectives {
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      max-width: 900px;
+      gap: 16px;
+      max-width: 1000px;
       width: 100%;
     }
 
@@ -439,31 +442,31 @@ function injectStyles() {
     }
 
     .cd-question-block {
-      max-width: 900px;
+      max-width: 1000px;
       width: 100%;
-      padding: 24px 0 0;
-      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 32px 0 0;
+      border-top: 1px solid rgba(255,255,255,0.1);
       animation: cd-fadeUp 0.8s ease-out 0.5s both;
     }
 
     .cd-question-label {
       font-family: 'Syne', sans-serif;
-      font-size: 13px;
+      font-size: 18px;
       font-weight: 700;
-      letter-spacing: 4px;
+      letter-spacing: 5px;
       text-transform: uppercase;
       color: var(--cd-accent, #e8a838);
-      margin-bottom: 10px;
+      margin-bottom: 16px;
       transition: color 2s ease;
     }
 
     .cd-question-text {
       font-family: 'Newsreader', Georgia, serif;
-      font-size: clamp(20px, 2.8vw, 32px);
+      font-size: clamp(28px, 4vw, 48px);
       font-style: italic;
       font-weight: 400;
-      line-height: 1.45;
-      color: #d6d3cd;
+      line-height: 1.35;
+      color: #f4efe6;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -583,7 +586,7 @@ export default function ClassroomDisplay() {
         <div className="cd-clock">{formatTime(clock)}</div>
       </div>
 
-      {/* ── Period bar ── */}
+      {/* ── Period bar (with inline lesson title) ── */}
       <div className="cd-period-bar">
         <div className="cd-period-info">
           <span
@@ -595,6 +598,12 @@ export default function ClassroomDisplay() {
           />
           <span className="cd-period-label">{period.label}</span>
           <span className="cd-course-name">{period.course}</span>
+          {currentLesson && !isWeekend && (
+            <>
+              <span className="cd-inline-sep">—</span>
+              <span className="cd-inline-lesson">{currentLesson.title}</span>
+            </>
+          )}
           {period.status === "active" && minsLeft != null && (
             <span className="cd-time-left">{minsLeft} min remaining</span>
           )}
@@ -625,21 +634,16 @@ export default function ClassroomDisplay() {
             <div className="cd-off-sub">Check pantherlearn.com</div>
           </div>
         ) : (
-          <div key={contentKey} className="cd-content-enter" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
-            <div className="cd-lesson-title">{currentLesson.title}</div>
-
+          <div key={contentKey} className="cd-content-enter" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "28px", width: "100%" }}>
             {objectives && objectives.items?.length > 0 && (
-              <>
-                <div className="cd-divider" style={{ background: accent }} />
-                <div className="cd-objectives">
-                  {objectives.items.filter(Boolean).map((item, i) => (
-                    <div key={i} className="cd-objective">
-                      <div className="cd-obj-marker" style={{ background: accent }} />
-                      <div className="cd-obj-text">{item}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
+              <div className="cd-objectives">
+                {objectives.items.filter(Boolean).map((item, i) => (
+                  <div key={i} className="cd-objective">
+                    <div className="cd-obj-marker" style={{ background: accent }} />
+                    <div className="cd-obj-text">{item}</div>
+                  </div>
+                ))}
+              </div>
             )}
 
             {question && (
