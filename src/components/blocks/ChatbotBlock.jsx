@@ -123,8 +123,14 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
     }
   };
 
+  // Progress tracking
+  const minMessages = block.minMessages || 0;
+  const userMessageCount = messages.filter((m) => m.role === "user").length;
+  const isComplete = minMessages > 0 && userMessageCount >= minMessages;
+  const showProgress = minMessages > 0;
+
   return (
-    <div className="chatbot-block">
+    <div className={`chatbot-block${isComplete ? " chatbot-complete" : ""}`}>
       <div className="chatbot-header" onClick={() => setExpanded(!expanded)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(!expanded); } }}
         role="button" tabIndex={0} aria-expanded={expanded}
@@ -170,6 +176,25 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
             )}
             <div ref={chatEndRef} />
           </div>
+
+          {/* Progress tracker */}
+          {showProgress && (
+            <div className={`chatbot-progress${isComplete ? " complete" : ""}`}>
+              <div className="chatbot-progress-bar-track">
+                <div
+                  className="chatbot-progress-bar-fill"
+                  style={{ width: `${Math.min(100, (userMessageCount / minMessages) * 100)}%` }}
+                />
+              </div>
+              <div className="chatbot-progress-text">
+                {isComplete ? (
+                  <span className="chatbot-progress-done">Activity complete — nice work! You can keep chatting if you want.</span>
+                ) : (
+                  <span>{userMessageCount} of {minMessages} messages sent — keep going!</span>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="chatbot-input-row">
             <input

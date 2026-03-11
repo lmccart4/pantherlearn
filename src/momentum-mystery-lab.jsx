@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 /* ═══════════════════════════════════════════════════════════════
    MOMENTUM MYSTERY LAB — "Crime Scene Physics"
@@ -71,10 +71,6 @@ const rand = (min, max, step=0.5) => {
 };
 
 function makeLevel(i) {
-<<<<<<< HEAD
-  if (i===0) return {massA:2,massB:3,viA:4,viB:null,vfA:1.6,vfB:1.6,unknown:"viB",answer:0,tol:0.2,hint:"Both carts stuck together → same final velocity. Use: m₁v₁ᵢ + m₂v₂ᵢ = (m₁+m₂)·vf"};
-  if (i===1) return {massA:1.5,massB:1.5,viA:6,viB:0,vfA:null,vfB:4,unknown:"vfA",answer:2,tol:0.2,hint:"You know 3 of 4 momentum terms. Conservation: m₁v₁ᵢ + m₂v₂ᵢ = m₁v₁f + m₂v₂f"};
-  if (i===2) {
   if (i===0) return {massA:2,massB:3,viA:4,viB:null,vfA:1.6,vfB:1.6,unknown:"viB",answer:0,tol:0.2,hint:<>Both carts stuck together → same final velocity. Use: <Tex>{"m_1 v_{1i} + m_2 v_{2i} = (m_1+m_2) \\cdot v_f"}</Tex></>};
   if (i===1) return {massA:1.5,massB:1.5,viA:6,viB:0,vfA:null,vfB:4,unknown:"vfA",answer:2,tol:0.2,hint:<>You know 3 of 4 momentum terms. Conservation: <Tex>{"m_1 v_{1i} + m_2 v_{2i} = m_1 v_{1f} + m_2 v_{2f}"}</Tex></>};
   if (i===2) {

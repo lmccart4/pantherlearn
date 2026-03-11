@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { db } from "../lib/firebase";
-import { collection, addDoc, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, orderBy, limit, doc, setDoc } from "firebase/firestore";
 
 const ASTRONAUT_MASS = 80;
 const CANVAS_WIDTH = 900;
@@ -188,6 +188,28 @@ export default function SpaceRescueMission() {
       });
 
       setCompletedLevels(newCompleted);
+
+      // Write progress doc so MyGrades can display the score
+      const levelsCompleted = newCompleted.size;
+      const bestLevel = Math.max(...Array.from(newCompleted), 0);
+      const bestOxy = success ? Math.max(resultData.oxygenTime - parseFloat(resultData.timeToReach), 0) : 0;
+      let score = Math.min(levelsCompleted * 25, 100);
+      if (bestLevel >= 3) score = Math.min(score + Math.round(bestOxy / 6), 100);
+      const label = score >= 90 ? "Expert" : score >= 80 ? "Advanced" : score >= 70 ? "Proficient" : score >= 60 ? "Developing" : score >= 50 ? "Emerging" : "Beginning";
+
+      await setDoc(
+        doc(db, "progress", user.uid, "courses", courseId, "activities", "space-rescue"),
+        {
+          activityScore: score / 100,
+          activityLabel: `${label} (${score}%)`,
+          activityType: "space-rescue",
+          activityTitle: "Space Rescue Mission",
+          levelsCompleted,
+          bestLevel,
+          gradedAt: new Date(),
+        },
+        { merge: true }
+      );
     } catch (err) {
       console.error("Failed to save space rescue result:", err);
     }

@@ -2,6 +2,7 @@
 name: frontend-review
 description: Use when someone asks to review front-end design, fix styling, polish the UI, make something look better, improve visual design, fix layout issues, or refine the look of a PantherLearn component or page. Also trigger on "design review", "fix the CSS", "improve responsiveness", "visual polish", or "make this look professional".
 argument-hint: <component or page name>
+disable-model-invocation: true
 ---
 
 ## What This Skill Does

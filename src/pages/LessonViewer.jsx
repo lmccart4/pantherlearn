@@ -191,6 +191,33 @@ export default function LessonViewer() {
     [user, courseId, lessonId, isPreviewActive]
   );
 
+  // Student requests manual review of an AI-graded answer.
+  // Uses dot-notation to update ONLY review fields — must NOT use handleAnswer
+  // because that overwrites the entire answer object including grading data.
+  const handleRequestReview = useCallback(
+    async (blockId, note) => {
+      if (!user || isPreviewActive) return;
+      const progressRef = doc(
+        db, "progress", user.uid, "courses", courseId, "lessons", lessonId
+      );
+      await updateDoc(progressRef, {
+        [`answers.${blockId}.reviewRequested`]: true,
+        [`answers.${blockId}.reviewRequestedAt`]: new Date().toISOString(),
+        [`answers.${blockId}.reviewNote`]: note || null,
+      });
+      setRealStudentData((prev) => ({
+        ...prev,
+        [blockId]: {
+          ...prev[blockId],
+          reviewRequested: true,
+          reviewRequestedAt: new Date().toISOString(),
+          reviewNote: note || null,
+        },
+      }));
+    },
+    [user, courseId, lessonId, isPreviewActive]
+  );
+
   const handleChatLog = useCallback((blockId, messages) => {
     if (isPreviewActive) return;
     setRealChatLogs((prev) => ({ ...prev, [blockId]: messages }));
@@ -238,6 +265,7 @@ export default function LessonViewer() {
       if (block.type === "question") {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
+        extraProps.onRequestReview = handleRequestReview;
         extraProps.courseId = courseId;
         extraProps.lessonCompleted = lessonCompleted;
       }

@@ -27,7 +27,13 @@ const lesson = {
     {
       id: "b1",
       type: "objectives",
-      content: "By the end of this lesson, you will be able to:\n\n• Analyze how language affects the choices an AI system makes when generating output."
+      title: "Learning Objectives",
+      items: [
+        "Explain how changing the wording of a prompt changes the AI's output",
+        "Compare base prompts and framed prompts to identify differences in content, tone, and focus",
+        "Connect prompt framing to the attention mechanism",
+        "Evaluate real-world scenarios where prompt framing could introduce bias or shape perception"
+      ]
     },
     {
       id: "b2",
@@ -102,7 +108,8 @@ const lesson = {
       icon: "🔄",
       instructions: "Try the base and framed prompts from the table above. Notice how the same topic gets a very different response depending on how you ask. Try at least 3 different pairs!",
       systemPrompt: "You are a helpful AI assistant being used by high school students in an AI Literacy class to explore how prompt wording affects AI responses. Respond naturally and helpfully to whatever the student asks. Give clear, organized responses (use numbered lists when appropriate). Keep responses concise — about 3-5 key points. Do NOT mention that you know this is a classroom exercise. Do NOT point out that the student is testing different prompts. Just respond naturally to each prompt as if it were a genuine question. Your responses should clearly demonstrate how different framing leads to different outputs — if asked a neutral question, give a balanced overview; if asked a positively-framed question, focus more on the positive aspects; if asked a negatively-framed question, focus more on the negative aspects. This natural behavior is exactly what the lesson is trying to demonstrate.",
-      starterMessage: "Hi! I'm ready to help you explore any topic. Ask me anything!"
+      starterMessage: "Hi! I'm ready to help you explore any topic. Ask me anything!",
+      minMessages: 6
     },
     {
       id: "b11",
@@ -128,7 +135,8 @@ const lesson = {
       icon: "🧪",
       instructions: "Create your own prompt variations on any topic. Try changing individual words, the tone, the sentence structure, or the framing. See how each change affects the response!",
       systemPrompt: "You are a helpful AI assistant being used by high school students in an AI Literacy class to explore how prompt wording affects AI responses. Respond naturally and helpfully to whatever the student asks. Give clear, organized responses. Keep responses concise — about 3-5 key points per response. Do NOT mention that you know this is a classroom exercise. Do NOT point out that the student is testing different prompts or analyzing your behavior. Just respond naturally to each prompt as if it were a genuine question. Your responses should clearly demonstrate how different framing, word choice, tone, and sentence structure lead to different outputs. Match the energy and framing of the prompt — if someone asks aggressively, respond to that energy; if someone asks positively, lean into the positive angle; if someone is neutral, be balanced.",
-      starterMessage: "Ready for your experiments! Ask me anything — try the same topic with different wording and see what happens."
+      starterMessage: "Ready for your experiments! Ask me anything — try the same topic with different wording and see what happens.",
+      minMessages: 4
     },
     {
       id: "b13",
@@ -242,7 +250,8 @@ const lesson = {
       icon: "🧠",
       instructions: "Use this chatbot to explore real-world scenarios where prompt framing matters. Ask it about situations where the way you ask a question could change the answer you get — in school, in the news, in advertising, or anywhere else.",
       systemPrompt: "You are a Prompt Framing Advisor for a high school AI Literacy class. Students have just learned that changing the words in a prompt can dramatically change an AI's output. Your role is to help them think critically about the real-world implications of this.\n\nWhen students ask about scenarios:\n1. Show them how the SAME question could be framed multiple ways\n2. Explain what kind of response each framing would likely produce\n3. Discuss the ethical implications — who benefits from certain framings?\n4. Connect back to the attention mechanism: different words activate different patterns\n\nExamples of topics to explore:\n- News headlines framing the same event differently\n- Job descriptions that attract different candidates based on wording\n- Survey questions that lead to different results\n- Marketing language that shapes perception\n- Political messaging and framing\n\nAlways encourage critical thinking. Help students see that the HUMAN writing the prompt has enormous power over what the AI produces. This means prompt literacy is a crucial skill.\n\nKeep responses clear and age-appropriate for high school students. Use concrete examples they can relate to.",
-      starterMessage: "I'm your Prompt Framing Advisor! I can help you explore how prompt wording shapes AI responses in the real world.\n\nTry asking me about:\n• \"How would a news outlet frame the same story differently?\"\n• \"Show me how a survey question could be biased\"\n• \"How might a company use prompt framing in advertising?\"\n• Or bring your own scenario!"
+      starterMessage: "I'm your Prompt Framing Advisor! I can help you explore how prompt wording shapes AI responses in the real world.\n\nTry asking me about:\n• \"How would a news outlet frame the same story differently?\"\n• \"Show me how a survey question could be biased\"\n• \"How might a company use prompt framing in advertising?\"\n• Or bring your own scenario!",
+      minMessages: 2
     },
     {
       id: "b22",

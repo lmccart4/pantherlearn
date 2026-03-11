@@ -6,7 +6,7 @@ import { useTranslatedText, useTranslatedTexts } from "../../hooks/useTranslated
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 import { useTelemetryContext } from "../../contexts/TelemetryContext";
 
-export default function QuestionBlock({ block, studentData = {}, onAnswer, courseId, lessonCompleted, allStudentData }) {
+export default function QuestionBlock({ block, studentData = {}, onAnswer, onRequestReview, courseId, lessonCompleted, allStudentData }) {
   const { user } = useAuth();
   const { trackEvent } = useTelemetryContext();
   const data = (studentData && studentData[block.id]) || {};
@@ -14,6 +14,11 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
   const [textAnswer, setTextAnswer] = useState(data.answer ?? "");
   const [rankingOrder, setRankingOrder] = useState(data.answer || null);
   const [submitted, setSubmitted] = useState(data.submitted || false);
+
+  // "Request Manual Review" state for AI-graded answers
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewNote, setReviewNote] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   // Sync state when studentData arrives after initial mount (e.g. async Firestore fetch)
   // or is cleared (e.g. teacher resets progress via dashboard).
@@ -352,6 +357,71 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
                     {data.feedback}
                   </div>
                 )}
+                {/* Request Manual Review — only for AI-graded answers */}
+                {data.gradedBy === "autograde-agent" && onRequestReview && (
+                  data.reviewRequested ? (
+                    <div style={{ marginTop: 10, fontSize: 12, color: "var(--text3)" }}>
+                      🔍 Review requested — your teacher will look at this
+                    </div>
+                  ) : showReviewForm ? (
+                    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                      <textarea
+                        value={reviewNote}
+                        onChange={(e) => setReviewNote(e.target.value.slice(0, 200))}
+                        placeholder="Optional: why do you think this grade should be different? (200 chars)"
+                        rows={2}
+                        style={{
+                          fontSize: 13, padding: "8px 12px", borderRadius: 8,
+                          background: "var(--surface2)", border: "1px solid var(--border)",
+                          color: "var(--text1)", resize: "none",
+                        }}
+                      />
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <button
+                          className="btn"
+                          disabled={reviewSubmitting}
+                          onClick={async () => {
+                            setReviewSubmitting(true);
+                            try {
+                              await onRequestReview(block.id, reviewNote);
+                              setShowReviewForm(false);
+                            } catch (err) {
+                              console.error("Failed to request review:", err);
+                            } finally {
+                              setReviewSubmitting(false);
+                            }
+                          }}
+                          style={{
+                            fontSize: 12, padding: "6px 14px",
+                            background: "rgba(245,166,35,0.12)", color: "var(--amber)",
+                            border: "1px solid rgba(245,166,35,0.25)", borderRadius: 6,
+                          }}
+                        >
+                          {reviewSubmitting ? "Submitting..." : "Submit Review Request"}
+                        </button>
+                        <button
+                          className="btn"
+                          onClick={() => { setShowReviewForm(false); setReviewNote(""); }}
+                          style={{ fontSize: 12, color: "var(--text3)", background: "transparent", border: "none" }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      className="btn"
+                      onClick={() => setShowReviewForm(true)}
+                      style={{
+                        marginTop: 10, fontSize: 12, color: "var(--amber)",
+                        background: "transparent", border: "1px solid rgba(245,166,35,0.2)",
+                        borderRadius: 6, padding: "5px 12px",
+                      }}
+                    >
+                      🔍 Request Manual Review
+                    </button>
+                  )
+                )}
               </>
             ) : (
               <div className="sa-status" data-translatable>✓ {ui(6) || "Submitted — awaiting teacher review"}</div>
@@ -495,6 +565,71 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, cours
                     </div>
                     {data.feedback}
                   </div>
+                )}
+                {/* Request Manual Review — only for AI-graded linked answers */}
+                {data.gradedBy === "autograde-agent" && onRequestReview && (
+                  data.reviewRequested ? (
+                    <div style={{ marginTop: 10, fontSize: 12, color: "var(--text3)" }}>
+                      🔍 Review requested — your teacher will look at this
+                    </div>
+                  ) : showReviewForm ? (
+                    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                      <textarea
+                        value={reviewNote}
+                        onChange={(e) => setReviewNote(e.target.value.slice(0, 200))}
+                        placeholder="Optional: why do you think this grade should be different? (200 chars)"
+                        rows={2}
+                        style={{
+                          fontSize: 13, padding: "8px 12px", borderRadius: 8,
+                          background: "var(--surface2)", border: "1px solid var(--border)",
+                          color: "var(--text1)", resize: "none",
+                        }}
+                      />
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <button
+                          className="btn"
+                          disabled={reviewSubmitting}
+                          onClick={async () => {
+                            setReviewSubmitting(true);
+                            try {
+                              await onRequestReview(block.id, reviewNote);
+                              setShowReviewForm(false);
+                            } catch (err) {
+                              console.error("Failed to request review:", err);
+                            } finally {
+                              setReviewSubmitting(false);
+                            }
+                          }}
+                          style={{
+                            fontSize: 12, padding: "6px 14px",
+                            background: "rgba(245,166,35,0.12)", color: "var(--amber)",
+                            border: "1px solid rgba(245,166,35,0.25)", borderRadius: 6,
+                          }}
+                        >
+                          {reviewSubmitting ? "Submitting..." : "Submit Review Request"}
+                        </button>
+                        <button
+                          className="btn"
+                          onClick={() => { setShowReviewForm(false); setReviewNote(""); }}
+                          style={{ fontSize: 12, color: "var(--text3)", background: "transparent", border: "none" }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      className="btn"
+                      onClick={() => setShowReviewForm(true)}
+                      style={{
+                        marginTop: 10, fontSize: 12, color: "var(--amber)",
+                        background: "transparent", border: "1px solid rgba(245,166,35,0.2)",
+                        borderRadius: 6, padding: "5px 12px",
+                      }}
+                    >
+                      🔍 Request Manual Review
+                    </button>
+                  )
                 )}
               </>
             ) : (

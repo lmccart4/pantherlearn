@@ -2,7 +2,7 @@
 // Teacher-only Message Center — full-page view of all ClassChat conversations
 // organized by section/period and sub-organized by participant.
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, where, orderBy, limit, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 
@@ -15,6 +15,7 @@ export default function MessageCenter() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("recent");
   const [collapsedSections, setCollapsedSections] = useState({});
+  const [activeTab, setActiveTab] = useState("conversations"); // "conversations" | "announcements"
 
   // Data state
   const [chats, setChats] = useState([]);
@@ -23,6 +24,11 @@ export default function MessageCenter() {
   const [studentMap, setStudentMap] = useState({}); // uid → { displayName, email, photoURL }
   const [expandedChat, setExpandedChat] = useState(null);
   const [messages, setMessages] = useState({}); // chatId → messages[]
+
+  // Announcements state
+  const [announcements, setAnnouncements] = useState([]);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(false);
+  const [deletingAnn, setDeletingAnn] = useState(null);
 
   // Loading state
   const [loadingCourses, setLoadingCourses] = useState(true);
@@ -112,6 +118,39 @@ export default function MessageCenter() {
     };
     fetchCourseData();
   }, [selectedCourse]);
+
+  // ─── Step 3: Load announcements when course or tab changes ───
+  useEffect(() => {
+    if (!selectedCourse || activeTab !== "announcements") return;
+    const fetchAnnouncements = async () => {
+      setLoadingAnnouncements(true);
+      try {
+        const snap = await getDocs(
+          query(
+            collection(db, "courses", selectedCourse, "announcements"),
+            orderBy("createdAt", "desc")
+          )
+        );
+        setAnnouncements(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (err) {
+        console.error("Error fetching announcements:", err);
+      }
+      setLoadingAnnouncements(false);
+    };
+    fetchAnnouncements();
+  }, [selectedCourse, activeTab]);
+
+  const handleDeleteAnnouncement = async (annId) => {
+    if (!selectedCourse) return;
+    setDeletingAnn(annId);
+    try {
+      await deleteDoc(doc(db, "courses", selectedCourse, "announcements", annId));
+      setAnnouncements((prev) => prev.filter((a) => a.id !== annId));
+    } catch (err) {
+      console.error("Failed to delete announcement:", err);
+    }
+    setDeletingAnn(null);
+  };
 
   // ─── Expand/collapse chat and lazy-load messages ───
   const handleExpandChat = async (chatId) => {
@@ -276,8 +315,8 @@ export default function MessageCenter() {
           <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><div className="spinner" /></div>
         ) : (
           <>
-            {/* Course tabs + search/sort */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
+            {/* Course tabs + view tabs + search/sort */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
               {/* Course tabs */}
               <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3, width: "fit-content" }}>
                 {courses.map((c) => (
@@ -289,133 +328,248 @@ export default function MessageCenter() {
                 ))}
               </div>
 
-              {/* Search */}
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <div style={{ position: "relative", minWidth: 200 }}>
-                  <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text3)", fontSize: 14, pointerEvents: "none" }}>🔍</span>
-                  <input
-                    type="text"
-                    placeholder="Search conversations..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+              {/* Search (conversations tab only) */}
+              {activeTab === "conversations" && (
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <div style={{ position: "relative", minWidth: 200 }}>
+                    <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text3)", fontSize: 14, pointerEvents: "none" }}>🔍</span>
+                    <input
+                      type="text"
+                      placeholder="Search conversations..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{
+                        width: "100%", padding: "10px 14px 10px 36px", borderRadius: 8,
+                        border: "1px solid var(--border)", background: "var(--surface)",
+                        color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 14, outline: "none",
+                      }}
+                      onFocus={(e) => (e.target.style.borderColor = "var(--amber)")}
+                      onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
+                    />
+                  </div>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
                     style={{
-                      width: "100%", padding: "10px 14px 10px 36px", borderRadius: 8,
-                      border: "1px solid var(--border)", background: "var(--surface)",
-                      color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 14, outline: "none",
+                      padding: "10px 14px", borderRadius: 8, border: "1px solid var(--border)",
+                      background: "var(--surface)", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 13,
                     }}
-                    onFocus={(e) => (e.target.style.borderColor = "var(--amber)")}
-                    onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
-                  />
+                  >
+                    <option value="recent">Most Recent</option>
+                    <option value="name">Participant Name</option>
+                    <option value="messages">Most Members</option>
+                  </select>
                 </div>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  style={{
-                    padding: "10px 14px", borderRadius: 8, border: "1px solid var(--border)",
-                    background: "var(--surface)", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 13,
-                  }}
-                >
-                  <option value="recent">Most Recent</option>
-                  <option value="name">Participant Name</option>
-                  <option value="messages">Most Members</option>
-                </select>
-              </div>
+              )}
             </div>
 
-            {/* Stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 28 }}>
+            {/* View tabs: Conversations | Announcements */}
+            <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3, width: "fit-content", marginBottom: 24 }}>
               {[
-                { label: "Total Conversations", value: totalChats, color: "var(--green)", icon: "💬" },
-                { label: "Direct Messages", value: totalDMs, color: "var(--cyan)", icon: "👤" },
-                { label: "Group Chats", value: totalGroups, color: "var(--amber)", icon: "👥" },
-              ].map((stat) => (
-                <div key={stat.label} className="card" style={{ textAlign: "center", padding: "16px 12px" }}>
-                  <div style={{ fontSize: 18, marginBottom: 4 }}>{stat.icon}</div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: stat.color }}>{stat.value}</div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>{stat.label}</div>
-                </div>
+                { key: "conversations", label: "💬 Conversations" },
+                { key: "announcements", label: "📢 Announcements" },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  className={`top-nav-link ${activeTab === tab.key ? "active" : ""}`}
+                  onClick={() => setActiveTab(tab.key)}
+                >
+                  {tab.label}
+                </button>
               ))}
             </div>
 
-            {/* Section groups */}
-            {totalChats === 0 ? (
-              <div className="card" style={{ textAlign: "center", padding: 60, color: "var(--text3)" }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>💬</div>
-                <div style={{ fontSize: 15 }}>No conversations yet in this course</div>
-                <div style={{ fontSize: 13, marginTop: 6 }}>Student messages will appear here once they start chatting.</div>
-              </div>
-            ) : (
-              sectionKeys.map((section) => {
-                const sectionChats = filterAndSortChats(chatsBySection[section]);
-                if (sectionChats.length === 0 && searchTerm) return null;
-                const isCollapsed = collapsedSections[section];
-                const sectionStudents = enrollments.filter((e) => (e.section || "") === section);
-
-                return (
-                  <div key={section} style={{ marginBottom: 24 }}>
-                    {/* Section header */}
-                    <div
-                      onClick={() => toggleSection(section)}
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        padding: "12px 16px", background: "var(--surface)", border: "1px solid var(--border)",
-                        borderRadius: isCollapsed ? 10 : "10px 10px 0 0", cursor: "pointer",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface2)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "var(--surface)")}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{
-                          fontSize: 14, color: "var(--text3)", transition: "transform 0.2s",
-                          transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
-                          display: "inline-block",
-                        }}>▾</span>
-                        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--text)" }}>
-                          {getSectionLabel(section)}
-                        </span>
-                      </div>
-                      <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--text3)" }}>
-                        <span style={{ fontWeight: 600 }}>💬 {sectionChats.length} {sectionChats.length === 1 ? "conversation" : "conversations"}</span>
-                        <span style={{ fontWeight: 600 }}>👥 {sectionStudents.length} {sectionStudents.length === 1 ? "student" : "students"}</span>
-                      </div>
+            {activeTab === "conversations" && (
+              <>
+                {/* Stats */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 28 }}>
+                  {[
+                    { label: "Total Conversations", value: totalChats, color: "var(--green)", icon: "💬" },
+                    { label: "Direct Messages", value: totalDMs, color: "var(--cyan)", icon: "👤" },
+                    { label: "Group Chats", value: totalGroups, color: "var(--amber)", icon: "👥" },
+                  ].map((stat) => (
+                    <div key={stat.label} className="card" style={{ textAlign: "center", padding: "16px 12px" }}>
+                      <div style={{ fontSize: 18, marginBottom: 4 }}>{stat.icon}</div>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: stat.color }}>{stat.value}</div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>{stat.label}</div>
                     </div>
+                  ))}
+                </div>
 
-                    {/* Section content */}
-                    {!isCollapsed && (
-                      <div style={{
-                        border: "1px solid var(--border)", borderTop: "none",
-                        borderRadius: "0 0 10px 10px", overflow: "hidden",
-                      }}>
-                        {sectionChats.length === 0 ? (
-                          <div style={{ padding: 24, textAlign: "center", color: "var(--text3)", fontSize: 13 }}>
-                            No conversations match your search
+                {/* Section groups */}
+                {totalChats === 0 ? (
+                  <div className="card" style={{ textAlign: "center", padding: 60, color: "var(--text3)" }}>
+                    <div style={{ fontSize: 32, marginBottom: 12 }}>💬</div>
+                    <div style={{ fontSize: 15 }}>No conversations yet in this course</div>
+                    <div style={{ fontSize: 13, marginTop: 6 }}>Student messages will appear here once they start chatting.</div>
+                  </div>
+                ) : (
+                  sectionKeys.map((section) => {
+                    const sectionChats = filterAndSortChats(chatsBySection[section]);
+                    if (sectionChats.length === 0 && searchTerm) return null;
+                    const isCollapsed = collapsedSections[section];
+                    const sectionStudents = enrollments.filter((e) => (e.section || "") === section);
+
+                    return (
+                      <div key={section} style={{ marginBottom: 24 }}>
+                        {/* Section header */}
+                        <div
+                          onClick={() => toggleSection(section)}
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            padding: "12px 16px", background: "var(--surface)", border: "1px solid var(--border)",
+                            borderRadius: isCollapsed ? 10 : "10px 10px 0 0", cursor: "pointer",
+                            transition: "background 0.15s",
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface2)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "var(--surface)")}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{
+                              fontSize: 14, color: "var(--text3)", transition: "transform 0.2s",
+                              transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                              display: "inline-block",
+                            }}>▾</span>
+                            <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--text)" }}>
+                              {getSectionLabel(section)}
+                            </span>
                           </div>
-                        ) : (
-                          sectionChats.map((chat) => (
-                            <ConversationCard
-                              key={chat.id}
-                              chat={chat}
-                              user={user}
-                              isExpanded={expandedChat === chat.id}
-                              onToggle={() => handleExpandChat(chat.id)}
-                              messages={messages[chat.id] || null}
-                              loadingMessages={loadingMessages === chat.id}
-                              getChatDisplayName={getChatDisplayName}
-                              getChatParticipants={getChatParticipants}
-                              getChatIcon={getChatIcon}
-                              formatTime={formatTime}
-                              formatMessageTime={formatMessageTime}
-                              getStudentPhoto={getStudentPhoto}
-                              sectionMap={sectionMap}
-                            />
-                          ))
+                          <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--text3)" }}>
+                            <span style={{ fontWeight: 600 }}>💬 {sectionChats.length} {sectionChats.length === 1 ? "conversation" : "conversations"}</span>
+                            <span style={{ fontWeight: 600 }}>👥 {sectionStudents.length} {sectionStudents.length === 1 ? "student" : "students"}</span>
+                          </div>
+                        </div>
+
+                        {/* Section content */}
+                        {!isCollapsed && (
+                          <div style={{
+                            border: "1px solid var(--border)", borderTop: "none",
+                            borderRadius: "0 0 10px 10px", overflow: "hidden",
+                          }}>
+                            {sectionChats.length === 0 ? (
+                              <div style={{ padding: 24, textAlign: "center", color: "var(--text3)", fontSize: 13 }}>
+                                No conversations match your search
+                              </div>
+                            ) : (
+                              sectionChats.map((chat) => (
+                                <ConversationCard
+                                  key={chat.id}
+                                  chat={chat}
+                                  user={user}
+                                  isExpanded={expandedChat === chat.id}
+                                  onToggle={() => handleExpandChat(chat.id)}
+                                  messages={messages[chat.id] || null}
+                                  loadingMessages={loadingMessages === chat.id}
+                                  getChatDisplayName={getChatDisplayName}
+                                  getChatParticipants={getChatParticipants}
+                                  getChatIcon={getChatIcon}
+                                  formatTime={formatTime}
+                                  formatMessageTime={formatMessageTime}
+                                  getStudentPhoto={getStudentPhoto}
+                                  sectionMap={sectionMap}
+                                />
+                              ))
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
+                    );
+                  })
+                )}
+              </>
+            )}
+
+            {activeTab === "announcements" && (
+              <>
+                {/* Announcements count */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--text)" }}>
+                    {announcements.length} {announcements.length === 1 ? "announcement" : "announcements"}
+                  </span>
+                  <span style={{ fontSize: 12, color: "var(--text3)" }}>
+                    for {courses.find((c) => c.id === selectedCourse)?.title || "this course"}
+                  </span>
+                </div>
+
+                {loadingAnnouncements ? (
+                  <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><div className="spinner" /></div>
+                ) : announcements.length === 0 ? (
+                  <div className="card" style={{ textAlign: "center", padding: 60, color: "var(--text3)" }}>
+                    <div style={{ fontSize: 32, marginBottom: 12 }}>📢</div>
+                    <div style={{ fontSize: 15 }}>No announcements for this course</div>
+                    <div style={{ fontSize: 13, marginTop: 6 }}>Announcements you create from the dashboard will appear here.</div>
                   </div>
-                );
-              })
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {announcements.map((ann) => {
+                      const date = ann.createdAt?.toDate ? ann.createdAt.toDate() : ann.createdAt ? new Date(ann.createdAt) : null;
+                      return (
+                        <div
+                          key={ann.id}
+                          className="card"
+                          style={{
+                            padding: "16px 20px",
+                            border: ann.pinned ? "1px solid rgba(245,166,35,0.35)" : "1px solid var(--border)",
+                            background: ann.pinned ? "linear-gradient(135deg, rgba(245,166,35,0.08), transparent)" : undefined,
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                                <span style={{ fontSize: 20 }}>{ann.icon || "📢"}</span>
+                                <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--text)" }}>
+                                  {ann.title}
+                                </span>
+                                {ann.pinned && (
+                                  <span style={{
+                                    fontSize: 10, fontWeight: 700, color: "var(--amber)",
+                                    padding: "2px 8px", background: "rgba(245,166,35,0.15)",
+                                    borderRadius: 4, textTransform: "uppercase", letterSpacing: "0.06em",
+                                  }}>
+                                    Pinned
+                                  </span>
+                                )}
+                              </div>
+                              {ann.body && (
+                                <div style={{ fontSize: 14, color: "var(--text2)", lineHeight: 1.6, marginBottom: 8 }}>
+                                  {ann.body}
+                                </div>
+                              )}
+                              <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--text3)" }}>
+                                {ann.authorName && <span>By {ann.authorName}</span>}
+                                {date && (
+                                  <span>
+                                    {date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                    {" at "}
+                                    {date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteAnnouncement(ann.id)}
+                              disabled={deletingAnn === ann.id}
+                              title="Delete announcement"
+                              style={{
+                                padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(248,113,113,0.3)",
+                                background: "rgba(248,113,113,0.1)", color: "#f87171",
+                                fontSize: 12, fontWeight: 600, cursor: "pointer",
+                                opacity: deletingAnn === ann.id ? 0.5 : 1,
+                                transition: "background 0.15s, border-color 0.15s",
+                                flexShrink: 0,
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.2)"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.5)"; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.1)"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.3)"; }}
+                            >
+                              {deletingAnn === ann.id ? "..." : "Delete"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

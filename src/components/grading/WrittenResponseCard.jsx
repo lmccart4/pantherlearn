@@ -84,6 +84,9 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
       if (overrideReason !== undefined) {
         updatePayload[`answers.${item.blockId}.overrideReason`] = overrideReason;
       }
+      // Clear any pending review request when teacher grades/re-grades
+      updatePayload[`answers.${item.blockId}.reviewRequested`] = false;
+      updatePayload[`answers.${item.blockId}.reviewNote`] = null;
       await updateDoc(progressRef, updatePayload);
 
       setSavedGrade(tier.value);
@@ -285,7 +288,29 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
             {item.gradedBy === "autograde-agent" ? "🤖 Auto-graded" : "👩‍🏫 Teacher"}
           </span>
         )}
+        {item.reviewRequested && (
+          <span style={{
+            fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 4, marginLeft: 4,
+            background: "rgba(245,166,35,0.12)", color: "var(--amber)",
+          }}>
+            🔍 Review Requested
+          </span>
+        )}
       </div>
+
+      {/* Student review note */}
+      {item.reviewRequested && item.reviewNote && (
+        <div style={{
+          padding: "8px 12px", marginBottom: 8, borderRadius: 6,
+          background: "rgba(245,166,35,0.06)", border: "1px solid rgba(245,166,35,0.15)",
+          fontSize: 12, lineHeight: 1.5, color: "var(--text2)",
+        }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--amber)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Student Note
+          </span>
+          <div style={{ marginTop: 4 }}>{item.reviewNote}</div>
+        </div>
+      )}
 
       {/* Override reason selector — shown when teacher re-grades an auto-graded item */}
       {pendingTier && wasAutoGraded && (

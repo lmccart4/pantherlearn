@@ -14,7 +14,7 @@ const lesson = {
   title: "Elastic Potential Energy",
   course: "Physics",
   unit: "Energy",
-  order: 3,
+  order: 4,
   visible: false,
   blocks: [
 
@@ -31,7 +31,7 @@ const lesson = {
     {
       id: "text-warmup-connect",
       type: "text",
-      content: "In the Ability Architect, you discovered the **ability to stretch and compress** — elastic objects that store energy when you deform them. You reviewed all the energy types in Battleship, and now it's time to go deeper.\n\nToday you'll explore exactly *how* stretching and compressing stores energy, meet the formula behind it, and get hands-on with Play-Doh and springs to feel the physics yourself."
+      content: "Last class you explored **conservation of energy** and **energy bar charts** — how energy transforms between types while the total stays constant. You saw KE and GPE trading off in falling objects, roller coasters, and friction scenarios.\n\nToday you'll meet a new type of stored energy: **elastic potential energy** — the energy in stretched springs, rubber bands, and compressed objects. You'll get hands-on with Play-Doh and springs to feel the physics yourself."
     },
     {
       id: "objectives",
@@ -416,7 +416,7 @@ const lesson = {
     {
       id: "text-summary",
       type: "text",
-      content: "**Today you learned:**\n- **Elastic potential energy (EPE)** is energy stored in a stretched or compressed material that *returns to its original shape*\n- **Hooke's Law:** F = kx — the restoring force of a spring is proportional to displacement\n- **EPE = ½kx²** — stored energy depends on spring constant k and displacement x (squared!)\n- **Elastic materials** (springs, rubber bands) store and release EPE\n- **Plastic materials** (Play-Doh, clay) permanently deform — no EPE is stored\n- EPE transforms into **kinetic energy** (and sometimes **gravitational PE**) when released\n\n**Coming up next:** You'll learn a powerful visual tool — **energy bar charts** — and explore the law that ties all energy transformations together: **conservation of energy**."
+      content: "**Today you learned:**\n- **Elastic potential energy (EPE)** is energy stored in a stretched or compressed material that *returns to its original shape*\n- **Hooke's Law:** F = kx — the restoring force of a spring is proportional to displacement\n- **EPE = ½kx²** — stored energy depends on spring constant k and displacement x (squared!)\n- **Elastic materials** (springs, rubber bands) store and release EPE\n- **Plastic materials** (Play-Doh, clay) permanently deform — no EPE is stored\n- EPE transforms into **kinetic energy** (and sometimes **gravitational PE**) when released\n\nNow you can add EPE to your energy bar charts from last class — one more bar to track in conservation of energy problems!"
     },
     {
       id: "vocab",

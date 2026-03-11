@@ -1,6 +1,6 @@
 // src/pages/MyGrades.jsx
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, where, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, where, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getStudentEnrolledCourseIds } from "../lib/enrollment";
@@ -416,18 +416,56 @@ export default function MyGrades() {
                                 const a = answers[q.id];
                                 const hasScore = a?.writtenScore !== undefined && a?.writtenScore !== null;
                                 const tierInfo = hasScore ? WRITTEN_LABELS[a.writtenScore] : null;
+                                const isAutoGraded = a?.gradedBy === "autograde-agent" && hasScore;
                                 return (
                                   <div
                                     key={q.id}
-                                    title={`Written ${i + 1}: ${tierInfo ? tierInfo.label : a?.submitted ? "Pending review" : "Not submitted"}${a?.feedback ? ` — ${a.feedback}` : ""}`}
+                                    title={`Written ${i + 1}: ${tierInfo ? tierInfo.label : a?.submitted ? "Pending review" : "Not submitted"}${a?.feedback ? ` — ${a.feedback}` : ""}${a?.reviewRequested ? " (Review requested)" : ""}`}
                                     className="mg-written-pill"
                                     style={{
                                       background: tierInfo ? "rgba(16,185,129,0.1)" : a?.submitted ? "rgba(245,166,35,0.1)" : "var(--surface2)",
                                       color: tierInfo ? tierInfo.color : a?.submitted ? "var(--amber)" : "var(--text3)",
+                                      position: "relative",
                                     }}
                                   >
                                     ✏️{tierInfo ? ` ${tierInfo.label.slice(0, 3)}` : a?.submitted ? " ⏳" : ""}
                                     {a?.feedback && " 💬"}
+                                    {isAutoGraded && (
+                                      a?.reviewRequested ? (
+                                        <span title="Review requested" style={{ marginLeft: 2 }}>🔍</span>
+                                      ) : (
+                                        <span
+                                          title="Request manual review"
+                                          role="button"
+                                          style={{ marginLeft: 2, cursor: "pointer", opacity: 0.5 }}
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            try {
+                                              const progressRef = doc(db, "progress", user.uid, "courses", selectedCourse, "lessons", lesson.id);
+                                              await updateDoc(progressRef, {
+                                                [`answers.${q.id}.reviewRequested`]: true,
+                                                [`answers.${q.id}.reviewRequestedAt`]: new Date().toISOString(),
+                                                [`answers.${q.id}.reviewNote`]: null,
+                                              });
+                                              setProgressData((prev) => ({
+                                                ...prev,
+                                                [lesson.id]: {
+                                                  ...prev[lesson.id],
+                                                  answers: {
+                                                    ...prev[lesson.id].answers,
+                                                    [q.id]: { ...prev[lesson.id].answers[q.id], reviewRequested: true },
+                                                  },
+                                                },
+                                              }));
+                                            } catch (err) {
+                                              console.error("Failed to request review:", err);
+                                            }
+                                          }}
+                                        >
+                                          🔍
+                                        </span>
+                                      )
+                                    )}
                                   </div>
                                 );
                               })}

@@ -14,6 +14,7 @@ export default function CourseOverview({ courseResponses, courseLogs, activeTab,
   const totalWritten = courseResponses.length;
   const totalConversations = courseLogs.length;
   const totalMessages = courseLogs.reduce((sum, log) => sum + log.messageCount, 0);
+  const reviewRequestCount = courseResponses.filter((r) => r.reviewRequested).length;
 
   const lessonIds = [...new Set([
     ...courseResponses.map((r) => r.lessonId),
@@ -42,9 +43,10 @@ export default function CourseOverview({ courseResponses, courseLogs, activeTab,
   return (
     <div>
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
         {[
           { label: "Written Responses", value: totalWritten, color: "var(--amber)", icon: "✏️" },
+          { label: "Review Requests", value: reviewRequestCount, color: reviewRequestCount > 0 ? "var(--amber)" : "var(--text3)", icon: "🔍" },
           { label: "Chat Conversations", value: totalConversations, color: "var(--cyan)", icon: "💬" },
           { label: "Student Messages", value: classChatCount || 0, color: "var(--green)", icon: "📨", link: "/messages" },
         ].map((stat) => (

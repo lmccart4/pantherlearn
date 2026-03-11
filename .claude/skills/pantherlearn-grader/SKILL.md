@@ -1,6 +1,7 @@
 ---
 name: pantherlearn-grader
 description: Grade student responses from PantherLearn lessons using Luke's 5-bucket system (0%, 55%, 65%, 85%, 100%). Use this skill whenever the user wants to grade, score, evaluate, or give feedback on student work — including short answer responses, multiple choice answers, chatbot conversation logs, or activity submissions. Also trigger when the user says things like "grade these", "score this batch", "how did they do", "check their answers", or references student submissions, responses, or work from PantherLearn. Even if the user just says "grade" or "feedback" in the context of PantherLearn or classroom work, use this skill.
+disable-model-invocation: true
 ---
 
 # PantherLearn Grader

@@ -1,1 +1,184 @@
-<\!DOCTYPE html><html><body><p>Lesson plans coming soon.</p></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mr. McCarthy — Weekly Lesson Plans</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+            background: #0d0d0d;
+            color: #e3e3e3;
+            line-height: 1.6;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding-bottom: 2.5rem;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #6b6b6b;
+            font-weight: 400;
+        }
+
+        .course-group {
+            margin-bottom: 2.5rem;
+        }
+
+        .course-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+            padding-left: 4px;
+        }
+
+        .course-label.physics { color: #f87171; }
+        .course-label.digital { color: #38bdf8; }
+        .course-label.ai { color: #a78bfa; }
+
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .week-card {
+            display: block;
+            background: #151515;
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            text-decoration: none;
+            color: #e3e3e3;
+            transition: all 0.2s ease;
+        }
+
+        .week-card:hover {
+            border-color: #4a4a4a;
+            background: #1a1a1a;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .week-card .week-num {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #555;
+            margin-bottom: 4px;
+        }
+
+        .week-card .week-range {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #ccc;
+        }
+
+        .empty-state {
+            color: #444;
+            font-size: 0.9rem;
+            padding: 1rem 0;
+            font-style: italic;
+        }
+
+        footer {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid #1a1a1a;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Weekly Lesson Plans</h1>
+            <p class="subtitle">Mr. McCarthy &middot; PAPS</p>
+        </header>
+
+        <div class="course-group">
+            <div class="course-label physics">Physics</div>
+            <div class="week-grid" id="physics-grid"></div>
+        </div>
+
+        <div class="course-group">
+            <div class="course-label digital">Digital Literacy</div>
+            <div class="week-grid" id="digital-literacy-grid"></div>
+        </div>
+
+        <div class="course-group">
+            <div class="course-label ai">AI Literacy</div>
+            <div class="week-grid" id="ai-literacy-grid"></div>
+        </div>
+
+        <footer>
+            Auto-generated with PantherLearn
+        </footer>
+    </div>
+
+    <script>
+        // Known weeks — add entries here as new plans are generated.
+        // Week numbers are SCHOOL calendar weeks (not ISO), so date ranges
+        // are stored explicitly rather than computed.
+        const weeks = [
+            { key: "2026-W22", range: "Mar 2 – Mar 6" },
+            { key: "2026-W23", range: "Mar 9 – Mar 13" },
+        ];
+
+        const courses = [
+            { id: "physics", gridId: "physics-grid" },
+            { id: "digital-literacy", gridId: "digital-literacy-grid" },
+            { id: "ai-literacy", gridId: "ai-literacy-grid" },
+        ];
+
+        courses.forEach(({ id, gridId }) => {
+            const grid = document.getElementById(gridId);
+            if (weeks.length === 0) {
+                grid.innerHTML = '<div class="empty-state">No plans posted yet.</div>';
+                return;
+            }
+            // Show newest first
+            [...weeks].reverse().forEach(({ key, range }) => {
+                const a = document.createElement("a");
+                a.className = "week-card";
+                a.href = `/${id}/${key}.html`;
+                a.innerHTML = `
+                    <div class="week-num">${key}</div>
+                    <div class="week-range">${range}</div>
+                `;
+                grid.appendChild(a);
+            });
+        });
+    </script>
+</body>
+</html>
