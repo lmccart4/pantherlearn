@@ -40,70 +40,67 @@ function getTodayStr() {
 }
 
 // ── Question of the Day generator ────────────────────────────────────────────
+// Priority: 1) Author-written QOTD in callouts, 2) Lesson questions,
+// 3) Definitions/vocab, 4) Objectives, 5) Title fallback
 
-// Turns a learning objective into an answerable exit-ticket style question
-function objectiveToQuestion(objective) {
-  const clean = objective.replace(/\.$/, "").trim();
-
-  // Pattern: "Identify X" → "What is X?"
-  const identify = clean.match(/^Identify\s+(.+)/i);
-  if (identify) return `What is ${identify[1]}?`;
-
-  // Pattern: "Explain X" → "How would you explain X?"
-  const explain = clean.match(/^Explain\s+(.+)/i);
-  if (explain) return `How would you explain ${explain[1]}?`;
-
-  // Pattern: "Analyze X" → "What do you notice when you analyze X?"
-  const analyze = clean.match(/^Analyze\s+(.+)/i);
-  if (analyze) return `What did you notice when analyzing ${analyze[1]}?`;
-
-  // Pattern: "Compare X" → "What are the key differences when you compare X?"
-  const compare = clean.match(/^Compare\s+(.+)/i);
-  if (compare) return `What are the key differences when you compare ${compare[1]}?`;
-
-  // Pattern: "Determine X" → "How do you determine X?"
-  const determine = clean.match(/^Determine\s+(.+)/i);
-  if (determine) return `How do you determine ${determine[1]}?`;
-
-  // Pattern: "Describe X" → "How would you describe X?"
-  const describe = clean.match(/^Describe\s+(.+)/i);
-  if (describe) return `How would you describe ${describe[1]}?`;
-
-  // Pattern: "Define X" → "What is the definition of X?"
-  const define = clean.match(/^Define\s+(.+)/i);
-  if (define) return `What is the definition of ${define[1]}?`;
-
-  // Pattern: "Understand X" / "Learn X" → "What did you learn about X?"
-  const understand = clean.match(/^(Understand|Learn)\s+(.+)/i);
-  if (understand) return `What did you learn about ${understand[2]}?`;
-
-  // Pattern: "Evaluate X" → "How would you evaluate X?"
-  const evaluate = clean.match(/^Evaluate\s+(.+)/i);
-  if (evaluate) return `How would you evaluate ${evaluate[1]}?`;
-
-  // Pattern: "Select X" → "How do you select X?"
-  const select = clean.match(/^Select\s+(.+)/i);
-  if (select) return `How do you select ${select[1]}?`;
-
-  // Default: turn statement into "Can you explain..." question
-  const lc = clean.charAt(0).toLowerCase() + clean.slice(1);
-  return `Can you explain ${lc}?`;
+function seededPick(arr, seed) {
+  return arr[seed % arr.length];
 }
 
 function generateQuestion(lesson) {
   if (!lesson) return null;
-  const objectives = lesson.blocks?.find((b) => b.type === "objectives");
+  const blocks = lesson.blocks || [];
+  const seed = new Date().getDate() * 7 + new Date().getMonth() * 31;
+
+  // 1. Check for an author-written "Question of the Day" in callout blocks
+  const callouts = blocks.filter((b) => b.type === "callout" && b.content);
+  for (const c of callouts) {
+    const match = c.content.match(/\*\*Question of the Day[:\s]*\*\*\s*\n*(.+)/i);
+    if (match) {
+      // Clean markdown formatting
+      return match[1].replace(/\*\*/g, "").replace(/\n.*/s, "").trim();
+    }
+  }
+
+  // 2. Pull from actual lesson questions (short-answer / open-ended prompts)
+  const questions = blocks
+    .filter((b) => b.type === "question" && b.prompt && b.prompt.length > 20 && b.prompt.length < 200)
+    .map((b) => b.prompt.replace(/\*\*/g, "").trim());
+  if (questions.length > 0) {
+    return seededPick(questions, seed);
+  }
+
+  // 3. Use definitions — "What is [term]?"
+  const definitions = blocks.filter((b) => b.type === "definition" && b.term);
+  if (definitions.length > 0) {
+    const def = seededPick(definitions, seed);
+    return `In your own words, what is ${def.term}?`;
+  }
+
+  // 4. Use vocab list items
+  const vocabBlock = blocks.find((b) => b.type === "vocab_list" && b.items?.length > 0);
+  if (vocabBlock) {
+    const term = seededPick(vocabBlock.items.filter((v) => v.term), seed);
+    if (term) return `What does "${term.term}" mean in the context of today's lesson?`;
+  }
+
+  // 5. Objectives — pick one and frame as a question
+  const objectives = blocks.find((b) => b.type === "objectives");
   const items = objectives?.items?.filter(Boolean) || [];
   if (items.length > 0) {
-    // Use day as seed so question is consistent all day but changes daily
-    const seed = new Date().getDate() * 7 + new Date().getMonth() * 31;
-    const objective = items[seed % items.length];
-    return objectiveToQuestion(objective);
+    const obj = seededPick(items, seed);
+    const clean = obj.replace(/\.$/, "").trim();
+    // Strip leading verb and rephrase
+    const stripped = clean.replace(/^(Identify|Explain|Analyze|Compare|Determine|Describe|Define|Understand|Learn|Evaluate|Select|Apply|Use|Create|Predict|Write|Record|Complete|Submit|Navigate|Share|Gather|Start|Draw)\s+/i, "");
+    const lc = stripped.charAt(0).toLowerCase() + stripped.slice(1);
+    return `Based on today's lesson, how would you explain ${lc}?`;
   }
-  // Fallback: generate from lesson title
+
+  // 6. Title fallback
   if (lesson.title) {
-    return `After today's lesson, what is one thing you learned about ${lesson.title.toLowerCase()}?`;
+    return `After today's lesson, what is one key takeaway about ${lesson.title.toLowerCase()}?`;
   }
+
   return null;
 }
 
