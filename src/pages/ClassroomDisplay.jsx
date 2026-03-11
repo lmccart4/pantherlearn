@@ -129,8 +129,11 @@ function getCurrentPeriod() {
   for (const p of PERIODS) {
     if (mins >= timeToMinutes(p.start) && mins <= timeToMinutes(p.end)) return { ...p, status: "active" };
   }
-  for (const p of PERIODS) {
-    if (mins < timeToMinutes(p.start)) return { ...p, status: "upcoming" };
+  for (let i = 0; i < PERIODS.length; i++) {
+    if (mins < timeToMinutes(PERIODS[i].start)) {
+      const gapStart = i > 0 ? timeToMinutes(PERIODS[i - 1].end) : timeToMinutes(PERIODS[i].start) - 10;
+      return { ...PERIODS[i], status: "upcoming", gapStart };
+    }
   }
   return { ...PERIODS[PERIODS.length - 1], status: "after" };
 }
@@ -384,6 +387,23 @@ function injectStyles() {
       transition: width 1s linear;
     }
 
+    .cd-countdown-track {
+      height: 5px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .cd-countdown-fill {
+      height: 100%;
+      border-radius: 3px;
+      position: absolute;
+      right: 0;
+      transition: width 1s linear;
+      background: linear-gradient(90deg, transparent, #eab308);
+    }
+
     .cd-main {
       flex: 1;
       display: flex;
@@ -562,6 +582,17 @@ export default function ClassroomDisplay() {
     return Math.min(100, Math.max(0, ((mins - start) / (end - start)) * 100));
   }, [period, clock]);
 
+  const countdownPct = useMemo(() => {
+    if (period.status !== "upcoming") return 0;
+    const now = new Date();
+    const mins = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+    const gapStart = period.gapStart || mins;
+    const gapEnd = timeToMinutes(period.start);
+    const total = gapEnd - gapStart;
+    if (total <= 0) return 100;
+    return Math.min(100, Math.max(0, ((mins - gapStart) / total) * 100));
+  }, [period, clock]);
+
   const minsLeft = useMemo(() => {
     if (period.status !== "active") return null;
     const now = new Date();
@@ -615,6 +646,11 @@ export default function ClassroomDisplay() {
         {period.status === "active" && (
           <div className="cd-progress-track">
             <div className="cd-progress-fill" style={{ width: `${progressPct}%`, background: accent }} />
+          </div>
+        )}
+        {period.status === "upcoming" && (
+          <div className="cd-countdown-track">
+            <div className="cd-countdown-fill" style={{ width: `${100 - countdownPct}%` }} />
           </div>
         )}
       </div>
