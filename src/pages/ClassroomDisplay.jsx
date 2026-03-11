@@ -41,33 +41,64 @@ function getTodayStr() {
 
 // ── Question of the Day generator ────────────────────────────────────────────
 
-const QUESTION_STARTERS = [
-  "What would happen if",
-  "How might we explain why",
-  "Why do you think",
-  "What's the connection between",
-  "Can you predict what happens when",
-  "How would you test whether",
-  "What evidence would you look for to prove",
-  "If you had to teach someone about this, how would you explain",
-];
+// Turns a learning objective into an answerable exit-ticket style question
+function objectiveToQuestion(objective) {
+  const clean = objective.replace(/\.$/, "").trim();
+
+  // Pattern: "Identify X" → "What is X?"
+  const identify = clean.match(/^Identify\s+(.+)/i);
+  if (identify) return `What is ${identify[1]}?`;
+
+  // Pattern: "Explain X" → "How would you explain X?"
+  const explain = clean.match(/^Explain\s+(.+)/i);
+  if (explain) return `How would you explain ${explain[1]}?`;
+
+  // Pattern: "Analyze X" → "What do you notice when you analyze X?"
+  const analyze = clean.match(/^Analyze\s+(.+)/i);
+  if (analyze) return `What did you notice when analyzing ${analyze[1]}?`;
+
+  // Pattern: "Compare X" → "What are the key differences when you compare X?"
+  const compare = clean.match(/^Compare\s+(.+)/i);
+  if (compare) return `What are the key differences when you compare ${compare[1]}?`;
+
+  // Pattern: "Determine X" → "How do you determine X?"
+  const determine = clean.match(/^Determine\s+(.+)/i);
+  if (determine) return `How do you determine ${determine[1]}?`;
+
+  // Pattern: "Describe X" → "How would you describe X?"
+  const describe = clean.match(/^Describe\s+(.+)/i);
+  if (describe) return `How would you describe ${describe[1]}?`;
+
+  // Pattern: "Define X" → "What is the definition of X?"
+  const define = clean.match(/^Define\s+(.+)/i);
+  if (define) return `What is the definition of ${define[1]}?`;
+
+  // Pattern: "Understand X" / "Learn X" → "What did you learn about X?"
+  const understand = clean.match(/^(Understand|Learn)\s+(.+)/i);
+  if (understand) return `What did you learn about ${understand[2]}?`;
+
+  // Pattern: "Evaluate X" → "How would you evaluate X?"
+  const evaluate = clean.match(/^Evaluate\s+(.+)/i);
+  if (evaluate) return `How would you evaluate ${evaluate[1]}?`;
+
+  // Pattern: "Select X" → "How do you select X?"
+  const select = clean.match(/^Select\s+(.+)/i);
+  if (select) return `How do you select ${select[1]}?`;
+
+  // Default: turn statement into "Can you explain..." question
+  const lc = clean.charAt(0).toLowerCase() + clean.slice(1);
+  return `Can you explain ${lc}?`;
+}
 
 function generateQuestion(lesson) {
   if (!lesson) return null;
   const objectives = lesson.blocks?.find((b) => b.type === "objectives");
   const items = objectives?.items?.filter(Boolean) || [];
-  if (items.length === 0 && lesson.title) {
-    return `What do you already know about "${lesson.title}"?`;
-  }
   if (items.length === 0) return null;
-  // Use day + period as seed for consistent question per period per day
-  const today = new Date();
-  const seed = today.getDate() * 7 + today.getMonth() * 31;
+  // Use day as seed so question is consistent all day but changes daily
+  const seed = new Date().getDate() * 7 + new Date().getMonth() * 31;
   const objective = items[seed % items.length];
-  const starter = QUESTION_STARTERS[seed % QUESTION_STARTERS.length];
-  // Clean the objective for embedding in a question
-  const cleaned = objective.replace(/^(Understand|Learn|Explain|Identify|Analyze|Determine|Describe|Define|Compare|Evaluate)\s+/i, "").replace(/\.$/, "");
-  return `${starter} ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}?`;
+  return objectiveToQuestion(objective);
 }
 
 // ── Stylesheet (injected once) ───────────────────────────────────────────────
@@ -406,11 +437,6 @@ function injectStyles() {
       margin-bottom: 1px;
     }
 
-    .cd-sched-time {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      color: #3f3f46;
-    }
 
     .cd-url {
       font-family: 'JetBrains Mono', monospace;
@@ -617,9 +643,6 @@ export default function ClassroomDisplay() {
               </div>
               <div className="cd-sched-course" style={{ color: isNow ? "#d4d4d8" : "#52525b" }}>
                 {p.course.replace(" Literacy", "").replace("AI", "AI Lit")}
-              </div>
-              <div className="cd-sched-time">
-                {p.start.replace(/^0/, "")}
               </div>
             </div>
           );
