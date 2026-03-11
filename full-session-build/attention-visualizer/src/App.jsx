@@ -1,6 +1,6 @@
 // src/App.jsx
 import React, { useState, useCallback, useEffect } from "react";
-import { SCENARIOS, STAGE_INTROS } from "./data/sentences";
+import { buildScenarios, STAGE_INTROS } from "./data/sentences";
 import { reportScore } from "./lib/pantherlearn";
 import Welcome from "./components/Welcome";
 import StageIntro from "./components/StageIntro";
@@ -15,12 +15,13 @@ const MAX_SCORE = 100;
 
 export default function App() {
   const [screen, setScreen] = useState("welcome");
+  const [scenarios, setScenarios] = useState(() => buildScenarios());
   const [currentIdx, setCurrentIdx] = useState(0);
   const [currentStage, setCurrentStage] = useState(1);
   const [scores, setScores] = useState([]);
 
-  const totalScenarios = SCENARIOS.length;
-  const scenario = SCENARIOS[currentIdx];
+  const totalScenarios = scenarios.length;
+  const scenario = scenarios[currentIdx];
 
   const handleStart = () => {
     setScreen("stage-intro");
@@ -37,10 +38,12 @@ export default function App() {
 
       const nextIdx = currentIdx + 1;
       if (nextIdx >= totalScenarios) {
+        setScreen("transition");
         setTimeout(() => setScreen("results"), 600);
       } else {
-        const next = SCENARIOS[nextIdx];
+        const next = scenarios[nextIdx];
         if (next.stage !== scenario.stage) {
+          setScreen("transition");
           setCurrentIdx(nextIdx);
           setCurrentStage(next.stage);
           setTimeout(() => setScreen("stage-intro"), 600);
@@ -49,7 +52,7 @@ export default function App() {
         }
       }
     },
-    [currentIdx, scenario, totalScenarios]
+    [currentIdx, scenario, totalScenarios, scenarios]
   );
 
   const totalPoints = scores.reduce((s, r) => s + r.points, 0);
@@ -76,6 +79,7 @@ export default function App() {
   }, [screen, scores.length, submitted, doSubmit]);
 
   const handleRetry = () => {
+    setScenarios(buildScenarios());
     setScreen("welcome");
     setCurrentIdx(0);
     setCurrentStage(1);

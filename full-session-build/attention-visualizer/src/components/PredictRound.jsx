@@ -9,7 +9,7 @@ export default function PredictRound({ scenario, roundNum, totalRounds, onComple
   const handleWordClick = (idx) => {
     if (phase !== "predict" || idx === scenario.targetIdx) return;
     setSelectedWords((prev) =>
-      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
+      prev.includes(idx) ? prev.filter((i) => i !== idx) : prev.length >= 3 ? prev : [...prev, idx]
     );
   };
 

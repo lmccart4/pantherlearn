@@ -400,7 +400,7 @@ function StudentView({ courseId, course, user }) {
             key={`${weekKey}-${activeDay}`}
             day={activeDay}
             dayData={weekData?.[activeDay]}
-            isEditable={isCurrentWeek}
+            isEditable
             prompt={prompt}
             onSave={handleSave}
           />
