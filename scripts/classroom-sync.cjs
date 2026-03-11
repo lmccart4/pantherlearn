@@ -301,7 +301,14 @@ async function main() {
   catch (err) { console.error(`Fatal: ${err.message}`); process.exit(1); }
 
   // Firebase
-  if (!admin.apps.length) admin.initializeApp({ projectId: "pantherlearn-d6f7c" });
+  if (!admin.apps.length) {
+    const saPath = path.join(__dirname, "..", "serviceAccountKey.json");
+    if (fs.existsSync(saPath)) {
+      admin.initializeApp({ credential: admin.credential.cert(require(saPath)) });
+    } else {
+      admin.initializeApp({ projectId: "pantherlearn-d6f7c" });
+    }
+  }
   db = admin.firestore();
 
   // Get courses with Classroom mappings
