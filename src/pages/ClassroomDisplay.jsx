@@ -298,7 +298,7 @@ function injectStyles() {
 
     .cd-clock {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 72px;
+      font-size: 52px;
       font-weight: 300;
       font-variant-numeric: tabular-nums;
       color: #f4efe6;
