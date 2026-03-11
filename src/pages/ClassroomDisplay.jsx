@@ -280,25 +280,25 @@ function injectStyles() {
 
     .cd-logo {
       font-family: 'Syne', sans-serif;
-      font-size: 20px;
+      font-size: 30px;
       font-weight: 800;
-      letter-spacing: 5px;
+      letter-spacing: 6px;
       color: var(--cd-accent, #e8a838);
       transition: color 2s ease;
     }
 
     .cd-teacher {
       font-family: 'Syne', sans-serif;
-      font-size: 18px;
+      font-size: 26px;
       font-weight: 600;
-      letter-spacing: 3px;
+      letter-spacing: 4px;
       color: #c8c3ba;
       text-transform: uppercase;
     }
 
     .cd-clock {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 48px;
+      font-size: 72px;
       font-weight: 300;
       font-variant-numeric: tabular-nums;
       color: #f4efe6;
@@ -306,7 +306,7 @@ function injectStyles() {
     }
 
     .cd-period-bar {
-      padding: 20px 48px 16px;
+      padding: 24px 48px 18px;
       position: relative;
       z-index: 2;
     }
@@ -314,13 +314,13 @@ function injectStyles() {
     .cd-period-info {
       display: flex;
       align-items: center;
-      gap: 18px;
-      margin-bottom: 16px;
+      gap: 20px;
+      margin-bottom: 18px;
     }
 
     .cd-status-dot {
-      width: 14px;
-      height: 14px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       flex-shrink: 0;
       transition: background 0.8s ease;
@@ -332,7 +332,7 @@ function injectStyles() {
 
     .cd-period-label {
       font-family: 'Syne', sans-serif;
-      font-size: 28px;
+      font-size: 40px;
       font-weight: 700;
       color: #f4efe6;
       letter-spacing: 0.5px;
@@ -340,7 +340,7 @@ function injectStyles() {
 
     .cd-course-name {
       font-family: 'Syne', sans-serif;
-      font-size: 28px;
+      font-size: 40px;
       font-weight: 600;
       color: var(--cd-accent, #e8a838);
       transition: color 2s ease;
@@ -348,32 +348,32 @@ function injectStyles() {
 
     .cd-inline-sep {
       color: #8a8580;
-      font-size: 24px;
+      font-size: 34px;
     }
 
     .cd-inline-lesson {
       font-family: 'Newsreader', Georgia, serif;
-      font-size: 26px;
+      font-size: 36px;
       font-style: italic;
       color: #e0dbd2;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 500px;
+      max-width: 600px;
     }
 
     .cd-time-left {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 20px;
+      font-size: 28px;
       color: #c8c3ba;
       margin-left: auto;
       font-variant-numeric: tabular-nums;
     }
 
     .cd-progress-track {
-      height: 4px;
+      height: 5px;
       background: rgba(255,255,255,0.08);
-      border-radius: 2px;
+      border-radius: 3px;
       overflow: hidden;
     }
 
