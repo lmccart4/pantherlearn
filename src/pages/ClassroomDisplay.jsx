@@ -94,11 +94,17 @@ function generateQuestion(lesson) {
   if (!lesson) return null;
   const objectives = lesson.blocks?.find((b) => b.type === "objectives");
   const items = objectives?.items?.filter(Boolean) || [];
-  if (items.length === 0) return null;
-  // Use day as seed so question is consistent all day but changes daily
-  const seed = new Date().getDate() * 7 + new Date().getMonth() * 31;
-  const objective = items[seed % items.length];
-  return objectiveToQuestion(objective);
+  if (items.length > 0) {
+    // Use day as seed so question is consistent all day but changes daily
+    const seed = new Date().getDate() * 7 + new Date().getMonth() * 31;
+    const objective = items[seed % items.length];
+    return objectiveToQuestion(objective);
+  }
+  // Fallback: generate from lesson title
+  if (lesson.title) {
+    return `After today's lesson, what is one thing you learned about ${lesson.title.toLowerCase()}?`;
+  }
+  return null;
 }
 
 // ── Stylesheet (injected once) ───────────────────────────────────────────────
