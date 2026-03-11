@@ -2,19 +2,19 @@
 // Fullscreen classroom display — auto-shows current period's lesson based on bell schedule.
 // No auth required. Access at /display
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { collection, query, orderBy, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 // ── Bell schedule & course map ───────────────────────────────────────────────
 
 const PERIODS = [
-  { period: 1, label: "Period 1", course: "Physics",           courseId: "physics",             start: "08:00", end: "08:47" },
-  { period: 3, label: "Period 3", course: "Digital Literacy",   courseId: "digital-literacy",     start: "09:43", end: "10:25" },
-  { period: 4, label: "Period 4", course: "AI Literacy",        courseId: "Y9Gdhw5MTY8wMFt6Tlvj", start: "10:29", end: "11:11" },
-  { period: 5, label: "Period 5", course: "AI Literacy",        courseId: "DacjJ93vUDcwqc260OP3", start: "11:15", end: "11:57" },
-  { period: 7, label: "Period 7", course: "AI Literacy",        courseId: "M2MVSXrKuVCD9JQfZZyp", start: "12:01", end: "12:43" },
-  { period: 9, label: "Period 9", course: "AI Literacy",        courseId: "fUw67wFhAtobWFhjwvZ5", start: "02:19", end: "03:01" },
+  { period: 1, label: "Period 1", course: "Physics",           courseId: "physics",             start: "08:00", end: "08:47", accent: "#f97316" },
+  { period: 3, label: "Period 3", course: "Digital Literacy",   courseId: "digital-literacy",     start: "09:43", end: "10:25", accent: "#06b6d4" },
+  { period: 4, label: "Period 4", course: "AI Literacy",        courseId: "Y9Gdhw5MTY8wMFt6Tlvj", start: "10:29", end: "11:11", accent: "#2dd4bf" },
+  { period: 5, label: "Period 5", course: "AI Literacy",        courseId: "DacjJ93vUDcwqc260OP3", start: "11:15", end: "11:57", accent: "#2dd4bf" },
+  { period: 7, label: "Period 7", course: "AI Literacy",        courseId: "M2MVSXrKuVCD9JQfZZyp", start: "12:01", end: "12:43", accent: "#2dd4bf" },
+  { period: 9, label: "Period 9", course: "AI Literacy",        courseId: "fUw67wFhAtobWFhjwvZ5", start: "02:19", end: "03:01", accent: "#2dd4bf" },
 ];
 
 function timeToMinutes(hhmm) {
@@ -25,35 +25,403 @@ function timeToMinutes(hhmm) {
 function getCurrentPeriod() {
   const now = new Date();
   const mins = now.getHours() * 60 + now.getMinutes();
-
-  // During a period
   for (const p of PERIODS) {
-    if (mins >= timeToMinutes(p.start) && mins <= timeToMinutes(p.end)) {
-      return { ...p, status: "active" };
-    }
+    if (mins >= timeToMinutes(p.start) && mins <= timeToMinutes(p.end)) return { ...p, status: "active" };
   }
-
-  // Between periods — show next upcoming
   for (const p of PERIODS) {
-    if (mins < timeToMinutes(p.start)) {
-      return { ...p, status: "upcoming" };
-    }
+    if (mins < timeToMinutes(p.start)) return { ...p, status: "upcoming" };
   }
-
-  // After school — show last period
   return { ...PERIODS[PERIODS.length - 1], status: "after" };
 }
 
 function getTodayStr() {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function formatTime(date) {
-  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+// ── Question of the Day generator ────────────────────────────────────────────
+
+const QUESTION_STARTERS = [
+  "What would happen if",
+  "How might we explain why",
+  "Why do you think",
+  "What's the connection between",
+  "Can you predict what happens when",
+  "How would you test whether",
+  "What evidence would you look for to prove",
+  "If you had to teach someone about this, how would you explain",
+];
+
+function generateQuestion(lesson) {
+  if (!lesson) return null;
+  const objectives = lesson.blocks?.find((b) => b.type === "objectives");
+  const items = objectives?.items?.filter(Boolean) || [];
+  if (items.length === 0 && lesson.title) {
+    return `What do you already know about "${lesson.title}"?`;
+  }
+  if (items.length === 0) return null;
+  // Use day + period as seed for consistent question per period per day
+  const today = new Date();
+  const seed = today.getDate() * 7 + today.getMonth() * 31;
+  const objective = items[seed % items.length];
+  const starter = QUESTION_STARTERS[seed % QUESTION_STARTERS.length];
+  // Clean the objective for embedding in a question
+  const cleaned = objective.replace(/^(Understand|Learn|Explain|Identify|Analyze|Determine|Describe|Define|Compare|Evaluate)\s+/i, "").replace(/\.$/, "");
+  return `${starter} ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}?`;
+}
+
+// ── Stylesheet (injected once) ───────────────────────────────────────────────
+
+const STYLE_ID = "classroom-display-styles";
+
+function injectStyles() {
+  if (document.getElementById(STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = STYLE_ID;
+  style.textContent = `
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,700;1,9..40,400;1,9..40,700&family=JetBrains+Mono:wght@300;400;700&display=swap');
+
+    @keyframes cd-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    @keyframes cd-fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes cd-progressGlow {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.4); }
+    }
+    @keyframes cd-gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .cd-root {
+      min-height: 100vh;
+      background: #09090b;
+      color: #fafafa;
+      display: flex;
+      flex-direction: column;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      overflow: hidden;
+      cursor: none;
+      position: relative;
+    }
+
+    .cd-root::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, var(--cd-accent-glow, rgba(45,212,191,0.04)) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      transition: background 1.5s ease;
+    }
+
+    .cd-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cd-topbar::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 40px;
+      right: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 20%, rgba(255,255,255,0.06) 80%, transparent);
+    }
+
+    .cd-brand {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+    }
+
+    .cd-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: var(--cd-accent, #2dd4bf);
+      transition: color 1.5s ease;
+    }
+
+    .cd-teacher {
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 2px;
+      color: #52525b;
+      text-transform: uppercase;
+    }
+
+    .cd-clock {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 36px;
+      font-weight: 300;
+      font-variant-numeric: tabular-nums;
+      color: #a1a1aa;
+      letter-spacing: 2px;
+    }
+
+    .cd-period-bar {
+      padding: 20px 40px 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cd-period-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .cd-status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.8s ease;
+    }
+
+    .cd-status-dot[data-active="true"] {
+      animation: cd-pulse 2s ease-in-out infinite;
+    }
+
+    .cd-period-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fafafa;
+      letter-spacing: 0.5px;
+    }
+
+    .cd-course-name {
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--cd-accent, #2dd4bf);
+      transition: color 1.5s ease;
+    }
+
+    .cd-time-left {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      color: #52525b;
+      margin-left: auto;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cd-progress-track {
+      height: 3px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .cd-progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--cd-accent, #2dd4bf);
+      transition: width 1s linear;
+      animation: cd-progressGlow 3s ease-in-out infinite;
+    }
+
+    .cd-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 60px 20px;
+      gap: 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cd-content-enter {
+      animation: cd-fadeUp 0.8s ease-out both;
+    }
+
+    .cd-unit {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #52525b;
+    }
+
+    .cd-lesson-title {
+      font-size: clamp(36px, 5.5vw, 64px);
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.15;
+      color: #fafafa;
+      max-width: 1000px;
+      letter-spacing: -0.5px;
+    }
+
+    .cd-divider {
+      width: 80px;
+      height: 2px;
+      background: var(--cd-accent, #2dd4bf);
+      opacity: 0.4;
+      transition: background 1.5s ease;
+    }
+
+    .cd-objectives {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 860px;
+      width: 100%;
+    }
+
+    .cd-objective {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      animation: cd-fadeUp 0.6s ease-out both;
+    }
+
+    .cd-objective:nth-child(1) { animation-delay: 0.1s; }
+    .cd-objective:nth-child(2) { animation-delay: 0.2s; }
+    .cd-objective:nth-child(3) { animation-delay: 0.3s; }
+    .cd-objective:nth-child(4) { animation-delay: 0.4s; }
+
+    .cd-obj-marker {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cd-accent, #2dd4bf);
+      flex-shrink: 0;
+      margin-top: 14px;
+      opacity: 0.6;
+      transition: background 1.5s ease;
+    }
+
+    .cd-obj-text {
+      font-size: clamp(18px, 2.8vw, 28px);
+      line-height: 1.55;
+      color: #d4d4d8;
+      font-weight: 400;
+    }
+
+    .cd-question-block {
+      max-width: 860px;
+      width: 100%;
+      padding: 28px 0;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      animation: cd-fadeUp 0.8s ease-out 0.4s both;
+    }
+
+    .cd-question-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--cd-accent, #2dd4bf);
+      opacity: 0.7;
+      margin-bottom: 12px;
+      transition: color 1.5s ease;
+    }
+
+    .cd-question-text {
+      font-size: clamp(20px, 3vw, 32px);
+      font-style: italic;
+      font-weight: 400;
+      line-height: 1.5;
+      color: #a1a1aa;
+    }
+
+    .cd-off-icon {
+      font-size: 56px;
+      margin-bottom: 20px;
+    }
+    .cd-off-title {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 700;
+      color: #e4e4e7;
+    }
+    .cd-off-sub {
+      font-size: 18px;
+      color: #52525b;
+      margin-top: 8px;
+    }
+
+    .cd-schedule {
+      display: flex;
+      justify-content: center;
+      gap: 2px;
+      padding: 14px 40px 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cd-schedule::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 40px;
+      right: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04) 20%, rgba(255,255,255,0.04) 80%, transparent);
+    }
+
+    .cd-sched-item {
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-align: center;
+      min-width: 90px;
+      transition: all 0.6s ease;
+      border: 1px solid transparent;
+    }
+
+    .cd-sched-item[data-active="true"] {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.06);
+    }
+
+    .cd-sched-period {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .cd-sched-course {
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 1px;
+    }
+
+    .cd-sched-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: #3f3f46;
+    }
+
+    .cd-url {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: #27272a;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
+    }
+  `;
+  document.head.appendChild(style);
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
@@ -62,6 +430,10 @@ export default function ClassroomDisplay() {
   const [period, setPeriod] = useState(getCurrentPeriod);
   const [lessons, setLessons] = useState({});
   const [clock, setClock] = useState(new Date());
+  const [contentKey, setContentKey] = useState(0);
+  const prevPeriodRef = useRef(period.period);
+
+  useEffect(() => { injectStyles(); }, []);
 
   // Update clock every second
   useEffect(() => {
@@ -71,9 +443,25 @@ export default function ClassroomDisplay() {
 
   // Re-check period every 15 seconds
   useEffect(() => {
-    const t = setInterval(() => setPeriod(getCurrentPeriod()), 15000);
+    const t = setInterval(() => {
+      const next = getCurrentPeriod();
+      setPeriod((prev) => {
+        if (prev.period !== next.period || prev.status !== next.status) {
+          setContentKey((k) => k + 1); // trigger re-animation
+        }
+        return next;
+      });
+    }, 15000);
     return () => clearInterval(t);
   }, []);
+
+  // Track period changes for animation
+  useEffect(() => {
+    if (prevPeriodRef.current !== period.period) {
+      setContentKey((k) => k + 1);
+      prevPeriodRef.current = period.period;
+    }
+  }, [period.period]);
 
   // Fetch lessons for all courses on mount
   useEffect(() => {
@@ -91,14 +479,12 @@ export default function ClassroomDisplay() {
     });
   }, []);
 
-  // Find today's lesson for the current period
+  // Find today's lesson
   const todayStr = getTodayStr();
   const currentLesson = useMemo(() => {
     const courseLessons = lessons[period.courseId] || [];
-    // First try exact dueDate match
     const exact = courseLessons.find((l) => l.dueDate === todayStr && l.visible !== false);
     if (exact) return exact;
-    // Fallback: last visible lesson with dueDate <= today
     const past = courseLessons
       .filter((l) => l.visible !== false && l.dueDate && l.dueDate <= todayStr)
       .sort((a, b) => (a.dueDate > b.dueDate ? -1 : 1));
@@ -106,9 +492,10 @@ export default function ClassroomDisplay() {
   }, [lessons, period.courseId, todayStr]);
 
   const objectives = currentLesson?.blocks?.find((b) => b.type === "objectives");
+  const question = useMemo(() => generateQuestion(currentLesson), [currentLesson]);
   const isWeekend = [0, 6].includes(new Date().getDay());
+  const accent = period.accent || "#2dd4bf";
 
-  // Period progress bar
   const progressPct = useMemo(() => {
     if (period.status !== "active") return 0;
     const now = new Date();
@@ -118,7 +505,6 @@ export default function ClassroomDisplay() {
     return Math.min(100, Math.max(0, ((mins - start) / (end - start)) * 100));
   }, [period, clock]);
 
-  // Minutes remaining
   const minsLeft = useMemo(() => {
     if (period.status !== "active") return null;
     const now = new Date();
@@ -126,112 +512,114 @@ export default function ClassroomDisplay() {
     return timeToMinutes(period.end) - mins;
   }, [period, clock]);
 
+  const formatTime = (date) => date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const nowMins = clock.getHours() * 60 + clock.getMinutes();
+
   return (
-    <div style={styles.container}>
-      {/* Top bar */}
-      <div style={styles.topBar}>
-        <div style={styles.branding}>
-          <span style={styles.logo}>PANTHERLEARN</span>
-          <span style={styles.dot}>·</span>
-          <span style={styles.classroom}>MR. McCARTHY</span>
+    <div className="cd-root" style={{ "--cd-accent": accent, "--cd-accent-glow": accent + "0a" }}>
+
+      {/* ── Top bar ── */}
+      <div className="cd-topbar">
+        <div className="cd-brand">
+          <span className="cd-logo">PANTHERLEARN</span>
+          <span className="cd-teacher">Mr. McCarthy</span>
         </div>
-        <div style={styles.clock}>{formatTime(clock)}</div>
+        <div className="cd-clock">{formatTime(clock)}</div>
       </div>
 
-      {/* Period indicator */}
-      <div style={styles.periodBar}>
-        <div style={styles.periodInfo}>
-          <span style={{
-            ...styles.statusDot,
-            background: period.status === "active" ? "#34d399" : period.status === "upcoming" ? "#fbbf24" : "#6b7280",
-          }} />
-          <span style={styles.periodLabel}>{period.label}</span>
-          <span style={styles.courseName}>{period.course}</span>
+      {/* ── Period bar ── */}
+      <div className="cd-period-bar">
+        <div className="cd-period-info">
+          <span
+            className="cd-status-dot"
+            data-active={period.status === "active"}
+            style={{
+              background: period.status === "active" ? accent : period.status === "upcoming" ? "#eab308" : "#3f3f46",
+            }}
+          />
+          <span className="cd-period-label">{period.label}</span>
+          <span className="cd-course-name">{period.course}</span>
           {period.status === "active" && minsLeft != null && (
-            <span style={styles.timeLeft}>{minsLeft} min left</span>
+            <span className="cd-time-left">{minsLeft} min remaining</span>
           )}
           {period.status === "upcoming" && (
-            <span style={styles.timeLeft}>starts at {period.start.replace(/^0/, "")}</span>
+            <span className="cd-time-left">begins {period.start.replace(/^0/, "")}</span>
+          )}
+          {period.status === "after" && (
+            <span className="cd-time-left">school day complete</span>
           )}
         </div>
         {period.status === "active" && (
-          <div style={styles.progressTrack}>
-            <div style={{ ...styles.progressFill, width: `${progressPct}%` }} />
+          <div className="cd-progress-track">
+            <div className="cd-progress-fill" style={{ width: `${progressPct}%`, background: accent }} />
           </div>
         )}
       </div>
 
-      {/* Main content */}
-      <div style={styles.main}>
+      {/* ── Main content ── */}
+      <div className="cd-main">
         {isWeekend ? (
-          <div style={styles.offCard}>
-            <div style={styles.offIcon}>📚</div>
-            <div style={styles.offTitle}>Weekend</div>
-            <div style={styles.offSub}>See you Monday!</div>
+          <div style={{ textAlign: "center" }}>
+            <div className="cd-off-icon">&#9737;</div>
+            <div className="cd-off-title">Weekend</div>
+            <div className="cd-off-sub">See you Monday.</div>
           </div>
         ) : !currentLesson ? (
-          <div style={styles.offCard}>
-            <div style={styles.offIcon}>🎯</div>
-            <div style={styles.offTitle}>No lesson scheduled</div>
-            <div style={styles.offSub}>Check pantherlearn.com for updates</div>
+          <div style={{ textAlign: "center" }}>
+            <div className="cd-off-title" style={{ color: "#71717a" }}>No lesson scheduled</div>
+            <div className="cd-off-sub">Check pantherlearn.com</div>
           </div>
         ) : (
-          <>
-            {/* Lesson title */}
-            <div style={styles.lessonTitle}>{currentLesson.title}</div>
-            {currentLesson.unit && (
-              <div style={styles.unitLabel}>{currentLesson.unit}</div>
-            )}
+          <div key={contentKey} className="cd-content-enter" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
+            {currentLesson.unit && <div className="cd-unit">{currentLesson.unit}</div>}
+            <div className="cd-lesson-title">{currentLesson.title}</div>
 
-            {/* Learning objectives */}
             {objectives && objectives.items?.length > 0 && (
-              <div style={styles.objectivesCard}>
-                <div style={styles.objectivesHeader}>
-                  <span style={styles.objectivesIcon}>🎯</span>
-                  <span style={styles.objectivesTitle}>Today's Learning Goals</span>
-                </div>
-                <div style={styles.objectivesList}>
-                  {objectives.items.map((item, i) => (
-                    <div key={i} style={styles.objectiveItem}>
-                      <span style={styles.objectiveNum}>{i + 1}</span>
-                      <span style={styles.objectiveText}>{item}</span>
+              <>
+                <div className="cd-divider" style={{ background: accent }} />
+                <div className="cd-objectives">
+                  {objectives.items.filter(Boolean).map((item, i) => (
+                    <div key={i} className="cd-objective">
+                      <div className="cd-obj-marker" style={{ background: accent }} />
+                      <div className="cd-obj-text">{item}</div>
                     </div>
                   ))}
                 </div>
+              </>
+            )}
+
+            {question && (
+              <div className="cd-question-block">
+                <div className="cd-question-label" style={{ color: accent }}>Question of the Day</div>
+                <div className="cd-question-text">{question}</div>
               </div>
             )}
 
-            {/* URL hint */}
-            <div style={styles.urlHint}>
-              pantherlearn.com → {period.course} → {currentLesson.title}
-            </div>
-          </>
+            <div className="cd-url">pantherlearn.com</div>
+          </div>
         )}
       </div>
 
-      {/* Bottom schedule strip */}
-      <div style={styles.scheduleStrip}>
+      {/* ── Schedule strip ── */}
+      <div className="cd-schedule">
         {PERIODS.map((p) => {
           const isNow = p.period === period.period && period.status === "active";
-          const isPast = timeToMinutes(p.end) < (new Date().getHours() * 60 + new Date().getMinutes());
+          const isPast = timeToMinutes(p.end) < nowMins;
           return (
             <div
               key={p.period}
-              style={{
-                ...styles.scheduleItem,
-                opacity: isPast && !isNow ? 0.35 : 1,
-                background: isNow ? "rgba(129, 140, 248, 0.12)" : "transparent",
-                borderColor: isNow ? "rgba(129, 140, 248, 0.3)" : "transparent",
-              }}
+              className="cd-sched-item"
+              data-active={isNow}
+              style={{ opacity: isPast && !isNow ? 0.25 : 1 }}
             >
-              <div style={{ fontSize: "11px", fontWeight: 700, color: isNow ? "#818cf8" : "#9ca3af", letterSpacing: "0.5px" }}>
+              <div className="cd-sched-period" style={{ color: isNow ? accent : "#71717a" }}>
                 P{p.period}
               </div>
-              <div style={{ fontSize: "12px", color: isNow ? "#e0e7ff" : "#6b7280", fontWeight: 500 }}>
-                {p.course.split(" ")[0]}
+              <div className="cd-sched-course" style={{ color: isNow ? "#d4d4d8" : "#52525b" }}>
+                {p.course.replace(" Literacy", "").replace("AI", "AI Lit")}
               </div>
-              <div style={{ fontSize: "10px", color: "#4b5563" }}>
-                {p.start.replace(/^0/, "")}–{p.end.replace(/^0/, "")}
+              <div className="cd-sched-time">
+                {p.start.replace(/^0/, "")}
               </div>
             </div>
           );
@@ -240,197 +628,3 @@ export default function ClassroomDisplay() {
     </div>
   );
 }
-
-// ── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = {
-  container: {
-    minHeight: "100vh",
-    background: "#0a0a0f",
-    color: "#f1f5f9",
-    display: "flex",
-    flexDirection: "column",
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-    overflow: "hidden",
-    cursor: "none",
-  },
-  topBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "20px 32px",
-    borderBottom: "1px solid rgba(255,255,255,0.06)",
-  },
-  branding: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-  logo: {
-    fontSize: "13px",
-    fontWeight: 800,
-    letterSpacing: "3px",
-    color: "#818cf8",
-  },
-  dot: { color: "#374151", fontSize: "18px" },
-  classroom: {
-    fontSize: "13px",
-    fontWeight: 600,
-    letterSpacing: "2px",
-    color: "#6b7280",
-  },
-  clock: {
-    fontSize: "28px",
-    fontWeight: 300,
-    fontVariantNumeric: "tabular-nums",
-    color: "#94a3b8",
-    letterSpacing: "1px",
-  },
-  periodBar: {
-    padding: "16px 32px",
-    borderBottom: "1px solid rgba(255,255,255,0.04)",
-  },
-  periodInfo: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    marginBottom: "8px",
-  },
-  statusDot: {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%",
-    flexShrink: 0,
-  },
-  periodLabel: {
-    fontSize: "18px",
-    fontWeight: 700,
-    color: "#f1f5f9",
-  },
-  courseName: {
-    fontSize: "16px",
-    fontWeight: 400,
-    color: "#818cf8",
-  },
-  timeLeft: {
-    fontSize: "13px",
-    color: "#6b7280",
-    marginLeft: "auto",
-    fontVariantNumeric: "tabular-nums",
-  },
-  progressTrack: {
-    height: "3px",
-    background: "rgba(255,255,255,0.06)",
-    borderRadius: "2px",
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    background: "linear-gradient(90deg, #818cf8, #34d399)",
-    borderRadius: "2px",
-    transition: "width 1s linear",
-  },
-  main: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "40px 48px",
-    gap: "24px",
-  },
-  lessonTitle: {
-    fontSize: "clamp(32px, 5vw, 56px)",
-    fontWeight: 700,
-    textAlign: "center",
-    lineHeight: 1.2,
-    color: "#f1f5f9",
-    maxWidth: "900px",
-  },
-  unitLabel: {
-    fontSize: "14px",
-    fontWeight: 600,
-    letterSpacing: "1.5px",
-    textTransform: "uppercase",
-    color: "#6b7280",
-    marginTop: "-8px",
-  },
-  objectivesCard: {
-    background: "rgba(129, 140, 248, 0.06)",
-    border: "1px solid rgba(129, 140, 248, 0.12)",
-    borderRadius: "16px",
-    padding: "28px 36px",
-    maxWidth: "720px",
-    width: "100%",
-    marginTop: "8px",
-  },
-  objectivesHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    marginBottom: "20px",
-  },
-  objectivesIcon: { fontSize: "20px" },
-  objectivesTitle: {
-    fontSize: "15px",
-    fontWeight: 700,
-    letterSpacing: "1px",
-    textTransform: "uppercase",
-    color: "#818cf8",
-  },
-  objectivesList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  objectiveItem: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "14px",
-  },
-  objectiveNum: {
-    width: "28px",
-    height: "28px",
-    borderRadius: "50%",
-    background: "rgba(129, 140, 248, 0.15)",
-    color: "#818cf8",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "13px",
-    fontWeight: 700,
-    flexShrink: 0,
-  },
-  objectiveText: {
-    fontSize: "clamp(16px, 2.5vw, 22px)",
-    lineHeight: 1.5,
-    color: "#e2e8f0",
-    paddingTop: "2px",
-  },
-  urlHint: {
-    fontSize: "13px",
-    color: "#4b5563",
-    fontFamily: "monospace",
-    marginTop: "16px",
-  },
-  offCard: {
-    textAlign: "center",
-  },
-  offIcon: { fontSize: "48px", marginBottom: "16px" },
-  offTitle: { fontSize: "32px", fontWeight: 700, color: "#e2e8f0" },
-  offSub: { fontSize: "16px", color: "#6b7280", marginTop: "8px" },
-  scheduleStrip: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "4px",
-    padding: "12px 32px 16px",
-    borderTop: "1px solid rgba(255,255,255,0.04)",
-  },
-  scheduleItem: {
-    padding: "8px 16px",
-    borderRadius: "8px",
-    textAlign: "center",
-    border: "1px solid transparent",
-    minWidth: "80px",
-  },
-};

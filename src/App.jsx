@@ -88,23 +88,29 @@ function ScrollToTop() {
 function AppRoutes() {
   const { user, loading } = useAuth();
   const { showOptIn, handleEnable, handleDismiss } = usePushNotifications();
+  const { pathname } = useLocation();
+  const isDisplay = pathname === "/display";
 
   if (loading) return <LoadingSpinner />;
 
   return (
     <PreviewProvider>
       {/* Ambient background video — loops silently behind all content */}
-      <video
-        className="bg-atmosphere-video"
-        autoPlay
-        loop
-        muted
-        playsInline
-        aria-hidden="true"
-      >
-        <source src="/bg-atmosphere.mp4" type="video/mp4" />
-      </video>
-      <div className="bg-atmosphere-overlay" aria-hidden="true" />
+      {!isDisplay && (
+        <>
+          <video
+            className="bg-atmosphere-video"
+            autoPlay
+            loop
+            muted
+            playsInline
+            aria-hidden="true"
+          >
+            <source src="/bg-atmosphere.mp4" type="video/mp4" />
+          </video>
+          <div className="bg-atmosphere-overlay" aria-hidden="true" />
+        </>
+      )}
       <ScrollToTop />
       <PreviewBanner />
       <Suspense fallback={<LoadingSpinner />}>
@@ -142,13 +148,13 @@ function AppRoutes() {
           </Route>
         </Routes>
       </Suspense>
-      {showOptIn && <Suspense fallback={null}><PushOptIn onEnable={handleEnable} onDismiss={handleDismiss} /></Suspense>}
-      {user && <Suspense fallback={null}><ClassChat /></Suspense>}
-      {user && <Suspense fallback={null}><FloatingMusicPlayer /></Suspense>}
-      {user && <Suspense fallback={null}><AnnotationOverlay /></Suspense>}
-      {user && <Suspense fallback={null}><ScreenReader /></Suspense>}
-      {user && <Suspense fallback={null}><BugReporter /></Suspense>}
-      <OfflineBanner />
+      {!isDisplay && showOptIn && <Suspense fallback={null}><PushOptIn onEnable={handleEnable} onDismiss={handleDismiss} /></Suspense>}
+      {!isDisplay && user && <Suspense fallback={null}><ClassChat /></Suspense>}
+      {!isDisplay && user && <Suspense fallback={null}><FloatingMusicPlayer /></Suspense>}
+      {!isDisplay && user && <Suspense fallback={null}><AnnotationOverlay /></Suspense>}
+      {!isDisplay && user && <Suspense fallback={null}><ScreenReader /></Suspense>}
+      {!isDisplay && user && <Suspense fallback={null}><BugReporter /></Suspense>}
+      {!isDisplay && <OfflineBanner />}
     </PreviewProvider>
   );
 }
