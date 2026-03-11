@@ -444,19 +444,17 @@ function injectStyles() {
     .cd-question-block {
       max-width: 1000px;
       width: 100%;
-      padding: 32px 0 0;
-      border-top: 1px solid rgba(255,255,255,0.1);
       animation: cd-fadeUp 0.8s ease-out 0.5s both;
     }
 
     .cd-question-label {
       font-family: 'Syne', sans-serif;
-      font-size: 18px;
+      font-size: 24px;
       font-weight: 700;
-      letter-spacing: 5px;
+      letter-spacing: 6px;
       text-transform: uppercase;
       color: var(--cd-accent, #e8a838);
-      margin-bottom: 16px;
+      margin-bottom: 20px;
       transition: color 2s ease;
     }
 
