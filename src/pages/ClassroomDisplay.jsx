@@ -606,7 +606,7 @@ export default function ClassroomDisplay() {
             <span className="cd-time-left">{minsLeft} min remaining</span>
           )}
           {period.status === "upcoming" && (
-            <span className="cd-time-left">begins {period.start.replace(/^0/, "")}</span>
+            <span className="cd-time-left">begins {new Date(`2000-01-01T${period.start}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>
           )}
           {period.status === "after" && (
             <span className="cd-time-left">school day complete</span>
