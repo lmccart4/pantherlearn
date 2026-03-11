@@ -47,6 +47,7 @@ const SpaceRescueMission = lazy(() => import("./pages/SpaceRescueMission"));
 const EmbeddingExplorer = lazy(() => import("./pages/EmbeddingExplorer"));
 const EmbeddingExplorerDashboard = lazy(() => import("./pages/EmbeddingExplorerDashboard"));
 const MomentumMysteryLab = lazy(() => import("./pages/MomentumMysteryLab"));
+const ClassroomDisplay = lazy(() => import("./pages/ClassroomDisplay"));
 
 const TRANSLATE_URL = import.meta.env.VITE_TRANSLATE_URL || "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
 
@@ -109,6 +110,7 @@ function AppRoutes() {
       <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
+          <Route path="/display" element={<ClassroomDisplay />} />
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/course/:courseId" element={<CoursePage />} />
