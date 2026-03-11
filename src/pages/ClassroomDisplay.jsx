@@ -11,10 +11,10 @@ import { db } from "../lib/firebase";
 const PERIODS = [
   { period: 1, label: "Period 1", course: "Physics",           courseId: "physics",             start: "08:00", end: "08:47", accent: "#f97316" },
   { period: 3, label: "Period 3", course: "Digital Literacy",   courseId: "digital-literacy",     start: "09:43", end: "10:25", accent: "#06b6d4" },
-  { period: 4, label: "Period 4", course: "AI Literacy",        courseId: "Y9Gdhw5MTY8wMFt6Tlvj", start: "10:29", end: "11:11", accent: "#2dd4bf" },
-  { period: 5, label: "Period 5", course: "AI Literacy",        courseId: "DacjJ93vUDcwqc260OP3", start: "11:15", end: "11:57", accent: "#2dd4bf" },
-  { period: 7, label: "Period 7", course: "AI Literacy",        courseId: "M2MVSXrKuVCD9JQfZZyp", start: "12:47", end: "13:29", accent: "#2dd4bf" },
-  { period: 9, label: "Period 9", course: "AI Literacy",        courseId: "fUw67wFhAtobWFhjwvZ5", start: "02:19", end: "03:01", accent: "#2dd4bf" },
+  { period: 4, label: "Period 4", course: "AI Literacy",        courseId: "Y9Gdhw5MTY8wMFt6Tlvj", start: "10:29", end: "11:11", accent: "#e8a838" },
+  { period: 5, label: "Period 5", course: "AI Literacy",        courseId: "DacjJ93vUDcwqc260OP3", start: "11:15", end: "11:57", accent: "#e8a838" },
+  { period: 7, label: "Period 7", course: "AI Literacy",        courseId: "M2MVSXrKuVCD9JQfZZyp", start: "12:47", end: "13:29", accent: "#e8a838" },
+  { period: 9, label: "Period 9", course: "AI Literacy",        courseId: "fUw67wFhAtobWFhjwvZ5", start: "02:19", end: "03:01", accent: "#e8a838" },
 ];
 
 function timeToMinutes(hhmm) {
@@ -57,7 +57,6 @@ function generateQuestion(lesson) {
   for (const c of callouts) {
     const match = c.content.match(/\*\*Question of the Day[:\s]*\*\*\s*\n*(.+)/i);
     if (match) {
-      // Clean markdown formatting
       return match[1].replace(/\*\*/g, "").replace(/\n.*/s, "").trim();
     }
   }
@@ -70,7 +69,7 @@ function generateQuestion(lesson) {
     return seededPick(questions, seed);
   }
 
-  // 3. Use definitions — "What is [term]?"
+  // 3. Use definitions
   const definitions = blocks.filter((b) => b.type === "definition" && b.term);
   if (definitions.length > 0) {
     const def = seededPick(definitions, seed);
@@ -84,13 +83,12 @@ function generateQuestion(lesson) {
     if (term) return `What does "${term.term}" mean in the context of today's lesson?`;
   }
 
-  // 5. Objectives — pick one and frame as a question
+  // 5. Objectives
   const objectives = blocks.find((b) => b.type === "objectives");
   const items = objectives?.items?.filter(Boolean) || [];
   if (items.length > 0) {
     const obj = seededPick(items, seed);
     const clean = obj.replace(/\.$/, "").trim();
-    // Strip leading verb and rephrase
     const stripped = clean.replace(/^(Identify|Explain|Analyze|Compare|Determine|Describe|Define|Understand|Learn|Evaluate|Select|Apply|Use|Create|Predict|Write|Record|Complete|Submit|Navigate|Share|Gather|Start|Draw)\s+/i, "");
     const lc = stripped.charAt(0).toLowerCase() + stripped.slice(1);
     return `Based on today's lesson, how would you explain ${lc}?`;
@@ -104,7 +102,7 @@ function generateQuestion(lesson) {
   return null;
 }
 
-// ── Stylesheet (injected once) ───────────────────────────────────────────────
+// ── Stylesheet ───────────────────────────────────────────────────────────────
 
 const STYLE_ID = "classroom-display-styles";
 
@@ -113,110 +111,115 @@ function injectStyles() {
   const style = document.createElement("style");
   style.id = STYLE_ID;
   style.textContent = `
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,700;1,9..40,400;1,9..40,700&family=JetBrains+Mono:wght@300;400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@300;400;600&display=swap');
 
     @keyframes cd-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--cd-accent); }
+      50% { opacity: 0.5; box-shadow: 0 0 2px var(--cd-accent); }
     }
     @keyframes cd-fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
+      from { opacity: 0; transform: translateY(16px); }
       to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes cd-progressGlow {
-      0%, 100% { filter: brightness(1); }
-      50% { filter: brightness(1.4); }
-    }
-    @keyframes cd-gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
     }
 
     .cd-root {
       min-height: 100vh;
-      background: #09090b;
-      color: #fafafa;
+      background: #0b1526;
+      color: #f4efe6;
       display: flex;
       flex-direction: column;
-      font-family: 'DM Sans', system-ui, sans-serif;
+      font-family: 'Newsreader', Georgia, serif;
       overflow: hidden;
       cursor: none;
       position: relative;
     }
 
+    /* Film grain */
     .cd-root::before {
       content: '';
       position: fixed;
       inset: 0;
-      background: radial-gradient(ellipse 80% 60% at 50% 0%, var(--cd-accent-glow, rgba(45,212,191,0.04)) 0%, transparent 70%);
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px;
+    }
+
+    /* Ambient glow */
+    .cd-root::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 50% at 50% 10%, var(--cd-accent-glow, rgba(232,168,56,0.06)) 0%, transparent 70%);
       pointer-events: none;
       z-index: 0;
-      transition: background 1.5s ease;
+      transition: background 2s ease;
     }
 
     .cd-topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 24px 40px;
+      padding: 28px 48px;
       position: relative;
-      z-index: 1;
+      z-index: 2;
     }
 
     .cd-topbar::after {
       content: '';
       position: absolute;
       bottom: 0;
-      left: 40px;
-      right: 40px;
+      left: 48px;
+      right: 48px;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 20%, rgba(255,255,255,0.06) 80%, transparent);
+      background: rgba(255,255,255,0.08);
     }
 
     .cd-brand {
       display: flex;
       align-items: baseline;
-      gap: 16px;
+      gap: 20px;
     }
 
     .cd-logo {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
-      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
       letter-spacing: 4px;
-      color: var(--cd-accent, #2dd4bf);
-      transition: color 1.5s ease;
+      color: var(--cd-accent, #e8a838);
+      transition: color 2s ease;
     }
 
     .cd-teacher {
+      font-family: 'Syne', sans-serif;
       font-size: 14px;
-      font-weight: 400;
+      font-weight: 600;
       letter-spacing: 2px;
-      color: #52525b;
+      color: #a8a29e;
       text-transform: uppercase;
     }
 
     .cd-clock {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 36px;
+      font-size: 40px;
       font-weight: 300;
       font-variant-numeric: tabular-nums;
-      color: #a1a1aa;
+      color: #f4efe6;
       letter-spacing: 2px;
     }
 
     .cd-period-bar {
-      padding: 20px 40px 16px;
+      padding: 24px 48px 20px;
       position: relative;
-      z-index: 1;
+      z-index: 2;
     }
 
     .cd-period-info {
       display: flex;
       align-items: center;
-      gap: 14px;
-      margin-bottom: 12px;
+      gap: 16px;
+      margin-bottom: 14px;
     }
 
     .cd-status-dot {
@@ -232,31 +235,32 @@ function injectStyles() {
     }
 
     .cd-period-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 20px;
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
       font-weight: 700;
-      color: #fafafa;
+      color: #f4efe6;
       letter-spacing: 0.5px;
     }
 
     .cd-course-name {
-      font-size: 20px;
-      font-weight: 400;
-      color: var(--cd-accent, #2dd4bf);
-      transition: color 1.5s ease;
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--cd-accent, #e8a838);
+      transition: color 2s ease;
     }
 
     .cd-time-left {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 15px;
-      color: #52525b;
+      font-size: 16px;
+      color: #a8a29e;
       margin-left: auto;
       font-variant-numeric: tabular-nums;
     }
 
     .cd-progress-track {
       height: 3px;
-      background: rgba(255,255,255,0.04);
+      background: rgba(255,255,255,0.06);
       border-radius: 2px;
       overflow: hidden;
     }
@@ -264,9 +268,8 @@ function injectStyles() {
     .cd-progress-fill {
       height: 100%;
       border-radius: 2px;
-      background: var(--cd-accent, #2dd4bf);
+      background: var(--cd-accent, #e8a838);
       transition: width 1s linear;
-      animation: cd-progressGlow 3s ease-in-out infinite;
     }
 
     .cd-main {
@@ -275,10 +278,10 @@ function injectStyles() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px 60px 20px;
-      gap: 28px;
+      padding: 32px 72px;
+      gap: 32px;
       position: relative;
-      z-index: 1;
+      z-index: 2;
     }
 
     .cd-content-enter {
@@ -286,168 +289,111 @@ function injectStyles() {
     }
 
     .cd-unit {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 15px;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
       font-weight: 700;
-      letter-spacing: 3px;
+      letter-spacing: 4px;
       text-transform: uppercase;
-      color: #52525b;
+      color: #a8a29e;
     }
 
     .cd-lesson-title {
-      font-size: clamp(36px, 5.5vw, 64px);
-      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 800;
       text-align: center;
-      line-height: 1.15;
-      color: #fafafa;
+      line-height: 1.1;
+      color: #f4efe6;
       max-width: 1000px;
-      letter-spacing: -0.5px;
+      letter-spacing: -1px;
     }
 
     .cd-divider {
-      width: 80px;
+      width: 60px;
       height: 2px;
-      background: var(--cd-accent, #2dd4bf);
-      opacity: 0.4;
-      transition: background 1.5s ease;
+      background: var(--cd-accent, #e8a838);
+      opacity: 0.5;
+      transition: background 2s ease;
     }
 
     .cd-objectives {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      max-width: 860px;
+      gap: 18px;
+      max-width: 900px;
       width: 100%;
     }
 
     .cd-objective {
       display: flex;
       align-items: flex-start;
-      gap: 16px;
+      gap: 18px;
       animation: cd-fadeUp 0.6s ease-out both;
     }
 
-    .cd-objective:nth-child(1) { animation-delay: 0.1s; }
-    .cd-objective:nth-child(2) { animation-delay: 0.2s; }
-    .cd-objective:nth-child(3) { animation-delay: 0.3s; }
-    .cd-objective:nth-child(4) { animation-delay: 0.4s; }
+    .cd-objective:nth-child(1) { animation-delay: 0.15s; }
+    .cd-objective:nth-child(2) { animation-delay: 0.25s; }
+    .cd-objective:nth-child(3) { animation-delay: 0.35s; }
+    .cd-objective:nth-child(4) { animation-delay: 0.45s; }
+    .cd-objective:nth-child(5) { animation-delay: 0.55s; }
+    .cd-objective:nth-child(6) { animation-delay: 0.65s; }
 
     .cd-obj-marker {
-      width: 6px;
-      height: 6px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      background: var(--cd-accent, #2dd4bf);
+      background: var(--cd-accent, #e8a838);
       flex-shrink: 0;
-      margin-top: 14px;
-      opacity: 0.6;
-      transition: background 1.5s ease;
+      margin-top: 16px;
+      transition: background 2s ease;
     }
 
     .cd-obj-text {
-      font-size: clamp(18px, 2.8vw, 28px);
-      line-height: 1.55;
-      color: #d4d4d8;
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: clamp(20px, 3vw, 30px);
+      line-height: 1.5;
+      color: #f4efe6;
       font-weight: 400;
     }
 
     .cd-question-block {
-      max-width: 860px;
+      max-width: 900px;
       width: 100%;
-      padding: 28px 0;
-      border-top: 1px solid rgba(255,255,255,0.04);
-      animation: cd-fadeUp 0.8s ease-out 0.4s both;
+      padding: 32px 0 0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      animation: cd-fadeUp 0.8s ease-out 0.5s both;
     }
 
     .cd-question-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
       font-weight: 700;
-      letter-spacing: 3px;
+      letter-spacing: 4px;
       text-transform: uppercase;
-      color: var(--cd-accent, #2dd4bf);
-      opacity: 0.7;
-      margin-bottom: 12px;
-      transition: color 1.5s ease;
+      color: var(--cd-accent, #e8a838);
+      margin-bottom: 14px;
+      transition: color 2s ease;
     }
 
     .cd-question-text {
-      font-size: clamp(20px, 3vw, 32px);
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: clamp(22px, 3.2vw, 36px);
       font-style: italic;
       font-weight: 400;
       line-height: 1.5;
-      color: #a1a1aa;
+      color: #d6d3cd;
     }
 
-    .cd-off-icon {
-      font-size: 56px;
-      margin-bottom: 20px;
-    }
     .cd-off-title {
-      font-size: clamp(28px, 4vw, 44px);
-      font-weight: 700;
-      color: #e4e4e7;
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 800;
+      color: #f4efe6;
     }
     .cd-off-sub {
-      font-size: 18px;
-      color: #52525b;
-      margin-top: 8px;
-    }
-
-    .cd-schedule {
-      display: flex;
-      justify-content: center;
-      gap: 2px;
-      padding: 14px 40px 18px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .cd-schedule::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 40px;
-      right: 40px;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04) 20%, rgba(255,255,255,0.04) 80%, transparent);
-    }
-
-    .cd-sched-item {
-      padding: 10px 20px;
-      border-radius: 8px;
-      text-align: center;
-      min-width: 90px;
-      transition: all 0.6s ease;
-      border: 1px solid transparent;
-    }
-
-    .cd-sched-item[data-active="true"] {
-      background: rgba(255,255,255,0.03);
-      border-color: rgba(255,255,255,0.06);
-    }
-
-    .cd-sched-period {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      margin-bottom: 2px;
-    }
-
-    .cd-sched-course {
-      font-size: 12px;
-      font-weight: 500;
-      margin-bottom: 1px;
-    }
-
-
-    .cd-url {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      color: #27272a;
-      letter-spacing: 0.5px;
-      position: relative;
-      z-index: 1;
+      font-size: 20px;
+      color: #a8a29e;
+      margin-top: 12px;
     }
   `;
   document.head.appendChild(style);
@@ -464,19 +410,17 @@ export default function ClassroomDisplay() {
 
   useEffect(() => { injectStyles(); }, []);
 
-  // Update clock every second
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  // Re-check period every 15 seconds
   useEffect(() => {
     const t = setInterval(() => {
       const next = getCurrentPeriod();
       setPeriod((prev) => {
         if (prev.period !== next.period || prev.status !== next.status) {
-          setContentKey((k) => k + 1); // trigger re-animation
+          setContentKey((k) => k + 1);
         }
         return next;
       });
@@ -484,7 +428,6 @@ export default function ClassroomDisplay() {
     return () => clearInterval(t);
   }, []);
 
-  // Track period changes for animation
   useEffect(() => {
     if (prevPeriodRef.current !== period.period) {
       setContentKey((k) => k + 1);
@@ -492,7 +435,6 @@ export default function ClassroomDisplay() {
     }
   }, [period.period]);
 
-  // Fetch lessons for all courses on mount
   useEffect(() => {
     const uniqueCourses = [...new Set(PERIODS.map((p) => p.courseId))];
     Promise.all(
@@ -508,7 +450,6 @@ export default function ClassroomDisplay() {
     });
   }, []);
 
-  // Find today's lesson
   const todayStr = getTodayStr();
   const currentLesson = useMemo(() => {
     const courseLessons = lessons[period.courseId] || [];
@@ -523,7 +464,7 @@ export default function ClassroomDisplay() {
   const objectives = currentLesson?.blocks?.find((b) => b.type === "objectives");
   const question = useMemo(() => generateQuestion(currentLesson), [currentLesson]);
   const isWeekend = [0, 6].includes(new Date().getDay());
-  const accent = period.accent || "#2dd4bf";
+  const accent = period.accent || "#e8a838";
 
   const progressPct = useMemo(() => {
     if (period.status !== "active") return 0;
@@ -542,10 +483,9 @@ export default function ClassroomDisplay() {
   }, [period, clock]);
 
   const formatTime = (date) => date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  const nowMins = clock.getHours() * 60 + clock.getMinutes();
 
   return (
-    <div className="cd-root" style={{ "--cd-accent": accent, "--cd-accent-glow": accent + "0a" }}>
+    <div className="cd-root" style={{ "--cd-accent": accent, "--cd-accent-glow": accent + "10" }}>
 
       {/* ── Top bar ── */}
       <div className="cd-topbar">
@@ -563,7 +503,7 @@ export default function ClassroomDisplay() {
             className="cd-status-dot"
             data-active={period.status === "active"}
             style={{
-              background: period.status === "active" ? accent : period.status === "upcoming" ? "#eab308" : "#3f3f46",
+              background: period.status === "active" ? accent : period.status === "upcoming" ? "#eab308" : "#6b6560",
             }}
           />
           <span className="cd-period-label">{period.label}</span>
@@ -589,17 +529,16 @@ export default function ClassroomDisplay() {
       <div className="cd-main">
         {isWeekend ? (
           <div style={{ textAlign: "center" }}>
-            <div className="cd-off-icon">&#9737;</div>
             <div className="cd-off-title">Weekend</div>
             <div className="cd-off-sub">See you Monday.</div>
           </div>
         ) : !currentLesson ? (
           <div style={{ textAlign: "center" }}>
-            <div className="cd-off-title" style={{ color: "#71717a" }}>No lesson scheduled</div>
+            <div className="cd-off-title">No lesson scheduled</div>
             <div className="cd-off-sub">Check pantherlearn.com</div>
           </div>
         ) : (
-          <div key={contentKey} className="cd-content-enter" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
+          <div key={contentKey} className="cd-content-enter" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "28px", width: "100%" }}>
             {currentLesson.unit && <div className="cd-unit">{currentLesson.unit}</div>}
             <div className="cd-lesson-title">{currentLesson.title}</div>
 
@@ -623,33 +562,8 @@ export default function ClassroomDisplay() {
                 <div className="cd-question-text">{question}</div>
               </div>
             )}
-
-            <div className="cd-url">pantherlearn.com</div>
           </div>
         )}
-      </div>
-
-      {/* ── Schedule strip ── */}
-      <div className="cd-schedule">
-        {PERIODS.map((p) => {
-          const isNow = p.period === period.period && period.status === "active";
-          const isPast = timeToMinutes(p.end) < nowMins;
-          return (
-            <div
-              key={p.period}
-              className="cd-sched-item"
-              data-active={isNow}
-              style={{ opacity: isPast && !isNow ? 0.25 : 1 }}
-            >
-              <div className="cd-sched-period" style={{ color: isNow ? accent : "#71717a" }}>
-                P{p.period}
-              </div>
-              <div className="cd-sched-course" style={{ color: isNow ? "#d4d4d8" : "#52525b" }}>
-                {p.course.replace(" Literacy", "").replace("AI", "AI Lit")}
-              </div>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
