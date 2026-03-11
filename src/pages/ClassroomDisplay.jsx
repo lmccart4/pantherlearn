@@ -579,7 +579,7 @@ export default function ClassroomDisplay() {
       <div className="cd-topbar">
         <div className="cd-brand">
           <span className="cd-logo">PANTHERLEARN</span>
-          <span className="cd-teacher">Mr. McCarthy</span>
+          <span className="cd-teacher">{clock.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>
         </div>
         <div className="cd-clock">{formatTime(clock)}</div>
       </div>
