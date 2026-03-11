@@ -378,8 +378,6 @@ function injectStyles() {
       background: rgba(255,255,255,0.08);
       border-radius: 3px;
       overflow: hidden;
-      display: flex;
-      justify-content: flex-end;
     }
 
     .cd-progress-fill {
@@ -387,7 +385,6 @@ function injectStyles() {
       border-radius: 2px;
       background: var(--cd-accent, #e8a838);
       transition: width 1s linear;
-      margin-left: auto;
     }
 
     .cd-countdown-track {
@@ -647,7 +644,7 @@ export default function ClassroomDisplay() {
         </div>
         {period.status === "active" && (
           <div className="cd-progress-track">
-            <div className="cd-progress-fill" style={{ width: `${100 - progressPct}%`, background: accent }} />
+            <div className="cd-progress-fill" style={{ width: `${progressPct}%`, background: accent }} />
           </div>
         )}
         {period.status === "upcoming" && (
