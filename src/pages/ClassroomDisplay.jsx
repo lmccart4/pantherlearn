@@ -280,25 +280,25 @@ function injectStyles() {
 
     .cd-logo {
       font-family: 'Syne', sans-serif;
-      font-size: 15px;
+      font-size: 20px;
       font-weight: 800;
-      letter-spacing: 4px;
+      letter-spacing: 5px;
       color: var(--cd-accent, #e8a838);
       transition: color 2s ease;
     }
 
     .cd-teacher {
       font-family: 'Syne', sans-serif;
-      font-size: 14px;
+      font-size: 18px;
       font-weight: 600;
-      letter-spacing: 2px;
-      color: #a8a29e;
+      letter-spacing: 3px;
+      color: #c8c3ba;
       text-transform: uppercase;
     }
 
     .cd-clock {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 40px;
+      font-size: 48px;
       font-weight: 300;
       font-variant-numeric: tabular-nums;
       color: #f4efe6;
@@ -306,7 +306,7 @@ function injectStyles() {
     }
 
     .cd-period-bar {
-      padding: 16px 48px 14px;
+      padding: 20px 48px 16px;
       position: relative;
       z-index: 2;
     }
@@ -314,13 +314,13 @@ function injectStyles() {
     .cd-period-info {
       display: flex;
       align-items: center;
-      gap: 16px;
-      margin-bottom: 14px;
+      gap: 18px;
+      margin-bottom: 16px;
     }
 
     .cd-status-dot {
-      width: 10px;
-      height: 10px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       flex-shrink: 0;
       transition: background 0.8s ease;
@@ -332,7 +332,7 @@ function injectStyles() {
 
     .cd-period-label {
       font-family: 'Syne', sans-serif;
-      font-size: 22px;
+      font-size: 28px;
       font-weight: 700;
       color: #f4efe6;
       letter-spacing: 0.5px;
@@ -340,39 +340,39 @@ function injectStyles() {
 
     .cd-course-name {
       font-family: 'Syne', sans-serif;
-      font-size: 22px;
+      font-size: 28px;
       font-weight: 600;
       color: var(--cd-accent, #e8a838);
       transition: color 2s ease;
     }
 
     .cd-inline-sep {
-      color: #6b6560;
-      font-size: 18px;
+      color: #8a8580;
+      font-size: 24px;
     }
 
     .cd-inline-lesson {
       font-family: 'Newsreader', Georgia, serif;
-      font-size: 20px;
+      font-size: 26px;
       font-style: italic;
-      color: #d6d3cd;
+      color: #e0dbd2;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 400px;
+      max-width: 500px;
     }
 
     .cd-time-left {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 16px;
-      color: #a8a29e;
+      font-size: 20px;
+      color: #c8c3ba;
       margin-left: auto;
       font-variant-numeric: tabular-nums;
     }
 
     .cd-progress-track {
-      height: 3px;
-      background: rgba(255,255,255,0.06);
+      height: 4px;
+      background: rgba(255,255,255,0.08);
       border-radius: 2px;
       overflow: hidden;
     }
@@ -424,19 +424,19 @@ function injectStyles() {
     .cd-objective:nth-child(6) { animation-delay: 0.65s; }
 
     .cd-obj-marker {
-      width: 7px;
-      height: 7px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
       background: var(--cd-accent, #e8a838);
       flex-shrink: 0;
-      margin-top: 16px;
+      margin-top: 18px;
       transition: background 2s ease;
     }
 
     .cd-obj-text {
       font-family: 'Newsreader', Georgia, serif;
-      font-size: clamp(20px, 3vw, 30px);
-      line-height: 1.5;
+      font-size: clamp(24px, 3.5vw, 36px);
+      line-height: 1.45;
       color: #f4efe6;
       font-weight: 400;
     }
