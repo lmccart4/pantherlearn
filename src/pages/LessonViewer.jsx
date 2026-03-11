@@ -311,6 +311,8 @@ export default function LessonViewer() {
         extraProps.courseId = courseId;
         extraProps.lessonId = lessonId;
         extraProps.user = user;
+        extraProps.onAnswer = handleAnswer;
+        extraProps.studentData = studentData;
       }
       if (block.type === "rocket_staging") {
         extraProps.studentData = studentData;

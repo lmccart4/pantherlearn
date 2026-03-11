@@ -124,6 +124,9 @@ export default function MyGrades() {
   const getSAQuestions = (lesson) =>
     (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "short_answer");
 
+  const getEmbedBlocks = (lesson) =>
+    (lesson.blocks || []).filter((b) => b.type === "embed" && b.scored);
+
   // Does this lesson have a reflection? (only if lesson has been completed by this student)
   const lessonHasReflection = (lessonId) => {
     return progressData[lessonId]?.completed;
@@ -136,9 +139,10 @@ export default function MyGrades() {
 
     const mc = getMCQuestions(lesson);
     const sa = getSAQuestions(lesson);
+    const embeds = getEmbedBlocks(lesson);
     const hasReflection = lessonHasReflection(lessonId);
 
-    let totalPoints = mc.length + sa.length + (hasReflection ? 1 : 0);
+    let totalPoints = mc.length + sa.length + embeds.length * 5 + (hasReflection ? 1 : 0);
     if (totalPoints === 0) return null;
 
     let earnedPoints = 0;
@@ -154,7 +158,14 @@ export default function MyGrades() {
       if (a?.writtenScore !== undefined && a?.writtenScore !== null) {
         earnedPoints += a.writtenScore;
       }
-      // If not yet graded, it still counts in totalPoints (so grade shows impact of ungraded work)
+    });
+
+    // Scored embeds: writtenScore (0 to 1) scaled to 5 points per embed
+    embeds.forEach((q) => {
+      const a = answers[q.id];
+      if (a?.writtenScore != null) {
+        earnedPoints += a.writtenScore * 5;
+      }
     });
 
     // Reflection: 1 point if valid
@@ -167,7 +178,7 @@ export default function MyGrades() {
       earnedPoints,
       totalPoints,
       grade: Math.round((earnedPoints / totalPoints) * 100),
-      mc, sa, hasReflection,
+      mc, sa, embeds, hasReflection,
     };
   };
 
@@ -340,11 +351,13 @@ export default function MyGrades() {
                     const reflection = reflections[lesson.id];
                     const mc = getMCQuestions(lesson);
                     const sa = getSAQuestions(lesson);
+                    const embeds = getEmbedBlocks(lesson);
 
                     const mcAnswered = mc.filter((q) => answers[q.id]?.submitted).length;
                     const mcCorrect = mc.filter((q) => answers[q.id]?.submitted && answers[q.id]?.correct).length;
                     const saGraded = sa.filter((q) => answers[q.id]?.writtenScore !== undefined && answers[q.id]?.writtenScore !== null).length;
                     const saSubmitted = sa.filter((q) => answers[q.id]?.submitted).length;
+                    const embedsCompleted = embeds.filter((q) => answers[q.id]?.submitted).length;
 
                     return (
                       <div key={lesson.id} className="card mg-lesson-card">
@@ -364,6 +377,15 @@ export default function MyGrades() {
                                   {saSubmitted > saGraded && (
                                     <span style={{ color: "var(--amber)" }}> · {saSubmitted - saGraded} pending</span>
                                   )}
+                                </span>
+                              )}
+                              {embeds.length > 0 && (
+                                <span>
+                                  {embedsCompleted}/{embeds.length} activity{embeds.length > 1 ? " scores" : " score"}
+                                  {embedsCompleted > 0 && (() => {
+                                    const a = answers[embeds[0].id];
+                                    return a?.score != null ? ` (${a.score}/${a.maxScore})` : "";
+                                  })()}
                                 </span>
                               )}
                               {reflection && (

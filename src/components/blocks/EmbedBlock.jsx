@@ -1,9 +1,42 @@
 // src/components/blocks/EmbedBlock.jsx
+import { useEffect } from "react";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 
-export default function EmbedBlock({ block, courseId, lessonId, user }) {
+export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, studentData }) {
   const translatedCaption = useTranslatedText(block.caption);
   const height = block.height || 400;
+  const data = studentData?.[block.id] || {};
+
+  // Listen for activityScore messages from embedded iframes
+  useEffect(() => {
+    if (!onAnswer) return;
+
+    const handleMessage = (event) => {
+      const msg = event.data;
+      if (!msg || msg.type !== "activityScore") return;
+      if (msg.score == null) return;
+
+      const maxScore = msg.maxScore || 100;
+      const newWrittenScore = Math.min(msg.score / maxScore, 1);
+
+      // Only save if this score is higher than the existing one
+      const existing = studentData?.[block.id];
+      if (existing?.writtenScore != null && newWrittenScore <= existing.writtenScore) return;
+
+      onAnswer(block.id, {
+        score: msg.score,
+        maxScore,
+        writtenScore: newWrittenScore, // 0-1 scale for grade calculation
+        submitted: true,
+        completedAt: msg.completedAt || new Date().toISOString(),
+        ...(msg.breakdown && { breakdown: msg.breakdown }),
+        ...(msg.scenariosCompleted != null && { scenariosCompleted: msg.scenariosCompleted }),
+      });
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [onAnswer, block.id]);
 
   if (!block.url) return null;
 

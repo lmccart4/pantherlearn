@@ -33,6 +33,7 @@ async function checkPendingGrades(courseId, enrollments, lessonMap, snapshot) {
 
     const getMC = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "multiple_choice");
     const getSA = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "short_answer");
+    const getEmbeds = (lesson) => (lesson.blocks || []).filter((b) => b.type === "embed" && b.scored);
 
     // Find section courseIds (progress may be stored under section IDs)
     const sectionCourseIds = [courseId];
@@ -93,7 +94,8 @@ async function checkPendingGrades(courseId, enrollments, lessonMap, snapshot) {
     for (const [lessonId, lesson] of lessons) {
       const mc = getMC(lesson);
       const sa = getSA(lesson);
-      if (mc.length === 0 && sa.length === 0) continue;
+      const embeds = getEmbeds(lesson);
+      if (mc.length === 0 && sa.length === 0 && embeds.length === 0) continue;
 
       for (const uid of uids) {
         const answers = progress[uid]?.[lessonId] || {};
@@ -103,6 +105,7 @@ async function checkPendingGrades(courseId, enrollments, lessonMap, snapshot) {
         let earned = 0, possible = 0;
         mc.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.correct) earned++; });
         sa.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore; });
+        embeds.forEach((q) => { possible += 5; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore * 5; });
         if (completed && reflection) { possible++; if (reflection.valid) earned++; }
         if (possible === 0) continue;
 
@@ -657,9 +660,10 @@ export default function GradingDashboard() {
         if (r.status === "fulfilled") activityData[r.value.uid] = r.value.data;
       }
 
-      // 3. Compute overall grade per lesson per student (MC + written + reflection)
+      // 3. Compute overall grade per lesson per student (MC + written + embed + reflection)
       const getMC = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "multiple_choice");
       const getSA = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "short_answer");
+      const getEmbeds = (lesson) => (lesson.blocks || []).filter((b) => b.type === "embed" && b.scored);
 
       const lessonGrades = {}; // { lessonId: { uid: grade (0-100) } }
       const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
@@ -671,7 +675,8 @@ export default function GradingDashboard() {
       for (const lesson of lessonList) {
         const mc = getMC(lesson);
         const sa = getSA(lesson);
-        if (mc.length === 0 && sa.length === 0) continue;
+        const embeds = getEmbeds(lesson);
+        if (mc.length === 0 && sa.length === 0 && embeds.length === 0) continue;
 
         for (const uid of studentUids) {
           const answers = progressData[uid]?.[lesson.id] || {};
@@ -682,6 +687,7 @@ export default function GradingDashboard() {
 
           mc.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.correct) earned++; });
           sa.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore; });
+          embeds.forEach((q) => { possible += 5; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore * 5; });
 
           if (completed && reflection) { possible++; if (reflection.valid) earned++; }
 

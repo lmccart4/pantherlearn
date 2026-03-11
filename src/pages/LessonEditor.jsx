@@ -60,7 +60,7 @@ function defaultBlockData(typeInfo) {
     case "checklist": return { ...base, title: "", items: [""] };
     case "activity": return { ...base, icon: "🔧", title: "", instructions: "" };
     case "vocab_list": return { ...base, terms: [{ term: "", definition: "" }] };
-    case "embed": return { ...base, url: "", caption: "", height: 400 };
+    case "embed": return { ...base, url: "", caption: "", height: 400, scored: false };
     case "divider": return { ...base };
     case "chatbot": return { ...base, icon: "🤖", title: "", starterMessage: "Hi! I'm ready to chat.", systemPrompt: "", instructions: "", placeholder: "Type a message..." };
     case "question":
@@ -278,6 +278,10 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
           <Field label="Embed URL" value={block.url} onChange={(v) => update("url", v)} placeholder="https://docs.google.com/forms/..." />
           <Field label="Caption (optional)" value={block.caption} onChange={(v) => update("caption", v)} />
           <Field label="Height (px)" value={block.height} onChange={(v) => update("height", parseInt(v) || 400)} small />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+            <input type="checkbox" id={`scored-${block.id}`} checked={!!block.scored} onChange={(e) => update("scored", e.target.checked)} />
+            <label htmlFor={`scored-${block.id}`} style={{ fontSize: 13, color: "var(--text2)" }}>Scored activity (worth 5 pts in lesson grade)</label>
+          </div>
         </>);
       case "divider":
         return <p style={{ color: "var(--text3)", fontSize: 12, fontStyle: "italic" }}>A horizontal divider line. No settings needed.</p>;

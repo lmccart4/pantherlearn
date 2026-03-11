@@ -1,7 +1,7 @@
 // src/components/Results.jsx
 import React from "react";
 
-export default function Results({ scores, finalScore, maxScore, onFinish }) {
+export default function Results({ scores, finalScore, maxScore, submitted, onRetry }) {
   const pct = Math.round((finalScore / maxScore) * 100);
   const grade = pct >= 90 ? "A" : pct >= 80 ? "B" : pct >= 70 ? "C" : pct >= 60 ? "D" : "F";
   const gradeColor = pct >= 80 ? "var(--success)" : pct >= 60 ? "var(--warning)" : "var(--danger)";
@@ -80,18 +80,24 @@ export default function Results({ scores, finalScore, maxScore, onFinish }) {
         </div>
       </div>
 
+      {submitted && (
+        <div style={{ textAlign: "center", marginBottom: "16px", color: "var(--success)", fontSize: "14px", fontWeight: 600 }}>
+          Score saved to PantherLearn
+        </div>
+      )}
       <div style={{ textAlign: "center" }}>
         <button
-          onClick={onFinish}
+          onClick={onRetry}
           style={{
-            background: "linear-gradient(135deg, var(--accent-dim), var(--accent))",
-            color: "var(--bg)", border: "none", padding: "14px 36px", borderRadius: "10px",
-            fontSize: "15px", fontWeight: 700, boxShadow: "0 4px 20px rgba(129,140,248,0.25)",
+            background: "none", border: "1.5px solid var(--border)", color: "var(--text-dim)",
+            padding: "14px 36px", borderRadius: "10px", fontSize: "15px", fontWeight: 600,
           }}
+          onMouseEnter={(e) => (e.target.style.borderColor = "var(--accent)")}
+          onMouseLeave={(e) => (e.target.style.borderColor = "var(--border)")}
         >
-          ✓ Submit Score
+          Try Again
         </button>
-        <p style={{ color: "var(--muted)", fontSize: "11px", marginTop: "12px" }}>Your score has been sent to PantherLearn</p>
+        <p style={{ color: "var(--muted)", fontSize: "11px", marginTop: "12px" }}>Only your highest score is kept</p>
       </div>
     </div>
   );

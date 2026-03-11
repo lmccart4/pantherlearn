@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { SCENARIOS, STAGE_INTROS } from "./data/sentences";
 import { reportScore } from "./lib/pantherlearn";
 import Welcome from "./components/Welcome";
@@ -56,12 +56,31 @@ export default function App() {
   const totalMaxPoints = scores.reduce((s, r) => s + r.maxPoints, 0);
   const finalScore = totalMaxPoints > 0 ? Math.round((totalPoints / totalMaxPoints) * MAX_SCORE) : 0;
 
-  const handleFinish = () => {
+  const [submitted, setSubmitted] = useState(false);
+
+  const doSubmit = useCallback(() => {
+    if (submitted) return;
     reportScore(ACTIVITY_ID, finalScore, MAX_SCORE, {
       breakdown: scores,
       scenariosCompleted: scores.length,
       totalScenarios,
     });
+    setSubmitted(true);
+  }, [submitted, finalScore, scores, totalScenarios]);
+
+  // Auto-submit when results screen appears
+  useEffect(() => {
+    if (screen === "results" && scores.length > 0 && !submitted) {
+      doSubmit();
+    }
+  }, [screen, scores.length, submitted, doSubmit]);
+
+  const handleRetry = () => {
+    setScreen("welcome");
+    setCurrentIdx(0);
+    setCurrentStage(1);
+    setScores([]);
+    setSubmitted(false);
   };
 
   // Pick the right component based on stage
@@ -102,7 +121,7 @@ export default function App() {
           />
         )}
         {screen === "results" && (
-          <Results scores={scores} finalScore={finalScore} maxScore={MAX_SCORE} onFinish={handleFinish} />
+          <Results scores={scores} finalScore={finalScore} maxScore={MAX_SCORE} submitted={submitted} onRetry={handleRetry} />
         )}
       </div>
     </div>

@@ -209,6 +209,7 @@ export default function StudentProgress() {
   const getQuestions = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question");
   const getMCQuestions = (lesson) => getQuestions(lesson).filter((b) => b.questionType === "multiple_choice");
   const getSAQuestions = (lesson) => getQuestions(lesson).filter((b) => b.questionType === "short_answer");
+  const getEmbedBlocks = (lesson) => (lesson.blocks || []).filter((b) => b.type === "embed" && b.scored);
 
   // --- NEW: Blended grade calculation ---
   const getStudentLessonGrade = (studentUid, lessonId) => {
@@ -218,6 +219,7 @@ export default function StudentProgress() {
 
     const mc = getMCQuestions(lesson);
     const sa = getSAQuestions(lesson);
+    const embeds = getEmbedBlocks(lesson);
     const today = new Date().toISOString().split("T")[0];
     const isPastDue = lesson.dueDate && lesson.dueDate < today;
     const studentCompleted = progressData[studentUid]?.[lessonId]?._completed || false;
@@ -249,6 +251,17 @@ export default function StudentProgress() {
       }
     });
 
+    // Scored embeds: writtenScore (0 to 1) scaled to 5 points per embed block
+    const embedItems = [];
+    embeds.forEach((q) => {
+      const a = answers[q.id];
+      if (a?.submitted && a.writtenScore != null) {
+        embedItems.push({ type: "embed", prompt: q.caption || "Activity", points: a.writtenScore * 5, max: 5, score: a.score, maxScore: a.maxScore });
+      } else if (isPastDue) {
+        embedItems.push({ type: "embed", prompt: q.caption || "Activity", points: 0, max: 5, missing: true });
+      }
+    });
+
     // Reflection: 1 point if valid, 0 if skipped, excluded if not yet completed (unless past due)
     let reflectionItem = null;
     if (reflection) {
@@ -275,12 +288,13 @@ export default function StudentProgress() {
     const gradedItems = [
       ...mcItems,
       ...saItems.filter((i) => !i.ungraded),
+      ...embedItems.filter((i) => i.points != null),
       ...(reflectionItem ? [reflectionItem] : []),
     ];
     if (gradedItems.length === 0) return null;
 
     const earned = gradedItems.reduce((sum, i) => sum + i.points, 0);
-    const possible = gradedItems.length;
+    const possible = gradedItems.reduce((sum, i) => sum + (i.max || 1), 0);
     const grade = Math.round((earned / possible) * 100);
 
     return {
@@ -289,6 +303,7 @@ export default function StudentProgress() {
       possible,
       mcItems,
       saItems,
+      embedItems,
       reflectionItem,
       mcCorrect: mcItems.filter((i) => i.correct).length,
       mcTotal: mcItems.length,
@@ -954,6 +969,27 @@ export default function StudentProgress() {
                   )}
                 </div>
               );})}
+            </>
+          )}
+
+          {result.embedItems.length > 0 && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 8 }}>
+                Activities ({result.embedItems.filter(i => !i.missing).length}/{result.embedItems.length})
+              </div>
+              {result.embedItems.map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, padding: "4px 0", borderBottom: i < result.embedItems.length - 1 ? "1px solid var(--border)" : "none" }}>
+                  <span style={{ color: "var(--text2)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.prompt}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8 }}>
+                    {item.missing ? (
+                      <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 600, background: "var(--surface2)", color: "var(--text3)" }}>Missing</span>
+                    ) : (
+                      <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 600, background: "rgba(16,185,129,0.12)", color: "var(--green)" }}>{item.score}/{item.maxScore}</span>
+                    )}
+                    <span style={{ fontWeight: 600, color: "var(--text)" }}>{(item.points ?? 0).toFixed(1)} / {item.max}</span>
+                  </span>
+                </div>
+              ))}
             </>
           )}
 

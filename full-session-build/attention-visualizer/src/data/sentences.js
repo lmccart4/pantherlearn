@@ -114,9 +114,9 @@ export const SCENARIOS = [
     meaning: "calm/tolerant (adjective)",
     attentionWeights: [0.01, 0, 0.45, 0.10, 0.01, 0.15, 0.03, 0.15, 0.02, 0.08],
     topAttenders: [
-      { word: "doctor", weight: 0.45, why: "When 'patient' comes BEFORE 'doctor,' it's describing the doctor's personality — an adjective" },
-      { word: "care", weight: 0.15, why: "'Care' and 'kindness' reinforce the personality trait interpretation" },
-      { word: "patient", weight: 0.15, why: "The SECOND 'patient' (the noun) helps distinguish — if the first one is also a noun, the sentence has two subjects with no verb connecting them" },
+      { word: "doctor", wordIdx: 2, weight: 0.45, why: "When 'patient' comes BEFORE 'doctor,' it's describing the doctor's personality — an adjective" },
+      { word: "care", wordIdx: 7, weight: 0.15, why: "'Care' and 'kindness' reinforce the personality trait interpretation" },
+      { word: "patient", wordIdx: 5, weight: 0.15, why: "The SECOND 'patient' (the noun) helps distinguish — if the first one is also a noun, the sentence has two subjects with no verb connecting them" },
     ],
     wrongMeaning: "person receiving treatment",
     explanation: "The same word appears twice with different meanings! Position matters: 'patient' before 'doctor' is an adjective; 'patient' after 'the' (second time) is a noun. Attention tracks word position, not just the word itself.",

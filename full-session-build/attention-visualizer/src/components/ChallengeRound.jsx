@@ -26,8 +26,8 @@ export default function ChallengeRound({ scenario, roundNum, totalRounds, onComp
       setPhase("insight");
     } else {
       const meaningCorrect = meaningPick === scenario.meaning;
-      const topWordIdxs = scenario.topAttenders.map((a) => scenario.words.indexOf(a.word));
-      const correctPicks = selectedWords.filter((idx) => topWordIdxs.includes(idx));
+      const topIdxs = scenario.topAttenders.map((a) => a.wordIdx != null ? a.wordIdx : scenario.words.indexOf(a.word));
+      const correctPicks = selectedWords.filter((idx) => topIdxs.includes(idx));
 
       const meaningPts = meaningCorrect ? 6 : 0;
       const predictionPts = correctPicks.length * 3; // 3 pts each, max 9
@@ -42,7 +42,7 @@ export default function ChallengeRound({ scenario, roundNum, totalRounds, onComp
     }
   };
 
-  const topWordIdxs = scenario.topAttenders.map((a) => scenario.words.indexOf(a.word));
+  const topWordIdxs = scenario.topAttenders.map((a) => a.wordIdx != null ? a.wordIdx : scenario.words.indexOf(a.word));
   const meaningCorrect = meaningPick === scenario.meaning;
 
   return (

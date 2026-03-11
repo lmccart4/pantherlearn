@@ -23,7 +23,7 @@ export default function PredictRound({ scenario, roundNum, totalRounds, onComple
     } else {
       // Score: how many of the top 3 attenders did they pick?
       const topWordIdxs = scenario.topAttenders.map((a) =>
-        scenario.words.indexOf(a.word)
+        a.wordIdx != null ? a.wordIdx : scenario.words.indexOf(a.word)
       );
       const correctPicks = selectedWords.filter((idx) => topWordIdxs.includes(idx));
       const points = correctPicks.length * 4; // 4 pts each, max 12
