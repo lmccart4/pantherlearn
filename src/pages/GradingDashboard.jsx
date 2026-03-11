@@ -1,15 +1,134 @@
 // src/pages/GradingDashboard.jsx
 // Optimized: lazy-loads data by course → section → lesson instead of fetching everything upfront.
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, orderBy, where, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, where, doc, getDoc, setDoc } from "firebase/firestore";
 import { db, signInWithClassroom } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
-import { fetchClassroomCourses, fetchClassroomStudents, createCourseWork, listStudentSubmissions, patchStudentGrade } from "../lib/classroom";
+import { fetchClassroomCourses, fetchClassroomStudents, createCourseWork, listCourseWork, listStudentSubmissions, patchStudentGrade } from "../lib/classroom";
 import CourseOverview from "../components/grading/CourseOverview";
 import LessonView from "../components/grading/LessonView";
 import StudentView from "../components/grading/StudentView";
 import ActivitiesTab from "../components/grading/ActivitiesTab";
 import WeeklyEvidenceTab from "../components/grading/WeeklyEvidenceTab";
+
+function formatTimeAgo(date) {
+  const now = new Date();
+  const diff = now - date;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+// Compute how many grades differ from the last sync snapshot
+async function checkPendingGrades(courseId, enrollments, lessonMap, snapshot) {
+  try {
+    const uids = enrollments.map((e) => e.uid).filter(Boolean);
+    if (uids.length === 0) return 0;
+
+    const getMC = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "multiple_choice");
+    const getSA = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "short_answer");
+
+    // Find section courseIds (progress may be stored under section IDs)
+    const sectionCourseIds = [courseId];
+    try {
+      const allCoursesSnap = await getDocs(collection(db, "courses"));
+      allCoursesSnap.forEach((d) => {
+        if (d.data().migratedFrom === courseId) sectionCourseIds.push(d.id);
+      });
+    } catch { /* ignore */ }
+
+    // Helper to load and merge data from all courseIds
+    const loadFromAllSections = async (uid, subcollection, merger) => {
+      const merged = {};
+      for (const cid of sectionCourseIds) {
+        const snap = await getDocs(collection(db, "progress", uid, "courses", cid, subcollection));
+        snap.forEach((d) => merger(merged, d));
+      }
+      return merged;
+    };
+
+    // Load all student progress in parallel
+    const [progressResults, reflectionResults, activityResults] = await Promise.all([
+      Promise.allSettled(uids.map(async (uid) => {
+        const data = await loadFromAllSections(uid, "lessons", (merged, d) => {
+          if (!merged[d.id]) {
+            const dd = d.data();
+            merged[d.id] = { ...dd.answers, _completed: !!dd.completed };
+          }
+        });
+        return { uid, data };
+      })),
+      Promise.allSettled(uids.map(async (uid) => {
+        const data = await loadFromAllSections(uid, "reflections", (merged, d) => {
+          if (!merged[d.id]) merged[d.id] = d.data();
+        });
+        return { uid, data };
+      })),
+      Promise.allSettled(uids.map(async (uid) => {
+        const data = await loadFromAllSections(uid, "activities", (merged, d) => {
+          if (!merged[d.id] || (d.data().activityScore != null && merged[d.id].activityScore == null)) {
+            merged[d.id] = d.data();
+          }
+        });
+        return { uid, data };
+      })),
+    ]);
+
+    const progress = {}, reflections = {}, activities = {};
+    progressResults.forEach((r) => { if (r.status === "fulfilled") progress[r.value.uid] = r.value.data; });
+    reflectionResults.forEach((r) => { if (r.status === "fulfilled") reflections[r.value.uid] = r.value.data; });
+    activityResults.forEach((r) => { if (r.status === "fulfilled") activities[r.value.uid] = r.value.data; });
+
+    let pending = 0;
+
+    // Check lesson grades (skip future due dates)
+    const today = new Date().toISOString().slice(0, 10);
+    const lessons = Object.entries(lessonMap).filter(([, l]) => l.visible !== false && (!l.dueDate || l.dueDate <= today));
+    for (const [lessonId, lesson] of lessons) {
+      const mc = getMC(lesson);
+      const sa = getSA(lesson);
+      if (mc.length === 0 && sa.length === 0) continue;
+
+      for (const uid of uids) {
+        const answers = progress[uid]?.[lessonId] || {};
+        const completed = answers._completed || false;
+        const reflection = reflections[uid]?.[lessonId];
+
+        let earned = 0, possible = 0;
+        mc.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.correct) earned++; });
+        sa.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore; });
+        if (completed && reflection) { possible++; if (reflection.valid) earned++; }
+        if (possible === 0) continue;
+
+        const grade = Math.round((earned / possible) * 100);
+        const snapshotGrade = snapshot[`lesson_${lessonId}_${uid}`];
+        if (snapshotGrade == null || snapshotGrade !== grade) pending++;
+      }
+    }
+
+    // Check activity grades
+    for (const uid of uids) {
+      const acts = activities[uid] || {};
+      for (const [actId, data] of Object.entries(acts)) {
+        if (data.activityScore == null) continue;
+        const grade = Math.round(data.activityScore * 100);
+        const snapshotGrade = snapshot[`activity_${actId}_${uid}`];
+        if (snapshotGrade == null || snapshotGrade !== grade) pending++;
+      }
+    }
+
+    return pending;
+  } catch (e) {
+    console.warn("Could not check pending grades:", e);
+    return null;
+  }
+}
 
 export default function GradingDashboard() {
   const { userRole } = useAuth();
@@ -22,6 +141,7 @@ export default function GradingDashboard() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [activeTab, setActiveTab] = useState("written");
   const [showGraded, setShowGraded] = useState(false);
+  const [showReviewRequested, setShowReviewRequested] = useState(false);
 
   // Data state
   const [lessonMap, setLessonMap] = useState({});
@@ -45,6 +165,8 @@ export default function GradingDashboard() {
   const [classroomCourses, setClassroomCourses] = useState([]);
   const [syncLog, setSyncLog] = useState([]);
   const [syncSummary, setSyncSummary] = useState(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null); // Date or null
+  const [pendingSyncCount, setPendingSyncCount] = useState(null); // null = not checked yet, 0+ = count
 
   // Use refs to avoid stale closures in loadResponses
   const enrollmentsRef = useRef([]);
@@ -158,10 +280,12 @@ export default function GradingDashboard() {
             courseTitle: courses.find((c) => c.id === selectedCourse)?.title || selectedCourse,
             blocks: data.blocks || [],
             order: data.order || 0,
+            dueDate: data.dueDate || null,
+            visible: data.visible !== false,
           };
           lessonsList.push({ id: d.id, title: data.title || d.id, order: data.order || 0 });
         });
-        setLessonMap((prev) => ({ ...prev, ...lessons }));
+        setLessonMap(lessons);
         setCourseLessons(lessonsList);
 
         // Fetch ClassChat conversation count for the "Student Messages" stat card
@@ -171,6 +295,31 @@ export default function GradingDashboard() {
         } catch (e) {
           setClassChatCount(0);
         }
+
+        // Check last Classroom sync time + snapshot
+        setLastSyncedAt(null);
+        setPendingSyncCount(null);
+        try {
+          const syncSnaps = await getDocs(
+            query(collection(db, "classroomSync"), where("courseId", "==", selectedCourse))
+          );
+          if (!syncSnaps.empty) {
+            // Find the most recent sync doc
+            let latestDoc = null;
+            let latestTime = null;
+            syncSnaps.docs.forEach((d) => {
+              const t = d.data().lastSyncedAt?.toDate?.() || d.data().lastSyncedAt;
+              if (t && (!latestTime || t > latestTime)) { latestTime = t; latestDoc = d; }
+            });
+            if (latestTime) setLastSyncedAt(latestTime);
+
+            // Compute pending count in background
+            if (latestDoc) {
+              const snapshot = latestDoc.data().gradeSnapshot || {};
+              checkPendingGrades(selectedCourse, deduped, lessons, snapshot).then(setPendingSyncCount);
+            }
+          }
+        } catch (e) { /* no sync data yet */ }
       } catch (err) {
         console.error("Error fetching course data:", err);
       }
@@ -221,7 +370,8 @@ export default function GradingDashboard() {
           Object.entries(data.answers).forEach(([blockId, answer]) => {
             const needsReview = answer.needsGrading && answer.submitted && answer.writtenScore == null;
             const isAutoGraded = answer.gradedBy === "autograde-agent" && answer.writtenScore != null;
-            if (needsReview || (showGraded && isAutoGraded)) {
+            const isReviewRequested = answer.reviewRequested === true;
+            if (needsReview || (showGraded && isAutoGraded) || (showReviewRequested && isReviewRequested) || isReviewRequested) {
               writtenResponses.push({
                 id: `${progressDoc.ref.path}-${blockId}`,
                 studentId: uid, lessonId, courseId: selectedCourse, blockId,
@@ -230,6 +380,9 @@ export default function GradingDashboard() {
                 gradedBy: answer.gradedBy ?? null,
                 autogradeOriginal: answer.autogradeOriginal ?? null,
                 feedback: answer.feedback ?? null,
+                reviewRequested: answer.reviewRequested ?? false,
+                reviewNote: answer.reviewNote ?? null,
+                reviewRequestedAt: answer.reviewRequestedAt ?? null,
                 path: progressDoc.ref.path,
               });
             }
@@ -254,7 +407,8 @@ export default function GradingDashboard() {
             Object.entries(data.answers).forEach(([blockId, answer]) => {
               const needsReview = answer.needsGrading && answer.submitted && answer.writtenScore == null;
               const isAutoGraded = answer.gradedBy === "autograde-agent" && answer.writtenScore != null;
-              if (needsReview || (showGraded && isAutoGraded)) {
+              const isReviewRequested = answer.reviewRequested === true;
+              if (needsReview || (showGraded && isAutoGraded) || (showReviewRequested && isReviewRequested) || isReviewRequested) {
                 writtenResponses.push({
                   id: `${d.ref.path}-${blockId}`,
                   studentId: uid, lessonId: d.id, courseId: selectedCourse, blockId,
@@ -263,6 +417,9 @@ export default function GradingDashboard() {
                   gradedBy: answer.gradedBy ?? null,
                   autogradeOriginal: answer.autogradeOriginal ?? null,
                   feedback: answer.feedback ?? null,
+                  reviewRequested: answer.reviewRequested ?? false,
+                  reviewNote: answer.reviewNote ?? null,
+                  reviewRequestedAt: answer.reviewRequestedAt ?? null,
                   path: d.ref.path,
                 });
               }
@@ -318,7 +475,7 @@ export default function GradingDashboard() {
     if (!loadingCourse && enrollments.length > 0) {
       loadResponses(selectedLesson, selectedSection);
     }
-  }, [enrollments, selectedSection, loadingCourse, showGraded]);
+  }, [enrollments, selectedSection, loadingCourse, showGraded, showReviewRequested]);
 
   // ─── Handle lesson selection ───
   function handleSelectLesson(lessonId) {
@@ -357,117 +514,308 @@ export default function GradingDashboard() {
     setSyncStep("syncing");
     const log = [];
     let totalGrades = 0;
-    let totalLessons = 0;
+    let totalItems = 0;
 
     try {
       // 1. Fetch Classroom students and match by email
-      log.push("Fetching Classroom roster...");
+      log.push(`Fetching Classroom roster (course ID: ${classroomCourseId})...`);
       setSyncLog([...log]);
-      const gcStudents = await fetchClassroomStudents(syncToken, classroomCourseId);
+      let gcStudents = [];
+      try {
+        gcStudents = await fetchClassroomStudents(syncToken, classroomCourseId);
+        log.push(`Classroom API returned ${gcStudents.length} students`);
+        if (gcStudents.length > 0) {
+          log.push(`  Sample: ${gcStudents.slice(0, 3).map((s) => s.email || s.name || s.userId).join(", ")}`);
+        }
+      } catch (err) {
+        log.push(`Classroom roster error: ${err.message}`);
+      }
+      setSyncLog([...log]);
 
-      // Build email → classroomUserId map
+      // Build matching maps — try both email and name matching
       const emailToClassroomId = {};
+      const nameToClassroomId = {};
+      const gcUserIdToSubId = {}; // will be populated per assignment
       gcStudents.forEach((s) => {
         if (s.email) emailToClassroomId[s.email.toLowerCase()] = s.userId;
+        if (s.name) nameToClassroomId[s.name.trim().toLowerCase()] = s.userId;
       });
 
-      // Build pantherlearn uid → email map from enrollments
-      const uidToEmail = {};
-      enrollments.forEach((e) => {
-        if (e.email) uidToEmail[e.uid || e.id] = e.email.toLowerCase();
-      });
-
-      log.push(`Matched ${Object.keys(emailToClassroomId).length} Classroom students`);
-      setSyncLog([...log]);
-
-      // 2. Fetch ALL progress for enrolled students in this course
       const currentEnrollments = enrollmentsRef.current;
       const studentUids = currentEnrollments.map((e) => e.uid || e.id);
 
-      // Collect per-lesson per-student grades
-      const lessonGrades = {}; // { lessonId: { uid: [scores] } }
+      // Build uid → classroomUserId map using email match, then name fallback
+      const uidToClassroomUserId = {};
+      const studentMapRef = studentMap; // from grading dashboard state
+      currentEnrollments.forEach((e) => {
+        const uid = e.uid || e.id;
+        const email = e.email?.toLowerCase();
+        const displayName = e.displayName?.trim().toLowerCase();
 
-      const results = await Promise.allSettled(
-        studentUids.map(async (uid) => {
-          const lessonDocs = await getDocs(
-            collection(db, "progress", uid, "courses", selectedCourse, "lessons")
-          );
-          return { uid, lessonDocs };
-        })
-      );
+        // Try email match first
+        if (email && emailToClassroomId[email]) {
+          uidToClassroomUserId[uid] = emailToClassroomId[email];
+        }
+        // Fallback: match by display name
+        else if (displayName && nameToClassroomId[displayName]) {
+          uidToClassroomUserId[uid] = nameToClassroomId[displayName];
+        }
+      });
 
-      for (const result of results) {
-        if (result.status !== "fulfilled") continue;
-        const { uid, lessonDocs } = result.value;
-        lessonDocs.forEach((d) => {
-          const data = d.data();
-          if (!data.answers) return;
-          Object.values(data.answers).forEach((answer) => {
-            if (answer.writtenScore != null) {
-              if (!lessonGrades[d.id]) lessonGrades[d.id] = {};
-              if (!lessonGrades[d.id][uid]) lessonGrades[d.id][uid] = [];
-              lessonGrades[d.id][uid].push(answer.writtenScore);
-            }
-          });
+      const matchCount = Object.keys(uidToClassroomUserId).length;
+      log.push(`PantherLearn: ${studentUids.length} students`);
+      log.push(`Classroom: ${gcStudents.length} students`);
+      log.push(`Matched: ${matchCount} (${Object.keys(emailToClassroomId).length} by email, ${matchCount - Object.keys(emailToClassroomId).length} by name)`);
+      if (matchCount === 0) {
+        const samplePL = currentEnrollments.slice(0, 3).map((e) => e.displayName || e.email || "?").join(", ");
+        const sampleGC = gcStudents.slice(0, 3).map((s) => s.name || s.email || "?").join(", ");
+        log.push(`  PL names: ${samplePL}`);
+        log.push(`  GC names: ${sampleGC}`);
+      }
+      setSyncLog([...log]);
+      const currentLessonMap = lessonMapRef.current;
+
+      // Fetch existing Classroom assignments so we can reuse them
+      log.push("Checking existing Classroom assignments...");
+      setSyncLog([...log]);
+      const existingCourseWork = await listCourseWork(syncToken, classroomCourseId);
+      const titleToCourseWork = {};
+      existingCourseWork.forEach((cw) => { titleToCourseWork[cw.title] = cw; });
+      log.push(`Found ${existingCourseWork.length} existing assignments`);
+
+      // Find section courseIds that map to this course (data may be stored under section IDs)
+      log.push("Loading student progress...");
+      setSyncLog([...log]);
+      const sectionCourseIds = [selectedCourse];
+      try {
+        const allCoursesSnap = await getDocs(collection(db, "courses"));
+        allCoursesSnap.forEach((d) => {
+          if (d.data().migratedFrom === selectedCourse) sectionCourseIds.push(d.id);
         });
+      } catch { /* ignore */ }
+      if (sectionCourseIds.length > 1) {
+        log.push(`  Checking ${sectionCourseIds.length} course IDs (parent + ${sectionCourseIds.length - 1} sections)`);
+        setSyncLog([...log]);
       }
 
-      // 3. For each lesson with grades, create assignment and push grades
-      const currentLessonMap = lessonMapRef.current;
-      const lessonsWithGrades = Object.keys(lessonGrades).filter(
-        (lid) => currentLessonMap[lid] && Object.keys(lessonGrades[lid]).length > 0
+      // Helper to load and merge data from all courseIds
+      const loadFromAllSections = async (uid, subcollection, merger) => {
+        const merged = {};
+        for (const cid of sectionCourseIds) {
+          const snap = await getDocs(collection(db, "progress", uid, "courses", cid, subcollection));
+          snap.forEach((d) => merger(merged, d));
+        }
+        return merged;
+      };
+
+      // Progress: { uid: { lessonId: { [blockId]: answer, _completed: bool } } }
+      const progressData = {};
+      const progressResults = await Promise.allSettled(
+        studentUids.map(async (uid) => {
+          const data = await loadFromAllSections(uid, "lessons", (merged, d) => {
+            if (!merged[d.id]) {
+              const docData = d.data();
+              merged[d.id] = { ...docData.answers, _completed: !!docData.completed };
+            }
+          });
+          return { uid, data };
+        })
       );
+      for (const r of progressResults) {
+        if (r.status === "fulfilled") progressData[r.value.uid] = r.value.data;
+      }
 
-      log.push(`Found ${lessonsWithGrades.length} lessons with grades to sync`);
-      setSyncLog([...log]);
+      // Reflections: { uid: { lessonId: { valid } } }
+      const reflectionData = {};
+      for (const cid of sectionCourseIds) {
+        try {
+          const refSnap = await getDocs(collection(db, "courses", cid, "reflections"));
+          refSnap.forEach((d) => {
+            const data = d.data();
+            if (!data.studentId || !data.lessonId) return;
+            if (!reflectionData[data.studentId]) reflectionData[data.studentId] = {};
+            if (!reflectionData[data.studentId][data.lessonId]) {
+              reflectionData[data.studentId][data.lessonId] = { valid: !!data.valid };
+            }
+          });
+        } catch { /* no reflections */ }
+      }
 
-      for (const lessonId of lessonsWithGrades) {
-        const lessonTitle = currentLessonMap[lessonId]?.title || lessonId;
+      // Activities: { uid: { activityId: { activityScore, activityTitle, activityLabel } } }
+      const activityData = {};
+      const actResults = await Promise.allSettled(
+        studentUids.map(async (uid) => {
+          const data = await loadFromAllSections(uid, "activities", (merged, d) => {
+            if (!merged[d.id] || (d.data().activityScore != null && merged[d.id].activityScore == null)) {
+              merged[d.id] = d.data();
+            }
+          });
+          return { uid, data };
+        })
+      );
+      for (const r of actResults) {
+        if (r.status === "fulfilled") activityData[r.value.uid] = r.value.data;
+      }
 
-        // Create assignment
-        log.push(`Creating assignment: ${lessonTitle}...`);
+      // 3. Compute overall grade per lesson per student (MC + written + reflection)
+      const getMC = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "multiple_choice");
+      const getSA = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "short_answer");
+
+      const lessonGrades = {}; // { lessonId: { uid: grade (0-100) } }
+      const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+      const lessonList = Object.entries(currentLessonMap)
+        .map(([id, l]) => ({ id, ...l }))
+        .filter((l) => l.visible !== false)
+        .filter((l) => !l.dueDate || l.dueDate <= today); // skip future due dates
+
+      for (const lesson of lessonList) {
+        const mc = getMC(lesson);
+        const sa = getSA(lesson);
+        if (mc.length === 0 && sa.length === 0) continue;
+
+        for (const uid of studentUids) {
+          const answers = progressData[uid]?.[lesson.id] || {};
+          const completed = answers._completed || false;
+          const reflection = reflectionData[uid]?.[lesson.id];
+
+          let earned = 0, possible = 0;
+
+          mc.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.correct) earned++; });
+          sa.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore; });
+
+          if (completed && reflection) { possible++; if (reflection.valid) earned++; }
+
+          if (possible === 0) continue;
+          if (!lessonGrades[lesson.id]) lessonGrades[lesson.id] = {};
+          lessonGrades[lesson.id][uid] = Math.round((earned / possible) * 100);
+        }
+      }
+
+      // Helper to push grades for an assignment (reuses existing if found by title)
+      const pushGrades = async (title, gradesByUid, dueDate = null) => {
+        let courseWork = titleToCourseWork[title];
+        if (courseWork) {
+          log.push(`Updating existing: ${title}`);
+        } else {
+          log.push(`Creating assignment: ${title}${dueDate ? ` (due ${dueDate})` : ""}...`);
+          setSyncLog([...log]);
+          try {
+            courseWork = await createCourseWork(syncToken, classroomCourseId, title, 100, dueDate);
+          } catch (err) {
+            // Retry without due date if it was rejected
+            if (dueDate && err.message?.includes("dueDate")) {
+              log.push(`  Due date rejected, creating without due date...`);
+              setSyncLog([...log]);
+              courseWork = await createCourseWork(syncToken, classroomCourseId, title, 100, null);
+            } else {
+              throw err;
+            }
+          }
+          titleToCourseWork[title] = courseWork;
+        }
         setSyncLog([...log]);
-        const courseWork = await createCourseWork(syncToken, classroomCourseId, lessonTitle, 100);
 
-        // Get auto-created submissions
         const submissions = await listStudentSubmissions(syncToken, classroomCourseId, courseWork.id);
-
-        // Build classroomUserId → submissionId map
-        const userToSubmission = {};
+        const userToSub = {};
+        const existingGrades = {};
         submissions.forEach((s) => {
-          userToSubmission[s.userId] = s.id;
+          userToSub[s.userId] = s.id;
+          if (s.assignedGrade != null) existingGrades[s.userId] = s.assignedGrade;
         });
 
-        // Push grades for each matched student
-        let lessonGradeCount = 0;
-        for (const [uid, scores] of Object.entries(lessonGrades[lessonId])) {
-          const email = uidToEmail[uid];
-          if (!email) continue;
-          const classroomUserId = emailToClassroomId[email];
-          if (!classroomUserId) continue;
-          const submissionId = userToSubmission[classroomUserId];
-          if (!submissionId) continue;
-
-          const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-          const grade = Math.round(avg * 100);
-
+        let count = 0, skipped = 0;
+        for (const [uid, grade] of Object.entries(gradesByUid)) {
+          const gcUserId = uidToClassroomUserId[uid];
+          if (!gcUserId) continue;
+          const subId = userToSub[gcUserId];
+          if (!subId) continue;
+          // Skip if grade hasn't changed
+          if (existingGrades[gcUserId] === grade) { skipped++; continue; }
           try {
-            await patchStudentGrade(syncToken, classroomCourseId, courseWork.id, submissionId, grade);
-            lessonGradeCount++;
+            await patchStudentGrade(syncToken, classroomCourseId, courseWork.id, subId, grade);
+            count++;
           } catch (err) {
-            log.push(`  Warning: could not grade ${email}: ${err.message}`);
+            const name = currentEnrollments.find((e) => (e.uid || e.id) === uid)?.displayName || uid;
+            log.push(`  Warning: ${name}: ${err.message}`);
             setSyncLog([...log]);
           }
         }
-
-        log.push(`  Synced ${lessonGradeCount} grades for "${lessonTitle}"`);
+        log.push(`  Synced ${count} grades, ${skipped} unchanged for "${title}"`);
         setSyncLog([...log]);
-        totalGrades += lessonGradeCount;
-        totalLessons++;
+        return count;
+      };
+
+      // 4. Sync lesson grades
+      const lessonsToSync = Object.keys(lessonGrades);
+      log.push(`Found ${lessonsToSync.length} lessons with grades`);
+      setSyncLog([...log]);
+
+      for (const lessonId of lessonsToSync) {
+        const lesson = currentLessonMap[lessonId];
+        const title = lesson?.title || lessonId;
+        const dueDate = lesson?.dueDate || null;
+        const count = await pushGrades(title, lessonGrades[lessonId], dueDate);
+        totalGrades += count;
+        totalItems++;
       }
 
-      setSyncSummary({ totalGrades, totalLessons });
-      log.push(`\nDone! Synced ${totalGrades} grades across ${totalLessons} lessons.`);
+      // 5. Sync activity grades
+      const allActivities = {};
+      Object.values(activityData).forEach((acts) => {
+        Object.entries(acts).forEach(([actId, data]) => {
+          if (data.activityScore != null) allActivities[actId] = data.activityTitle || actId;
+        });
+      });
+
+      const activityIds = Object.keys(allActivities);
+      if (activityIds.length > 0) {
+        log.push(`\nFound ${activityIds.length} activities with grades`);
+        setSyncLog([...log]);
+
+        for (const actId of activityIds) {
+          const gradesByUid = {};
+          for (const uid of studentUids) {
+            const actData = activityData[uid]?.[actId];
+            if (actData?.activityScore != null) {
+              gradesByUid[uid] = Math.round(actData.activityScore * 100);
+            }
+          }
+          const count = await pushGrades(allActivities[actId], gradesByUid);
+          totalGrades += count;
+          totalItems++;
+        }
+      }
+
+      // 6. Save grade snapshot so we can detect out-of-sync grades later
+      const gradeSnapshot = {};
+      for (const [lessonId, grades] of Object.entries(lessonGrades)) {
+        for (const [uid, grade] of Object.entries(grades)) {
+          gradeSnapshot[`lesson_${lessonId}_${uid}`] = grade;
+        }
+      }
+      for (const actId of activityIds) {
+        for (const uid of studentUids) {
+          const actData = activityData[uid]?.[actId];
+          if (actData?.activityScore != null) {
+            gradeSnapshot[`activity_${actId}_${uid}`] = Math.round(actData.activityScore * 100);
+          }
+        }
+      }
+      try {
+        await setDoc(doc(db, "classroomSync", `${selectedCourse}_${classroomCourseId}`), {
+          courseId: selectedCourse,
+          classroomCourseId,
+          lastSyncedAt: new Date(),
+          gradeSnapshot,
+        });
+        setLastSyncedAt(new Date());
+        setPendingSyncCount(0);
+      } catch (e) {
+        console.warn("Could not save sync snapshot:", e);
+      }
+
+      setSyncSummary({ totalGrades, totalLessons: totalItems });
+      log.push(`\nDone! Synced ${totalGrades} grades across ${totalItems} assignments.`);
       setSyncLog([...log]);
     } catch (err) {
       log.push(`Error: ${err.message}`);
@@ -587,7 +935,32 @@ export default function GradingDashboard() {
                   onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.borderColor = "var(--text3)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border)"; }}
                 >
-                  Sync to Classroom
+                  <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      Sync to Classroom
+                      {pendingSyncCount > 0 && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, color: "#fff", background: "#ef4444",
+                          borderRadius: 10, padding: "1px 6px", minWidth: 18, textAlign: "center",
+                          lineHeight: "16px",
+                        }}>
+                          {pendingSyncCount}
+                        </span>
+                      )}
+                      {pendingSyncCount === 0 && lastSyncedAt && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 600, color: "#10b981",
+                        }}>
+                          ✓
+                        </span>
+                      )}
+                    </span>
+                    {lastSyncedAt && (
+                      <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text3)", marginTop: 1 }}>
+                        Last: {formatTimeAgo(lastSyncedAt)}
+                      </span>
+                    )}
+                  </span>
                 </button>
               </div>
 
@@ -612,15 +985,35 @@ export default function GradingDashboard() {
                 </button>
               </div>
               {activeTab === "written" && (
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text3)", cursor: "pointer", userSelect: "none" }}>
-                  <input
-                    type="checkbox"
-                    checked={showGraded}
-                    onChange={(e) => setShowGraded(e.target.checked)}
-                    style={{ accentColor: "var(--blue)" }}
-                  />
-                  Show auto-graded
-                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text3)", cursor: "pointer", userSelect: "none" }}>
+                    <input
+                      type="checkbox"
+                      checked={showGraded}
+                      onChange={(e) => setShowGraded(e.target.checked)}
+                      style={{ accentColor: "var(--blue)" }}
+                    />
+                    Show auto-graded
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text3)", cursor: "pointer", userSelect: "none" }}>
+                    <input
+                      type="checkbox"
+                      checked={showReviewRequested}
+                      onChange={(e) => setShowReviewRequested(e.target.checked)}
+                      style={{ accentColor: "var(--amber)" }}
+                    />
+                    🔍 Review requests
+                    {responses.filter((r) => r.reviewRequested).length > 0 && (
+                      <span style={{
+                        background: "rgba(245,166,35,0.15)", color: "var(--amber)",
+                        fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 10,
+                        minWidth: 18, textAlign: "center",
+                      }}>
+                        {responses.filter((r) => r.reviewRequested).length}
+                      </span>
+                    )}
+                  </label>
+                </div>
               )}
               </div>
             </div>
@@ -703,8 +1096,8 @@ export default function GradingDashboard() {
                       onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--blue)"; e.currentTarget.style.background = "var(--surface2)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg)"; }}
                     >
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>{gc.name}</div>
-                      {gc.section && <div style={{ fontSize: 12, color: "var(--text3)" }}>{gc.section}</div>}
+                      <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text)" }}>{gc.name}</div>
+                      {gc.section && <div style={{ fontSize: 12, color: "var(--text2)" }}>{gc.section}</div>}
                     </button>
                   ))}
                 </div>

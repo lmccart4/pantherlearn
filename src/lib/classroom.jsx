@@ -66,19 +66,31 @@ export async function fetchClassroomStudents(accessToken, courseId) {
 // ─── Grade Sync Helpers ───────────────────────────────────────────────────────
 
 // Create a coursework assignment in a Classroom course
-export async function createCourseWork(accessToken, classroomCourseId, title, maxPoints = 100) {
+export async function createCourseWork(accessToken, classroomCourseId, title, maxPoints = 100, dueDate = null) {
+  const body = {
+    title,
+    maxPoints,
+    workType: "ASSIGNMENT",
+    state: "PUBLISHED",
+  };
+
+  // Add due date if provided (expects "YYYY-MM-DD" string)
+  // If Google rejects it (past/same-day), the dashboard fallback retries without it
+  if (dueDate) {
+    const [year, month, day] = dueDate.split("-").map(Number);
+    if (year && month && day) {
+      body.dueDate = { year, month, day };
+      body.dueTime = { hours: 23, minutes: 59 };
+    }
+  }
+
   const res = await fetch(`${CLASSROOM_API}/courses/${classroomCourseId}/courseWork`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      title,
-      maxPoints,
-      workType: "ASSIGNMENT",
-      state: "PUBLISHED",
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
@@ -139,6 +151,33 @@ export async function patchStudentGrade(accessToken, classroomCourseId, courseWo
   }
 
   return res.json();
+}
+
+// List all courseWork items for a Classroom course
+export async function listCourseWork(accessToken, classroomCourseId) {
+  const items = [];
+  let pageToken = null;
+
+  do {
+    const params = new URLSearchParams({ pageSize: "30" });
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const res = await fetch(
+      `${CLASSROOM_API}/courses/${classroomCourseId}/courseWork?${params}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || "Failed to list courseWork");
+    }
+
+    const data = await res.json();
+    if (data.courseWork) items.push(...data.courseWork);
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+
+  return items;
 }
 
 // ─── Roster Helpers ───────────────────────────────────────────────────────────

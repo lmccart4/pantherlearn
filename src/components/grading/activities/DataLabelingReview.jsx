@@ -15,7 +15,7 @@ const GRADE_TIERS = [
   { label: "Refining", value: 1.0, xpKey: "written_refining", color: "var(--green)", bg: "rgba(16,185,129,0.12)" },
 ];
 
-export default function DataLabelingReview({ activity, studentMap }) {
+export default function DataLabelingReview({ activity, studentMap, courseId: parentCourseId }) {
   const [loading, setLoading] = useState(true);
   const [submissions, setSubmissions] = useState([]);
   const [grades, setGrades] = useState({});
@@ -35,25 +35,31 @@ export default function DataLabelingReview({ activity, studentMap }) {
         subs.sort((a, b) => (b.completedAt?.toMillis?.() || 0) - (a.completedAt?.toMillis?.() || 0));
         setSubmissions(subs);
 
-        // Fetch existing grades
+        // Build list of courseIds to check (parent + sections)
+        const courseIdsToCheck = [parentCourseId];
+        try {
+          const allCoursesSnap = await getDocs(collection(db, "courses"));
+          allCoursesSnap.forEach((d) => {
+            if (d.data().migratedFrom === parentCourseId) courseIdsToCheck.push(d.id);
+          });
+        } catch { /* ignore */ }
+
+        // Fetch existing grades by checking known courseIds directly
         const existingGrades = {};
         for (const sub of subs) {
-          try {
-            const coursesSnap = await getDocs(collection(db, "progress", sub.uid, "courses"));
-            for (const courseDoc of coursesSnap.docs) {
-              try {
-                const gradeDoc = await getDoc(doc(db, "progress", sub.uid, "courses", courseDoc.id, "activities", "data-labeling-lab"));
-                if (gradeDoc.exists()) {
-                  existingGrades[sub.uid] = {
-                    score: gradeDoc.data().activityScore,
-                    label: gradeDoc.data().activityLabel,
-                    courseId: courseDoc.id,
-                  };
-                  break;
-                }
-              } catch { /* no grade */ }
-            }
-          } catch { /* no progress */ }
+          for (const cid of courseIdsToCheck) {
+            try {
+              const gradeDoc = await getDoc(doc(db, "progress", sub.uid, "courses", cid, "activities", "data-labeling-lab"));
+              if (gradeDoc.exists()) {
+                existingGrades[sub.uid] = {
+                  score: gradeDoc.data().activityScore,
+                  label: gradeDoc.data().activityLabel,
+                  courseId: cid,
+                };
+                break;
+              }
+            } catch { /* no grade */ }
+          }
         }
         setGrades(existingGrades);
       } catch (err) {
@@ -69,7 +75,7 @@ export default function DataLabelingReview({ activity, studentMap }) {
     setGrading(uid);
     try {
       const sub = submissions.find((s) => s.uid === uid);
-      const courseId = grades[uid]?.courseId || sub?.courseId;
+      const courseId = grades[uid]?.courseId || parentCourseId;
       if (!courseId) {
         alert("Cannot determine course for this student.");
         setGrading(null);
@@ -116,7 +122,7 @@ export default function DataLabelingReview({ activity, studentMap }) {
     try {
       // Doc ID in Firestore may differ from uid — use the actual doc id
       if (sub) await deleteDoc(doc(db, "dataLabelingLab", sub.id));
-      const courseId = grades[uid]?.courseId || sub?.courseId;
+      const courseId = grades[uid]?.courseId || parentCourseId;
       if (courseId) {
         await deleteDoc(doc(db, "progress", uid, "courses", courseId, "activities", "data-labeling-lab"));
       }

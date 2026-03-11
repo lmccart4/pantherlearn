@@ -93,13 +93,19 @@ export default function ActivitiesTab({ selectedCourse, studentMap, courses = []
           </div>
         </div>
 
-        <Suspense fallback={
-          <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
-            <div className="spinner" />
+        {ReviewComponent ? (
+          <Suspense fallback={
+            <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
+              <div className="spinner" />
+            </div>
+          }>
+            <ReviewComponent activity={activity} studentMap={studentMap} courseId={selectedCourse} />
+          </Suspense>
+        ) : (
+          <div style={{ padding: 40, textAlign: "center", color: "var(--text3)" }}>
+            No review component for this activity yet. Grades can be managed from the activity's own dashboard.
           </div>
-        }>
-          <ReviewComponent activity={activity} studentMap={studentMap} courseId={selectedCourse} />
-        </Suspense>
+        )}
       </div>
     );
   }
