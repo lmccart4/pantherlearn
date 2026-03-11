@@ -702,10 +702,12 @@ function shuffle(arr) {
 const ROUNDS_PER_STAGE = 3;
 
 /** Build a fresh 9-round scenario list (3 random from each stage). */
-export function buildScenarios() {
+export function buildScenarios(excludeIds = []) {
   const selected = [];
   for (const stage of [1, 2, 3]) {
-    const pool = SCENARIO_BANK[stage];
+    const available = SCENARIO_BANK[stage].filter(s => !excludeIds.includes(s.id));
+    // Fall back to full pool if too few remain after exclusion
+    const pool = available.length >= ROUNDS_PER_STAGE ? available : SCENARIO_BANK[stage];
     const picked = shuffle(pool).slice(0, ROUNDS_PER_STAGE);
     picked.forEach(s => selected.push({ ...s, stage }));
   }

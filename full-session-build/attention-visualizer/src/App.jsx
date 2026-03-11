@@ -16,6 +16,7 @@ const MAX_SCORE = 100;
 export default function App() {
   const [screen, setScreen] = useState("welcome");
   const [scenarios, setScenarios] = useState(() => buildScenarios());
+  const [usedIds, setUsedIds] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [currentStage, setCurrentStage] = useState(1);
   const [scores, setScores] = useState([]);
@@ -79,7 +80,10 @@ export default function App() {
   }, [screen, scores.length, submitted, doSubmit]);
 
   const handleRetry = () => {
-    setScenarios(buildScenarios());
+    const allUsed = [...usedIds, ...scenarios.map(s => s.id)];
+    const next = buildScenarios(allUsed);
+    setUsedIds(allUsed);
+    setScenarios(next);
     setScreen("welcome");
     setCurrentIdx(0);
     setCurrentStage(1);
