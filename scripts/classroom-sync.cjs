@@ -113,7 +113,7 @@ async function syncCourse(courseId, classroomCourseId) {
   const today = new Date().toISOString().slice(0, 10);
   const lessons = lessonSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
     .filter((l) => l.visible !== false)
-    .filter((l) => !l.dueDate || l.dueDate <= today); // skip future due dates
+    .filter((l) => !l.dueDate || l.dueDate < today); // only sync after due date has fully passed
 
   // 3. Find section courseIds (progress may be stored under section IDs)
   const sectionCourseIds = [courseId];

@@ -89,7 +89,7 @@ async function checkPendingGrades(courseId, enrollments, lessonMap, snapshot) {
 
     // Check lesson grades (skip future due dates)
     const today = new Date().toISOString().slice(0, 10);
-    const lessons = Object.entries(lessonMap).filter(([, l]) => l.visible !== false && (!l.dueDate || l.dueDate <= today));
+    const lessons = Object.entries(lessonMap).filter(([, l]) => l.visible !== false && (!l.dueDate || l.dueDate < today));
     for (const [lessonId, lesson] of lessons) {
       const mc = getMC(lesson);
       const sa = getSA(lesson);
@@ -666,7 +666,7 @@ export default function GradingDashboard() {
       const lessonList = Object.entries(currentLessonMap)
         .map(([id, l]) => ({ id, ...l }))
         .filter((l) => l.visible !== false)
-        .filter((l) => !l.dueDate || l.dueDate <= today); // skip future due dates
+        .filter((l) => !l.dueDate || l.dueDate < today); // only sync after due date has fully passed
 
       for (const lesson of lessonList) {
         const mc = getMC(lesson);
