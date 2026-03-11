@@ -134,6 +134,16 @@ function injectStyles() {
       position: relative;
     }
 
+    /* Dot grid background */
+    .cd-dot-grid {
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
     /* Film grain */
     .cd-root::before {
       content: '';
@@ -161,7 +171,7 @@ function injectStyles() {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 28px 48px;
+      padding: 20px 48px;
       position: relative;
       z-index: 2;
     }
@@ -210,7 +220,7 @@ function injectStyles() {
     }
 
     .cd-period-bar {
-      padding: 24px 48px 20px;
+      padding: 16px 48px 14px;
       position: relative;
       z-index: 2;
     }
@@ -278,23 +288,14 @@ function injectStyles() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 32px 72px;
-      gap: 32px;
+      padding: 20px 72px;
+      gap: 24px;
       position: relative;
       z-index: 2;
     }
 
     .cd-content-enter {
       animation: cd-fadeUp 0.8s ease-out both;
-    }
-
-    .cd-unit {
-      font-family: 'Syne', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      color: #a8a29e;
     }
 
     .cd-lesson-title {
@@ -319,7 +320,7 @@ function injectStyles() {
     .cd-objectives {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 14px;
       max-width: 900px;
       width: 100%;
     }
@@ -359,7 +360,7 @@ function injectStyles() {
     .cd-question-block {
       max-width: 900px;
       width: 100%;
-      padding: 32px 0 0;
+      padding: 24px 0 0;
       border-top: 1px solid rgba(255,255,255,0.08);
       animation: cd-fadeUp 0.8s ease-out 0.5s both;
     }
@@ -371,17 +372,21 @@ function injectStyles() {
       letter-spacing: 4px;
       text-transform: uppercase;
       color: var(--cd-accent, #e8a838);
-      margin-bottom: 14px;
+      margin-bottom: 10px;
       transition: color 2s ease;
     }
 
     .cd-question-text {
       font-family: 'Newsreader', Georgia, serif;
-      font-size: clamp(22px, 3.2vw, 36px);
+      font-size: clamp(20px, 2.8vw, 32px);
       font-style: italic;
       font-weight: 400;
-      line-height: 1.5;
+      line-height: 1.45;
       color: #d6d3cd;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .cd-off-title {
@@ -486,6 +491,7 @@ export default function ClassroomDisplay() {
 
   return (
     <div className="cd-root" style={{ "--cd-accent": accent, "--cd-accent-glow": accent + "10" }}>
+      <div className="cd-dot-grid" />
 
       {/* ── Top bar ── */}
       <div className="cd-topbar">
@@ -538,8 +544,7 @@ export default function ClassroomDisplay() {
             <div className="cd-off-sub">Check pantherlearn.com</div>
           </div>
         ) : (
-          <div key={contentKey} className="cd-content-enter" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "28px", width: "100%" }}>
-            {currentLesson.unit && <div className="cd-unit">{currentLesson.unit}</div>}
+          <div key={contentKey} className="cd-content-enter" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
             <div className="cd-lesson-title">{currentLesson.title}</div>
 
             {objectives && objectives.items?.length > 0 && (
