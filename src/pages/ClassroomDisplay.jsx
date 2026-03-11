@@ -2,9 +2,110 @@
 // Fullscreen classroom display — auto-shows current period's lesson based on bell schedule.
 // No auth required. Access at /display
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { collection, query, orderBy, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
+
+// ── Ambient particle background (ported from AI Seminar Series) ──────────────
+
+const CONNECT_DIST = 180;
+const PARTICLE_COUNT = 70;
+const PARTICLE_COLORS = [
+  { r: 232, g: 168, b: 56 },
+  { r: 62, g: 201, b: 176 },
+  { r: 232, g: 112, b: 90 },
+  { r: 245, g: 197, b: 99 },
+];
+
+function createParticles(w, h) {
+  const particles = [];
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const col = PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)];
+    particles.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.35,
+      vy: (Math.random() - 0.5) * 0.35,
+      r: Math.random() * 2 + 1,
+      col,
+      baseAlpha: Math.random() * 0.3 + 0.15,
+      pulseSpeed: Math.random() * 0.002 + 0.001,
+      pulseOffset: Math.random() * Math.PI * 2,
+    });
+  }
+  return particles;
+}
+
+function AmbientCanvas() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let raf, w, h, particles = [];
+
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+      particles = createParticles(w, h);
+    }
+
+    function draw(time) {
+      ctx.clearRect(0, 0, w, h);
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < CONNECT_DIST) {
+            const alpha = (1 - dist / CONNECT_DIST) * 0.08;
+            const c = particles[i].col;
+            ctx.strokeStyle = `rgba(${c.r},${c.g},${c.b},${alpha})`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+      for (const p of particles) {
+        const pulse = Math.sin(time * p.pulseSpeed + p.pulseOffset) * 0.5 + 0.5;
+        const alpha = p.baseAlpha + pulse * 0.2;
+        const radius = p.r + pulse * 1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, radius * 3, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 3);
+        grad.addColorStop(0, `rgba(${p.col.r},${p.col.g},${p.col.b},${alpha * 0.3})`);
+        grad.addColorStop(1, `rgba(${p.col.r},${p.col.g},${p.col.b},0)`);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${p.col.r},${p.col.g},${p.col.b},${alpha})`;
+        ctx.fill();
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < -20) p.x = w + 20;
+        if (p.x > w + 20) p.x = -20;
+        if (p.y < -20) p.y = h + 20;
+        if (p.y > h + 20) p.y = -20;
+      }
+      raf = requestAnimationFrame(draw);
+    }
+
+    resize();
+    raf = requestAnimationFrame(draw);
+    window.addEventListener("resize", resize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }} />;
+}
 
 // ── Bell schedule & course map ───────────────────────────────────────────────
 
@@ -134,16 +235,6 @@ function injectStyles() {
       position: relative;
     }
 
-    /* Dot grid background */
-    .cd-dot-grid {
-      position: fixed;
-      inset: 0;
-      background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
-      background-size: 24px 24px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
     /* Film grain */
     .cd-root::before {
       content: '';
@@ -156,16 +247,6 @@ function injectStyles() {
       background-size: 200px;
     }
 
-    /* Ambient glow */
-    .cd-root::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(ellipse 70% 50% at 50% 10%, var(--cd-accent-glow, rgba(232,168,56,0.06)) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
-      transition: background 2s ease;
-    }
 
     .cd-topbar {
       display: flex;
@@ -490,8 +571,8 @@ export default function ClassroomDisplay() {
   const formatTime = (date) => date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
   return (
-    <div className="cd-root" style={{ "--cd-accent": accent, "--cd-accent-glow": accent + "10" }}>
-      <div className="cd-dot-grid" />
+    <div className="cd-root" style={{ "--cd-accent": accent }}>
+      <AmbientCanvas />
 
       {/* ── Top bar ── */}
       <div className="cd-topbar">
