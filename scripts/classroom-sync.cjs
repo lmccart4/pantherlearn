@@ -5,6 +5,7 @@
 const fs = require("fs");
 const path = require("path");
 const admin = require("firebase-admin");
+const { execSync } = require("child_process");
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -15,6 +16,9 @@ const PAGE_SIZE = 30;
 let accessToken = null;
 let db = null;
 const stats = { coursesScanned: 0, coursesSynced: 0, gradesPushed: 0, gradesUnchanged: 0, errors: 0 };
+
+// Detailed report data: array of { courseName, newAssignments: [{title, count}], updatedAssignments: [{title, changes: [{name, old, new}]}] }
+const reportData = [];
 
 // ── OAuth ───────────────────────────────────────────────────────────────────
 
@@ -68,6 +72,15 @@ async function gcListAll(urlPath, listKey) {
 async function syncCourse(courseId, classroomCourseId) {
   console.log(`\nSyncing: ${courseId} → Classroom ${classroomCourseId}`);
 
+  // Get course name from Classroom API
+  let courseName = courseId;
+  try {
+    const gcCourse = await gcFetch(`/courses/${classroomCourseId}`);
+    courseName = gcCourse.name || gcCourse.section ? `${gcCourse.name || ""}${gcCourse.section ? ` ${gcCourse.section}` : ""}` : courseId;
+  } catch { /* fallback to courseId */ }
+
+  const courseReport = { courseName, newAssignments: [], updatedAssignments: [] };
+
   // 1. Get enrollments and match to Classroom students
   const enrollSnap = await db.collection("enrollments").where("courseId", "==", courseId).get();
   const enrollments = enrollSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -76,11 +89,22 @@ async function syncCourse(courseId, classroomCourseId) {
 
   const nameToGcId = {};
   const emailToGcId = {};
+  const gcIdToName = {};
   gcStudents.forEach((s) => {
     const name = s.profile?.name?.fullName;
     const email = s.profile?.emailAddress;
-    if (name) nameToGcId[name.trim().toLowerCase()] = s.userId;
+    if (name) {
+      nameToGcId[name.trim().toLowerCase()] = s.userId;
+      gcIdToName[s.userId] = name;
+    }
     if (email) emailToGcId[email.toLowerCase()] = s.userId;
+  });
+
+  // Also build uid → display name from enrollments
+  const uidToName = {};
+  enrollments.forEach((e) => {
+    const uid = e.uid || e.studentUid;
+    if (uid) uidToName[uid] = e.displayName || e.name || uid.slice(0, 8);
   });
 
   // Match PL students → GC students
@@ -170,12 +194,14 @@ async function syncCourse(courseId, classroomCourseId) {
   // 4. Compute lesson grades: { lessonId: { uid: grade } }
   const getMC = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "multiple_choice");
   const getSA = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "short_answer");
+  const getEmbeds = (lesson) => (lesson.blocks || []).filter((b) => b.type === "embed" && b.scored);
 
   const lessonGrades = {};
   for (const lesson of lessons) {
     const mc = getMC(lesson);
     const sa = getSA(lesson);
-    if (mc.length === 0 && sa.length === 0) continue;
+    const embeds = getEmbeds(lesson);
+    if (mc.length === 0 && sa.length === 0 && embeds.length === 0) continue;
 
     for (const uid of studentUids) {
       const answers = progress[uid]?.[lesson.id] || {};
@@ -183,8 +209,26 @@ async function syncCourse(courseId, classroomCourseId) {
       const reflection = reflections[uid]?.[lesson.id];
 
       let earned = 0, possible = 0;
+
+      // MC: always count toward possible (unanswered = wrong)
       mc.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.correct) earned++; });
-      sa.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore; });
+
+      // SA: only count if student has submitted an answer (skip unanswered)
+      sa.forEach((q) => {
+        const a = answers[q.id];
+        if (!a?.submitted) return; // student hasn't answered — don't penalize
+        possible++;
+        if (a.writtenScore != null) earned += a.writtenScore;
+      });
+
+      // Scored embeds: worth 5 points each (same weight as frontend grade calc)
+      embeds.forEach((q) => {
+        const a = answers[q.id];
+        if (!a?.submitted) return; // student hasn't done it — don't penalize
+        possible += 5;
+        if (a.writtenScore != null) earned += a.writtenScore * 5;
+      });
+
       if (completed && reflection) { possible++; if (reflection.valid) earned++; }
 
       if (possible === 0) continue;
@@ -217,7 +261,9 @@ async function syncCourse(courseId, classroomCourseId) {
     const body = { title, workType: "ASSIGNMENT", state: "PUBLISHED", maxPoints: 100 };
     if (dueDate) {
       const [year, month, day] = dueDate.split("-").map(Number);
-      if (year && month && day) {
+      const today = new Date().toISOString().slice(0, 10);
+      // Google Classroom rejects past due dates on creation — only set if future
+      if (year && month && day && dueDate >= today) {
         body.dueDate = { year, month, day };
         body.dueTime = { hours: 23, minutes: 59 };
       }
@@ -229,6 +275,7 @@ async function syncCourse(courseId, classroomCourseId) {
 
   // Helper: push grades for one assignment
   const pushAssignment = async (title, gradesByUid, dueDate) => {
+    const isNew = !titleToCW[title];
     let cwId;
     try { cwId = await getOrCreate(title, dueDate); }
     catch (err) { console.error(`  Failed to get/create "${title}": ${err.message}`); stats.errors++; return; }
@@ -238,40 +285,73 @@ async function syncCourse(courseId, classroomCourseId) {
     subs.forEach((s) => { userToSub[s.userId] = s; });
 
     let pushed = 0, unchanged = 0;
+    const changes = []; // { name, oldGrade, newGrade }
     for (const [uid, grade] of Object.entries(gradesByUid)) {
       const gcId = uidToGcId[uid];
       if (!gcId) continue;
       const sub = userToSub[gcId];
       if (!sub) continue;
-      if (sub.assignedGrade === grade) { unchanged++; stats.gradesUnchanged++; continue; }
+      const oldGrade = sub.assignedGrade;
+      if (oldGrade === grade) { unchanged++; stats.gradesUnchanged++; continue; }
       try {
         await gcFetch(`/courses/${classroomCourseId}/courseWork/${cwId}/studentSubmissions/${sub.id}?updateMask=assignedGrade,draftGrade`, {
           method: "PATCH", body: JSON.stringify({ assignedGrade: grade, draftGrade: grade }),
         });
         pushed++;
         stats.gradesPushed++;
+        const studentName = uidToName[uid] || gcIdToName[gcId] || uid.slice(0, 8);
+        changes.push({ name: studentName, oldGrade: oldGrade != null ? oldGrade : null, newGrade: grade });
       } catch (err) {
         console.error(`  Grade push failed (uid=${uid}): ${err.message}`);
         stats.errors++;
       }
     }
     console.log(`  ${title}: ${pushed} pushed, ${unchanged} unchanged`);
+
+    // Record for email report
+    if (pushed > 0) {
+      if (isNew) {
+        courseReport.newAssignments.push({ title, count: pushed });
+      } else {
+        courseReport.updatedAssignments.push({ title, changes });
+      }
+    }
   };
 
-  // 7. Push lesson grades
+  // 7. Merge all grades by title (lesson + activity), taking highest per student
+  //    This prevents duplicate titles from overwriting each other with lower scores.
   const lessonMap = {};
   lessons.forEach((l) => { lessonMap[l.id] = l; });
 
+  const mergedByTitle = {}; // { title: { uid: grade, _dueDate: ... } }
+  const mergeFn = (title, gradesByUid, dueDate) => {
+    if (!mergedByTitle[title]) mergedByTitle[title] = { _dueDate: dueDate };
+    const bucket = mergedByTitle[title];
+    if (dueDate && !bucket._dueDate) bucket._dueDate = dueDate;
+    for (const [uid, grade] of Object.entries(gradesByUid)) {
+      if (bucket[uid] == null || grade > bucket[uid]) bucket[uid] = grade;
+    }
+  };
+
+  // Add lesson grades
   for (const [lessonId, grades] of Object.entries(lessonGrades)) {
     const lesson = lessonMap[lessonId];
     const title = lesson?.title || lessonId;
     const dueDate = lesson?.dueDate || null;
-    await pushAssignment(title, grades, dueDate);
+    mergeFn(title, grades, dueDate);
   }
 
-  // 8. Push activity grades
+  // Add activity grades
   for (const [actId, grades] of Object.entries(activityGrades)) {
-    await pushAssignment(allActivities[actId], grades, null);
+    mergeFn(allActivities[actId], grades, null);
+  }
+
+  // 8. Push merged grades (one push per unique title)
+  for (const [title, bucket] of Object.entries(mergedByTitle)) {
+    const dueDate = bucket._dueDate;
+    const grades = { ...bucket };
+    delete grades._dueDate;
+    await pushAssignment(title, grades, dueDate);
   }
 
   // 9. Save snapshot
@@ -289,6 +369,7 @@ async function syncCourse(courseId, classroomCourseId) {
   });
 
   stats.coursesSynced++;
+  reportData.push(courseReport);
 }
 
 // ── Entry point ─────────────────────────────────────────────────────────────
@@ -334,6 +415,77 @@ async function main() {
   console.log(`  Courses: ${stats.coursesSynced}/${stats.coursesScanned} synced`);
   console.log(`  Grades: ${stats.gradesPushed} pushed, ${stats.gradesUnchanged} unchanged`);
   if (stats.errors) console.log(`  Errors: ${stats.errors}`);
+
+  // Build and send email report if any grades changed
+  if (stats.gradesPushed > 0) {
+    const emailBody = buildEmailReport(reportData, stats);
+    console.log("\n── Email Report ──");
+    console.log(emailBody);
+    sendOutlookEmail("Classroom Grade Sync Report", emailBody);
+  } else {
+    console.log("\nNo grade changes — skipping email.");
+  }
+}
+
+// ── Email report builder ────────────────────────────────────────────────────
+
+function buildEmailReport(data, stats) {
+  const lines = ["# Classroom Grade Sync Report", ""];
+  const now = new Date().toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" });
+  lines.push(`**${now}** — ${stats.gradesPushed} grades synced across ${stats.coursesSynced} course(s)`, "");
+
+  for (const course of data) {
+    const hasChanges = course.newAssignments.length > 0 || course.updatedAssignments.length > 0;
+    if (!hasChanges) continue;
+
+    lines.push(`## ${course.courseName}`, "");
+
+    for (const a of course.newAssignments) {
+      lines.push(`**New assignment:** ${a.title} — ${a.count} student(s) graded`, "");
+    }
+
+    for (const a of course.updatedAssignments) {
+      lines.push(`**${a.title}**`);
+      for (const c of a.changes) {
+        if (c.oldGrade != null) {
+          lines.push(`- ${c.name}: ${c.oldGrade} → ${c.newGrade}`);
+        } else {
+          lines.push(`- ${c.name}: new grade ${c.newGrade}`);
+        }
+      }
+      lines.push("");
+    }
+  }
+
+  if (stats.errors > 0) {
+    lines.push(`**Errors:** ${stats.errors}`, "");
+  }
+
+  return lines.join("\n");
+}
+
+// ── Outlook email sender ────────────────────────────────────────────────────
+
+function sendOutlookEmail(subject, markdownBody) {
+  const sendScript = path.join(__dirname, "..", "..", "Lachlan", ".claude", "skills", "morning-coffee", "scripts", "send-outlook.sh");
+  if (!fs.existsSync(sendScript)) {
+    console.log("Send script not found, skipping email delivery.");
+    return;
+  }
+  // Write content to temp file to avoid shell escaping issues
+  const tmpFile = path.join(require("os").tmpdir(), `grade-sync-email-${Date.now()}.md`);
+  try {
+    fs.writeFileSync(tmpFile, `${subject}\n\n${markdownBody}`, "utf8");
+    execSync(`bash "${sendScript}" "${tmpFile}"`, {
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 30000,
+    });
+    console.log("Email sent via Outlook.");
+  } catch (err) {
+    console.log(`Email delivery skipped: ${err.message.split("\n")[0]}`);
+  } finally {
+    try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
+  }
 }
 
 main().then(() => process.exit(0)).catch((err) => { console.error(`Fatal: ${err.message}`); process.exit(1); });
