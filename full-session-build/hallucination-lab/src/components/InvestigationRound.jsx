@@ -1,49 +1,26 @@
 // src/components/InvestigationRound.jsx
 // Three phases:
-// 1. CHAT — student asks the AI a question (or uses the suggested prompt)
-// 2. INVESTIGATE — student highlights suspicious sentences in the response
+// 1. PROMPT — student sees the AI prompt and clicks "Ask the AI"
+// 2. INVESTIGATE — student highlights suspicious sentences in the pre-baked response
 // 3. CLASSIFY — student labels each flagged sentence with a hallucination type
-// 4. REVIEW — see how they did + insight
+// 4. REVIEW — see how they did with ground-truth feedback
 
-import React, { useState, useCallback } from "react";
-import { sendChat } from "../lib/pantherlearn";
+import React, { useState } from "react";
 import { HALLUCINATION_TYPES } from "../data/scenarios";
 
 export default function InvestigationRound({ scenario, roundNum, totalRounds, onComplete }) {
-  const [phase, setPhase] = useState("chat"); // chat | loading | investigate | classify | review
-  const [chatInput, setChatInput] = useState(scenario.suggestedPrompt);
-  const [aiResponse, setAiResponse] = useState("");
-  const [sentences, setSentences] = useState([]);
+  const [phase, setPhase] = useState("prompt"); // prompt | investigate | classify | review
   const [flagged, setFlagged] = useState(new Set()); // indices of flagged sentences
   const [classifications, setClassifications] = useState({}); // { sentenceIdx: typeKey }
-  const [error, setError] = useState(null);
 
-  // Split response into sentences for highlighting
-  const splitSentences = (text) => {
-    // Split on sentence boundaries but keep the delimiters
-    return text
-      .split(/(?<=[.!?])\s+/)
-      .filter((s) => s.trim().length > 0);
-  };
+  const sentences = scenario.sentences;
+  const hallucinatedIndices = new Set(
+    sentences.map((s, i) => (s.hallucinated ? i : null)).filter(i => i !== null)
+  );
 
-  // Phase 1: Send the chat
-  const handleSend = async () => {
-    if (!chatInput.trim()) return;
-    setPhase("loading");
-    setError(null);
-
-    try {
-      const response = await sendChat(scenario.systemPrompt, [
-        { role: "user", content: chatInput.trim() },
-      ]);
-      setAiResponse(response);
-      setSentences(splitSentences(response));
-      setPhase("investigate");
-    } catch (err) {
-      console.error("Chat error:", err);
-      setError(err.message);
-      setPhase("chat");
-    }
+  // Phase 1: "Ask the AI" — just transition to investigate with the baked response
+  const handleAsk = () => {
+    setPhase("investigate");
   };
 
   // Phase 2: Toggle sentence flagging
@@ -52,7 +29,6 @@ export default function InvestigationRound({ scenario, roundNum, totalRounds, on
       const next = new Set(prev);
       if (next.has(idx)) {
         next.delete(idx);
-        // Also remove classification
         setClassifications((c) => {
           const copy = { ...c };
           delete copy[idx];
@@ -75,34 +51,41 @@ export default function InvestigationRound({ scenario, roundNum, totalRounds, on
     setPhase("review");
   };
 
-  // Calculate score and complete
+  // Calculate score with ground truth and complete
   const handleContinue = () => {
-    // Score based on:
-    // - Number of sentences flagged (did they flag a reasonable amount?)
-    // - Quality of classifications
-    // Since we can't perfectly auto-grade which sentences are actually hallucinated
-    // (the AI generates different responses each time), we score on:
-    // 1. Participation: did they flag at least 2 sentences? (5 pts)
-    // 2. Restraint: did they flag fewer than 60% of sentences? (5 pts) — shows discernment
-    // 3. Classification variety: did they use different types? (5 pts)
-    // 4. Reflection quality is handled by the short answer in PantherLearn
-
     const maxPts = scenario.maxPoints;
     let pts = 0;
 
-    // Participation: flagged at least 2
-    if (flagged.size >= 2) pts += Math.round(maxPts * 0.35);
-    else if (flagged.size === 1) pts += Math.round(maxPts * 0.15);
+    // True positives: correctly flagged hallucinations
+    const truePositives = [...flagged].filter(i => hallucinatedIndices.has(i));
+    // False positives: flagged real facts
+    const falsePositives = [...flagged].filter(i => !hallucinatedIndices.has(i));
+    // Missed hallucinations
+    const missed = [...hallucinatedIndices].filter(i => !flagged.has(i));
 
-    // Discernment: didn't flag everything (shows they can distinguish)
-    const flagPct = sentences.length > 0 ? flagged.size / sentences.length : 0;
-    if (flagPct > 0.1 && flagPct < 0.6) pts += Math.round(maxPts * 0.3);
-    else if (flagPct <= 0.1 || flagPct >= 0.6) pts += Math.round(maxPts * 0.1);
+    // Detection score (50%): what fraction of hallucinations did they catch?
+    const detectionRate = hallucinatedIndices.size > 0
+      ? truePositives.length / hallucinatedIndices.size
+      : 0;
+    pts += Math.round(maxPts * 0.5 * detectionRate);
 
-    // Classification: used at least 2 different types
-    const uniqueTypes = new Set(Object.values(classifications));
-    if (uniqueTypes.size >= 2) pts += Math.round(maxPts * 0.35);
-    else if (uniqueTypes.size === 1) pts += Math.round(maxPts * 0.15);
+    // Precision score (25%): of what they flagged, how much was actually wrong?
+    const precision = flagged.size > 0
+      ? truePositives.length / flagged.size
+      : 0;
+    pts += Math.round(maxPts * 0.25 * precision);
+
+    // Classification score (25%): did they correctly identify the type?
+    let correctTypes = 0;
+    for (const idx of truePositives) {
+      const classified = classifications[idx];
+      const actual = sentences[idx].type;
+      if (classified === actual) correctTypes++;
+    }
+    const classificationRate = truePositives.length > 0
+      ? correctTypes / truePositives.length
+      : 0;
+    pts += Math.round(maxPts * 0.25 * classificationRate);
 
     onComplete({
       points: Math.min(pts, maxPts),
@@ -110,12 +93,27 @@ export default function InvestigationRound({ scenario, roundNum, totalRounds, on
       correct: pts >= maxPts * 0.6,
       flaggedCount: flagged.size,
       totalSentences: sentences.length,
-      classifications: Object.entries(classifications).map(([idx, type]) => ({
-        sentence: sentences[idx],
-        type,
+      truePositives: truePositives.length,
+      falsePositives: falsePositives.length,
+      missed: missed.length,
+      totalHallucinations: hallucinatedIndices.size,
+      classifications: [...flagged].map(idx => ({
+        sentence: sentences[idx].text,
+        type: classifications[idx],
       })),
     });
   };
+
+  // Determine which hallucination types to show for classify phase
+  const availableTypes = (() => {
+    // Get types relevant to this scenario + a few common ones
+    const scenarioTypes = new Set(
+      sentences.filter(s => s.hallucinated).map(s => s.type)
+    );
+    const commonTypes = ["wrong_date", "invented_detail", "false_attribution", "fake_study"];
+    const allRelevant = new Set([...scenarioTypes, ...commonTypes]);
+    return HALLUCINATION_TYPES.filter(t => allRelevant.has(t.key)).slice(0, 6);
+  })();
 
   return (
     <div className="slide-up" style={{ maxWidth: "720px", margin: "0 auto", padding: "32px 24px" }}>
@@ -139,48 +137,32 @@ export default function InvestigationRound({ scenario, roundNum, totalRounds, on
         </span>
       </div>
 
-      {/* PHASE: CHAT */}
-      {phase === "chat" && (
+      {/* PHASE: PROMPT */}
+      {phase === "prompt" && (
         <div>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px", padding: "20px", marginBottom: "16px" }}>
             <p style={{ color: "var(--text-dim)", fontSize: "14px", marginBottom: "12px" }}>
-              Ask the AI about <strong style={{ color: "var(--text)" }}>{scenario.topic}</strong>. You can use the suggested prompt or write your own:
+              A student asked the AI about <strong style={{ color: "var(--text)" }}>{scenario.topic}</strong>:
             </p>
-            <textarea
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              style={{
-                width: "100%", minHeight: "80px", padding: "12px", borderRadius: "8px",
-                background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)",
-                fontSize: "14px", fontFamily: "var(--font-sans)", resize: "vertical", lineHeight: 1.6,
-              }}
-            />
-          </div>
-          {error && (
-            <div style={{ color: "var(--danger)", fontSize: "13px", marginBottom: "12px", padding: "8px 12px", background: "rgba(248,113,113,0.08)", borderRadius: "8px" }}>
-              ⚠ {error} — Try again.
+            <div style={{
+              padding: "12px 16px", borderRadius: "8px",
+              background: "var(--bg)", border: "1px solid var(--border)",
+              color: "var(--text)", fontSize: "14px", lineHeight: 1.6,
+              fontStyle: "italic",
+            }}>
+              "{scenario.prompt}"
             </div>
-          )}
+          </div>
           <button
-            onClick={handleSend}
-            disabled={!chatInput.trim()}
+            onClick={handleAsk}
             style={{
               width: "100%", padding: "14px", borderRadius: "10px", fontSize: "15px", fontWeight: 700,
-              background: chatInput.trim() ? "var(--accent)" : "var(--border)",
-              color: chatInput.trim() ? "var(--bg)" : "var(--muted)",
-              border: "none", cursor: chatInput.trim() ? "pointer" : "default",
+              background: "var(--accent)", color: "var(--bg)",
+              border: "none", cursor: "pointer",
             }}
           >
-            💬 Ask the AI
+            💬 See the AI's Response
           </button>
-        </div>
-      )}
-
-      {/* PHASE: LOADING */}
-      {phase === "loading" && (
-        <div style={{ textAlign: "center", padding: "60px 0" }}>
-          <div style={{ fontSize: "32px", animation: "pulse 1.5s ease infinite" }}>🤖</div>
-          <p style={{ color: "var(--muted)", marginTop: "12px" }}>The AI is thinking...</p>
         </div>
       )}
 
@@ -189,7 +171,7 @@ export default function InvestigationRound({ scenario, roundNum, totalRounds, on
         <div>
           <div style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)", borderRadius: "10px", padding: "12px 16px", marginBottom: "16px" }}>
             <p style={{ color: "var(--text-dim)", fontSize: "13px" }}>
-              <strong style={{ color: "var(--danger)" }}>🔍 Investigation mode:</strong> Click on any sentence you think contains a hallucination (false or made-up information). Flag at least 2 suspicious sentences.
+              <strong style={{ color: "var(--danger)" }}>🔍 Investigation mode:</strong> Click on any sentence you think contains a hallucination (false or made-up information). Flag at least 1 suspicious sentence.
             </p>
           </div>
 
@@ -231,7 +213,7 @@ export default function InvestigationRound({ scenario, roundNum, totalRounds, on
                       fontSize: "14px",
                     }}
                   >
-                    {sentence}{" "}
+                    {sentence.text}{" "}
                     {isFlagged && <span style={{ fontSize: "12px" }}>🚩</span>}
                   </span>
                 );
@@ -250,7 +232,7 @@ export default function InvestigationRound({ scenario, roundNum, totalRounds, on
                 padding: "12px 28px", borderRadius: "8px", fontSize: "14px", fontWeight: 700,
                 background: flagged.size > 0 ? "var(--accent)" : "var(--border)",
                 color: flagged.size > 0 ? "var(--bg)" : "var(--muted)",
-                border: "none",
+                border: "none", cursor: flagged.size > 0 ? "pointer" : "default",
               }}
             >
               Classify Flagged Items →
@@ -277,34 +259,28 @@ export default function InvestigationRound({ scenario, roundNum, totalRounds, on
                   fontSize: "14px", color: "var(--danger)", marginBottom: "12px",
                   borderLeft: "3px solid var(--danger)", paddingLeft: "10px",
                 }}>
-                  🚩 "{sentences[idx]}"
+                  🚩 "{sentences[idx].text}"
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                  {HALLUCINATION_TYPES.filter((t) =>
-                    scenario.hallucinationTypes.includes(t.key) ||
-                    // Always show a few common types
-                    ["wrong_date", "invented_detail", "false_attribution", "fake_study"].includes(t.key)
-                  )
-                    .slice(0, 6)
-                    .map((type) => {
-                      const isSelected = classifications[idx] === type.key;
-                      return (
-                        <button
-                          key={type.key}
-                          onClick={() => handleClassify(idx, type.key)}
-                          style={{
-                            padding: "6px 12px", borderRadius: "16px", fontSize: "12px",
-                            background: isSelected ? `${type.color}20` : "var(--bg)",
-                            border: `1.5px solid ${isSelected ? type.color : "var(--border)"}`,
-                            color: isSelected ? type.color : "var(--text-dim)",
-                            fontWeight: isSelected ? 700 : 500, cursor: "pointer",
-                            transition: "all 0.2s",
-                          }}
-                        >
-                          {type.emoji} {type.label}
-                        </button>
-                      );
-                    })}
+                  {availableTypes.map((type) => {
+                    const isSelected = classifications[idx] === type.key;
+                    return (
+                      <button
+                        key={type.key}
+                        onClick={() => handleClassify(idx, type.key)}
+                        style={{
+                          padding: "6px 12px", borderRadius: "16px", fontSize: "12px",
+                          background: isSelected ? `${type.color}20` : "var(--bg)",
+                          border: `1.5px solid ${isSelected ? type.color : "var(--border)"}`,
+                          color: isSelected ? type.color : "var(--text-dim)",
+                          fontWeight: isSelected ? 700 : 500, cursor: "pointer",
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        {type.emoji} {type.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -338,44 +314,93 @@ export default function InvestigationRound({ scenario, roundNum, totalRounds, on
       {/* PHASE: REVIEW */}
       {phase === "review" && (
         <div className="fade-in">
+          {/* Score summary */}
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px", padding: "20px", marginBottom: "16px" }}>
             <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--accent)", marginBottom: "12px" }}>
               📋 Your Investigation Report
             </h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "16px" }}>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--danger)" }}>{flagged.size}</div>
-                <div style={{ fontSize: "11px", color: "var(--muted)" }}>Sentences Flagged</div>
+                <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--success)" }}>
+                  {[...flagged].filter(i => hallucinatedIndices.has(i)).length}/{hallucinatedIndices.size}
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--muted)" }}>Hallucinations Found</div>
               </div>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--accent)" }}>{Object.keys(classifications).length}</div>
-                <div style={{ fontSize: "11px", color: "var(--muted)" }}>Classified</div>
+                <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--danger)" }}>
+                  {[...flagged].filter(i => !hallucinatedIndices.has(i)).length}
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--muted)" }}>False Alarms</div>
               </div>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--success)" }}>{new Set(Object.values(classifications)).size}</div>
-                <div style={{ fontSize: "11px", color: "var(--muted)" }}>Types Identified</div>
+                <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--accent)" }}>
+                  {(() => {
+                    const tp = [...flagged].filter(i => hallucinatedIndices.has(i));
+                    let correct = 0;
+                    for (const idx of tp) {
+                      if (classifications[idx] === sentences[idx].type) correct++;
+                    }
+                    return `${correct}/${tp.length}`;
+                  })()}
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--muted)" }}>Correctly Typed</div>
               </div>
             </div>
 
-            {/* Show flagged items with classifications */}
+            {/* Sentence-by-sentence breakdown */}
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {[...flagged].sort().map((idx) => {
-                const typeKey = classifications[idx];
-                const type = HALLUCINATION_TYPES.find((t) => t.key === typeKey);
+              {sentences.map((sentence, idx) => {
+                const wasFlagged = flagged.has(idx);
+                const isHallucinated = sentence.hallucinated;
+                const wasCorrectFlag = wasFlagged && isHallucinated;
+                const wasFalseAlarm = wasFlagged && !isHallucinated;
+                const wasMissed = !wasFlagged && isHallucinated;
+
+                if (!wasCorrectFlag && !wasFalseAlarm && !wasMissed) return null;
+
+                const borderColor = wasCorrectFlag ? "var(--success)" : wasFalseAlarm ? "var(--danger)" : "var(--warning)";
+                const icon = wasCorrectFlag ? "✅" : wasFalseAlarm ? "❌" : "⚠️";
+                const label = wasCorrectFlag ? "Correctly caught!" : wasFalseAlarm ? "This was actually true" : "Missed this one";
+
                 return (
                   <div key={idx} style={{
-                    display: "flex", alignItems: "start", gap: "8px", padding: "8px 12px",
-                    background: "var(--bg)", borderRadius: "8px", fontSize: "13px",
-                    borderLeft: `3px solid ${type?.color || "var(--muted)"}`,
+                    padding: "10px 12px", background: "var(--bg)", borderRadius: "8px",
+                    borderLeft: `3px solid ${borderColor}`, fontSize: "13px",
                   }}>
-                    <span style={{ flexShrink: 0 }}>{type?.emoji || "🚩"}</span>
-                    <div>
-                      <div style={{ color: "var(--text-dim)", marginBottom: "2px" }}>
-                        {sentences[idx]?.substring(0, 80)}{sentences[idx]?.length > 80 ? "..." : ""}
+                    <div style={{ display: "flex", gap: "8px", alignItems: "start" }}>
+                      <span style={{ flexShrink: 0 }}>{icon}</span>
+                      <div>
+                        <div style={{ color: "var(--text-dim)", marginBottom: "4px" }}>
+                          {sentence.text.substring(0, 100)}{sentence.text.length > 100 ? "..." : ""}
+                        </div>
+                        <div style={{ fontSize: "11px", fontWeight: 600, color: borderColor, marginBottom: "2px" }}>
+                          {label}
+                        </div>
+                        {isHallucinated && sentence.explanation && (
+                          <div style={{ fontSize: "11px", color: "var(--muted)", lineHeight: 1.5, marginTop: "4px" }}>
+                            {sentence.explanation}
+                          </div>
+                        )}
+                        {wasCorrectFlag && classifications[idx] && (
+                          <div style={{ fontSize: "11px", marginTop: "2px" }}>
+                            {classifications[idx] === sentence.type ? (
+                              <span style={{ color: "var(--success)" }}>
+                                Type: {HALLUCINATION_TYPES.find(t => t.key === sentence.type)?.label} ✓
+                              </span>
+                            ) : (
+                              <div>
+                                <span style={{ color: "var(--warning)" }}>
+                                  You said: {HALLUCINATION_TYPES.find(t => t.key === classifications[idx])?.label} —
+                                  Actual: {HALLUCINATION_TYPES.find(t => t.key === sentence.type)?.label}
+                                </span>
+                                <div style={{ color: "var(--muted)", marginTop: "2px", fontStyle: "italic" }}>
+                                  {HALLUCINATION_TYPES.find(t => t.key === sentence.type)?.description}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <span style={{ fontSize: "11px", color: type?.color || "var(--muted)", fontWeight: 600 }}>
-                        {type?.label || "Unclassified"}
-                      </span>
                     </div>
                   </div>
                 );
