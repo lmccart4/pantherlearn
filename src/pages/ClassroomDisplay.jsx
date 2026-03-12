@@ -485,7 +485,7 @@ function injectStyles() {
       line-height: 1.35;
       color: #f4efe6;
       display: -webkit-box;
-      -webkit-line-clamp: 2;
+      -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -541,7 +541,7 @@ export default function ClassroomDisplay() {
     }
   }, [period.period]);
 
-  useEffect(() => {
+  const fetchLessons = useCallback(() => {
     const uniqueCourses = [...new Set(PERIODS.map((p) => p.courseId))];
     Promise.all(
       uniqueCourses.map(async (cid) => {
@@ -556,6 +556,13 @@ export default function ClassroomDisplay() {
     });
   }, []);
 
+  // Fetch on mount + re-fetch every 5 minutes so the display stays current
+  useEffect(() => {
+    fetchLessons();
+    const t = setInterval(fetchLessons, 5 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [fetchLessons]);
+
   const todayStr = getTodayStr();
   const currentLesson = useMemo(() => {
     const courseLessons = lessons[period.courseId] || [];
@@ -567,7 +574,6 @@ export default function ClassroomDisplay() {
     return past[0] || null;
   }, [lessons, period.courseId, todayStr]);
 
-  const objectives = currentLesson?.blocks?.find((b) => b.type === "objectives");
   const question = useMemo(() => generateQuestion(currentLesson), [currentLesson]);
   const isWeekend = [0, 6].includes(new Date().getDay());
   const accent = period.accent || "#e8a838";
@@ -668,17 +674,6 @@ export default function ClassroomDisplay() {
           </div>
         ) : (
           <div key={contentKey} className="cd-content-enter" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "28px", width: "100%" }}>
-            {objectives && objectives.items?.length > 0 && (
-              <div className="cd-objectives">
-                {objectives.items.filter(Boolean).map((item, i) => (
-                  <div key={i} className="cd-objective">
-                    <div className="cd-obj-marker" style={{ background: accent }} />
-                    <div className="cd-obj-text">{item}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-
             {question && (
               <div className="cd-question-block">
                 <div className="cd-question-label" style={{ color: accent }}>Question of the Day</div>
