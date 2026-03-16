@@ -85,9 +85,10 @@ const lesson = {
     {
       id: "b7",
       type: "embed",
-      url: "https://attention-visualizer-paps.web.app/?studentId={{studentId}}&courseId={{courseId}}&blockId=b7&lessonId=attention-visualizer",
+      url: "https://attention-visualizer-paps.web.app",
       caption: "Attention Visualizer — 9 sentences across 3 stages",
-      height: 720
+      height: 720,
+      scored: true
     },
 
     // ═══════════════════════════════════════════════════════

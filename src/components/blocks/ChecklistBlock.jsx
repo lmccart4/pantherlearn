@@ -98,7 +98,7 @@ export default function ChecklistBlock({ block, studentData = {}, onAnswer }) {
             <span style={{
               width: 22, height: 22, minWidth: 22,
               borderRadius: 6,
-              border: checked[i] ? "2px solid var(--green, #22c55e)" : "2px solid var(--border, #2a2f3d)",
+              border: checked[i] ? "2px solid var(--green, #22c55e)" : "2.5px solid var(--text3, #888)",
               background: checked[i] ? "var(--green, #22c55e)" : "transparent",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 13, color: "#fff",

@@ -125,7 +125,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
 
   const handleSubmitMC = async () => {
     if (selected === null) return;
-    const correct = selected === block.correctIndex;
+    const correct = block.allCorrect ? true : selected === block.correctIndex;
     onAnswer(block.id, { answer: selected, correct, submitted: true, submittedAt: new Date().toISOString() });
     setSubmitted(true);
     trackEvent("question_answered", { correct, blockId: block.id });
@@ -253,7 +253,8 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
   };
 
   if (block.questionType === "multiple_choice") {
-    const isCorrect = submitted && selected === block.correctIndex;
+    const isAllCorrect = block.allCorrect;
+    const isCorrect = submitted && (isAllCorrect ? true : selected === block.correctIndex);
     const locked = submitted && lessonCompleted;
     return (
       <div className={`question-block ${submitted ? (isCorrect ? "correct" : "incorrect") : ""}`} style={{ position: "relative" }}>
@@ -266,16 +267,18 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
         <div className="mc-options" role="radiogroup" aria-label={translatedPrompt || block.prompt}>
           {(translatedOptions || block.options).map((opt, i) => {
             let cls = "mc-option";
-            if (submitted && i === block.correctIndex) cls += " correct-answer";
-            if (submitted && i === selected && i !== block.correctIndex) cls += " wrong-answer";
+            if (submitted && !isAllCorrect && i === block.correctIndex) cls += " correct-answer";
+            if (submitted && !isAllCorrect && i === selected && i !== block.correctIndex) cls += " wrong-answer";
+            if (submitted && isAllCorrect && i === selected) cls += " correct-answer";
             if (!submitted && i === selected) cls += " selected";
             return (
               <button key={i} className={cls} onClick={() => !submitted && setSelected(i)} disabled={submitted}
                 role="radio" aria-checked={i === selected}>
                 <span className="option-letter">{String.fromCharCode(65 + i)}</span>
                 <span className="option-text">{opt}</span>
-                {submitted && i === block.correctIndex && <span className="check-icon">✓ Correct</span>}
-                {submitted && i === selected && i !== block.correctIndex && <span className="x-icon">✗ Incorrect</span>}
+                {submitted && !isAllCorrect && i === block.correctIndex && <span className="check-icon">✓ Correct</span>}
+                {submitted && !isAllCorrect && i === selected && i !== block.correctIndex && <span className="x-icon">✗ Incorrect</span>}
+                {submitted && isAllCorrect && i === selected && <span className="check-icon">✓</span>}
               </button>
             );
           })}

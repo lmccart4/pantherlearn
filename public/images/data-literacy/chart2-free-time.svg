@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="400" rx="12" fill="url(#bg2)"/>
+
+  <!-- Title -->
+  <text x="300" y="36" text-anchor="middle" fill="#f1f5f9" font-size="18" font-weight="600">How Students Spend Their Free Time</text>
+
+  <!-- Pie chart center at 240, 210, radius 130 -->
+  <!-- Slices are DELIBERATELY wrong — percentages add to 118% -->
+  <!-- We'll draw them as if they were a proper pie but the legend shows bad %s -->
+
+  <!-- Gaming 28% → ~101° -->
+  <path d="M240,210 L240,80 A130,130 0 0,1 363,155 Z" fill="#f43f5e"/>
+  <!-- Social Media 31% → ~112° -->
+  <path d="M240,210 L363,155 A130,130 0 0,1 350,310 Z" fill="#3b82f6"/>
+  <!-- Sports 22% → ~79° -->
+  <path d="M240,210 L350,310 A130,130 0 0,1 200,335 Z" fill="#22c55e"/>
+  <!-- Reading 19% → ~68° -->
+  <path d="M240,210 L200,335 A130,130 0 0,1 115,225 Z" fill="#f59e0b"/>
+  <!-- Hanging Out 18% → ~65° -->
+  <path d="M240,210 L115,225 A130,130 0 0,1 240,80 Z" fill="#a855f7"/>
+
+  <!-- Legend -->
+  <rect x="410" y="100" width="14" height="14" rx="3" fill="#f43f5e"/>
+  <text x="430" y="112" fill="#e2e8f0" font-size="13">Gaming — 28%</text>
+
+  <rect x="410" y="130" width="14" height="14" rx="3" fill="#3b82f6"/>
+  <text x="430" y="142" fill="#e2e8f0" font-size="13">Social Media — 31%</text>
+
+  <rect x="410" y="160" width="14" height="14" rx="3" fill="#22c55e"/>
+  <text x="430" y="172" fill="#e2e8f0" font-size="13">Sports — 22%</text>
+
+  <rect x="410" y="190" width="14" height="14" rx="3" fill="#f59e0b"/>
+  <text x="430" y="202" fill="#e2e8f0" font-size="13">Reading — 19%</text>
+
+  <rect x="410" y="220" width="14" height="14" rx="3" fill="#a855f7"/>
+  <text x="430" y="232" fill="#e2e8f0" font-size="13">Hanging Out — 18%</text>
+
+  <!-- Total callout -->
+  <text x="470" y="265" text-anchor="middle" fill="#64748b" font-size="11" font-style="italic">Total: 118%</text>
+
+  <!-- No source listed (deliberate) -->
+  <text x="300" y="385" text-anchor="middle" fill="#475569" font-size="11">Student Activity Survey, Spring 2024</text>
+</svg>

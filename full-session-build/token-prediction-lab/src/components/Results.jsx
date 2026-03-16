@@ -211,21 +211,13 @@ export default function Results({ scores, finalScore, maxScore, onFinish }) {
 
       {/* Submit */}
       <div style={{ textAlign: "center" }}>
-        <button
-          onClick={onFinish}
-          style={{
-            background: "linear-gradient(135deg, var(--accent-dim), var(--accent))",
-            color: "var(--bg)",
-            border: "none",
-            padding: "14px 36px",
-            borderRadius: "10px",
-            fontSize: "15px",
-            fontWeight: 700,
-            boxShadow: "0 4px 20px rgba(129,140,248,0.25)",
-          }}
-        >
-          ✓ Submit Score
-        </button>
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: "8px",
+          background: "var(--border)", color: "var(--muted)",
+          padding: "14px 36px", borderRadius: "10px", fontSize: "15px", fontWeight: 700,
+        }}>
+          ✓ Score Submitted
+        </div>
         <p style={{ color: "var(--muted)", fontSize: "11px", marginTop: "12px" }}>
           Your score has been sent to PantherLearn
         </p>

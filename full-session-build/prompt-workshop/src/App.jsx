@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { CHALLENGES, STAGE_INTROS } from "./data/challenges";
 import { reportScore } from "./lib/pantherlearn";
 import Welcome from "./components/Welcome";
@@ -44,9 +44,20 @@ export default function App() {
   const totalMaxPoints = scores.reduce((s, r) => s + r.maxPoints, 0);
   const finalScore = totalMaxPoints > 0 ? Math.round((totalPoints / totalMaxPoints) * MAX_SCORE) : 0;
 
-  const handleFinish = () => {
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleFinish = useCallback(() => {
+    if (submitted) return;
     reportScore(ACTIVITY_ID, finalScore, MAX_SCORE, { breakdown: scores, challengesCompleted: scores.length, totalChallenges: total });
-  };
+    setSubmitted(true);
+  }, [submitted, finalScore, scores, total]);
+
+  // Auto-submit score when results screen appears
+  useEffect(() => {
+    if (screen === "results" && !submitted) {
+      handleFinish();
+    }
+  }, [screen, submitted, handleFinish]);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", position: "relative", overflow: "hidden" }}>

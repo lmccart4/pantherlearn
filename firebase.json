@@ -40,6 +40,11 @@
       "target": "lesson-plans-paps",
       "public": "lesson-plans-public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    },
+    {
+      "target": "energy-escape-room-paps",
+      "public": "energy-escape-room/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
   ],
   "functions": {

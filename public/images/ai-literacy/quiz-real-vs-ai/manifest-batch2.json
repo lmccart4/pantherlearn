@@ -1,0 +1,94 @@
+[
+  {
+    "filename": "quiz-real-gym-selfie.jpg",
+    "category": "Selfie",
+    "source": "pexels",
+    "photographer": "Kenneth Surillo",
+    "pexelsUrl": "https://www.pexels.com/photo/man-taking-gym-selfie-with-camera-lens-in-focus-28427828/"
+  },
+  {
+    "filename": "quiz-real-family-picnic.jpg",
+    "category": "Candid Photo",
+    "source": "pexels",
+    "photographer": "Kampus Production",
+    "pexelsUrl": "https://www.pexels.com/photo/a-family-having-a-picnic-7669127/"
+  },
+  {
+    "filename": "quiz-real-elderly-woman.jpg",
+    "category": "Portrait",
+    "source": "pexels",
+    "photographer": "HÂN NGUYỄN",
+    "pexelsUrl": "https://www.pexels.com/photo/smiling-elderly-woman-in-conical-hat-17621920/"
+  },
+  {
+    "filename": "quiz-real-ramen-bowl.jpg",
+    "category": "Food",
+    "source": "pexels",
+    "photographer": "Viridiana Rivera",
+    "pexelsUrl": "https://www.pexels.com/photo/soup-in-a-bowl-12984982/"
+  },
+  {
+    "filename": "quiz-real-desert-cactus.jpg",
+    "category": "Landscape",
+    "source": "pexels",
+    "photographer": "Thalia Perla",
+    "pexelsUrl": "https://www.pexels.com/photo/green-saguaro-cactus-on-brown-field-4061938/"
+  },
+  {
+    "filename": "quiz-real-political-rally.jpg",
+    "category": "News Photo",
+    "source": "pexels",
+    "photographer": "Rosemary Ketchum",
+    "pexelsUrl": "https://www.pexels.com/photo/people-rallying-in-front-of-coffee-shop-1464212/"
+  },
+  {
+    "filename": "quiz-real-cat-sleeping.jpg",
+    "category": "Animal",
+    "source": "pexels",
+    "photographer": "Cats Coming",
+    "pexelsUrl": "https://www.pexels.com/photo/gray-and-white-short-coated-cat-on-brown-wooden-table-top-674577/"
+  },
+  {
+    "filename": "quiz-real-rainy-city.jpg",
+    "category": "Street Photo",
+    "source": "pexels",
+    "photographer": "Alex Knight",
+    "pexelsUrl": "https://www.pexels.com/photo/store-facade-2816904/"
+  },
+  {
+    "filename": "quiz-real-oil-autumn.jpg",
+    "category": "Oil Painting",
+    "source": "met-museum",
+    "title": "Haystacks: Autumn",
+    "artist": "Jean-François Millet",
+    "date": "ca. 1874",
+    "medium": "Oil on canvas"
+  },
+  {
+    "filename": "quiz-real-watercolor-lake.jpg",
+    "category": "Watercolor",
+    "source": "met-museum",
+    "title": "The Lake of Zug",
+    "artist": "Joseph Mallord William Turner",
+    "date": "1843",
+    "medium": "Watercolor and bodycolor (gouache) with reductive techniques over graphite"
+  },
+  {
+    "filename": "quiz-real-pencil-architecture.jpg",
+    "category": "Pencil Sketch",
+    "source": "met-museum",
+    "title": "The Birth of the Virgin",
+    "artist": "Fra Carnevale (Bartolomeo di Giovanni Corradini)",
+    "date": "1467",
+    "medium": "Tempera and oil on wood"
+  },
+  {
+    "filename": "quiz-real-digital-print.jpg",
+    "category": "Digital Art",
+    "source": "met-museum",
+    "title": "Ia Orana Maria (Hail Mary)",
+    "artist": "Paul Gauguin",
+    "date": "1891",
+    "medium": "Oil on canvas"
+  }
+]

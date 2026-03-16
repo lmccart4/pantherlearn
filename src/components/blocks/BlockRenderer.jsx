@@ -30,6 +30,7 @@ import ExternalActivityBlock from "./ExternalActivityBlock";
 import RocketStagingBlock from "./RocketStagingBlock";
 import ConceptBuilderBlock from "./ConceptBuilderBlock";
 import MomentumMysteryLabBlock from "./MomentumMysteryLabBlock";
+import ScoreTallyBlock from "./ScoreTallyBlock";
 import ErrorBoundary from "./ErrorBoundary";
 
 const BLOCK_MAP = {
@@ -69,6 +70,7 @@ const BLOCK_MAP = {
   concept_builder: ConceptBuilderBlock,
   media_upload: EvidenceUploadBlock,  // alias — media_upload blocks use the same upload UI
   momentum_mystery_lab: MomentumMysteryLabBlock,
+  score_tally: ScoreTallyBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {

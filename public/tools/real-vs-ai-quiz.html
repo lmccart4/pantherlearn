@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real vs AI — Image Quiz</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; width: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* --- SCREENS --- */
+  .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+  .screen.active { display: flex; }
+
+  /* --- LOCKED SCREEN --- */
+  .locked h1 { font-size: 2rem; margin-bottom: 12px; text-align: center; }
+  .locked p { color: #94a3b8; max-width: 480px; text-align: center; margin-bottom: 8px; line-height: 1.5; }
+  .locked .countdown-big { font-size: 3rem; font-weight: 800; color: #f59e0b; margin: 24px 0; }
+
+  /* --- INTRO SCREEN --- */
+  .intro h1 { font-size: 2rem; margin-bottom: 12px; text-align: center; }
+  .intro p { color: #94a3b8; max-width: 480px; text-align: center; margin-bottom: 8px; line-height: 1.5; }
+  .intro .rules { background: #1e293b; border-radius: 12px; padding: 20px 24px; margin: 20px 0; max-width: 480px; width: 100%; }
+  .intro .rules li { color: #cbd5e1; margin: 8px 0; line-height: 1.4; }
+  .intro .deadline-banner {
+    background: #78350f; color: #fde68a; border-radius: 8px; padding: 12px 20px;
+    max-width: 480px; width: 100%; text-align: center; font-weight: 600;
+    margin-bottom: 12px; font-size: 0.95rem;
+  }
+  .start-btn {
+    background: #3b82f6; color: white; border: none; padding: 16px 48px;
+    font-size: 1.1rem; font-weight: 600; border-radius: 12px; cursor: pointer;
+    margin-top: 20px; transition: background 0.2s;
+  }
+  .start-btn:hover { background: #2563eb; }
+
+  /* --- QUIZ SCREEN --- */
+  .quiz { padding: 0; }
+  .quiz-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; width: 100%; background: #1e293b;
+    position: fixed; top: 0; left: 0; z-index: 10;
+  }
+  .quiz-progress { font-size: 0.9rem; color: #94a3b8; }
+  .period-clock { font-size: 0.85rem; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
+  .period-clock.urgent { color: #f59e0b; font-weight: 700; }
+  .period-clock.critical { color: #ef4444; font-weight: 700; }
+  .quiz-body {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; width: 100%; height: 100%;
+    padding: 60px 20px 20px;
+  }
+  .image-container {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    width: 100%; max-height: 60vh; margin-bottom: 16px; overflow: hidden;
+    border-radius: 12px;
+  }
+  .image-container img {
+    max-width: 100%; max-height: 100%; object-fit: contain;
+    border-radius: 12px; user-select: none; -webkit-user-drag: none;
+  }
+  .category-tag {
+    font-size: 0.8rem; color: #94a3b8; background: #1e293b;
+    padding: 4px 12px; border-radius: 20px; margin-bottom: 12px;
+  }
+  .choices {
+    display: flex; gap: 12px; width: 100%; max-width: 400px;
+  }
+  .choice-btn {
+    flex: 1; padding: 16px; font-size: 1.1rem; font-weight: 600;
+    border: 2px solid #334155; background: #1e293b; color: #e2e8f0;
+    border-radius: 12px; cursor: pointer; transition: all 0.2s;
+  }
+  .choice-btn:hover { border-color: #3b82f6; background: #1e3a5f; }
+  .choice-btn:disabled { cursor: default; opacity: 0.6; }
+  .choice-btn.selected { border-color: #3b82f6; background: #1e3a5f; }
+  .choice-btn.correct { border-color: #22c55e; background: #14532d; }
+  .choice-btn.incorrect { border-color: #ef4444; background: #7f1d1d; }
+
+  .feedback-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 16px 20px; text-align: center; font-weight: 600;
+    font-size: 1rem; z-index: 10; transition: transform 0.3s;
+    transform: translateY(100%);
+  }
+  .feedback-bar.show { transform: translateY(0); }
+  .feedback-bar.recorded-fb { background: #1e3a5f; color: #93c5fd; }
+  .feedback-bar.correct-fb { background: #166534; color: #bbf7d0; }
+  .feedback-bar.incorrect-fb { background: #7f1d1d; color: #fecaca; }
+  .feedback-explanation { font-weight: 400; font-size: 0.85rem; margin-top: 4px; opacity: 0.9; }
+
+  /* --- WAITING SCREEN --- */
+  .waiting { text-align: center; }
+  .waiting h1 { font-size: 2rem; margin-bottom: 12px; }
+  .waiting p { color: #94a3b8; max-width: 480px; text-align: center; line-height: 1.5; margin-bottom: 8px; }
+  .waiting .countdown-big { font-size: 3rem; font-weight: 800; color: #3b82f6; margin: 24px 0; }
+  .waiting .wait-note { color: #64748b; font-size: 0.85rem; margin-top: 16px; }
+
+  /* --- RESULTS SCREEN --- */
+  .results { text-align: center; overflow-y: auto; }
+  .results h1 { font-size: 2.2rem; margin-bottom: 8px; }
+  .results .score-big {
+    font-size: 4rem; font-weight: 800; margin: 16px 0;
+  }
+  .results .score-big.great { color: #22c55e; }
+  .results .score-big.ok { color: #f59e0b; }
+  .results .score-big.low { color: #ef4444; }
+  .results .score-label { color: #94a3b8; font-size: 1.1rem; margin-bottom: 24px; }
+  .results .stats { display: flex; gap: 24px; justify-content: center; margin-bottom: 24px; }
+  .results .stat { text-align: center; }
+  .results .stat-val { font-size: 1.5rem; font-weight: 700; }
+  .results .stat-label { font-size: 0.8rem; color: #94a3b8; }
+  .results .breakdown { background: #1e293b; border-radius: 12px; padding: 16px; max-width: 480px; width: 100%; margin: 0 auto 20px; text-align: left; max-height: 40vh; overflow-y: auto; }
+  .results .breakdown-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #334155; gap: 10px; }
+  .results .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .breakdown-label { flex: 1; font-size: 0.85rem; }
+  .breakdown-answer { font-size: 0.75rem; color: #94a3b8; }
+  .submitted-msg { color: #22c55e; font-size: 0.9rem; margin-top: 12px; }
+
+  @media (max-width: 480px) {
+    .intro h1, .locked h1, .waiting h1 { font-size: 1.5rem; }
+    .quiz-body { padding: 56px 12px 12px; }
+    .choices { max-width: 100%; }
+    .choice-btn { padding: 14px 8px; font-size: 1rem; }
+    .results .score-big { font-size: 3rem; }
+    .locked .countdown-big, .waiting .countdown-big { font-size: 2.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOCKED (before period starts) -->
+<div class="screen locked" id="locked-screen">
+  <h1>Quiz Not Yet Available</h1>
+  <p>This quiz will open when your class period begins.</p>
+  <div class="countdown-big" id="locked-countdown">--:--</div>
+  <p>Opens at <strong id="locked-open-time">--:--</strong></p>
+</div>
+
+<!-- INTRO -->
+<div class="screen intro" id="intro-screen">
+  <h1>Real vs AI — Image Quiz</h1>
+  <p>Can you tell the difference between real images and AI-generated ones?</p>
+  <div class="deadline-banner" id="deadline-banner">
+    You must finish by <span id="deadline-time">--:--</span> — the quiz auto-submits when the period ends
+  </div>
+  <div class="rules">
+    <ul>
+      <li>You'll see <strong>48 images</strong> — some real, some AI-generated</li>
+      <li>Take as much time as you need on each image</li>
+      <li>You <strong>cannot go back</strong> to previous questions</li>
+      <li>You will <strong>not see your score or answers</strong> until the period ends</li>
+      <li>The quiz <strong>auto-submits when the period ends</strong> — any unanswered questions are marked incorrect</li>
+    </ul>
+  </div>
+  <button class="start-btn" id="start-btn">Start Quiz</button>
+</div>
+
+<!-- QUIZ -->
+<div class="screen quiz" id="quiz-screen">
+  <div class="quiz-header">
+    <span class="quiz-progress" id="progress">1 / 48</span>
+    <span></span>
+    <span class="period-clock" id="period-clock">--:--</span>
+  </div>
+  <div class="quiz-body">
+    <div class="category-tag" id="category-tag">Photograph</div>
+    <div class="image-container">
+      <img id="quiz-image" src="" alt="Quiz image" draggable="false" oncontextmenu="return false;" />
+    </div>
+    <div class="choices">
+      <button class="choice-btn" id="btn-real" onclick="answer('real')">Real</button>
+      <button class="choice-btn" id="btn-ai" onclick="answer('ai')">AI-Generated</button>
+    </div>
+  </div>
+  <div class="feedback-bar" id="feedback-bar">
+    <div id="feedback-text"></div>
+  </div>
+</div>
+
+<!-- WAITING (finished quiz, waiting for period to end) -->
+<div class="screen waiting" id="waiting-screen">
+  <h1>Answers Submitted</h1>
+  <p>Your responses have been recorded. Results will be available when the period ends.</p>
+  <div class="countdown-big" id="waiting-countdown">--:--</div>
+  <p>Results available at <strong id="waiting-reveal-time">--:--</strong></p>
+  <div class="wait-note">Do not close this page — your results will appear automatically.</div>
+</div>
+
+<!-- RESULTS -->
+<div class="screen results" id="results-screen">
+  <h1>Quiz Complete</h1>
+  <div class="score-big" id="final-score">0%</div>
+  <div class="score-label" id="score-label">0 out of 48 correct</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="stat-correct">0</div><div class="stat-label">Correct</div></div>
+    <div class="stat"><div class="stat-val" id="stat-wrong">0</div><div class="stat-label">Wrong</div></div>
+    <div class="stat"><div class="stat-val" id="stat-skipped">0</div><div class="stat-label">Not Submitted</div></div>
+  </div>
+  <div class="breakdown" id="breakdown"></div>
+  <div class="submitted-msg" id="submitted-msg"></div>
+</div>
+
+<script>
+// --- PantherLearn Bridge ---
+const params = new URLSearchParams(window.location.search);
+const studentId = params.get("studentId") || "anonymous";
+const courseId = params.get("courseId") || "";
+const blockId = params.get("blockId") || "";
+const lessonId = params.get("lessonId") || "";
+const devMode = params.get("dev") === "true" || params.get("testStudent") === "true";
+
+function reportScore(activityId, score, maxScore, meta = {}) {
+  const payload = {
+    type: "activityScore",
+    activityId,
+    studentId,
+    courseId,
+    blockId,
+    lessonId,
+    score,
+    maxScore,
+    completedAt: new Date().toISOString(),
+    ...meta,
+  };
+  if (window.parent !== window) {
+    window.parent.postMessage(payload, "*");
+  }
+  console.log("[PantherLearn Bridge] Score reported:", payload);
+  return payload;
+}
+
+// --- Period Schedule (Eastern Time) ---
+const PERIOD_SCHEDULE = {
+  "Y9Gdhw5MTY8wMFt6Tlvj": { label: "Period 4", start: [10, 29], end: [11, 11] },
+  "DacjJ93vUDcwqc260OP3":  { label: "Period 5", start: [11, 15], end: [11, 57] },
+  "M2MVSXrKuVCD9JQfZZyp":  { label: "Period 7", start: [12, 47], end: [13, 29] },
+  "fUw67wFhAtobWFhjwvZ5":  { label: "Period 9", start: [14, 19], end: [15, 1] },
+};
+
+function getNowET() {
+  const str = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+  return new Date(str);
+}
+
+function getTodayET(h, m) {
+  const now = getNowET();
+  const d = new Date(now);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+const period = PERIOD_SCHEDULE[courseId] || null;
+const hasPeriod = period !== null && !devMode;
+let periodStart = hasPeriod ? getTodayET(period.start[0], period.start[1]) : null;
+let periodEnd = hasPeriod ? getTodayET(period.end[0], period.end[1]) : null;
+
+function formatTime(date) {
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return "0:00";
+  const totalSec = Math.ceil(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, "0")}`;
+}
+
+// --- Quiz Data ---
+const QUESTIONS = [
+  { file: "quiz-ai-concert-selfie.png", answer: "ai", category: "Selfie", explanation: "Notice the slightly too-perfect skin texture and lighting consistency across the crowd." },
+  { file: "quiz-real-teen-selfie.jpg", answer: "real", category: "Selfie", explanation: "Real selfies often have that slightly awkward angle and natural imperfections that AI tends to smooth out." },
+  { file: "quiz-ai-students-library.png", answer: "ai", category: "Candid Photo", explanation: "The details look authentic but the overall composition is too clean for a candid shot." },
+  { file: "quiz-real-students-classroom.jpg", answer: "real", category: "Candid Photo", explanation: "The natural imperfections — uneven lighting, genuine expressions — are signs of a real photograph." },
+  { file: "quiz-ai-freckle-portrait.png", answer: "ai", category: "Portrait", explanation: "AI has mastered faces. Look for subtle symmetry and skin texture that's slightly too uniform." },
+  { file: "quiz-real-portrait-natural.jpg", answer: "real", category: "Portrait", explanation: "This is a real portrait. The skin detail and natural imperfections are genuine." },
+  { file: "quiz-ai-pizza-box.png", answer: "ai", category: "Food", explanation: "AI now handles messy, imperfect scenes. The grease stains and crumpled napkins were all generated." },
+  { file: "quiz-real-burger-fries.jpg", answer: "real", category: "Food", explanation: "Professional food photography can look almost too perfect — many students mistake real food photos for AI." },
+  { file: "quiz-ai-foggy-trail.png", answer: "ai", category: "Landscape", explanation: "Nature scenes are among the hardest to distinguish. This fog and moss are entirely synthetic." },
+  { file: "quiz-real-foggy-mountain.jpg", answer: "real", category: "Landscape", explanation: "The irregular rock textures and natural fog patterns would be hard for AI to replicate perfectly." },
+  { file: "quiz-ai-town-hall.png", answer: "ai", category: "News Photo", explanation: "AI can generate convincing crowd scenes. The text on the banner is a potential giveaway — zoom in on any text." },
+  { file: "quiz-real-protest-crowd.jpg", answer: "real", category: "News Photo", explanation: "Real protest photos have readable, specific text on signs — AI often generates plausible but nonsensical text." },
+  { file: "quiz-ai-wet-dog.png", answer: "ai", category: "Animal", explanation: "Water physics and fur detail are remarkably accurate in modern AI models." },
+  { file: "quiz-real-dog-beach.jpg", answer: "real", category: "Animal", explanation: "Real action shots of animals have authentic motion blur and unpredictable positioning." },
+  { file: "quiz-ai-bus-stop.png", answer: "ai", category: "Street Photo", explanation: "The emotional storytelling and environmental details make this feel authentically captured — but it's AI." },
+  { file: "quiz-real-park-bench.jpg", answer: "real", category: "Street Photo", explanation: "The natural light falloff and environmental context are genuine." },
+  { file: "quiz-ai-oil-seascape.png", answer: "ai", category: "Oil Painting", explanation: "AI can now replicate brushstroke texture, paint thickness, and even the frame." },
+  { file: "quiz-real-oil-seascape.jpg", answer: "real", category: "Oil Painting", explanation: "This is 'A Storm off the Normandy Coast' by Eugene Isabey, housed in the Metropolitan Museum of Art." },
+  { file: "quiz-ai-watercolor-cafe.png", answer: "ai", category: "Watercolor", explanation: "The paint bleeds, white paper showing through, and loose wash technique are all AI-generated." },
+  { file: "quiz-real-watercolor-scene.jpg", answer: "real", category: "Watercolor", explanation: "This is 'Camouflaged Field in France' by John Singer Sargent — a real watercolor from the Met Museum." },
+  { file: "quiz-ai-pencil-hand-flower.png", answer: "ai", category: "Pencil Sketch", explanation: "AI has overcome its old weakness with hands. This sketch shows convincing cross-hatching and graphite smudging." },
+  { file: "quiz-real-pencil-sketch.jpg", answer: "real", category: "Pencil Sketch", explanation: "This is a chalk portrait by Peter Paul Rubens from the 1600s, held in the Metropolitan Museum of Art." },
+  { file: "quiz-ai-cyberpunk-city.png", answer: "ai", category: "Digital Art", explanation: "Digital art is the hardest category — there's no physical medium to verify." },
+  { file: "quiz-real-modern-art.jpg", answer: "real", category: "Digital Art", explanation: "This is a real 3D render by a digital artist. Human-created digital art and AI art are nearly indistinguishable." },
+  // --- Batch 2 (24 more) ---
+  { file: "quiz-ai-gym-selfie.png", answer: "ai", category: "Selfie", explanation: "The mirror reflection is subtly off — AI often struggles with reflective surfaces and body proportions." },
+  { file: "quiz-real-gym-selfie.jpg", answer: "real", category: "Selfie", explanation: "Real gym selfies have natural distortion from phone cameras and authentic background clutter." },
+  { file: "quiz-ai-backyard-bbq.png", answer: "ai", category: "Candid Photo", explanation: "The people and food look convincing, but AI-generated group scenes often have odd hand positions." },
+  { file: "quiz-real-family-picnic.jpg", answer: "real", category: "Candid Photo", explanation: "Genuine candid moments have unpredictable compositions that AI rarely replicates naturally." },
+  { file: "quiz-ai-elderly-portrait.png", answer: "ai", category: "Portrait", explanation: "AI can now generate convincing wrinkles and age spots, but the eyes often have an uncanny uniformity." },
+  { file: "quiz-real-elderly-woman.jpg", answer: "real", category: "Portrait", explanation: "Real portraits capture asymmetrical features and unique skin textures that come from decades of life." },
+  { file: "quiz-ai-sushi-platter.png", answer: "ai", category: "Food", explanation: "AI food images are getting remarkably accurate — look at the rice texture and fish grain for subtle tells." },
+  { file: "quiz-real-ramen-bowl.jpg", answer: "real", category: "Food", explanation: "Real food photos have authentic steam, reflections in liquid, and imperfect plating." },
+  { file: "quiz-ai-desert-sunset.png", answer: "ai", category: "Landscape", explanation: "The lighting gradient is too perfectly smooth — real sunsets have more atmospheric irregularity." },
+  { file: "quiz-real-desert-cactus.jpg", answer: "real", category: "Landscape", explanation: "Real desert photos capture authentic plant textures and natural shadow patterns from harsh sunlight." },
+  { file: "quiz-ai-press-conference.png", answer: "ai", category: "News Photo", explanation: "AI press photos often have slightly blurred microphone logos and name placards with unreadable text." },
+  { file: "quiz-real-political-rally.jpg", answer: "real", category: "News Photo", explanation: "Real rally photos have readable, specific protest signs and authentic crowd density patterns." },
+  { file: "quiz-ai-cat-keyboard.png", answer: "ai", category: "Animal", explanation: "The cat looks adorable but the keyboard keys and fur-to-surface boundaries show AI smoothing artifacts." },
+  { file: "quiz-real-cat-sleeping.jpg", answer: "real", category: "Animal", explanation: "Real sleeping cats have natural fur patterns and relaxed postures that AI tends to over-stylize." },
+  { file: "quiz-ai-rainy-street.png", answer: "ai", category: "Street Photo", explanation: "AI handles rain reflections well but often makes them too symmetrical and evenly distributed." },
+  { file: "quiz-real-rainy-city.jpg", answer: "real", category: "Street Photo", explanation: "Real rain photography has unpredictable light scatter and genuine puddle reflections." },
+  { file: "quiz-ai-oil-autumn.png", answer: "ai", category: "Oil Painting", explanation: "AI can simulate impasto brushwork, but the paint texture is often too consistent across the canvas." },
+  { file: "quiz-real-oil-autumn.jpg", answer: "real", category: "Oil Painting", explanation: "This is 'Haystacks: Autumn' by Jean-Fran\u00e7ois Millet — the physical brushwork has depth that AI can only approximate." },
+  { file: "quiz-ai-watercolor-lake.png", answer: "ai", category: "Watercolor", explanation: "AI watercolors often have too-perfect color bleeds — real watercolor is harder to control." },
+  { file: "quiz-real-watercolor-lake.jpg", answer: "real", category: "Watercolor", explanation: "This is 'The Lake of Zug' by J.M.W. Turner — the luminous washes show a master's unpredictable hand." },
+  { file: "quiz-ai-pencil-cathedral.png", answer: "ai", category: "Pencil Sketch", explanation: "AI pencil drawings have impressively consistent shading, but the line weight is often too uniform." },
+  { file: "quiz-real-pencil-architecture.jpg", answer: "real", category: "Pencil Sketch", explanation: "This is a real architectural drawing — the ink and chalk show the deliberate hand of a trained draftsman." },
+  { file: "quiz-ai-underwater-fantasy.png", answer: "ai", category: "Digital Art", explanation: "Fantasy art is nearly impossible to distinguish — there's no 'real world' reference to compare against." },
+  { file: "quiz-real-digital-print.jpg", answer: "real", category: "Digital Art", explanation: "This is a real Japanese woodblock print — hand-carved and printed with ink on paper centuries ago." },
+];
+
+const IMAGE_BASE = "/images/ai-literacy/quiz-real-vs-ai/";
+const TOTAL = QUESTIONS.length;
+
+// --- Seeded Shuffle (deterministic per student) ---
+function seedFromString(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function seededShuffle(arr, seed) {
+  const a = [...arr];
+  let s = seed;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) & 0x7fffffff;
+    const j = s % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const seed = seedFromString(studentId);
+const shuffled = seededShuffle(QUESTIONS, seed);
+
+// --- State ---
+let current = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let skippedCount = 0;
+let answered = false;
+let quizFinished = false;
+let scoreSubmitted = false;
+const results = [];
+
+// --- Elements ---
+const lockedScreen = document.getElementById("locked-screen");
+const introScreen = document.getElementById("intro-screen");
+const quizScreen = document.getElementById("quiz-screen");
+const waitingScreen = document.getElementById("waiting-screen");
+const resultsScreen = document.getElementById("results-screen");
+const startBtn = document.getElementById("start-btn");
+const progressEl = document.getElementById("progress");
+const periodClock = document.getElementById("period-clock");
+const quizImage = document.getElementById("quiz-image");
+const categoryTag = document.getElementById("category-tag");
+const btnReal = document.getElementById("btn-real");
+const btnAi = document.getElementById("btn-ai");
+const feedbackBar = document.getElementById("feedback-bar");
+const feedbackText = document.getElementById("feedback-text");
+
+// --- Period Gate ---
+function checkPeriodGate() {
+  if (!hasPeriod) {
+    // No period restriction — go straight to intro
+    introScreen.classList.add("active");
+    document.getElementById("deadline-banner").style.display = "none";
+    return;
+  }
+
+  const now = getNowET();
+  if (now < periodStart) {
+    // Before period — show locked screen
+    lockedScreen.classList.add("active");
+    document.getElementById("locked-open-time").textContent = formatTime(periodStart);
+    const gateInterval = setInterval(() => {
+      const n = getNowET();
+      const ms = periodStart - n;
+      if (ms <= 0) {
+        clearInterval(gateInterval);
+        lockedScreen.classList.remove("active");
+        introScreen.classList.add("active");
+        document.getElementById("deadline-time").textContent = formatTime(periodEnd);
+      } else {
+        document.getElementById("locked-countdown").textContent = formatCountdown(ms);
+      }
+    }, 1000);
+  } else if (now >= periodEnd) {
+    // After period — show locked with "period has ended" message
+    lockedScreen.classList.add("active");
+    document.querySelector(".locked h1").textContent = "Period Has Ended";
+    document.querySelector(".locked p").textContent = "This quiz is no longer available.";
+    document.getElementById("locked-countdown").style.display = "none";
+    document.getElementById("locked-open-time").parentElement.style.display = "none";
+  } else {
+    // During period — show intro
+    introScreen.classList.add("active");
+    document.getElementById("deadline-time").textContent = formatTime(periodEnd);
+  }
+}
+
+checkPeriodGate();
+
+// --- Preload images ---
+function preloadImages() {
+  shuffled.forEach(q => {
+    const img = new Image();
+    img.src = IMAGE_BASE + q.file;
+  });
+}
+
+// --- Start ---
+startBtn.addEventListener("click", () => {
+  introScreen.classList.remove("active");
+  quizScreen.classList.add("active");
+  preloadImages();
+  startPeriodClock();
+  showQuestion();
+});
+
+// --- Period Clock (top-right during quiz) ---
+let periodClockInterval = null;
+function startPeriodClock() {
+  if (!hasPeriod) {
+    periodClock.textContent = "";
+    return;
+  }
+  updatePeriodClock();
+  periodClockInterval = setInterval(updatePeriodClock, 1000);
+}
+
+function updatePeriodClock() {
+  if (!hasPeriod) return;
+  const now = getNowET();
+  const ms = periodEnd - now;
+  if (ms <= 0) {
+    periodClock.textContent = "0:00";
+    periodClock.className = "period-clock critical";
+    onPeriodEnd();
+    return;
+  }
+  periodClock.textContent = formatCountdown(ms);
+  periodClock.className = "period-clock";
+  if (ms <= 120000) periodClock.classList.add("critical");
+  else if (ms <= 300000) periodClock.classList.add("urgent");
+}
+
+// --- Period End Handler ---
+function onPeriodEnd() {
+  clearInterval(periodClockInterval);
+  if (quizFinished && !scoreSubmitted) {
+    submitFinalScore();
+  }
+  if (!quizFinished) {
+    // Auto-submit: mark remaining questions as skipped
+    for (let i = current; i < TOTAL; i++) {
+      const q = shuffled[i];
+      results.push({ file: q.file, category: q.category, correct: false, skipped: true, answer: q.answer, chosen: null });
+      skippedCount++;
+      wrongCount++;
+    }
+    current = TOTAL;
+    quizFinished = true;
+    submitFinalScore();
+  }
+  // Show results
+  quizScreen.classList.remove("active");
+  waitingScreen.classList.remove("active");
+  showResults();
+}
+
+function showQuestion() {
+  if (current >= TOTAL) { onQuizComplete(); return; }
+  const q = shuffled[current];
+  answered = false;
+  btnReal.disabled = false;
+  btnAi.disabled = false;
+  btnReal.className = "choice-btn";
+  btnAi.className = "choice-btn";
+  feedbackBar.classList.remove("show", "recorded-fb");
+
+  progressEl.textContent = `${current + 1} / ${TOTAL}`;
+  categoryTag.textContent = q.category;
+  quizImage.src = IMAGE_BASE + q.file;
+}
+
+function answer(choice) {
+  if (answered) return;
+  answered = true;
+  btnReal.disabled = true;
+  btnAi.disabled = true;
+
+  const q = shuffled[current];
+  const isCorrect = choice === q.answer;
+
+  // Highlight selection (neutral — no correct/incorrect reveal)
+  (choice === "real" ? btnReal : btnAi).classList.add("selected");
+
+  if (isCorrect) correctCount++;
+  else wrongCount++;
+
+  // Neutral feedback — no answer reveal
+  feedbackBar.classList.add("recorded-fb");
+  feedbackText.textContent = "Answer recorded";
+  feedbackBar.classList.add("show");
+
+  results.push({ file: q.file, category: q.category, correct: isCorrect, skipped: false, answer: q.answer, chosen: choice });
+
+  setTimeout(() => { current++; showQuestion(); }, 1000);
+}
+
+// --- Quiz Complete (all 48 answered, but period may not be over) ---
+function onQuizComplete() {
+  quizFinished = true;
+  quizScreen.classList.remove("active");
+
+  // Submit score immediately (PantherLearn saves it)
+  submitFinalScore();
+
+  if (hasPeriod) {
+    const now = getNowET();
+    const ms = periodEnd - now;
+    if (ms > 0) {
+      // Period not over — show waiting screen
+      waitingScreen.classList.add("active");
+      document.getElementById("waiting-reveal-time").textContent = formatTime(periodEnd);
+      const waitInterval = setInterval(() => {
+        const n = getNowET();
+        const remaining = periodEnd - n;
+        if (remaining <= 0) {
+          clearInterval(waitInterval);
+          waitingScreen.classList.remove("active");
+          showResults();
+        } else {
+          document.getElementById("waiting-countdown").textContent = formatCountdown(remaining);
+        }
+      }, 1000);
+      return;
+    }
+  }
+
+  // No period restriction or period already over — show results immediately
+  showResults();
+}
+
+// --- Submit Score ---
+function submitFinalScore() {
+  if (scoreSubmitted) return;
+  scoreSubmitted = true;
+  reportScore("real-vs-ai-quiz", correctCount, TOTAL, {
+    breakdown: results.map(r => ({
+      category: r.category,
+      correct: r.correct,
+      skipped: r.skipped || false,
+      answer: r.answer,
+      chosen: r.chosen,
+    })),
+    accuracy: Math.round((correctCount / TOTAL) * 100),
+    skipped: skippedCount,
+  });
+}
+
+// --- Results ---
+function showResults() {
+  resultsScreen.classList.add("active");
+
+  const pct = Math.round((correctCount / TOTAL) * 100);
+  const scoreBig = document.getElementById("final-score");
+  scoreBig.textContent = pct + "%";
+  scoreBig.classList.remove("great", "ok", "low");
+  if (pct >= 75) scoreBig.classList.add("great");
+  else if (pct >= 50) scoreBig.classList.add("ok");
+  else scoreBig.classList.add("low");
+
+  document.getElementById("score-label").textContent = `${correctCount} out of ${TOTAL} correct`;
+  document.getElementById("stat-correct").textContent = correctCount;
+  document.getElementById("stat-wrong").textContent = wrongCount - skippedCount;
+  document.getElementById("stat-skipped").textContent = skippedCount;
+
+  // Breakdown — now shows correct/incorrect with explanations
+  const bd = document.getElementById("breakdown");
+  bd.innerHTML = results.map(r => {
+    let icon, detail;
+    if (r.correct) {
+      icon = "\u2705"; detail = "Correct";
+    } else if (r.skipped) {
+      icon = "\u26d4"; detail = "Not submitted";
+    } else {
+      icon = "\u274c"; detail = "You said " + (r.chosen === "real" ? "Real" : "AI");
+    }
+    const label = r.category + (r.answer === "ai" ? " (AI)" : " (Real)");
+    return `<div class="breakdown-row"><span class="breakdown-icon">${icon}</span><span class="breakdown-label">${label}</span><span class="breakdown-answer">${detail}</span></div>`;
+  }).join("");
+
+  document.getElementById("submitted-msg").textContent = "Score submitted to PantherLearn";
+}
+
+// Prevent right-click / drag on images
+document.addEventListener("contextmenu", e => { if (e.target.tagName === "IMG") e.preventDefault(); });
+</script>
+</body>
+</html>

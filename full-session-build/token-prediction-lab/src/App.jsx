@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { ROUNDS, STAGE_INTROS } from "./data/sentences";
 import { reportScore } from "./lib/pantherlearn";
 import PredictionRound from "./components/PredictionRound";
@@ -87,13 +87,24 @@ export default function App() {
   const finalScore =
     totalMaxPoints > 0 ? Math.round((totalPoints / totalMaxPoints) * MAX_SCORE) : 0;
 
+  const [submitted, setSubmitted] = useState(false);
+
   const handleFinish = useCallback(() => {
+    if (submitted) return;
     reportScore(ACTIVITY_ID, finalScore, MAX_SCORE, {
       breakdown: scores,
       roundsCompleted: scores.length,
       totalRounds,
     });
-  }, [finalScore, scores, totalRounds]);
+    setSubmitted(true);
+  }, [submitted, finalScore, scores, totalRounds]);
+
+  // Auto-submit score when results screen appears
+  useEffect(() => {
+    if (screen === "results" && !submitted) {
+      handleFinish();
+    }
+  }, [screen, submitted, handleFinish]);
 
   return (
     <div

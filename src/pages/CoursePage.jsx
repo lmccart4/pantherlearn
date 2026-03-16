@@ -11,7 +11,7 @@ import { useTranslatedText, useTranslatedTexts } from "../hooks/useTranslatedTex
 
 export default function CoursePage() {
   const { courseId } = useParams();
-  const { user, userRole } = useAuth();
+  const { user, userRole, isTestStudent } = useAuth();
   const [course, setCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,8 +74,8 @@ export default function CoursePage() {
 
   // FIX #33: Memoize lesson grouping instead of recalculating in an IIFE on every render
   const visibleLessons = useMemo(() =>
-    lessons.filter((lesson) => isTeacher || lesson.visible !== false),
-    [lessons, isTeacher]
+    lessons.filter((lesson) => isTeacher || isTestStudent || lesson.visible !== false),
+    [lessons, isTeacher, isTestStudent]
   );
 
   const lessonGroups = useMemo(() => {
@@ -242,7 +242,11 @@ export default function CoursePage() {
                                 </div>
                                 {(() => {
                                   const effectiveDue = lesson.dueDate;
-                                  if (!effectiveDue) return null;
+                                  if (!effectiveDue) return (
+                                    <div className="cp-due-date cp-due-date--normal">
+                                      Due TBD
+                                    </div>
+                                  );
                                   const due = new Date(effectiveDue + "T23:59:59");
                                   const now = new Date();
                                   const isPastDue = due < now;

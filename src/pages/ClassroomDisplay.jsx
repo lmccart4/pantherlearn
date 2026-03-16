@@ -317,8 +317,10 @@ function injectStyles() {
     .cd-period-info {
       display: flex;
       align-items: center;
-      gap: 20px;
+      flex-wrap: nowrap;
+      gap: 16px;
       margin-bottom: 18px;
+      transform-origin: left center;
     }
 
     .cd-status-dot {
@@ -335,42 +337,43 @@ function injectStyles() {
 
     .cd-period-label {
       font-family: 'Syne', sans-serif;
-      font-size: 40px;
+      font-size: 32px;
       font-weight: 700;
       color: #f4efe6;
       letter-spacing: 0.5px;
+      flex-shrink: 0;
     }
 
     .cd-course-name {
       font-family: 'Syne', sans-serif;
-      font-size: 40px;
+      font-size: 32px;
       font-weight: 600;
       color: var(--cd-accent, #e8a838);
       transition: color 2s ease;
+      flex-shrink: 0;
     }
 
     .cd-inline-sep {
       color: #8a8580;
-      font-size: 34px;
+      font-size: 28px;
+      flex-shrink: 0;
     }
 
     .cd-inline-lesson {
       font-family: 'Newsreader', Georgia, serif;
-      font-size: 36px;
+      font-size: 28px;
       font-style: italic;
       color: #e0dbd2;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 600px;
     }
 
     .cd-time-left {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 28px;
+      font-size: 22px;
       color: #c8c3ba;
       margin-left: auto;
       font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
     }
 
     .cd-progress-track {
@@ -513,6 +516,26 @@ export default function ClassroomDisplay() {
   const [clock, setClock] = useState(new Date());
   const [contentKey, setContentKey] = useState(0);
   const prevPeriodRef = useRef(period.period);
+  const periodInfoRef = useRef(null);
+
+  // Auto-scale the period info bar so it never wraps to 2 lines
+  useEffect(() => {
+    const el = periodInfoRef.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.transform = "none";
+      requestAnimationFrame(() => {
+        if (el.scrollWidth > el.clientWidth) {
+          const scale = el.clientWidth / el.scrollWidth;
+          el.style.transform = `scaleX(${scale})`;
+        }
+      });
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
 
   useEffect(() => { injectStyles(); }, []);
 
@@ -622,7 +645,7 @@ export default function ClassroomDisplay() {
 
       {/* ── Period bar (with inline lesson title) ── */}
       <div className="cd-period-bar">
-        <div className="cd-period-info">
+        <div className="cd-period-info" ref={periodInfoRef}>
           <span
             className="cd-status-dot"
             data-active={period.status === "active"}

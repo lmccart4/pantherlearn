@@ -29,6 +29,13 @@ export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
   }, [block.id, observation, onAnswer]);
 
   const { markDirty, saveNow, lastSaved } = useAutoSave(performSave);
+  const [submitted, setSubmitted] = useState(!!data.submitted);
+
+  const handleSubmit = () => {
+    if (!observation.trim()) return;
+    onAnswer(block.id, { observation, submitted: true, savedAt: new Date().toISOString() });
+    setSubmitted(true);
+  };
 
   return (
     <div className="simulation-block">
@@ -64,11 +71,31 @@ export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
             onBlur={saveNow}
             placeholder="Write your observations here..."
           />
-          {lastSaved && (
-            <span style={{ fontSize: 11, color: "var(--text3)" }}>
-              Saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-            </span>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+            <button
+              onClick={handleSubmit}
+              disabled={!observation.trim()}
+              style={{
+                padding: "8px 20px",
+                borderRadius: 8,
+                border: "none",
+                background: submitted ? "var(--green, #22c55e)" : "var(--accent, #6366f1)",
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: observation.trim() ? "pointer" : "not-allowed",
+                opacity: observation.trim() ? 1 : 0.5,
+                transition: "all 0.15s",
+              }}
+            >
+              {submitted ? "Submitted" : "Submit Response"}
+            </button>
+            {lastSaved && (
+              <span style={{ fontSize: 11, color: "var(--text3)" }}>
+                Saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

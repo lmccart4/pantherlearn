@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics - Week 23 Lesson Plan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+            background: #0d0d0d;
+            color: #e3e3e3;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            border-bottom: 1px solid #2a2a2a;
+            padding-bottom: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .header-meta {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #8b8b8b;
+        }
+
+        .header-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-meta-label {
+            color: #5b5b5b;
+            font-weight: 500;
+        }
+
+        .reflection-box {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .reflection-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #7c8db5;
+            margin-bottom: 0.75rem;
+        }
+
+        .reflection-content {
+            color: #d4d4d8;
+            font-style: italic;
+            line-height: 1.7;
+        }
+
+        .lesson-section {
+            background: #151515;
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: all 0.2s ease;
+        }
+
+        .lesson-section:hover {
+            border-color: #3a3a3a;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .lesson-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #222;
+        }
+
+        .lesson-day {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .lesson-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.25rem;
+        }
+
+        .lesson-date {
+            font-size: 0.85rem;
+            color: #888;
+            font-weight: 500;
+        }
+
+        .standards-tag {
+            display: inline-block;
+            background: #1e293b;
+            color: #94a3b8;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid #334155;
+        }
+
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6b7280;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-label::before {
+            content: '';
+            width: 3px;
+            height: 12px;
+            background: #4f46e5;
+            border-radius: 2px;
+        }
+
+        .do-now-box, .exit-ticket-box {
+            background: #1a1a1a;
+            border-left: 3px solid #4f46e5;
+            padding: 1rem 1.25rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .exit-ticket-box {
+            border-left-color: #10b981;
+        }
+
+        .timeline {
+            margin-top: 1rem;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 8px;
+            width: 6px;
+            height: 6px;
+            background: #4f46e5;
+            border-radius: 50%;
+        }
+
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 16px;
+            width: 2px;
+            height: calc(100% + 0.5rem);
+            background: #2a2a2a;
+        }
+
+        .timeline-item:last-child::after {
+            display: none;
+        }
+
+        .timeline-time {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #7c3aed;
+            min-width: 60px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .timeline-content {
+            flex: 1;
+            color: #b4b4b4;
+        }
+
+        .timeline-content strong {
+            color: #e3e3e3;
+            font-weight: 500;
+        }
+
+        .resource-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #60a5fa;
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            padding: 0.5rem 0;
+            transition: color 0.2s ease;
+        }
+
+        .resource-link:hover {
+            color: #93c5fd;
+        }
+
+        .resource-link::before {
+            content: '\2192';
+            font-weight: bold;
+        }
+
+        .week-overview {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .week-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 1rem;
+        }
+
+        .week-summary {
+            color: #94a3b8;
+            line-height: 1.7;
+        }
+
+        .no-lesson {
+            color: #555;
+            font-style: italic;
+            padding: 1rem 0;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .header-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .lesson-header {
+                flex-direction: column;
+            }
+
+            .standards-tag {
+                margin-top: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Physics</h1>
+            <div class="header-meta">
+                <div class="header-meta-item">
+                    <span class="header-meta-label">Teacher:</span>
+                    <span>Mr. McCarthy</span>
+                </div>
+                <div class="header-meta-item">
+                    <span class="header-meta-label">Week:</span>
+                    <span>23 (March 9-13, 2026)</span>
+                </div>
+                <div class="header-meta-item">
+                    <span class="header-meta-label">Unit:</span>
+                    <span>Work &amp; Energy</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="week-overview">
+            <div class="week-title">Week at a Glance</div>
+            <div class="week-summary">
+                Students put their energy knowledge to the test with a gamified battleship review on Monday, answering questions about energy types, transfers, systems, and conservation to fire on enemy ships. The rest of the week builds toward elastic potential energy and the EPE = &frac12;kx&sup2; formula.
+            </div>
+        </div>
+
+        <!-- MONDAY -->
+        <div class="lesson-section">
+            <div class="lesson-header">
+                <div>
+                    <div class="lesson-day">Monday &bull; Lesson 1</div>
+                    <div class="lesson-title">Battleship: Energy Quiz</div>
+                    <div class="lesson-date">March 9, 2026</div>
+                </div>
+            </div>
+
+            <div class="section-label">Do Now</div>
+            <div class="do-now-box">
+                Students review the mission briefing for Operation Red Tide, a battleship-style game where physics knowledge serves as ammunition. They review the key concepts they'll be tested on: identifying energy types, recognizing transfers and transformations, defining systems, and applying conservation of energy reasoning.
+            </div>
+
+            <div class="section-label">Lesson Overview</div>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-time">0-2 min</div>
+                    <div class="timeline-content"><strong>Mission Briefing:</strong> Students read the rules and objectives for Operation Red Tide &mdash; correct answers let them fire on enemy ships, wrong answers mean a missed round</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-time">2-5 min</div>
+                    <div class="timeline-content"><strong>Review Objectives:</strong> Students review the four key areas being assessed &mdash; energy types, transfers, systems, and conservation of energy</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-time">5-35 min</div>
+                    <div class="timeline-content"><strong>Operation Red Tide:</strong> Students play the interactive Battleship: Energy Review game, answering energy questions to fire on enemy ships and sink the opposing fleet</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-time">35-40 min</div>
+                    <div class="timeline-content"><strong>Mission Debrief:</strong> Students reflect on which energy concepts gave them the most trouble and explain one question they got wrong using proper vocabulary</div>
+                </div>
+            </div>
+
+            <div class="section-label">Exit Ticket</div>
+            <div class="exit-ticket-box">
+                Students pick one question they answered incorrectly during the game and explain what the correct answer was and why, using vocabulary from earlier lessons (energy types, transfers, transformations, systems). They also preview the next topic: elastic potential energy and the EPE = &frac12;kx&sup2; formula.
+            </div>
+        </div>
+
+        <!-- TUESDAY -->
+        <div class="lesson-section">
+            <div class="lesson-header">
+                <div>
+                    <div class="lesson-day">Tuesday</div>
+                    <div class="lesson-title">&mdash;</div>
+                    <div class="lesson-date">March 10, 2026</div>
+                </div>
+            </div>
+            <p class="no-lesson">No lesson scheduled</p>
+        </div>
+
+        <!-- WEDNESDAY -->
+        <div class="lesson-section">
+            <div class="lesson-header">
+                <div>
+                    <div class="lesson-day">Wednesday</div>
+                    <div class="lesson-title">&mdash;</div>
+                    <div class="lesson-date">March 11, 2026</div>
+                </div>
+            </div>
+            <p class="no-lesson">No lesson scheduled</p>
+        </div>
+
+        <!-- THURSDAY -->
+        <div class="lesson-section">
+            <div class="lesson-header">
+                <div>
+                    <div class="lesson-day">Thursday</div>
+                    <div class="lesson-title">&mdash;</div>
+                    <div class="lesson-date">March 12, 2026</div>
+                </div>
+            </div>
+            <p class="no-lesson">No lesson scheduled</p>
+        </div>
+
+        <!-- FRIDAY -->
+        <div class="lesson-section">
+            <div class="lesson-header">
+                <div>
+                    <div class="lesson-day">Friday</div>
+                    <div class="lesson-title">&mdash;</div>
+                    <div class="lesson-date">March 13, 2026</div>
+                </div>
+            </div>
+            <p class="no-lesson">No lesson scheduled</p>
+        </div>
+
+    </div>
+</body>
+</html>

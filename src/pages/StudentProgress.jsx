@@ -5,6 +5,7 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
 import StreakDisplay from "../components/StreakDisplay";
+import { getWeightedOverall, CATEGORY_WEIGHTS, CATEGORY_LABELS, CATEGORY_COLORS, DEFAULT_CATEGORY } from "../lib/gradeCalc";
 
 const GRADE_TIERS = [
   { label: "Missing", value: 0, color: "var(--text3)", bg: "var(--surface2)" },
@@ -319,25 +320,28 @@ export default function StudentProgress() {
   };
 
   const getStudentOverall = (studentUid) => {
-    let totalEarned = 0, totalPossible = 0;
+    const lessonGrades = [];
     const lessonBreakdowns = [];
     const activityBreakdowns = [];
 
     lessons.forEach((lesson) => {
       const result = getStudentLessonGrade(studentUid, lesson.id);
       if (result) {
-        totalEarned += result.earned;
-        totalPossible += result.possible;
-        lessonBreakdowns.push({ lessonId: lesson.id, title: lesson.title, ...result });
+        lessonBreakdowns.push({ lessonId: lesson.id, title: lesson.title, category: lesson.gradeCategory || DEFAULT_CATEGORY, ...result });
+        lessonGrades.push({
+          percentage: result.grade,
+          category: lesson.gradeCategory || DEFAULT_CATEGORY,
+        });
       }
     });
 
-    // Include activity & weekly evidence grades
+    // Include activity & weekly evidence grades (always classwork)
+    const activityPercentages = [];
     const studentActivities = activityData[studentUid] || {};
     Object.entries(studentActivities).forEach(([actId, data]) => {
       if (data.activityScore !== null && data.activityScore !== undefined) {
-        totalEarned += data.activityScore;
-        totalPossible += 1;
+        const pct = Math.round(data.activityScore * 100);
+        activityPercentages.push({ percentage: pct });
         activityBreakdowns.push({
           activityId: actId,
           title: data.activityTitle || actId,
@@ -347,11 +351,11 @@ export default function StudentProgress() {
       }
     });
 
-    if (totalPossible === 0) return null;
+    const weighted = getWeightedOverall(lessonGrades, activityPercentages);
+    if (!weighted) return null;
     return {
-      grade: Math.round((totalEarned / totalPossible) * 100),
-      earned: Math.round(totalEarned * 100) / 100,
-      possible: totalPossible,
+      grade: weighted.overall,
+      categories: weighted.categories,
       lessonBreakdowns,
       activityBreakdowns,
     };
@@ -788,15 +792,39 @@ export default function StudentProgress() {
       breakdown = (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
-            <span>Total</span>
-            <span style={{ color: gradeColor(overall.grade) }}>{overall.earned} / {overall.possible} pts = {overall.grade}%</span>
+            <span>Weighted Overall</span>
+            <span style={{ color: gradeColor(overall.grade) }}>{overall.grade}%</span>
           </div>
+          {/* Category breakdown */}
+          {overall.categories && (
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
+              {["assessment", "classwork", "homework"].map((cat) => {
+                const c = overall.categories[cat];
+                if (!c || c.count === 0) return null;
+                return (
+                  <div key={cat} style={{ fontSize: 12 }}>
+                    <span style={{ fontWeight: 700, color: CATEGORY_COLORS[cat] }}>
+                      {CATEGORY_LABELS[cat]} ({Math.round(c.effectiveWeight * 100)}%)
+                    </span>
+                    {" "}
+                    <span style={{ color: gradeColor(c.avg) }}>{c.avg != null ? `${Math.round(c.avg)}%` : "—"}</span>
+                    <span style={{ color: "var(--text3)" }}> ({c.count})</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
           {overall.lessonBreakdowns.map((lb) => (
             <div key={lb.lessonId} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "4px 0" }}>
-              <span style={{ color: "var(--text2)", flex: 1 }}>{lb.title}</span>
+              <span style={{ color: "var(--text2)", flex: 1 }}>
+                {lb.title}
+                <span style={{ fontSize: 10, marginLeft: 6, color: CATEGORY_COLORS[lb.category], fontWeight: 600 }}>
+                  {CATEGORY_LABELS[lb.category]?.slice(0, 2).toUpperCase()}
+                </span>
+              </span>
               <span style={{ fontWeight: 600, color: gradeColor(lb.grade), marginLeft: 12 }}>
-                {lb.earned}/{lb.possible} ({lb.grade}%)
+                {lb.grade}%
               </span>
             </div>
           ))}

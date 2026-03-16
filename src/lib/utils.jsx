@@ -37,7 +37,8 @@ export function renderMarkdown(text) {
       const formatCell = (c) =>
         escapeHTML(c)
           .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-          .replace(/\*(.+?)\*/g, "<em>$1</em>");
+          .replace(/\*(.+?)\*/g, "<em>$1</em>")
+          .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
       let table = '<table class="md-table"><thead><tr>';
       headers.forEach((h) => { table += `<th>${formatCell(h)}</th>`; });
@@ -55,6 +56,7 @@ export function renderMarkdown(text) {
         escapeHTML(lines[i])
           .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
           .replace(/\*(.+?)\*/g, "<em>$1</em>")
+          .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
       );
       i++;
     }

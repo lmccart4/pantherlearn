@@ -83,7 +83,7 @@ async function syncCourse(courseId, classroomCourseId) {
 
   // 1. Get enrollments and match to Classroom students
   const enrollSnap = await db.collection("enrollments").where("courseId", "==", courseId).get();
-  const enrollments = enrollSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const enrollments = enrollSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((e) => !e.isTestStudent);
 
   const gcStudents = await gcListAll(`/courses/${classroomCourseId}/students`, "students");
 
@@ -170,12 +170,22 @@ async function syncCourse(courseId, classroomCourseId) {
       });
       return { uid, data };
     })),
-    Promise.allSettled(studentUids.map(async (uid) => {
-      const data = await loadFromAllSections(uid, "reflections", (merged, d) => {
-        if (!merged[d.id]) merged[d.id] = d.data();
-      });
-      return { uid, data };
-    })),
+    // Reflections live at courses/{courseId}/reflections/ (not under progress/)
+    (async () => {
+      const allRefs = {};
+      for (const cid of sectionCourseIds) {
+        const refSnap = await db.collection("courses").doc(cid).collection("reflections").get();
+        refSnap.docs.forEach((d) => {
+          const data = d.data();
+          if (!data.studentId || !data.lessonId) return;
+          if (!allRefs[data.studentId]) allRefs[data.studentId] = {};
+          if (!allRefs[data.studentId][data.lessonId]) {
+            allRefs[data.studentId][data.lessonId] = data;
+          }
+        });
+      }
+      return allRefs;
+    })(),
     Promise.allSettled(studentUids.map(async (uid) => {
       const data = await loadFromAllSections(uid, "activities", (merged, d) => {
         if (!merged[d.id] || (d.data().activityScore != null && merged[d.id].activityScore == null)) {
@@ -186,9 +196,9 @@ async function syncCourse(courseId, classroomCourseId) {
     })),
   ]);
 
-  const progress = {}, reflections = {}, activities = {};
+  const progress = {}, activities = {};
+  const reflections = reflectionResults; // already a { uid: { lessonId: data } } map
   progressResults.forEach((r) => { if (r.status === "fulfilled") progress[r.value.uid] = r.value.data; });
-  reflectionResults.forEach((r) => { if (r.status === "fulfilled") reflections[r.value.uid] = r.value.data; });
   activityResults.forEach((r) => { if (r.status === "fulfilled") activities[r.value.uid] = r.value.data; });
 
   // 4. Compute lesson grades: { lessonId: { uid: grade } }
@@ -208,6 +218,18 @@ async function syncCourse(courseId, classroomCourseId) {
       const completed = answers._completed || false;
       const reflection = reflections[uid]?.[lesson.id];
 
+      // Safety: if student completed the lesson but none of their answer IDs match
+      // current block IDs, the lesson was rebuilt with new IDs. Skip to avoid false 0s.
+      if (completed && Object.keys(answers).filter(k => k !== '_completed').length > 0) {
+        const questionIds = new Set([...mc, ...sa, ...embeds].map(q => q.id));
+        const answerIds = Object.keys(answers).filter(k => k !== '_completed');
+        const matched = answerIds.filter(id => questionIds.has(id)).length;
+        if (matched === 0) {
+          // All answers are orphaned — lesson was rebuilt, skip this student
+          continue;
+        }
+      }
+
       let earned = 0, possible = 0;
 
       // MC: always count toward possible (unanswered = wrong)
@@ -221,12 +243,14 @@ async function syncCourse(courseId, classroomCourseId) {
         if (a.writtenScore != null) earned += a.writtenScore;
       });
 
-      // Scored embeds: worth 5 points each (same weight as frontend grade calc)
+      // Scored embeds: dynamically weighted — embeds = 50% of grade in mixed lessons
+      const nonEmbedPts = mc.length + sa.length + ((completed && reflection) ? 1 : 0);
+      const embedPtsEach = (embeds.length > 0 && nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1;
       embeds.forEach((q) => {
         const a = answers[q.id];
         if (!a?.submitted) return; // student hasn't done it — don't penalize
-        possible += 5;
-        if (a.writtenScore != null) earned += a.writtenScore * 5;
+        possible += embedPtsEach;
+        if (a.writtenScore != null) earned += a.writtenScore * embedPtsEach;
       });
 
       if (completed && reflection) { possible++; if (reflection.valid) earned++; }
@@ -293,13 +317,21 @@ async function syncCourse(courseId, classroomCourseId) {
       if (!sub) continue;
       const oldGrade = sub.assignedGrade;
       if (oldGrade === grade) { unchanged++; stats.gradesUnchanged++; continue; }
+
+      // Safety: never overwrite a real grade with zero — almost always a data loading bug
+      const studentName = uidToName[uid] || gcIdToName[gcId] || uid.slice(0, 8);
+      if (grade === 0 && oldGrade != null && oldGrade > 0) {
+        console.log(`  ⚠️  BLOCKED: ${studentName} ${oldGrade} → 0 (refusing to zero out)`);
+        stats.gradesUnchanged++;
+        continue;
+      }
+
       try {
         await gcFetch(`/courses/${classroomCourseId}/courseWork/${cwId}/studentSubmissions/${sub.id}?updateMask=assignedGrade,draftGrade`, {
           method: "PATCH", body: JSON.stringify({ assignedGrade: grade, draftGrade: grade }),
         });
         pushed++;
         stats.gradesPushed++;
-        const studentName = uidToName[uid] || gcIdToName[gcId] || uid.slice(0, 8);
         changes.push({ name: studentName, oldGrade: oldGrade != null ? oldGrade : null, newGrade: grade });
       } catch (err) {
         console.error(`  Grade push failed (uid=${uid}): ${err.message}`);

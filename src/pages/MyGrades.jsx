@@ -5,6 +5,7 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getStudentEnrolledCourseIds } from "../lib/enrollment";
 import { getLevelInfo, getStudentGamification } from "../lib/gamification";
+import { getWeightedOverall, CATEGORY_WEIGHTS, CATEGORY_LABELS, CATEGORY_COLORS, DEFAULT_CATEGORY } from "../lib/gradeCalc";
 
 const WRITTEN_LABELS = {
   0: { label: "Missing", color: "var(--text3)" },
@@ -187,23 +188,23 @@ export default function MyGrades() {
   };
 
   const getOverall = () => {
-    let totalPoints = 0, earnedPoints = 0;
+    const lessonGrades = [];
     lessons.forEach((lesson) => {
       const result = getLessonGrade(lesson.id);
       if (result) {
-        totalPoints += result.totalPoints;
-        earnedPoints += result.earnedPoints;
+        lessonGrades.push({
+          percentage: result.grade,
+          category: lesson.gradeCategory || DEFAULT_CATEGORY,
+        });
       }
     });
-    // Include activity & weekly evidence grades (same logic as StudentProgress)
+    const activityGrades = [];
     Object.entries(activityData).forEach(([actId, data]) => {
       if (data.activityScore !== null && data.activityScore !== undefined) {
-        earnedPoints += data.activityScore;
-        totalPoints += 1;
+        activityGrades.push({ percentage: Math.round(data.activityScore * 100) });
       }
     });
-    if (totalPoints === 0) return null;
-    return { totalPoints, earnedPoints, grade: Math.round((earnedPoints / totalPoints) * 100) };
+    return getWeightedOverall(lessonGrades, activityGrades);
   };
 
   const getCompletionCount = () =>
@@ -313,8 +314,8 @@ export default function MyGrades() {
             <div className="mg-stats">
               <div className="card mg-stat">
                 <div className="mg-stat-icon">📊</div>
-                <div className="mg-stat-value" style={{ color: overall ? gradeColor(overall.grade) : "var(--text3)" }}>
-                  {overall ? `${overall.grade}%` : "—"}
+                <div className="mg-stat-value" style={{ color: overall ? gradeColor(overall.overall) : "var(--text3)" }}>
+                  {overall ? `${overall.overall}%` : "—"}
                 </div>
                 <div className="mg-stat-label">Overall Grade</div>
               </div>
@@ -343,6 +344,30 @@ export default function MyGrades() {
               )}
             </div>
 
+            {/* Category breakdown */}
+            {overall && (
+              <div className="card" style={{ padding: "12px 16px", marginBottom: 20, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+                {["assessment", "classwork", "homework"].map((cat) => {
+                  const c = overall.categories[cat];
+                  if (!c || c.count === 0) return null;
+                  return (
+                    <div key={cat} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
+                        color: CATEGORY_COLORS[cat],
+                      }}>
+                        {CATEGORY_LABELS[cat]} ({Math.round(c.effectiveWeight * 100)}%)
+                      </span>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: gradeColor(c.avg) }}>
+                        {c.avg != null ? `${Math.round(c.avg)}%` : "—"}
+                      </span>
+                      <span style={{ fontSize: 11, color: "var(--text3)" }}>({c.count})</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Lesson breakdown by unit */}
             {unitGroups.map((group) => (
               <div key={group.unit} className="mg-unit-group">
@@ -370,6 +395,13 @@ export default function MyGrades() {
                             <div className="mg-lesson-title-row">
                               {prog.completed && <span style={{ fontSize: 14 }}>✅</span>}
                               <div className="mg-lesson-title">{lesson.title}</div>
+                              <span style={{
+                                fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em",
+                                color: CATEGORY_COLORS[lesson.gradeCategory || DEFAULT_CATEGORY],
+                                opacity: 0.8, marginLeft: 6, whiteSpace: "nowrap",
+                              }}>
+                                {CATEGORY_LABELS[lesson.gradeCategory || DEFAULT_CATEGORY]}
+                              </span>
                             </div>
                             <div className="mg-lesson-meta">
                               {mc.length > 0 && (

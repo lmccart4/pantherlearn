@@ -365,7 +365,7 @@ STUDENT ANSWER: "${item.answer}"`;
   }
 
   const response = await claude.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 500,
     system: GRADING_SYSTEM_PROMPT + calibrationBlock,
     messages: [{ role: "user", content: userPrompt }],

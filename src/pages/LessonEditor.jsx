@@ -1,5 +1,5 @@
 // src/pages/LessonEditor.jsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy } from "firebase/firestore";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { db } from "../lib/firebase";
@@ -8,6 +8,11 @@ import { uid } from "../lib/utils";
 import { generateLessonBaselines } from "../lib/aiBaselines";
 import { fanOutNotification } from "../lib/notifications";
 import { generateQuestionSuggestion } from "../lib/aiQuestionGenerator";
+import useAutoSave from "../hooks/useAutoSave";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
+import { CSS } from "@dnd-kit/utilities";
 
 const BLOCK_TYPES = [
   { type: "section_header", label: "Section Header", icon: "📌" },
@@ -45,6 +50,13 @@ const BLOCK_TYPES = [
   { type: "ai_ethics_courtroom", label: "AI Ethics Courtroom", icon: "⚖️" },
   { type: "rocket_staging", label: "Rocket Staging", icon: "🚀" },
   { type: "momentum_mystery_lab", label: "Momentum Mystery Lab", icon: "🔭" },
+];
+
+const BLOCK_CATEGORIES = [
+  { label: "Content", types: ["section_header", "text", "video", "image", "definition", "callout", "objectives", "checklist", "activity", "vocab_list", "embed", "external_link"] },
+  { label: "Questions", types: ["question", "sorting"] },
+  { label: "Interactive", types: ["chatbot", "calculator", "data_table", "simulation", "evidence_upload", "bar_chart", "sketch", "guess_who", "chatbot_workshop", "bias_detective", "prompt_duel", "recipe_bot", "ai_training_sim", "data_labeling_lab", "ai_ethics_courtroom", "rocket_staging", "momentum_mystery_lab"] },
+  { label: "Layout", types: ["divider"] },
 ];
 
 function defaultBlockData(typeInfo) {
@@ -96,8 +108,32 @@ function defaultBlockData(typeInfo) {
   }
 }
 
-// --- Block editor forms ---
-function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown, isFirst, isLast }) {
+// --- Preview snippet for collapsed blocks ---
+function getBlockSnippet(block) {
+  const text = block.title || block.content || block.prompt || block.term || block.instructions || block.starterMessage || block.description || "";
+  const plain = text.replace(/\*\*/g, "").replace(/\*/g, "");
+  return plain.length > 50 ? plain.slice(0, 50) + "..." : plain;
+}
+
+// --- Block editor forms (sortable + collapsible) ---
+function SortableBlockEditor(props) {
+  const { block } = props;
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: "relative",
+    zIndex: isDragging ? 50 : "auto",
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      <BlockEditor {...props} dragAttributes={attributes} dragListeners={listeners} />
+    </div>
+  );
+}
+
+function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown, isFirst, isLast, isExpanded, onToggleExpand, dragAttributes, dragListeners }) {
   const update = (field, value) => onChange({ ...block, [field]: value });
 
   const renderFields = () => {
@@ -553,19 +589,39 @@ function BlockEditor({ block, onChange, onDelete, onDuplicate, onMoveUp, onMoveD
   };
 
   const typeLabel = BLOCK_TYPES.find((t) => t.type === block.type && (!t.questionType || t.questionType === block.questionType))?.label || block.type;
+  const snippet = getBlockSnippet(block);
 
   return (
     <div className="block-editor-card">
-      <div className="block-editor-header">
-        <span className="block-editor-type">{typeLabel}</span>
-        <div className="block-editor-actions">
+      <div className="block-editor-header" onClick={onToggleExpand} style={{ cursor: "pointer", userSelect: "none" }}>
+        {/* Drag handle */}
+        <button
+          className="editor-icon-btn block-drag-handle"
+          {...(dragAttributes || {})}
+          {...(dragListeners || {})}
+          onClick={(e) => e.stopPropagation()}
+          title="Drag to reorder"
+          style={{ cursor: "grab", marginRight: 6, touchAction: "none" }}
+        >
+          ⠿
+        </button>
+        <span className="block-editor-type" style={{ flex: 1 }}>
+          {typeLabel}
+          {!isExpanded && snippet && (
+            <span style={{ fontWeight: 400, color: "var(--text3)", textTransform: "none", letterSpacing: 0, marginLeft: 10, fontSize: 12 }}>
+              {snippet}
+            </span>
+          )}
+        </span>
+        <div className="block-editor-actions" onClick={(e) => e.stopPropagation()}>
           {!isFirst && <button className="editor-icon-btn" onClick={onMoveUp} title="Move up">↑</button>}
           {!isLast && <button className="editor-icon-btn" onClick={onMoveDown} title="Move down">↓</button>}
           <button className="editor-icon-btn" onClick={onDuplicate} title="Duplicate block">⧉</button>
           <button className="editor-icon-btn delete" onClick={onDelete} title="Delete block">🗑</button>
+          <span style={{ fontSize: 12, color: "var(--text3)", marginLeft: 4 }}>{isExpanded ? "▼" : "▶"}</span>
         </div>
       </div>
-      <div className="block-editor-body">{renderFields()}</div>
+      {isExpanded && <div className="block-editor-body">{renderFields()}</div>}
     </div>
   );
 }
@@ -584,15 +640,32 @@ function Field({ label, value, onChange, multiline, rows, placeholder, small }) 
   );
 }
 
-// --- Inline "+" button between blocks ---
+// --- Inline "+" button between blocks (with search + categories) ---
 function AddBlockInline({ onInsert }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    if (open && searchRef.current) searchRef.current.focus();
+  }, [open]);
+
+  const filteredCategories = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return BLOCK_CATEGORIES.map((cat) => ({
+      ...cat,
+      items: BLOCK_TYPES.filter(
+        (t) => cat.types.includes(t.type) && (!q || t.label.toLowerCase().includes(q))
+      ),
+    })).filter((cat) => cat.items.length > 0);
+  }, [search]);
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 0, margin: "2px 0" }}>
       <div style={{ flex: 1, height: 1, background: open ? "var(--amber)" : "transparent" }} />
       <div style={{ position: "relative" }}>
         <button
-          onClick={() => setOpen(!open)}
+          onClick={() => { setOpen(!open); setSearch(""); }}
           style={{
             width: 26, height: 26, borderRadius: "50%", border: "1px solid var(--border)",
             background: open ? "var(--amber)" : "var(--surface)", color: open ? "#1a1a1a" : "var(--text3)",
@@ -607,19 +680,78 @@ function AddBlockInline({ onInsert }) {
           <div style={{
             position: "absolute", top: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)",
             background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10,
-            boxShadow: "0 8px 30px rgba(0,0,0,0.4)", padding: 8, zIndex: 50, width: 220,
-            display: "flex", flexWrap: "wrap", gap: 4,
+            boxShadow: "0 8px 30px rgba(0,0,0,0.4)", padding: 8, zIndex: 50, width: 280,
+            maxHeight: 360, overflowY: "auto",
           }}>
-            {BLOCK_TYPES.map((t, i) => (
-              <button key={i} className="btn btn-secondary" style={{ fontSize: 11, padding: "4px 8px", flex: "0 0 auto" }}
-                onClick={() => { onInsert(t); setOpen(false); }}>
-                {t.icon} {t.label}
-              </button>
+            <input
+              ref={searchRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search blocks..."
+              className="editor-input"
+              style={{ fontSize: 12, padding: "6px 10px", marginBottom: 6, width: "100%", boxSizing: "border-box" }}
+            />
+            {filteredCategories.map((cat) => (
+              <div key={cat.label}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "6px 4px 2px", marginTop: 2 }}>
+                  {cat.label}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {cat.items.map((t, i) => (
+                    <button key={`${t.type}-${t.questionType || ""}-${i}`} className="btn btn-secondary" style={{ fontSize: 11, padding: "4px 8px", flex: "0 0 auto" }}
+                      onClick={() => { onInsert(t); setOpen(false); setSearch(""); }}>
+                      {t.icon} {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
+            {filteredCategories.length === 0 && (
+              <p style={{ fontSize: 12, color: "var(--text3)", textAlign: "center", padding: 12 }}>No blocks match "{search}"</p>
+            )}
           </div>
         )}
       </div>
       <div style={{ flex: 1, height: 1, background: open ? "var(--amber)" : "transparent" }} />
+    </div>
+  );
+}
+
+// --- Sortable lesson item for sidebar drag-and-drop ---
+function SortableLessonItem({ lesson, isSelected, onSelect }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lesson.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : "auto",
+  };
+  const isHidden = lesson.visible === false;
+  const isPastDue = lesson.dueDate && new Date(lesson.dueDate + "T23:59:59") < new Date();
+  const blockCount = lesson.blocks?.length || 0;
+
+  return (
+    <div ref={setNodeRef} style={style} className={`sidebar-lesson-item${isSelected ? " active" : ""}${isHidden ? " hidden-lesson" : ""}`}>
+      <div className="sidebar-drag-handle" {...attributes} {...listeners} title="Drag to reorder">
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
+          <circle cx="2" cy="2" r="1.2"/><circle cx="6" cy="2" r="1.2"/>
+          <circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/>
+          <circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/>
+        </svg>
+      </div>
+      <button className="sidebar-lesson-btn" onClick={onSelect}>
+        <span className="sidebar-lesson-title">{lesson.title || "Untitled"}</span>
+        <span className="sidebar-lesson-meta">
+          {isHidden && <span className="sidebar-tag hidden-tag">Hidden</span>}
+          {blockCount > 0 && <span className="sidebar-tag">{blockCount} blocks</span>}
+          {lesson.dueDate && (
+            <span className={`sidebar-tag${isPastDue ? " past-due" : ""}`}>
+              {new Date(lesson.dueDate + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            </span>
+          )}
+        </span>
+      </button>
     </div>
   );
 }
@@ -638,6 +770,7 @@ export default function LessonEditor() {
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonUnit, setLessonUnit] = useState("");
   const [lessonDueDate, setLessonDueDate] = useState("");
+  const [lessonGradeCategory, setLessonGradeCategory] = useState("classwork");
   const [lessonVisible, setLessonVisible] = useState(true);
   const [prevVisible, setPrevVisible] = useState(null); // track saved visibility for notification
   const [lessonOrder, setLessonOrder] = useState(null);
@@ -651,6 +784,14 @@ export default function LessonEditor() {
   const [aiSuggestion, setAiSuggestion] = useState(null); // { block, rationale }
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [lessonSearch, setLessonSearch] = useState("");
+  const [expandedBlockId, setExpandedBlockId] = useState(null); // accordion: only one block expanded
+
+  // dnd-kit sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
 
   // Fetch courses (owned or co-teaching)
   useEffect(() => {
@@ -699,6 +840,7 @@ export default function LessonEditor() {
     setLessonTitle(lesson.title || "");
     setLessonUnit(lesson.unit || "");
     setLessonDueDate(lesson.dueDate || "");
+    setLessonGradeCategory(lesson.gradeCategory || "classwork");
     setLessonVisible(lesson.visible !== false);
     setPrevVisible(lesson.visible !== false);
     setLessonOrder(lesson.order ?? null);
@@ -711,6 +853,7 @@ export default function LessonEditor() {
     setLessonTitle("New Lesson");
     setLessonUnit("");
     setLessonDueDate("");
+    setLessonGradeCategory("classwork");
     setLessonVisible(true);
     setPrevVisible(null); // new lesson, no prior state
     setLessonOrder(null); // will be set to lessons.length on save
@@ -744,65 +887,132 @@ export default function LessonEditor() {
     const b = [...blocks]; const t = b[index]; b[index] = b[index + dir]; b[index + dir] = t; setBlocks(b); setSaved(false);
   };
 
+  // Drag-and-drop reorder handler
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = blocks.findIndex((b) => b.id === active.id);
+    const newIndex = blocks.findIndex((b) => b.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    setBlocks(arrayMove(blocks, oldIndex, newIndex));
+    setSaved(false);
+  };
+
   // FIX #36: Shared helper — refreshes the lesson list from Firestore
   const refreshLessons = async () => {
     const snapshot = await getDocs(query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc")));
     setLessons(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
 
-  // Save lesson
+  // Refs for auto-save (so the save callback always reads latest state)
+  const blocksRef = useRef(blocks);
+  const lessonTitleRef = useRef(lessonTitle);
+  const lessonUnitRef = useRef(lessonUnit);
+  const lessonDueDateRef = useRef(lessonDueDate);
+  const lessonGradeCategoryRef = useRef(lessonGradeCategory);
+  const lessonVisibleRef = useRef(lessonVisible);
+  const selectedCourseRef = useRef(selectedCourse);
+  const selectedLessonRef = useRef(selectedLesson);
+  const prevVisibleRef = useRef(prevVisible);
+  const coursesRef = useRef(courses);
+  const lessonsRef = useRef(lessons);
+
+  useEffect(() => { blocksRef.current = blocks; }, [blocks]);
+  useEffect(() => { lessonTitleRef.current = lessonTitle; }, [lessonTitle]);
+  useEffect(() => { lessonUnitRef.current = lessonUnit; }, [lessonUnit]);
+  useEffect(() => { lessonDueDateRef.current = lessonDueDate; }, [lessonDueDate]);
+  useEffect(() => { lessonGradeCategoryRef.current = lessonGradeCategory; }, [lessonGradeCategory]);
+  useEffect(() => { lessonVisibleRef.current = lessonVisible; }, [lessonVisible]);
+  useEffect(() => { selectedCourseRef.current = selectedCourse; }, [selectedCourse]);
+  useEffect(() => { selectedLessonRef.current = selectedLesson; }, [selectedLesson]);
+  useEffect(() => { prevVisibleRef.current = prevVisible; }, [prevVisible]);
+  useEffect(() => { coursesRef.current = courses; }, [courses]);
+  useEffect(() => { lessonsRef.current = lessons; }, [lessons]);
+
+  // Core save logic, usable by both manual save button and auto-save
+  const performSave = useCallback(async () => {
+    const sc = selectedCourseRef.current;
+    const sl = selectedLessonRef.current;
+    if (!sc || !sl) return;
+    const isNew = sl.startsWith("new-");
+    const curBlocks = blocksRef.current;
+    const curTitle = lessonTitleRef.current;
+    const curUnit = lessonUnitRef.current;
+    const curDueDate = lessonDueDateRef.current;
+    const curGradeCategory = lessonGradeCategoryRef.current;
+    const curVisible = lessonVisibleRef.current;
+    const curPrevVisible = prevVisibleRef.current;
+
+    const lessonId = isNew ? uid() : sl;
+    const lessonRef = doc(db, "courses", sc, "lessons", lessonId);
+    const data = {
+      title: curTitle,
+      unit: curUnit,
+      dueDate: curDueDate || null,
+      gradeCategory: curGradeCategory || "classwork",
+      visible: curVisible,
+      blocks: curBlocks,
+      updatedAt: new Date(),
+    };
+    if (isNew) {
+      data.order = lessonsRef.current.length;
+    }
+    await setDoc(lessonRef, data, { merge: true });
+    if (isNew) setSelectedLesson(lessonId);
+    setSaved(true);
+
+    // Refresh sidebar silently
+    try {
+      const snapshot = await getDocs(query(collection(db, "courses", sc, "lessons"), orderBy("order", "asc")));
+      setLessons(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (_) {}
+
+    // Notify students when a lesson becomes visible (hidden->visible)
+    if (curVisible && curPrevVisible === false) {
+      try {
+        const courseName = coursesRef.current.find((c) => c.id === sc)?.title || "Course";
+        await fanOutNotification(sc, {
+          type: "new_lesson",
+          title: `New lesson: ${curTitle || "Untitled"}`,
+          body: `A new lesson is available in ${courseName}`,
+          icon: "📘",
+          link: `/course/${sc}/lesson/${lessonId}`,
+        });
+      } catch (notifErr) {
+        console.warn("Could not send new-lesson notification:", notifErr);
+      }
+    }
+    setPrevVisible(curVisible);
+
+    // Generate AI baselines for short-answer questions (runs in background)
+    const hasWrittenQuestions = curBlocks.some(
+      (b) => b.type === "question" && b.questionType === "short_answer" && b.prompt && (!b.aiBaselines || b.aiBaselines.length === 0)
+    );
+    if (hasWrittenQuestions) {
+      generateLessonBaselines(sc, lessonId, curBlocks, getToken)
+        .then((updatedBlocks) => {
+          if (updatedBlocks !== curBlocks) setBlocks(updatedBlocks);
+        })
+        .catch((err) => console.warn("Baseline generation failed (non-critical):", err));
+    }
+  }, [getToken]);
+
+  // Auto-save hook (15s delay for teacher edits)
+  const { markDirty, saveNow: autoSaveNow, lastSaved: autoLastSaved, saving: autoSaving, saveError: autoSaveError } = useAutoSave(performSave, { delay: 15000 });
+
+  // Mark dirty whenever saved becomes false (any edit)
+  useEffect(() => {
+    if (!saved && selectedLesson) {
+      markDirty();
+    }
+  }, [saved, selectedLesson, markDirty]);
+
+  // Save lesson (manual button — calls performSave directly)
   const save = async () => {
     if (!selectedCourse || !selectedLesson) return;
     setSaving(true);
-    const isNew = selectedLesson.startsWith("new-");
     try {
-      const lessonId = isNew ? uid() : selectedLesson;
-      const lessonRef = doc(db, "courses", selectedCourse, "lessons", lessonId);
-      const data = {
-        title: lessonTitle,
-        unit: lessonUnit,
-        dueDate: lessonDueDate || null,
-        visible: lessonVisible,
-        blocks,
-        updatedAt: new Date(),
-      };
-      // Only set order for new lessons (append to end); existing lessons keep their order
-      if (isNew) {
-        data.order = lessons.length;
-      }
-      await setDoc(lessonRef, data, { merge: true });
-      if (isNew) setSelectedLesson(lessonId);
-      setSaved(true);
-      await refreshLessons();
-
-      // Notify students when a lesson becomes visible (hidden→visible)
-      if (lessonVisible && prevVisible === false) {
-        try {
-          const courseName = courses.find((c) => c.id === selectedCourse)?.title || "Course";
-          await fanOutNotification(selectedCourse, {
-            type: "new_lesson",
-            title: `📘 New lesson: ${lessonTitle || "Untitled"}`,
-            body: `A new lesson is available in ${courseName}`,
-            icon: "📘",
-            link: `/course/${selectedCourse}/lesson/${isNew ? lessonId : selectedLesson}`,
-          });
-        } catch (notifErr) {
-          console.warn("Could not send new-lesson notification:", notifErr);
-        }
-      }
-      setPrevVisible(lessonVisible);
-
-      // Generate AI baselines for short-answer questions (runs in background)
-      const hasWrittenQuestions = blocks.some(
-        (b) => b.type === "question" && b.questionType === "short_answer" && b.prompt && (!b.aiBaselines || b.aiBaselines.length === 0)
-      );
-      if (hasWrittenQuestions) {
-        generateLessonBaselines(selectedCourse, lessonId, blocks, getToken)
-          .then((updatedBlocks) => {
-            if (updatedBlocks !== blocks) setBlocks(updatedBlocks);
-          })
-          .catch((err) => console.warn("Baseline generation failed (non-critical):", err));
-      }
+      await performSave();
     } catch (err) {
       console.error("Save failed:", err);
       alert("Failed to save. Check the console for details.");
@@ -847,6 +1057,7 @@ export default function LessonEditor() {
         importedBlocks = parsed.blocks;
         if (parsed.title && !lessonTitle) setLessonTitle(parsed.title);
         if (parsed.unit && !lessonUnit) setLessonUnit(parsed.unit);
+        if (parsed.gradeCategory) setLessonGradeCategory(parsed.gradeCategory);
       } else {
         alert("Invalid format. Paste a JSON array of blocks, or an object with a \"blocks\" array.");
         return;
@@ -883,6 +1094,7 @@ export default function LessonEditor() {
         title: lessonTitle,
         unit: lessonUnit,
         dueDate: null, // don't copy due date — different class may have different schedule
+        gradeCategory: lessonGradeCategory || "classwork",
         visible: false, // start hidden so teacher can review before publishing
         blocks: freshBlocks,
         order: targetLessonsSnap.size,
@@ -898,37 +1110,25 @@ export default function LessonEditor() {
     setDuplicating(false);
   };
 
-  // Swap lesson order in sidebar and persist to Firestore
-  const swapLessonOrder = async (indexA, indexB) => {
-    const a = lessons[indexA];
-    const b = lessons[indexB];
-    if (!a || !b) return;
+  // Drag-and-drop lesson reorder handler (sidebar)
+  const handleLessonDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = lessons.findIndex((l) => l.id === active.id);
+    const newIndex = lessons.findIndex((l) => l.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    // Optimistic local reorder
+    const reordered = arrayMove(lessons, oldIndex, newIndex);
+    setLessons(reordered);
+    // Persist sequential order values to Firestore
     try {
-      // Build the new order: swap the two lessons in the array
-      const reordered = [...lessons];
-      reordered[indexA] = b;
-      reordered[indexB] = a;
-
-      // Assign clean sequential order values to ALL lessons
-      const updates = [];
-      for (let i = 0; i < reordered.length; i++) {
-        if (reordered[i].order !== i) {
-          updates.push(
-            setDoc(doc(db, "courses", selectedCourse, "lessons", reordered[i].id), { order: i }, { merge: true })
-          );
-        }
-      }
-      // Always update the two swapped lessons (in case they had the same order value)
-      if (!updates.length) {
-        await setDoc(doc(db, "courses", selectedCourse, "lessons", a.id), { order: indexB }, { merge: true });
-        await setDoc(doc(db, "courses", selectedCourse, "lessons", b.id), { order: indexA }, { merge: true });
-      } else {
-        await Promise.all(updates);
-      }
-
-      await refreshLessons();
+      const updates = reordered.map((l, i) =>
+        l.order !== i ? setDoc(doc(db, "courses", selectedCourse, "lessons", l.id), { order: i }, { merge: true }) : null
+      ).filter(Boolean);
+      if (updates.length) await Promise.all(updates);
     } catch (err) {
       console.error("Reorder failed:", err);
+      await refreshLessons(); // revert on failure
     }
   };
 
@@ -939,10 +1139,12 @@ export default function LessonEditor() {
 
   // FIX #37: Group lessons by unit for sidebar display (memoized)
   const groupedLessons = useMemo(() => {
+    const q = lessonSearch.toLowerCase().trim();
+    const filtered = q ? lessons.filter((l) => l.title?.toLowerCase().includes(q)) : lessons;
     const groups = [];
     let currentUnit = null;
     let currentGroup = null;
-    for (const lesson of lessons) {
+    for (const lesson of filtered) {
       const unit = lesson.unit || "";
       if (unit !== currentUnit) {
         currentUnit = unit;
@@ -952,7 +1154,7 @@ export default function LessonEditor() {
       currentGroup.lessons.push(lesson);
     }
     return groups;
-  }, [lessons]);
+  }, [lessons, lessonSearch]);
 
   if (userRole !== "teacher") {
     return (
@@ -965,97 +1167,92 @@ export default function LessonEditor() {
   return (
     <main id="main-content" className="page-container" style={{ display: "flex", height: "calc(100vh - 62px)" }}>
       {/* Left sidebar: course/lesson picker */}
-      <div style={{
-        width: 260, borderRight: "1px solid var(--border)", padding: 20,
-        overflowY: "auto", background: "var(--surface)", flexShrink: 0,
-      }}>
-        <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, marginBottom: 16 }}>Courses</h3>
-        {loading ? <div className="spinner" /> : courses.length === 0 ? (
-          <p style={{ color: "var(--text3)", fontSize: 13 }}>No courses yet. Create one in Firestore to get started.</p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {courses.map((c) => (
-              <button key={c.id} className={`top-nav-link ${selectedCourse === c.id ? "active" : ""}`}
-                style={{ textAlign: "left" }} onClick={() => { setSelectedCourse(c.id); setSelectedLesson(null); }}>
-                {c.icon || "📚"} {c.title}
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="editor-sidebar">
+        {/* Course selector */}
+        <div className="sidebar-section">
+          <label className="sidebar-label">Course</label>
+          {loading ? <div className="spinner" /> : (
+            <select
+              className="sidebar-course-select"
+              value={selectedCourse || ""}
+              onChange={(e) => { setSelectedCourse(e.target.value || null); setSelectedLesson(null); setLessonSearch(""); }}
+            >
+              <option value="">Select a course...</option>
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>{c.icon || "📚"} {c.title}</option>
+              ))}
+            </select>
+          )}
+        </div>
 
         {selectedCourse && (
           <>
-            <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, marginTop: 28, marginBottom: 12 }}>Lessons</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {groupedLessons.map((group) => {
-                const hasUnit = group.unit.trim() !== "";
-                const isCollapsed = hasUnit && collapsedUnits[group.unit];
+            {/* Lesson search + count */}
+            <div className="sidebar-section" style={{ paddingBottom: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <label className="sidebar-label" style={{ margin: 0 }}>Lessons</label>
+                <span style={{ fontSize: 11, color: "var(--text3)" }}>{lessons.length} total</span>
+              </div>
+              <input
+                type="text"
+                className="sidebar-search"
+                placeholder="Search lessons..."
+                value={lessonSearch}
+                onChange={(e) => setLessonSearch(e.target.value)}
+              />
+            </div>
 
-                return (
-                  <div key={group.unit || "__no_unit__"}>
-                    {/* Unit header — only show if lessons have a unit */}
-                    {hasUnit && (
-                      <button
-                        onClick={() => toggleUnit(group.unit)}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 6, width: "100%",
-                          padding: "6px 8px", marginTop: 8, marginBottom: 2,
-                          background: "none", border: "none", cursor: "pointer",
-                          fontSize: 11, fontWeight: 700, color: "var(--amber)",
-                          textTransform: "uppercase", letterSpacing: "0.06em",
-                          textAlign: "left",
-                        }}
-                      >
-                        <span style={{
-                          transition: "transform 0.15s",
-                          transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
-                          display: "inline-block", fontSize: 10,
-                        }}>▼</span>
-                        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {group.unit}
-                        </span>
-                        <span style={{ color: "var(--text3)", fontWeight: 400, fontSize: 10 }}>
-                          {group.lessons.length}
-                        </span>
-                      </button>
-                    )}
+            {/* Lesson list with drag-and-drop */}
+            <div className="sidebar-lessons-list">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                modifiers={[restrictToVerticalAxis]}
+                onDragEnd={handleLessonDragEnd}
+              >
+                {groupedLessons.map((group) => {
+                  const hasUnit = group.unit.trim() !== "";
+                  const isCollapsed = hasUnit && collapsedUnits[group.unit];
 
-                    {/* Lessons in this unit */}
-                    {!isCollapsed && group.lessons.map((l) => {
-                      const globalIndex = lessons.indexOf(l);
-                      const isPastDue = l.dueDate && new Date(l.dueDate + "T23:59:59") < new Date();
-                      const isHidden = l.visible === false;
-                      return (
-                        <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 2, paddingLeft: hasUnit ? 12 : 0, opacity: isHidden ? 0.5 : 1 }}>
-                          <button className={`top-nav-link ${selectedLesson === l.id ? "active" : ""}`}
-                            style={{ textAlign: "left", fontSize: 12, flex: 1 }} onClick={() => loadLesson(l)}>
-                            <span>{isHidden ? "🙈 " : ""}{l.title}</span>
-                            {l.dueDate && (
-                              <span style={{
-                                display: "block", fontSize: 10, marginTop: 1,
-                                color: isPastDue ? "var(--red)" : "var(--text3)",
-                              }}>
-                                {`Due ${new Date(l.dueDate + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
-                              </span>
-                            )}
-                          </button>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                            {globalIndex > 0 && (
-                              <button className="editor-icon-btn" style={{ fontSize: 9, padding: "0 3px", lineHeight: 1 }}
-                                title="Move up" onClick={() => swapLessonOrder(globalIndex, globalIndex - 1)}>▲</button>
-                            )}
-                            {globalIndex < lessons.length - 1 && (
-                              <button className="editor-icon-btn" style={{ fontSize: 9, padding: "0 3px", lineHeight: 1 }}
-                                title="Move down" onClick={() => swapLessonOrder(globalIndex, globalIndex + 1)}>▼</button>
-                            )}
+                  return (
+                    <div key={group.unit || "__no_unit__"} className="sidebar-unit-group">
+                      {hasUnit && (
+                        <button className="sidebar-unit-header" onClick={() => toggleUnit(group.unit)}>
+                          <span className={`sidebar-unit-chevron${isCollapsed ? " collapsed" : ""}`}>▾</span>
+                          <span className="sidebar-unit-name">{group.unit}</span>
+                          <span className="sidebar-unit-count">{group.lessons.length}</span>
+                        </button>
+                      )}
+
+                      {!isCollapsed && (
+                        <SortableContext items={group.lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+                          <div style={{ paddingLeft: hasUnit ? 8 : 0 }}>
+                            {group.lessons.map((l) => (
+                              <SortableLessonItem
+                                key={l.id}
+                                lesson={l}
+                                isSelected={selectedLesson === l.id}
+                                onSelect={() => loadLesson(l)}
+                              />
+                            ))}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-              <button className="editor-add-btn" style={{ marginTop: 8 }} onClick={createNewLesson}>
+                        </SortableContext>
+                      )}
+                    </div>
+                  );
+                })}
+              </DndContext>
+
+              {groupedLessons.length === 0 && lessonSearch && (
+                <p style={{ fontSize: 12, color: "var(--text3)", textAlign: "center", padding: "16px 0" }}>
+                  No lessons match "{lessonSearch}"
+                </p>
+              )}
+            </div>
+
+            {/* New lesson button */}
+            <div className="sidebar-footer">
+              <button className="sidebar-new-lesson-btn" onClick={createNewLesson}>
                 + New Lesson
               </button>
             </div>
@@ -1088,13 +1285,29 @@ export default function LessonEditor() {
                 <input type="date" className="editor-input" value={lessonDueDate} onChange={(e) => { setLessonDueDate(e.target.value); setSaved(false); }}
                   style={{ width: 150, border: "1.5px solid var(--amber)" }} />
               </div>
+              <div>
+                <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Grade Category</label>
+                <select className="editor-input" value={lessonGradeCategory}
+                  onChange={(e) => { setLessonGradeCategory(e.target.value); setSaved(false); }}
+                  style={{ width: 170, border: "1.5px solid var(--amber)" }}>
+                  <option value="classwork">Classwork (30%)</option>
+                  <option value="assessment">Assessment (65%)</option>
+                  <option value="homework">Homework (5%)</option>
+                </select>
+              </div>
             </div>
 
             {/* Actions — row 2 */}
             <div style={{ marginBottom: 32, display: "flex", gap: 10, alignItems: "center" }}>
-              <button className="btn btn-primary" onClick={save} disabled={saving}>
-                {saving ? "Saving..." : saved ? "✓ Saved" : "Save Lesson"}
+              <button className="btn btn-primary" onClick={save} disabled={saving || autoSaving}>
+                {saving || autoSaving ? "Saving..." : saved ? "Saved" : "Save Lesson"}
               </button>
+              {/* Auto-save status */}
+              <span style={{ fontSize: 12, color: autoSaveError ? "var(--red)" : "var(--text3)" }}>
+                {autoSaveError ? "Save failed" : autoSaving ? "Auto-saving..." : autoLastSaved
+                  ? `Auto-saved ${autoLastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+                  : ""}
+              </span>
               <button
                 className="btn btn-secondary"
                 onClick={() => { setLessonVisible(!lessonVisible); setSaved(false); }}
@@ -1171,24 +1384,31 @@ export default function LessonEditor() {
               )}
             </div>
 
-            {/* Blocks with inline inserters */}
+            {/* Blocks with inline inserters + drag-and-drop */}
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <AddBlockInline onInsert={(t) => insertBlockAt(t, 0)} />
-              {blocks.map((block, i) => (
-                <div key={block.id}>
-                  <BlockEditor block={block}
-                    onChange={(data) => updateBlock(i, data)}
-                    onDelete={() => deleteBlock(i)}
-                    onDuplicate={() => duplicateBlock(i)}
-                    onMoveUp={() => moveBlock(i, -1)}
-                    onMoveDown={() => moveBlock(i, 1)}
-                    isFirst={i === 0} isLast={i === blocks.length - 1} />
-                  <AddBlockInline onInsert={(t) => insertBlockAt(t, i + 1)} />
-                </div>
-              ))}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis, restrictToParentElement]}>
+                <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+                  {blocks.map((block, i) => (
+                    <div key={block.id}>
+                      <SortableBlockEditor
+                        block={block}
+                        onChange={(data) => updateBlock(i, data)}
+                        onDelete={() => deleteBlock(i)}
+                        onDuplicate={() => duplicateBlock(i)}
+                        onMoveUp={() => moveBlock(i, -1)}
+                        onMoveDown={() => moveBlock(i, 1)}
+                        isFirst={i === 0}
+                        isLast={i === blocks.length - 1}
+                        isExpanded={expandedBlockId === block.id}
+                        onToggleExpand={() => setExpandedBlockId(expandedBlockId === block.id ? null : block.id)}
+                      />
+                      <AddBlockInline onInsert={(t) => insertBlockAt(t, i + 1)} />
+                    </div>
+                  ))}
+                </SortableContext>
+              </DndContext>
             </div>
-
-            {/* Add block */}
           </>
         )}
       </div>

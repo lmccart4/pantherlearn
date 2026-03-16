@@ -1,0 +1,210 @@
+// Seed script: "Real or AI?" Quiz for AI Literacy
+// Creates a PantherLearn lesson with 24 image + MC question pairs
+// Each image is followed by "Is this image real or AI-generated?"
+
+const path = require("path");
+const os = require("os");
+const fs = require("fs");
+const admin = require("firebase-admin");
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
+
+if (!admin.apps.length) {
+  const saPath = path.join(__dirname, "..", "serviceAccountKey.json");
+  if (fs.existsSync(saPath)) admin.initializeApp({ credential: admin.credential.cert(require(saPath)) });
+  else admin.initializeApp({ projectId: "pantherlearn-d6f7c" });
+}
+const db = admin.firestore();
+
+const IMG_BASE = "/images/ai-literacy/quiz-real-vs-ai";
+
+// Quiz items — shuffled for maximum confusion
+// Each has: image filename, correct answer, category label, difficulty
+const QUIZ_ITEMS = [
+  // AI-generated images
+  { file: "quiz-ai-concert-selfie.png", answer: "AI-Generated", category: "Selfie", difficulty: "hard" },
+  { file: "quiz-ai-students-library.png", answer: "AI-Generated", category: "Candid Photo", difficulty: "hard" },
+  { file: "quiz-ai-freckle-portrait.png", answer: "AI-Generated", category: "Portrait", difficulty: "hard" },
+  { file: "quiz-ai-pizza-box.png", answer: "AI-Generated", category: "Food", difficulty: "hard" },
+  { file: "quiz-ai-foggy-trail.png", answer: "AI-Generated", category: "Landscape", difficulty: "medium" },
+  { file: "quiz-ai-town-hall.png", answer: "AI-Generated", category: "News Photo", difficulty: "hard" },
+  { file: "quiz-ai-wet-dog.png", answer: "AI-Generated", category: "Animal", difficulty: "medium" },
+  { file: "quiz-ai-bus-stop.png", answer: "AI-Generated", category: "Street Photo", difficulty: "hard" },
+  { file: "quiz-ai-oil-seascape.png", answer: "AI-Generated", category: "Oil Painting", difficulty: "medium" },
+  { file: "quiz-ai-watercolor-cafe.png", answer: "AI-Generated", category: "Watercolor", difficulty: "medium" },
+  { file: "quiz-ai-pencil-hand-flower.png", answer: "AI-Generated", category: "Pencil Sketch", difficulty: "hard" },
+  { file: "quiz-ai-cyberpunk-city.png", answer: "AI-Generated", category: "Digital Art", difficulty: "medium" },
+
+  // Real images
+  { file: "quiz-real-teen-selfie.jpg", answer: "Real", category: "Selfie", difficulty: "medium" },
+  { file: "quiz-real-students-classroom.jpg", answer: "Real", category: "Candid Photo", difficulty: "medium" },
+  { file: "quiz-real-portrait-natural.jpg", answer: "Real", category: "Portrait", difficulty: "hard" },
+  { file: "quiz-real-burger-fries.jpg", answer: "Real", category: "Food", difficulty: "hard" },
+  { file: "quiz-real-foggy-mountain.jpg", answer: "Real", category: "Landscape", difficulty: "medium" },
+  { file: "quiz-real-protest-crowd.jpg", answer: "Real", category: "News Photo", difficulty: "medium" },
+  { file: "quiz-real-dog-beach.jpg", answer: "Real", category: "Animal", difficulty: "medium" },
+  { file: "quiz-real-park-bench.jpg", answer: "Real", category: "Street Photo", difficulty: "medium" },
+  { file: "quiz-real-oil-seascape.jpg", answer: "Real", category: "Oil Painting", difficulty: "hard" },
+  { file: "quiz-real-watercolor-scene.jpg", answer: "Real", category: "Watercolor", difficulty: "hard" },
+  { file: "quiz-real-pencil-sketch.jpg", answer: "Real", category: "Pencil Sketch", difficulty: "medium" },
+  { file: "quiz-real-modern-art.jpg", answer: "Real", category: "Digital Art", difficulty: "hard" },
+];
+
+// Deterministic shuffle — interleave categories so same type isn't back-to-back
+function shuffleQuiz(items) {
+  // Group by category
+  const categories = {};
+  for (const item of items) {
+    if (!categories[item.category]) categories[item.category] = [];
+    categories[item.category].push(item);
+  }
+
+  // Shuffle within each category
+  for (const cat of Object.values(categories)) {
+    for (let i = cat.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [cat[i], cat[j]] = [cat[j], cat[i]];
+    }
+  }
+
+  // Interleave: take one from each category in rotation
+  const catKeys = Object.keys(categories);
+  // Shuffle category order too
+  for (let i = catKeys.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [catKeys[i], catKeys[j]] = [catKeys[j], catKeys[i]];
+  }
+
+  const result = [];
+  let round = 0;
+  while (result.length < items.length) {
+    for (const key of catKeys) {
+      if (categories[key][round]) {
+        result.push(categories[key][round]);
+      }
+    }
+    round++;
+  }
+  return result;
+}
+
+function generateId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+async function main() {
+  const shuffled = shuffleQuiz(QUIZ_ITEMS);
+  const blocks = [];
+
+  // Title block
+  blocks.push({
+    id: generateId(),
+    type: "text",
+    content: "# Real or AI-Generated?\n\nLook at each image carefully. For each one, decide: **is it a real image or was it generated by AI?**\n\nThis quiz covers photographs, paintings, sketches, and digital art. Some of the AI images were created by Google's Nano Banana 2 model. Some of the real images come from professional photographers and world-famous museums.\n\n**Good luck. You're going to need it.**",
+  });
+
+  // Build image + question pairs
+  for (let i = 0; i < shuffled.length; i++) {
+    const item = shuffled[i];
+    const imgId = generateId();
+    const qId = generateId();
+
+    // Image block
+    blocks.push({
+      id: imgId,
+      type: "image",
+      url: `${IMG_BASE}/${item.file}`,
+      alt: `Quiz image ${i + 1} — ${item.category}`,
+      caption: `Image ${i + 1} of ${shuffled.length}`,
+    });
+
+    // MC question — "Real" or "AI-Generated"
+    // Correct answer index: 0 = Real, 1 = AI-Generated
+    const correctIndex = item.answer === "Real" ? 0 : 1;
+    blocks.push({
+      id: qId,
+      type: "question",
+      questionType: "multiple_choice",
+      prompt: `**Image ${i + 1}:** Is this image real or AI-generated?`,
+      options: ["Real", "AI-Generated"],
+      correctAnswer: correctIndex,
+      explanation: item.answer === "AI-Generated"
+        ? `This ${item.category.toLowerCase()} was **AI-generated** using Google's Nano Banana 2 model. ${getDifficultyNote(item)}`
+        : `This is a **real** ${item.category.toLowerCase()}. ${getRealNote(item)}`,
+    });
+  }
+
+  // Closing text
+  blocks.push({
+    id: generateId(),
+    type: "text",
+    content: "## How Did You Do?\n\nIf you found this quiz difficult, that's the point. AI image generation has gotten incredibly good — even experts struggle to tell the difference now.\n\n**Key takeaway:** You can no longer trust that an image is real just because it \"looks real.\" In the age of AI, visual literacy means questioning everything you see.",
+  });
+
+  const lesson = {
+    title: "Real or AI? The Ultimate Image Quiz",
+    description: "Can you tell the difference between real images and AI-generated ones? Test your visual literacy across photographs, paintings, sketches, and digital art.",
+    visible: false,
+    order: 999,
+    blocks,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    tags: ["quiz", "ai-generated", "visual-literacy"],
+  };
+
+  // Seed to all 3 AI Literacy courses
+  const courseIds = [
+    "DacjJ93vUDcwqc260OP3", // AI Literacy Period 1
+    "M2MVSXrKuVCD9JQfZZyp", // AI Literacy Period 2
+    "fUw67wFhAtobWFhjwvZ5", // AI Literacy Period 3
+  ];
+
+  const lessonId = "real-vs-ai-quiz";
+
+  for (const courseId of courseIds) {
+    const result = await safeLessonWrite(db, courseId, lessonId, lesson);
+    console.log(`${courseId.slice(0, 8)}: ${result.action} (preserved ${result.preserved} block IDs)`);
+  }
+
+  console.log(`\nLesson seeded: "${lesson.title}"`);
+  console.log(`Lesson ID: ${lessonId}`);
+  console.log(`Images: ${shuffled.length} (${shuffled.filter(i => i.answer === "AI-Generated").length} AI + ${shuffled.filter(i => i.answer === "Real").length} real)`);
+  console.log(`Visible: false (set to true when ready)`);
+}
+
+function getDifficultyNote(item) {
+  const notes = {
+    "Selfie": "Notice the slightly too-perfect skin texture and lighting consistency across the crowd.",
+    "Candid Photo": "The details look authentic — notebooks, energy drinks, phone — but the overall composition is too clean for a candid shot.",
+    "Portrait": "AI has mastered faces. Look for subtle symmetry and skin texture that's slightly too uniform.",
+    "Food": "AI now handles messy, imperfect scenes. The grease stains and crumpled napkins were all generated.",
+    "Landscape": "Nature scenes are among the hardest to distinguish. This fog and moss are entirely synthetic.",
+    "News Photo": "AI can generate convincing crowd scenes. The text on the banner is a potential giveaway — zoom in on any text.",
+    "Animal": "Water physics and fur detail are remarkably accurate in modern AI models.",
+    "Street Photo": "The emotional storytelling and environmental details make this feel authentically captured.",
+    "Oil Painting": "AI can now replicate brushstroke texture, paint thickness, and even the frame.",
+    "Watercolor": "The paint bleeds, white paper showing through, and loose wash technique are all AI-generated.",
+    "Pencil Sketch": "AI has overcome its old weakness with hands. This sketch shows convincing cross-hatching and graphite smudging.",
+    "Digital Art": "Digital art is the hardest category — there's no physical medium to verify.",
+  };
+  return notes[item.category] || "";
+}
+
+function getRealNote(item) {
+  const notes = {
+    "Selfie": "Real selfies often have that slightly awkward angle and natural imperfections that AI tends to smooth out.",
+    "Candid Photo": "The natural imperfections — uneven lighting, genuine expressions — are signs of a real photograph.",
+    "Portrait": "This is a real portrait by photographer Ike louie Natividad. The skin detail and imperfections are genuine.",
+    "Food": "Professional food photography can look almost too perfect, which is why many students mistake real food photos for AI.",
+    "Landscape": "This is a real photograph. The irregular rock textures and natural fog patterns would be hard for AI to replicate perfectly.",
+    "News Photo": "Real protest photos have readable, specific text on signs — AI often generates plausible but nonsensical text.",
+    "Animal": "Real action shots of animals have authentic motion blur and unpredictable positioning.",
+    "Street Photo": "This is a real photograph by Matheus Bertelli. The natural light falloff and environmental context are genuine.",
+    "Oil Painting": "This is \"A Storm off the Normandy Coast\" by Eugène Isabey, housed in the Metropolitan Museum of Art.",
+    "Watercolor": "This is \"Camouflaged Field in France\" by John Singer Sargent — a real watercolor from the Met Museum collection.",
+    "Pencil Sketch": "This is a chalk portrait by Peter Paul Rubens from the 1600s, held in the Metropolitan Museum of Art.",
+    "Digital Art": "This is a real 3D render by a digital artist. Human-created digital art and AI art are nearly indistinguishable.",
+  };
+  return notes[item.category] || "";
+}
+
+main().then(() => process.exit(0)).catch(err => { console.error(err); process.exit(1); });

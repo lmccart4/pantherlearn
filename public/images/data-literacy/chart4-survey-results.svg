@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="400" rx="12" fill="url(#bg4)"/>
+
+  <!-- Vague title -->
+  <text x="300" y="40" text-anchor="middle" fill="#f1f5f9" font-size="20" font-weight="700">Survey Results</text>
+
+  <!-- 3D-style exploding pie chart — deliberately garish and confusing -->
+  <!-- Main ellipse to simulate 3D perspective -->
+  <g transform="translate(300, 220)">
+    <!-- Shadow/3D effect -->
+    <ellipse cx="5" cy="20" rx="140" ry="85" fill="#0f172a" opacity="0.5"/>
+
+    <!-- Slices — pulled apart ("exploding"), tilted perspective via ellipse-like shapes -->
+    <!-- No labels, no percentages on chart itself -->
+
+    <!-- Slice 1 — hot pink -->
+    <path d="M-8,-8 L-8,-105 A135,80 0 0,1 52,-92 Z" fill="#ff1493" stroke="#0f172a" stroke-width="2"/>
+    <!-- 3D side -->
+    <path d="M52,-92 L57,-72 L-3,12 L-8,-8 Z" fill="#cc1076" stroke="#0f172a" stroke-width="1"/>
+
+    <!-- Slice 2 — neon green -->
+    <path d="M12,-6 L66,-86 A135,80 0 0,1 130,-15 Z" fill="#39ff14" stroke="#0f172a" stroke-width="2"/>
+    <path d="M130,-15 L135,5 L17,14 L12,-6 Z" fill="#2ecc0f" stroke="#0f172a" stroke-width="1"/>
+
+    <!-- Slice 3 — electric blue -->
+    <path d="M10,4 L136,-5 A135,80 0 0,1 95,62 Z" fill="#00bfff" stroke="#0f172a" stroke-width="2"/>
+    <path d="M95,62 L100,82 L15,24 L10,4 Z" fill="#009ad6" stroke="#0f172a" stroke-width="1"/>
+
+    <!-- Slice 4 — orange -->
+    <path d="M5,8 L98,68 A135,80 0 0,1 20,80 Z" fill="#ff6b00" stroke="#0f172a" stroke-width="2"/>
+    <path d="M20,80 L25,100 L10,28 L5,8 Z" fill="#cc5500" stroke="#0f172a" stroke-width="1"/>
+
+    <!-- Slice 5 — yellow -->
+    <path d="M-2,8 L18,82 A135,80 0 0,1 -55,72 Z" fill="#ffe600" stroke="#0f172a" stroke-width="2"/>
+    <path d="M-55,72 L-50,92 L3,28 L-2,8 Z" fill="#ccb800" stroke="#0f172a" stroke-width="1"/>
+
+    <!-- Slice 6 — magenta -->
+    <path d="M-6,6 L-60,74 A135,80 0 0,1 -120,38 Z" fill="#ff00ff" stroke="#0f172a" stroke-width="2"/>
+    <path d="M-120,38 L-115,58 L-1,26 L-6,6 Z" fill="#cc00cc" stroke="#0f172a" stroke-width="1"/>
+
+    <!-- Slice 7 — red -->
+    <path d="M-8,2 L-124,34 A135,80 0 0,1 -132,-10 Z" fill="#ff3333" stroke="#0f172a" stroke-width="2"/>
+    <path d="M-132,-10 L-127,10 L-3,22 L-8,2 Z" fill="#cc2929" stroke="#0f172a" stroke-width="1"/>
+
+    <!-- Slice 8 — teal -->
+    <path d="M-6,-2 L-134,-14 A135,80 0 0,1 -110,-52 Z" fill="#00cec9" stroke="#0f172a" stroke-width="2"/>
+
+    <!-- Slice 9 — coral -->
+    <path d="M-6,-5 L-112,-55 A135,80 0 0,1 -70,-78 Z" fill="#ff7675" stroke="#0f172a" stroke-width="2"/>
+
+    <!-- Slice 10 — lavender -->
+    <path d="M-6,-7 L-72,-80 A135,80 0 0,1 -10,-100 Z" fill="#a29bfe" stroke="#0f172a" stroke-width="2"/>
+  </g>
+
+  <!-- No source, no labels, no percentages — deliberately terrible -->
+  <!-- Just vague color blobs with no context -->
+
+  <!-- Tiny unhelpful legend with just colors, no numbers -->
+  <circle cx="430" cy="340" r="5" fill="#ff1493"/>
+  <circle cx="450" cy="340" r="5" fill="#39ff14"/>
+  <circle cx="470" cy="340" r="5" fill="#00bfff"/>
+  <circle cx="490" cy="340" r="5" fill="#ff6b00"/>
+  <circle cx="510" cy="340" r="5" fill="#ffe600"/>
+  <circle cx="530" cy="340" r="5" fill="#ff00ff"/>
+  <circle cx="550" cy="340" r="5" fill="#ff3333"/>
+
+  <text x="490" y="365" text-anchor="middle" fill="#475569" font-size="9" font-style="italic">* colors may vary by device</text>
+</svg>

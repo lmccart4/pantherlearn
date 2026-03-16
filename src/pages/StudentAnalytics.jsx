@@ -92,7 +92,7 @@ export default function StudentAnalytics() {
         const seen = new Set();
         enrollSnap.forEach((d) => {
           const data = d.data();
-          if (data.courseId !== selectedCourse) return;
+          if (data.courseId !== selectedCourse || data.isTestStudent) return;
           const userMatch = data.uid ? usersMap[data.uid] : usersMap[data.email?.toLowerCase()];
           const uid = userMatch?.uid || data.uid;
           if (!uid || seen.has(uid)) return;

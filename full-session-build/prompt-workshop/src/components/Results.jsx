@@ -90,13 +90,13 @@ export default function Results({ scores, finalScore, maxScore, onFinish }) {
       </div>
 
       <div style={{ textAlign: "center" }}>
-        <button onClick={onFinish} style={{
-          background: "linear-gradient(135deg, #059669, #34d399)", color: "#fff", border: "none",
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: "8px",
+          background: "var(--border)", color: "var(--muted)",
           padding: "14px 36px", borderRadius: "10px", fontSize: "15px", fontWeight: 700,
-          boxShadow: "0 4px 20px rgba(52,211,153,0.3)",
         }}>
-          ✓ Submit Score
-        </button>
+          ✓ Score Submitted
+        </div>
         <p style={{ color: "var(--muted)", fontSize: "11px", marginTop: "12px" }}>Your score has been sent to PantherLearn</p>
       </div>
     </div>

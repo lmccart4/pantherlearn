@@ -18,9 +18,17 @@ const AuthContext = createContext(null);
 const STUDENT_OVERRIDES = (import.meta.env.VITE_STUDENT_OVERRIDES || "")
   .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 
+// Test student accounts — non-paps.net emails that can log in as students
+// They see invisible lessons, but are hidden from rosters/leaderboards/grading
+const TEST_STUDENT_EMAILS = (import.meta.env.VITE_TEST_STUDENT_EMAILS || "")
+  .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+
 function getRoleFromEmail(email) {
   if (!email) return null;
   const lower = email.toLowerCase();
+
+  // Test students bypass the @paps.net requirement
+  if (TEST_STUDENT_EMAILS.includes(lower)) return "student";
 
   if (!lower.endsWith("@paps.net")) return null;
 
@@ -33,9 +41,14 @@ function getRoleFromEmail(email) {
   return digitCount >= 3 ? "student" : "teacher";
 }
 
+function isTestStudentEmail(email) {
+  return TEST_STUDENT_EMAILS.includes((email || "").toLowerCase());
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [isTestStudent, setIsTestStudent] = useState(false);
   const [nickname, setNickname] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
@@ -45,13 +58,15 @@ export function AuthProvider({ children }) {
       if (firebaseUser) {
         const email = firebaseUser.email;
         const role = getRoleFromEmail(email);
+        const testStudent = isTestStudentEmail(email);
 
-        // Block non-paps.net emails
+        // Block non-paps.net emails (unless test student)
         if (!role) {
           setAuthError("Access restricted to @paps.net accounts only.");
           await logOut();
           setUser(null);
           setUserRole(null);
+          setIsTestStudent(false);
           setNickname(null);
           setLoading(false);
           return;
@@ -60,9 +75,10 @@ export function AuthProvider({ children }) {
         setAuthError(null);
         setUser(firebaseUser);
         setUserRole(role);
+        setIsTestStudent(testStudent);
 
         // Sync user profile in Firestore (create or update)
-        const userNickname = await syncUserProfile(firebaseUser, role);
+        const userNickname = await syncUserProfile(firebaseUser, role, testStudent);
         setNickname(userNickname);
 
         // Auto-link enrollment records for students
@@ -72,6 +88,7 @@ export function AuthProvider({ children }) {
       } else {
         setUser(null);
         setUserRole(null);
+        setIsTestStudent(false);
         setNickname(null);
       }
       setLoading(false);
@@ -90,7 +107,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userRole, nickname, updateNickname, loading, getToken, authError }}>
+    <AuthContext.Provider value={{ user, userRole, isTestStudent, nickname, updateNickname, loading, getToken, authError }}>
       {children}
     </AuthContext.Provider>
   );

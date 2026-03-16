@@ -2,19 +2,33 @@
 import { useEffect } from "react";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 
-export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, studentData }) {
+export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, studentData, isTestStudent }) {
   const translatedCaption = useTranslatedText(block.caption);
   const height = block.height || 400;
   const data = studentData?.[block.id] || {};
 
-  // Listen for activityScore messages from embedded iframes
+  // Listen for messages from embedded iframes (scores + auth token requests)
   useEffect(() => {
-    if (!onAnswer) return;
-
-    const handleMessage = (event) => {
+    const handleMessage = async (event) => {
       const msg = event.data;
-      if (!msg || msg.type !== "activityScore") return;
-      if (msg.score == null) return;
+      if (!msg) return;
+
+      // Handle auth token requests from embedded activities
+      if (msg.type === "requestAuthToken") {
+        if (user?.getIdToken) {
+          try {
+            const token = await user.getIdToken();
+            event.source?.postMessage({ type: "authToken", token }, "*");
+          } catch (err) {
+            console.warn("[EmbedBlock] Failed to get auth token:", err);
+          }
+        }
+        return;
+      }
+
+      // Handle activity score submissions
+      if (msg.type !== "activityScore") return;
+      if (msg.score == null || !onAnswer) return;
 
       const maxScore = msg.maxScore || 100;
       const newWrittenScore = Math.min(msg.score / maxScore, 1);
@@ -36,7 +50,7 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [onAnswer, block.id]);
+  }, [onAnswer, block.id, studentData, user]);
 
   if (!block.url) return null;
 
@@ -52,6 +66,7 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
       courseId,
       ...(lessonId && { lessonId }),
       ...(block.id && { blockId: block.id }),
+      ...(isTestStudent && { testStudent: "true" }),
     });
     url = `${url}${sep}${params.toString()}`;
   }

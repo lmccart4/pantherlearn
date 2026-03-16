@@ -16,7 +16,7 @@ import { TelemetryProvider } from "../contexts/TelemetryContext";
 
 export default function LessonViewer() {
   const { courseId, lessonId } = useParams();
-  const { user, userRole, getToken } = useAuth();
+  const { user, userRole, isTestStudent, getToken } = useAuth();
   const { isPreview } = usePreview();
   const isStudent = userRole === "student";
   const { seconds: engagementSeconds } = useEngagementTimer(
@@ -313,6 +313,7 @@ export default function LessonViewer() {
         extraProps.user = user;
         extraProps.onAnswer = handleAnswer;
         extraProps.studentData = studentData;
+        extraProps.isTestStudent = isTestStudent;
       }
       if (block.type === "rocket_staging") {
         extraProps.studentData = studentData;
@@ -326,6 +327,9 @@ export default function LessonViewer() {
       if (block.type === "momentum_mystery_lab") {
         extraProps.courseId = courseId;
         extraProps.lessonId = lessonId;
+      }
+      if (block.type === "score_tally") {
+        extraProps.studentData = studentData;
       }
       return { block, extraProps };
     });
@@ -428,6 +432,24 @@ export default function LessonViewer() {
             }} data-translatable>
               {translatedTitle}
             </h1>
+            {(() => {
+              const d = lesson.dueDate;
+              const label = d
+                ? `Due ${new Date(d + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+                : "Due TBD";
+              const now = new Date();
+              const isPastDue = d && new Date(d + "T23:59:59") < now;
+              const isToday = d === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+              const color = isPastDue ? "var(--red)" : isToday ? "var(--amber)" : "var(--text3)";
+              return (
+                <div style={{
+                  marginTop: 10, fontSize: 13, fontWeight: 500, color,
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                }}>
+                  {isPastDue ? "⚠️ " : isToday ? "📌 " : ""}{label}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Blocks */}

@@ -771,8 +771,9 @@ export async function getLeaderboard(courseId, limit = 50) {
       const uid = d.id;
       const userData = usersMap[uid];
 
-      // Exclude teachers
+      // Exclude teachers and test students
       if (userData?.role === "teacher") return;
+      if (userData?.isTestStudent) return;
 
       entries.push({
         uid,

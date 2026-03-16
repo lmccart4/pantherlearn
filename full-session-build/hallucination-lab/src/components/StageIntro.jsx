@@ -1,7 +1,7 @@
 // src/components/StageIntro.jsx
 import React from "react";
 
-export default function StageIntro({ stage, stageNum, onStart }) {
+export default function StageIntro({ stage, stageNum, totalStages, onStart }) {
   if (!stage) return null;
 
   return (

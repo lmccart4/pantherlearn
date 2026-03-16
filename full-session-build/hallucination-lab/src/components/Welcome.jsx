@@ -12,8 +12,8 @@ export default function Welcome({ onStart }) {
         <p style={{ color: "var(--text-dim)", fontSize: "16px", lineHeight: 1.7, marginBottom: "24px" }}>
           AI chatbots sound confident — but they don't always tell the truth.
           <br /><br />
-          In this activity, you'll ask an AI chatbot questions about real topics.
-          The catch? <strong style={{ color: "var(--danger)" }}>Some of its answers will contain false information</strong> — 
+          In this activity, you'll read AI-generated responses about real topics.
+          The catch? <strong style={{ color: "var(--danger)" }}>Some sentences contain false information</strong> —
           invented facts, wrong dates, fake studies, and made-up details that sound completely real.
           <br /><br />
           Your job: <strong style={{ color: "var(--accent)" }}>find the lies</strong>.
@@ -21,7 +21,7 @@ export default function Welcome({ onStart }) {
 
         <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginBottom: "32px", flexWrap: "wrap" }}>
           {[
-            { icon: "💬", label: "Chat", desc: "Ask the AI a question" },
+            { icon: "👀", label: "Read", desc: "See the AI's response" },
             { icon: "🔍", label: "Investigate", desc: "Highlight suspicious claims" },
             { icon: "🏷️", label: "Classify", desc: "What type of hallucination?" },
           ].map((item) => (
@@ -49,7 +49,7 @@ export default function Welcome({ onStart }) {
           🕵️ Start Investigating
         </button>
         <p style={{ color: "var(--muted)", fontSize: "12px", marginTop: "20px" }}>
-          5 scenarios • ~25 minutes • 100 points possible
+          6 scenarios • ~25 minutes • 100 points possible
         </p>
       </div>
     </div>

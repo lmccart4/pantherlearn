@@ -36,6 +36,13 @@ export default function EvidenceUploadBlock({ block, studentData = {}, onAnswer 
   }, [block.id, images, reflection, onAnswer]);
 
   const { markDirty, saveNow, lastSaved } = useAutoSave(performSave);
+  const [submitted, setSubmitted] = useState(!!data.submitted);
+
+  const handleSubmit = () => {
+    if (!reflection.trim() && images.length === 0) return;
+    onAnswer(block.id, { images, reflection, submitted: true, savedAt: new Date().toISOString() });
+    setSubmitted(true);
+  };
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files || []);
@@ -139,11 +146,31 @@ export default function EvidenceUploadBlock({ block, studentData = {}, onAnswer 
         </div>
       )}
 
-      {lastSaved && (
-        <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 6 }}>
-          Saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-        </div>
-      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+        <button
+          onClick={handleSubmit}
+          disabled={!reflection.trim() && images.length === 0}
+          style={{
+            padding: "8px 20px",
+            borderRadius: 8,
+            border: "none",
+            background: submitted ? "var(--green, #22c55e)" : "var(--accent, #6366f1)",
+            color: "#fff",
+            fontWeight: 600,
+            fontSize: 14,
+            cursor: (reflection.trim() || images.length > 0) ? "pointer" : "not-allowed",
+            opacity: (reflection.trim() || images.length > 0) ? 1 : 0.5,
+            transition: "all 0.15s",
+          }}
+        >
+          {submitted ? "Submitted" : "Submit Response"}
+        </button>
+        {lastSaved && (
+          <span style={{ fontSize: 11, color: "var(--text3)" }}>
+            Saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
