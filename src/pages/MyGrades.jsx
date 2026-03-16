@@ -1,6 +1,6 @@
 // src/pages/MyGrades.jsx
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, where, doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, getDocsFromServer, query, orderBy, where, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getStudentEnrolledCourseIds } from "../lib/enrollment";
@@ -15,7 +15,7 @@ const WRITTEN_LABELS = {
 };
 
 export default function MyGrades() {
-  const { user } = useAuth();
+  const { user, isTestStudent } = useAuth();
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
@@ -36,7 +36,7 @@ export default function MyGrades() {
         const snap = await getDocs(q);
         const enrolled = snap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((c) => !c.hidden && enrolledIds.has(c.id));
+          .filter((c) => !c.hidden && (isTestStudent || enrolledIds.has(c.id)));
         setCourses(enrolled);
         if (enrolled.length > 0) setSelectedCourse(enrolled[0].id);
       } catch (err) {
@@ -54,12 +54,12 @@ export default function MyGrades() {
       setDataLoading(true);
       try {
         // Lessons (visible only)
-        const lessonsSnap = await getDocs(
+        const lessonsSnap = await getDocsFromServer(
           query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc"))
         );
         const lessonsList = lessonsSnap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((l) => l.visible !== false);
+          .filter((l) => isTestStudent || l.visible !== false);
         setLessons(lessonsList);
 
         // Progress for each lesson
@@ -142,7 +142,10 @@ export default function MyGrades() {
     const embeds = getEmbedBlocks(lesson);
     const hasReflection = lessonHasReflection(lessonId);
 
-    let totalPoints = mc.length + sa.length + embeds.length * 5 + (hasReflection ? 1 : 0);
+    // Embed weighting: embeds = 50% of grade in mixed lessons, 100% in embed-only
+    const nonEmbedPts = mc.length + sa.length + (hasReflection ? 1 : 0);
+    const embedPtsEach = (embeds.length > 0 && nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1;
+    let totalPoints = nonEmbedPts + embeds.length * embedPtsEach;
     if (totalPoints === 0) return null;
 
     let earnedPoints = 0;
@@ -160,11 +163,11 @@ export default function MyGrades() {
       }
     });
 
-    // Scored embeds: writtenScore (0 to 1) scaled to 5 points per embed
+    // Scored embeds: dynamically weighted
     embeds.forEach((q) => {
       const a = answers[q.id];
       if (a?.writtenScore != null) {
-        earnedPoints += a.writtenScore * 5;
+        earnedPoints += a.writtenScore * embedPtsEach;
       }
     });
 
@@ -177,6 +180,7 @@ export default function MyGrades() {
     return {
       earnedPoints,
       totalPoints,
+      embedPtsEach,
       grade: Math.round((earnedPoints / totalPoints) * 100),
       mc, sa, embeds, hasReflection,
     };
@@ -416,7 +420,7 @@ export default function MyGrades() {
                         </div>
 
                         {/* Detail breakdown for lessons with content */}
-                        {result && (mc.length > 0 || sa.length > 0) && (
+                        {result && (mc.length > 0 || sa.length > 0 || embeds.length > 0) && (
                           <div className="mg-breakdown">
                             <div className="mg-indicators">
                               {/* MC dots */}
@@ -488,6 +492,25 @@ export default function MyGrades() {
                                         </span>
                                       )
                                     )}
+                                  </div>
+                                );
+                              })}
+                              {/* Embed / activity score indicators */}
+                              {embeds.map((q, i) => {
+                                const a = answers[q.id];
+                                const hasScore = a?.writtenScore != null;
+                                const pct = hasScore ? Math.round(a.writtenScore * 100) : null;
+                                return (
+                                  <div
+                                    key={q.id}
+                                    title={`Activity${embeds.length > 1 ? ` ${i + 1}` : ""}: ${hasScore ? `${pct}%` : a?.submitted ? "Pending" : "Not started"}`}
+                                    className="mg-written-pill"
+                                    style={{
+                                      background: hasScore ? "rgba(99,102,241,0.12)" : a?.submitted ? "rgba(245,166,35,0.1)" : "var(--surface2)",
+                                      color: hasScore ? (pct >= 70 ? "var(--green)" : pct >= 40 ? "var(--amber)" : "var(--red)") : a?.submitted ? "var(--amber)" : "var(--text3)",
+                                    }}
+                                  >
+                                    🎮{hasScore ? ` ${pct}%` : a?.submitted ? " ⏳" : ""}
                                   </div>
                                 );
                               })}

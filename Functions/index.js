@@ -1,4 +1,4 @@
-const { onRequest } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
@@ -65,23 +65,31 @@ const GRADING_SYSTEM_PROMPT = `You are an expert grading assistant for a high sc
 
 | writtenScore | writtenLabel | Meaning |
 |-------------|-------------|---------|
-| 0 | "Missing" | No submission, completely off-task, nonsensical, or academic dishonesty |
-| 0.55 | "Emerging" | Attempted but surface-level, no real understanding demonstrated |
-| 0.65 | "Approaching" | Some understanding but incomplete, vague, or has significant gaps |
-| 0.85 | "Developing" | Solid, demonstrates real comprehension of the material |
-| 1.0 | "Refining" | Exceptional — shows deep internalization, original connections, goes beyond baseline understanding |
+| 0 | "Missing" | No submission, complete nonsense, or blank. Reserve this ONLY for total non-attempts. |
+| 0.55 | "Emerging" | Some attempt was made but it pretty much misses the point entirely. The student tried but the response shows little to no understanding of what was asked. |
+| 0.65 | "Approaching" | The response misses the mark by a fair amount. There are significant gaps or misunderstandings, but you can see the student was genuinely trying to engage with the question. |
+| 0.85 | "Developing" | A pretty good, complete attempt. The student demonstrates understanding and made a real effort. It may not be perfect but it's a solid response that shows they get it. |
+| 1.0 | "Refining" | A good, full-fledged response. The student clearly understands the material and gives a complete, thoughtful answer. This is NOT reserved for exceptional or mind-blowing responses — a solid, complete answer that addresses the question well earns a 1.0. |
 
 ## Key Distinguishing Questions
 
-- **0 vs 0.55**: Did the student even try? A 0 is no attempt or bad faith. A 0.55 means they at least read the question and responded (even poorly).
-- **0.55 vs 0.65**: A 0.55 is going through the motions. A 0.65 shows genuine (if incomplete) thinking — you can see the gears turning.
-- **0.65 vs 0.85**: A 0.65 has gaps you'd want to follow up on. An 0.85 doesn't leave you with doubts about comprehension.
-- **0.85 vs 1.0**: An 0.85 says "I understand this." A 1.0 says "I understand this AND here's how I'm thinking about it at a deeper level." The student verbalizes comprehension that goes above and beyond.
+- **0 vs 0.55**: Did the student submit anything meaningful at all? A 0 is blank or complete nonsense. A 0.55 means words were written that relate to the topic, even if they miss the point.
+- **0.55 vs 0.65**: A 0.55 barely engages — it's a throwaway answer. A 0.65 shows the student tried but got confused or went in the wrong direction.
+- **0.65 vs 0.85**: A 0.65 has real gaps or misunderstandings you'd need to address. An 0.85 is a complete attempt where the student clearly gets the main idea, even if the response isn't perfect.
+- **0.85 vs 1.0**: An 0.85 is "pretty good, solid attempt." A 1.0 is "this fully answers the question." The bar for 1.0 is a good, complete response — NOT extraordinary insight. Most students who genuinely engage with the question and give a full answer should get a 1.0.
+
+## Calibration Guidance
+
+- **Lean toward higher grades.** If you're torn between two buckets, go with the higher one. These are high schoolers — reward effort and engagement.
+- **1.0 should be common** for students who write thoughtful, complete answers. It is NOT the "A+" tier — it's the "you answered the question well" tier.
+- **0.85 is for good-but-incomplete** responses, not for "solid answers that aren't exceptional enough."
+- **0.55 should be rare.** Only use it when the response genuinely shows no understanding — not just because it's brief or has rough writing.
 
 ## Important Notes
 
 - Grade the THINKING, not the writing quality. These are 9th graders. Grammar and spelling don't matter — understanding does.
 - Consider the question's difficulty when calibrating. A solid answer to a recall question is different from a solid answer to a synthesis question.
+- A short but correct answer can absolutely earn a 1.0. Length does not determine grade.
 
 ## Response Format
 
@@ -107,7 +115,7 @@ async function callAnthropicForGrade(apiKey, systemPrompt, userPrompt, maxRetrie
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 500,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
@@ -1012,7 +1020,7 @@ exports.generateBaselines = onRequest(
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
+            model: "claude-haiku-4-5-20251001",
             max_tokens: 1000,
             system: systemPrompt,
             messages: [{ role: "user", content: prompt }],
@@ -1276,6 +1284,7 @@ exports.sendDueDateReminders = onSchedule("every day 08:00", async () => {
 
     for (const lessonDoc of lessonsSnap.docs) {
       const lessonData = lessonDoc.data();
+      if (lessonData.visible === false) continue; // skip hidden lessons
       const lessonId = lessonDoc.id;
 
       for (const uid of studentUids) {
@@ -1570,6 +1579,13 @@ exports.autogradeShortAnswer = onDocumentWritten(
   async (event) => {
     const { uid, courseId, lessonId } = event.params;
 
+    // Skip autograde for test students
+    const userDoc = await db.collection("users").doc(uid).get();
+    if (userDoc.exists && userDoc.data().isTestStudent) {
+      console.log(`[autograde] Skipping test student ${uid}`);
+      return;
+    }
+
     const beforeAnswers = event.data.before?.data()?.answers || {};
     const afterAnswers = event.data.after?.data()?.answers || {};
 
@@ -1809,5 +1825,176 @@ exports.updateCalibrationCache = onSchedule(
     }
 
     console.log(`[calibration] Done. ${totalOverrides} total overrides across ${coursesUpdated} course(s).`);
+  }
+);
+
+// ═══════════════════════════════════════════════════════════
+// AGENT CHAT — Mission Control real-time agent conversations
+// ═══════════════════════════════════════════════════════════
+
+const AGENT_PROFILES = {
+  atlas: {
+    name: "Atlas",
+    role: "Research & Intelligence",
+    personality: "Thorough, analytical, source-driven. You cite where you found things and flag confidence levels. You love digging into topics.",
+    capabilities: "Web research, trend monitoring, fact-gathering, research reports. You own the /afternoon-research skill with a rotating topic schedule.",
+  },
+  parker: {
+    name: "Parker",
+    role: "Content & Communications",
+    personality: "Clear, professional externally, casual internally. Rate-limit-proof — never rely on live AI tools in student content. No padding or filler.",
+    capabilities: "Lesson plans, course content, student/parent comms, handouts. You own /lesson-plan-generator, /parent-comms, /student-reminders.",
+  },
+  kit: {
+    name: "Kit",
+    role: "Engineering",
+    personality: "Pragmatic, code-first, ships fast. You build things that work and don't over-engineer. You test what you build.",
+    capabilities: "React activities, HTML tools, Firebase deploys, site features, bug fixes. You can deploy to preview channels but NOT production.",
+  },
+  mack: {
+    name: "Mack",
+    role: "Operations & Delivery",
+    personality: "Reliable, systematic, gets things done on schedule. You follow SOPs and handle the logistics so Luke doesn't have to.",
+    capabilities: "Morning coffee delivery, Firestore seeding, Classroom posting, grading, scheduling. You own /morning-coffee, /sync, /grading-assistant, /assignment-pipeline.",
+  },
+  pixel: {
+    name: "Pixel",
+    role: "Visual QA & Design Review",
+    personality: "Detail-oriented, design-aware. You catch what others miss — spacing issues, color inconsistencies, responsive breakpoints, accessibility gaps.",
+    capabilities: "Screenshot review, UI audits, responsive checks (375/768/1280px), accessibility, visual consistency across pages.",
+  },
+  link: {
+    name: "Link",
+    role: "Integration & Pipeline QA",
+    personality: "Methodical, data-driven, trust-but-verify. You validate end-to-end flows and catch integration bugs before they hit students.",
+    capabilities: "End-to-end testing, score verification, Firestore validation, data integrity checks, embed scoring, postMessage wiring.",
+  },
+};
+
+exports.agentChat = onCall(
+  {
+    secrets: [anthropicApiKey],
+    maxInstances: 5,
+    timeoutSeconds: 60,
+  },
+  async (request) => {
+    // Auth check
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Must be signed in");
+    }
+
+    // Verify teacher role
+    const userDoc = await db.doc(`users/${request.auth.uid}`).get();
+    if (!userDoc.exists || userDoc.data().role !== "teacher") {
+      throw new HttpsError("permission-denied", "Teacher access required");
+    }
+
+    const { agent, messageId } = request.data;
+    if (!agent || !AGENT_PROFILES[agent]) {
+      throw new HttpsError("invalid-argument", "Invalid agent name");
+    }
+    if (!messageId) {
+      throw new HttpsError("invalid-argument", "messageId is required");
+    }
+
+    const profile = AGENT_PROFILES[agent];
+
+    // Read the message
+    const msgRef = db.collection(`agentInbox/${agent}/messages`).doc(messageId);
+    const msgDoc = await msgRef.get();
+    if (!msgDoc.exists) {
+      throw new HttpsError("not-found", "Message not found");
+    }
+    const msgData = msgDoc.data();
+
+    // Mark as acknowledged
+    await msgRef.update({
+      status: "acknowledged",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Load recent conversation history (last 20 messages for context)
+    const historySnap = await db.collection(`agentInbox/${agent}/messages`)
+      .orderBy("createdAt", "desc")
+      .limit(20)
+      .get();
+
+    const history = [];
+    historySnap.forEach((doc) => {
+      const d = doc.data();
+      if (doc.id !== messageId) {
+        history.push({
+          role: d.from === "luke" ? "user" : "assistant",
+          content: d.text,
+        });
+      }
+    });
+    history.reverse(); // oldest first
+
+    // Add current message
+    history.push({ role: "user", content: msgData.text });
+
+    const systemPrompt = `You are ${profile.name}, ${profile.role} agent on Luke McCarthy's AI team.
+
+${profile.personality}
+
+Your capabilities: ${profile.capabilities}
+
+Luke is a high school teacher at Perth Amboy High School (NJ). He teaches Physics, AI Literacy, Digital Literacy, and runs SAT/PSAT Prep. His platforms are pantherlearn.com, pantherprep.web.app, and Google Classroom.
+
+Guidelines:
+- Be concise and direct. Bullet points over paragraphs.
+- No flattery or cheerleading. Just get to the point.
+- If Luke gives you a task, acknowledge it clearly and outline next steps.
+- If you can't do something (you're a chat response, not a running agent), be honest about it and suggest what should happen next.
+- If asked for a status update, give your best assessment based on context.
+- Keep responses under 200 words unless the topic demands more.`;
+
+    // Call Claude
+    const apiKey = anthropicApiKey.value();
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: history,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("Claude API error:", data);
+      throw new HttpsError("internal", "Agent failed to respond");
+    }
+
+    const replyText = (data.content || [])
+      .filter((c) => c.type === "text")
+      .map((c) => c.text)
+      .join("");
+
+    // Write agent response to inbox
+    await db.collection(`agentInbox/${agent}/messages`).add({
+      from: agent,
+      text: replyText,
+      priority: "normal",
+      status: "completed",
+      replyTo: messageId,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Mark original message as completed
+    await msgRef.update({
+      status: "completed",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { reply: replyText };
   }
 );

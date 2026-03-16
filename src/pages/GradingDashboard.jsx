@@ -1,7 +1,7 @@
 // src/pages/GradingDashboard.jsx
 // Optimized: lazy-loads data by course → section → lesson instead of fetching everything upfront.
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, orderBy, where, doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, getDocs, getDocsFromServer, query, orderBy, where, doc, getDoc, setDoc } from "firebase/firestore";
 import { db, signInWithClassroom } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { fetchClassroomCourses, fetchClassroomStudents, createCourseWork, listCourseWork, listStudentSubmissions, patchStudentGrade } from "../lib/classroom";
@@ -65,12 +65,20 @@ async function checkPendingGrades(courseId, enrollments, lessonMap, snapshot) {
         });
         return { uid, data };
       })),
-      Promise.allSettled(uids.map(async (uid) => {
-        const data = await loadFromAllSections(uid, "reflections", (merged, d) => {
-          if (!merged[d.id]) merged[d.id] = d.data();
-        });
-        return { uid, data };
-      })),
+      // Reflections live at courses/{courseId}/reflections/ (not under progress/)
+      (async () => {
+        const allRefs = {};
+        for (const cid of sectionCourseIds) {
+          const refSnap = await getDocs(collection(db, "courses", cid, "reflections"));
+          refSnap.forEach((d) => {
+            const data = d.data();
+            if (!data.studentId || !data.lessonId) return;
+            if (!allRefs[data.studentId]) allRefs[data.studentId] = {};
+            if (!allRefs[data.studentId][data.lessonId]) allRefs[data.studentId][data.lessonId] = data;
+          });
+        }
+        return allRefs;
+      })(),
       Promise.allSettled(uids.map(async (uid) => {
         const data = await loadFromAllSections(uid, "activities", (merged, d) => {
           if (!merged[d.id] || (d.data().activityScore != null && merged[d.id].activityScore == null)) {
@@ -81,9 +89,9 @@ async function checkPendingGrades(courseId, enrollments, lessonMap, snapshot) {
       })),
     ]);
 
-    const progress = {}, reflections = {}, activities = {};
+    const progress = {}, activities = {};
+    const reflections = reflectionResults; // already a { uid: { lessonId: data } } map
     progressResults.forEach((r) => { if (r.status === "fulfilled") progress[r.value.uid] = r.value.data; });
-    reflectionResults.forEach((r) => { if (r.status === "fulfilled") reflections[r.value.uid] = r.value.data; });
     activityResults.forEach((r) => { if (r.status === "fulfilled") activities[r.value.uid] = r.value.data; });
 
     let pending = 0;
@@ -105,7 +113,11 @@ async function checkPendingGrades(courseId, enrollments, lessonMap, snapshot) {
         let earned = 0, possible = 0;
         mc.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.correct) earned++; });
         sa.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore; });
-        embeds.forEach((q) => { possible += 5; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore * 5; });
+        // Embed weighting: if lesson has other content, embeds = 50% of grade (total embed pts = non-embed pts)
+        // If embed-only lesson, each embed = 1 point (grade = percentage)
+        const nonEmbedPts = mc.length + sa.length + ((completed && reflection) ? 1 : 0);
+        const embedPtsEach = (embeds.length > 0 && nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1;
+        embeds.forEach((q) => { possible += embedPtsEach; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore * embedPtsEach; });
         if (completed && reflection) { possible++; if (reflection.valid) earned++; }
         if (possible === 0) continue;
 
@@ -218,6 +230,7 @@ export default function GradingDashboard() {
         const enrolledUids = new Set();
         enrollSnap.forEach((d) => {
           const data = d.data();
+          // Test students visible but marked with badge
           const uid = data.uid || data.email?.replace(/[.@]/g, "_");
           if (uid) enrolledUids.add(uid);
           courseEnrollments.push({
@@ -271,7 +284,7 @@ export default function GradingDashboard() {
         setEnrollments(deduped);
 
         // Fetch lessons for this course
-        const lessonsSnap = await getDocs(
+        const lessonsSnap = await getDocsFromServer(
           query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc"))
         );
         const lessons = {};
@@ -687,7 +700,10 @@ export default function GradingDashboard() {
 
           mc.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.correct) earned++; });
           sa.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore; });
-          embeds.forEach((q) => { possible += 5; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore * 5; });
+          // Embed weighting: embeds = 50% of grade in mixed lessons, 100% in embed-only
+          const nonEmbedPts2 = mc.length + sa.length + ((completed && reflection) ? 1 : 0);
+          const embedPtsEach2 = (embeds.length > 0 && nonEmbedPts2 > 0) ? nonEmbedPts2 / embeds.length : 1;
+          embeds.forEach((q) => { possible += embedPtsEach2; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore * embedPtsEach2; });
 
           if (completed && reflection) { possible++; if (reflection.valid) earned++; }
 

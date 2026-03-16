@@ -1,6 +1,6 @@
 // src/pages/StudentProgress.jsx
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, doc, getDoc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, getDocsFromServer, query, orderBy, doc, getDoc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
@@ -71,7 +71,7 @@ export default function StudentProgress() {
     const fetchAll = async () => {
       setDataLoading(true);
       try {
-        const lessonsSnap = await getDocs(
+        const lessonsSnap = await getDocsFromServer(
           query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc"))
         );
         const lessonsList = lessonsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -91,6 +91,7 @@ export default function StudentProgress() {
         enrollSnap.forEach((d) => {
           const data = d.data();
           if (data.courseId === selectedCourse) {
+            // Test students visible but marked with badge
             const key = data.uid || data.email;
             enrollMap[key] = data;
             const userMatch = data.uid ? usersMap[data.uid] : usersMap[data.email?.toLowerCase()];
@@ -251,14 +252,17 @@ export default function StudentProgress() {
       }
     });
 
-    // Scored embeds: writtenScore (0 to 1) scaled to 5 points per embed block
+    // Scored embeds: dynamically weighted — embeds = 50% of grade in mixed lessons
+    const hasAnyProgress = Object.keys(answers).some((k) => !k.startsWith("_"));
+    const nonEmbedPts = mc.length + sa.length + ((studentCompleted && reflection) ? 1 : 0);
+    const embedPtsEach = (embeds.length > 0 && nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1;
     const embedItems = [];
     embeds.forEach((q) => {
       const a = answers[q.id];
       if (a?.submitted && a.writtenScore != null) {
-        embedItems.push({ type: "embed", prompt: q.caption || "Activity", points: a.writtenScore * 5, max: 5, score: a.score, maxScore: a.maxScore });
-      } else if (isPastDue) {
-        embedItems.push({ type: "embed", prompt: q.caption || "Activity", points: 0, max: 5, missing: true });
+        embedItems.push({ type: "embed", prompt: q.caption || "Activity", points: a.writtenScore * embedPtsEach, max: embedPtsEach, score: a.score, maxScore: a.maxScore });
+      } else if (hasAnyProgress || isPastDue) {
+        embedItems.push({ type: "embed", prompt: q.caption || "Activity", points: 0, max: embedPtsEach, missing: true });
       }
     });
 
