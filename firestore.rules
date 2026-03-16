@@ -243,5 +243,26 @@ service cloud.firestore {
       allow create: if isLoggedIn() && request.resource.data.uid == request.auth.uid;
       allow read: if isLoggedIn();
     }
+
+    // Assignment Queue — teacher-only
+    match /assignmentQueue/{docId} {
+      allow read, write: if isTeacher();
+    }
+
+    // Mission Control — teacher-only dashboard data
+    match /missionControl/{document=**} {
+      allow read, write: if isTeacher();
+    }
+
+    // Agent Inbox — Mission Control chat with agents
+    match /agentInbox/{agentName}/messages/{messageId} {
+      allow read, write: if isTeacher();
+    }
+
+    // Agent Context — workflow summaries written by agents, read by Mission Control
+    match /agentContext/{agentName} {
+      allow read: if isTeacher();
+      allow write: if isTeacher();
+    }
   }
 }
