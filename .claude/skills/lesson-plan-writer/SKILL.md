@@ -36,7 +36,9 @@ Read and parse the JSON output.
 
 ## Step 3: Ask the User for Optional Inputs
 
-Ask the user (use AskUserQuestion):
+**If running autonomously (no user present / triggered by scheduled task):** Skip this step entirely. Auto-generate all optional content without asking.
+
+Otherwise, ask the user (use AskUserQuestion):
 - **Weekly Teaching Reflection**: "Do you want to include a teaching reflection from last week? If so, what's a 1-2 sentence reflection?" (Options: provide text, skip)
 - **Week at a Glance**: "I'll auto-generate the week summary from the lessons. Want to review it or provide your own?" (Options: auto-generate, provide text)
 
