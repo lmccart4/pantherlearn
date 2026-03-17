@@ -1290,8 +1290,8 @@ export default function LessonEditor() {
                 <select className="editor-input" value={lessonGradeCategory}
                   onChange={(e) => { setLessonGradeCategory(e.target.value); setSaved(false); }}
                   style={{ width: 170, border: "1.5px solid var(--amber)" }}>
-                  <option value="classwork">Classwork (30%)</option>
-                  <option value="assessment">Assessment (65%)</option>
+                  <option value="classwork">Classwork (35%)</option>
+                  <option value="assessment">Assessment (60%)</option>
                   <option value="homework">Homework (5%)</option>
                 </select>
               </div>

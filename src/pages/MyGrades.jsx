@@ -119,6 +119,12 @@ export default function MyGrades() {
   }, [selectedCourse, user]);
 
   // --- Helpers ---
+  const isDueDatePassed = (lesson) => {
+    if (!lesson.dueDate) return true; // no due date = always visible
+    const due = new Date(lesson.dueDate + "T23:59:59");
+    return new Date() > due;
+  };
+
   const getMCQuestions = (lesson) =>
     (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "multiple_choice");
 
@@ -190,6 +196,7 @@ export default function MyGrades() {
   const getOverall = () => {
     const lessonGrades = [];
     lessons.forEach((lesson) => {
+      if (!isDueDatePassed(lesson)) return; // don't include unreleased grades
       const result = getLessonGrade(lesson.id);
       if (result) {
         lessonGrades.push({
@@ -404,46 +411,54 @@ export default function MyGrades() {
                               </span>
                             </div>
                             <div className="mg-lesson-meta">
-                              {mc.length > 0 && (
-                                <span>{mcCorrect}/{mc.length} MC correct</span>
-                              )}
-                              {sa.length > 0 && (
-                                <span>
-                                  {saGraded}/{sa.length} written graded
-                                  {saSubmitted > saGraded && (
-                                    <span style={{ color: "var(--amber)" }}> · {saSubmitted - saGraded} pending</span>
+                              {!isDueDatePassed(lesson) ? (
+                                <span style={{ color: "var(--text3)" }}>Grade available after due date</span>
+                              ) : (
+                                <>
+                                  {mc.length > 0 && (
+                                    <span>{mcCorrect}/{mc.length} MC correct</span>
                                   )}
-                                </span>
-                              )}
-                              {embeds.length > 0 && (
-                                <span>
-                                  {embedsCompleted}/{embeds.length} activity{embeds.length > 1 ? " scores" : " score"}
-                                  {embedsCompleted > 0 && (() => {
-                                    const a = answers[embeds[0].id];
-                                    return a?.score != null ? ` (${a.score}/${a.maxScore})` : "";
-                                  })()}
-                                </span>
-                              )}
-                              {reflection && (
-                                <span style={{ color: reflection.valid ? "var(--green)" : "var(--red)" }}>
-                                  {reflection.valid ? "💭 Reflected" : "💭 Skipped"}
-                                </span>
-                              )}
-                              {prog.completed && !reflection && (
-                                <span>💭 No reflection</span>
+                                  {sa.length > 0 && (
+                                    <span>
+                                      {saGraded}/{sa.length} written graded
+                                      {saSubmitted > saGraded && (
+                                        <span style={{ color: "var(--amber)" }}> · {saSubmitted - saGraded} pending</span>
+                                      )}
+                                    </span>
+                                  )}
+                                  {embeds.length > 0 && (
+                                    <span>
+                                      {embedsCompleted}/{embeds.length} activity{embeds.length > 1 ? " scores" : " score"}
+                                      {embedsCompleted > 0 && (() => {
+                                        const a = answers[embeds[0].id];
+                                        return a?.score != null ? ` (${a.score}/${a.maxScore})` : "";
+                                      })()}
+                                    </span>
+                                  )}
+                                  {reflection && (
+                                    <span style={{ color: reflection.valid ? "var(--green)" : "var(--red)" }}>
+                                      {reflection.valid ? "💭 Reflected" : "💭 Skipped"}
+                                    </span>
+                                  )}
+                                  {prog.completed && !reflection && (
+                                    <span>💭 No reflection</span>
+                                  )}
+                                </>
                               )}
                             </div>
                           </div>
 
                           <div className="mg-grade">
-                            {result ? (
+                            {!isDueDatePassed(lesson) ? (
+                              <div style={{ fontSize: 13, color: "var(--text3)", fontStyle: "italic" }}>Pending</div>
+                            ) : result ? (
                               <div className="mg-grade-value" style={{ color: gradeColor(result.grade) }}>
                                 {result.grade}%
                               </div>
                             ) : (
                               <div style={{ fontSize: 13, color: "var(--text3)", fontStyle: "italic" }}>No items</div>
                             )}
-                            {result && (
+                            {isDueDatePassed(lesson) && result && (
                               <div className="mg-grade-detail">
                                 {Math.round(result.earnedPoints * 10) / 10}/{result.totalPoints} pts
                               </div>

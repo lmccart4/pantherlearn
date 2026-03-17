@@ -4,7 +4,7 @@
 // Each assignment within a category has equal weight (percentage-based).
 
 export const GRADE_CATEGORIES = ["assessment", "classwork", "homework"];
-export const CATEGORY_WEIGHTS = { assessment: 0.65, classwork: 0.30, homework: 0.05 };
+export const CATEGORY_WEIGHTS = { assessment: 0.60, classwork: 0.35, homework: 0.05 };
 export const DEFAULT_CATEGORY = "classwork";
 
 export const CATEGORY_LABELS = {

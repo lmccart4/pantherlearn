@@ -60,7 +60,8 @@ const lesson = {
       type: "embed",
       url: "https://battleship-energy-paps.web.app",
       caption: "Battleship: Energy Review — answer energy questions to fire on enemy ships",
-      height: 820
+      height: 820,
+      scored: true
     },
 
     // ═══════════════════════════════════════════

@@ -314,6 +314,7 @@ export default function LessonViewer() {
         extraProps.onAnswer = handleAnswer;
         extraProps.studentData = studentData;
         extraProps.isTestStudent = isTestStudent;
+        extraProps.dueDate = lesson.dueDate || "";
       }
       if (block.type === "rocket_staging") {
         extraProps.studentData = studentData;

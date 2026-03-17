@@ -64,7 +64,8 @@ const lesson = {
       type: "embed",
       url: "https://battleship-ai-paps.web.app",
       caption: "Battleship: AI Literacy Review — answer AI questions to fire on enemy ships",
-      height: 820
+      height: 820,
+      scored: true
     },
 
     // ═══════════════════════════════════════════

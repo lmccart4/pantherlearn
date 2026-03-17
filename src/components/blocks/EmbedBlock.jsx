@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 
-export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, studentData, isTestStudent }) {
+export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, studentData, isTestStudent, dueDate }) {
   const translatedCaption = useTranslatedText(block.caption);
   const height = block.height || 400;
   const data = studentData?.[block.id] || {};
@@ -67,6 +67,7 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
       ...(lessonId && { lessonId }),
       ...(block.id && { blockId: block.id }),
       ...(isTestStudent && { testStudent: "true" }),
+      ...(dueDate && { dueDate }),
     });
     url = `${url}${sep}${params.toString()}`;
   }

@@ -220,6 +220,7 @@ const courseId = params.get("courseId") || "";
 const blockId = params.get("blockId") || "";
 const lessonId = params.get("lessonId") || "";
 const devMode = params.get("dev") === "true" || params.get("testStudent") === "true";
+const dueDate = params.get("dueDate") || ""; // YYYY-MM-DD format
 
 function reportScore(activityId, score, maxScore, meta = {}) {
   const payload = {
@@ -245,7 +246,7 @@ function reportScore(activityId, score, maxScore, meta = {}) {
 const PERIOD_SCHEDULE = {
   "Y9Gdhw5MTY8wMFt6Tlvj": { label: "Period 4", start: [10, 29], end: [11, 11] },
   "DacjJ93vUDcwqc260OP3":  { label: "Period 5", start: [11, 15], end: [11, 57] },
-  "M2MVSXrKuVCD9JQfZZyp":  { label: "Period 7", start: [12, 47], end: [13, 29] },
+  "M2MVSXrKuVCD9JQfZZyp":  { label: "Period 7", start: [12, 47], end: [15, 0] }, // TEMP: extended for Benjamin Suriel tech glitch — revert to [13, 29]
   "fUw67wFhAtobWFhjwvZ5":  { label: "Period 9", start: [14, 19], end: [15, 1] },
 };
 
@@ -385,6 +386,22 @@ const feedbackText = document.getElementById("feedback-text");
 
 // --- Period Gate ---
 function checkPeriodGate() {
+  // Check if past due date — always block with make-up message
+  if (dueDate && !devMode) {
+    const now = getNowET();
+    const dueDateEnd = new Date(dueDate + "T23:59:59");
+    // Convert to ET for comparison
+    const dueDateET = new Date(dueDateEnd.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    if (now > dueDateET) {
+      lockedScreen.classList.add("active");
+      document.querySelector(".locked h1").textContent = "Quiz Closed";
+      document.querySelector(".locked p").textContent = "Ask your teacher for a make-up opportunity.";
+      document.getElementById("locked-countdown").style.display = "none";
+      document.getElementById("locked-open-time").parentElement.style.display = "none";
+      return;
+    }
+  }
+
   if (!hasPeriod) {
     // No period restriction — go straight to intro
     introScreen.classList.add("active");
