@@ -81,6 +81,7 @@ export default function BotArcade() {
     });
 
   return (
+    <main id="main-content" style={{ display: "contents" }}>
     <div className="bot-arcade">
       <style>{`
         .bot-arcade {
@@ -279,5 +280,6 @@ export default function BotArcade() {
       {/* Stump Leaderboard */}
       <StumpLeaderboard courseId={courseId} />
     </div>
+    </main>
   );
 }

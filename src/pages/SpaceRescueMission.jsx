@@ -324,6 +324,7 @@ export default function SpaceRescueMission() {
   // ═══════════ TITLE SCREEN ═══════════
   if (screen === "title") {
     return (
+      <main id="main-content" style={{ display: "contents" }}>
       <div style={{
         minHeight: "100vh", background: "radial-gradient(ellipse at 30% 20%, #0a1628 0%, #050a14 50%, #000 100%)",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -415,12 +416,14 @@ export default function SpaceRescueMission() {
           </button>
         </div>
       </div>
+      </main>
     );
   }
 
   // ═══════════ LEVEL SELECT ═══════════
   if (screen === "levels") {
     return (
+      <main id="main-content" style={{ display: "contents" }}>
       <div style={{
         minHeight: "100vh", background: "radial-gradient(ellipse at 50% 0%, #0a1628 0%, #050a14 60%, #000 100%)",
         fontFamily: "'Segoe UI', system-ui, sans-serif", color: "white", padding: "40px 20px",
@@ -467,6 +470,7 @@ export default function SpaceRescueMission() {
           </div>
         </div>
       </div>
+      </main>
     );
   }
 
@@ -477,6 +481,7 @@ export default function SpaceRescueMission() {
     const scale = gameState.scale;
 
     return (
+      <main id="main-content" style={{ display: "contents" }}>
       <div style={{
         minHeight: "100vh", background: "radial-gradient(ellipse at 50% 30%, #0a1628 0%, #050a14 60%, #000 100%)",
         fontFamily: "'Segoe UI', system-ui, sans-serif", color: "white", padding: "16px 20px",
@@ -732,6 +737,7 @@ export default function SpaceRescueMission() {
           )}
         </div>
       </div>
+      </main>
     );
   }
 

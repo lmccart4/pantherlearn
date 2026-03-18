@@ -136,7 +136,7 @@ export default function BiasDetectiveDashboard() {
   // Access guard
   if (!isTeacher) {
     return (
-      <main className="page-wrapper">
+      <main id="main-content" className="page-wrapper">
         <div className="empty-state">
           <div className="empty-state-icon">🔒</div>
           <div className="empty-state-title">Teacher access only</div>
@@ -147,7 +147,7 @@ export default function BiasDetectiveDashboard() {
 
   if (loading) {
     return (
-      <main className="page-wrapper">
+      <main id="main-content" className="page-wrapper">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300 }}>
           <div className="spinner" />
         </div>
@@ -156,7 +156,7 @@ export default function BiasDetectiveDashboard() {
   }
 
   return (
-    <main className="page-wrapper">
+    <main id="main-content" className="page-wrapper">
       <style>{`
         .bdd-stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 28px; }
         .bdd-stat-card {

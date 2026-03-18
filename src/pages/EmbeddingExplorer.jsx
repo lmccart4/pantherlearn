@@ -292,7 +292,7 @@ export default function EmbeddingExplorer() {
   // ── Loading ──
   if (loading) {
     return (
-      <main className="page-wrapper">
+      <main id="main-content" className="page-wrapper">
         <div style={{ minHeight: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div className="spinner" />
         </div>
@@ -303,7 +303,7 @@ export default function EmbeddingExplorer() {
   // ── Case Picker ──
   if (!selectedCase) {
     return (
-      <main className="page-wrapper">
+      <main id="main-content" className="page-wrapper">
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{ marginBottom: 28 }}>
           <button
@@ -396,7 +396,7 @@ export default function EmbeddingExplorer() {
   const accentColor = caseData.color;
 
   return (
-    <main className="page-wrapper">
+    <main id="main-content" className="page-wrapper">
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>

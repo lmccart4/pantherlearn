@@ -233,6 +233,7 @@ export default function BotBuilder() {
   const currentConfig = project.phases?.[activePhase] || {};
 
   return (
+    <main id="main-content" style={{ display: "contents" }}>
     <div className="bot-builder">
       <style>{`
         .bot-builder {
@@ -471,6 +472,7 @@ export default function BotBuilder() {
         />
       )}
     </div>
+    </main>
   );
 }
 

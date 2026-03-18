@@ -69,9 +69,11 @@ export default function MomentumMysteryLab() {
   };
 
   return (
-    <MomentumMysteryLabGame
-      onSync={handleSync}
-      syncState={syncState}
-    />
+    <main id="main-content" style={{ display: "contents" }}>
+      <MomentumMysteryLabGame
+        onSync={handleSync}
+        syncState={syncState}
+      />
+    </main>
   );
 }

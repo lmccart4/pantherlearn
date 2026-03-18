@@ -305,7 +305,7 @@ export default function BiasInvestigation() {
   // ── Loading ──
   if (loading) {
     return (
-      <main className="page-wrapper">
+      <main id="main-content" className="page-wrapper">
         <div style={{ minHeight: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div className="spinner" />
         </div>
@@ -316,7 +316,7 @@ export default function BiasInvestigation() {
   // ── Case Picker ──
   if (!selectedCase) {
     return (
-      <main className="page-wrapper">
+      <main id="main-content" className="page-wrapper">
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{ marginBottom: 28 }}>
           <button
@@ -408,7 +408,7 @@ export default function BiasInvestigation() {
   const score = investigation?.score || null;
 
   return (
-    <main className="page-wrapper">
+    <main id="main-content" className="page-wrapper">
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>

@@ -3,300 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Literacy - Week 22 Lesson Plan</title>
+    <title>Digital Literacy — Week 22 Lesson Plan</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
-            background: #0d0d0d;
-            color: #e3e3e3;
-            line-height: 1.6;
-            padding: 2rem;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        header {
-            border-bottom: 1px solid #2a2a2a;
-            padding-bottom: 2rem;
-            margin-bottom: 3rem;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
-        }
-
-        .header-meta {
-            display: flex;
-            gap: 2rem;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: #8b8b8b;
-        }
-
-        .header-meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .header-meta-label {
-            color: #5b5b5b;
-            font-weight: 500;
-        }
-
-        .lesson-section {
-            background: #151515;
-            border: 1px solid #2a2a2a;
-            border-radius: 10px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            transition: all 0.2s ease;
-        }
-
-        .lesson-section:hover {
-            border-color: #3a3a3a;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .lesson-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #222;
-        }
-
-        .lesson-day {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #666;
-            margin-bottom: 0.5rem;
-        }
-
-        .lesson-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 0.25rem;
-        }
-
-        .lesson-date {
-            font-size: 0.85rem;
-            color: #888;
-            font-weight: 500;
-        }
-
-        .standards-tag {
-            display: inline-block;
-            background: #1e293b;
-            color: #94a3b8;
-            padding: 0.4rem 0.8rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            border: 1px solid #334155;
-        }
-
-        .section-label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #6b7280;
-            margin-top: 1.5rem;
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .section-label::before {
-            content: '';
-            width: 3px;
-            height: 12px;
-            background: #4f46e5;
-            border-radius: 2px;
-        }
-
-        .do-now-box, .exit-ticket-box {
-            background: #1a1a1a;
-            border-left: 3px solid #4f46e5;
-            padding: 1rem 1.25rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-        }
-
-        .exit-ticket-box {
-            border-left-color: #10b981;
-        }
-
-        .timeline {
-            margin-top: 1rem;
-        }
-
-        .timeline-item {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            position: relative;
-            padding-left: 1.5rem;
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: 5px;
-            top: 8px;
-            width: 6px;
-            height: 6px;
-            background: #4f46e5;
-            border-radius: 50%;
-        }
-
-        .timeline-item::after {
-            content: '';
-            position: absolute;
-            left: 7px;
-            top: 16px;
-            width: 2px;
-            height: calc(100% + 0.5rem);
-            background: #2a2a2a;
-        }
-
-        .timeline-item:last-child::after {
-            display: none;
-        }
-
-        .timeline-time {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #7c3aed;
-            min-width: 60px;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .timeline-content {
-            flex: 1;
-            color: #b4b4b4;
-        }
-
-        .timeline-content strong {
-            color: #e3e3e3;
-            font-weight: 500;
-        }
-
-        .resource-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #60a5fa;
-            text-decoration: none;
-            font-size: 0.85rem;
-            margin-top: 1rem;
-            padding: 0.5rem 0;
-            transition: color 0.2s ease;
-        }
-
-        .resource-link:hover {
-            color: #93c5fd;
-        }
-
-        .resource-link::before {
-            content: '\2192';
-            font-weight: bold;
-        }
-
-        .week-overview {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .week-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 1rem;
-        }
-
-        .week-summary {
-            color: #94a3b8;
-            line-height: 1.7;
-        }
-
-        .no-lesson {
-            color: #555;
-            font-style: italic;
-            padding: 1rem 0;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
-
-            h1 {
-                font-size: 1.8rem;
-            }
-
-            .header-meta {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .lesson-header {
-                flex-direction: column;
-            }
-
-            .standards-tag {
-                margin-top: 1rem;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif; background: #0d0d0d; color: #e3e3e3; line-height: 1.6; padding: 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        a.back { display: inline-flex; align-items: center; gap: 0.4rem; color: #60a5fa; text-decoration: none; font-size: 0.85rem; margin-bottom: 2rem; transition: color 0.2s; }
+        a.back:hover { color: #93c5fd; }
+        header { border-bottom: 1px solid #2a2a2a; padding-bottom: 2rem; margin-bottom: 3rem; }
+        h1 { font-size: 2.5rem; font-weight: 600; color: #fff; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+        .meta { display: flex; gap: 2rem; margin-top: 1rem; font-size: 0.9rem; color: #8b8b8b; flex-wrap: wrap; }
+        .meta-item { display: flex; align-items: center; gap: 0.5rem; }
+        .meta-label { color: #5b5b5b; font-weight: 500; }
+        .overview { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+        .overview-title { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; margin-bottom: 1rem; }
+        .overview-body { color: #94a3b8; line-height: 1.7; font-style: italic; }
+        .lesson-section { background: #151515; border: 1px solid #2a2a2a; border-radius: 10px; padding: 2rem; margin-bottom: 2rem; transition: border-color 0.2s; }
+        .lesson-section:hover { border-color: #3a3a3a; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .lesson-section.has-content { border-color: #1e3a2f; }
+        .lesson-section.has-content:hover { border-color: #02C39A; }
+        .lesson-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #222; }
+        .lesson-day { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #666; margin-bottom: 0.5rem; }
+        .lesson-title { font-size: 1.5rem; font-weight: 600; color: #fff; margin-bottom: 0.25rem; }
+        .lesson-date { font-size: 0.85rem; color: #888; font-weight: 500; }
+        .lesson-unit { font-size: 0.8rem; color: #02C39A; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+        .lesson-qod { font-size: 0.95rem; color: #94a3b8; margin-bottom: 0.75rem; font-style: italic; }
+        .qod-label { color: #5b6b73; font-style: normal; font-weight: 600; }
+        .lesson-objectives { margin-top: 0.5rem; padding-left: 1.25rem; color: #8b9eb7; font-size: 0.9rem; }
+        .lesson-objectives li { margin-bottom: 0.25rem; }
+        .no-lesson { color: #555; font-style: italic; padding: 1rem 0; }
+        @media (max-width: 768px) { body { padding: 1rem; } h1 { font-size: 1.8rem; } .meta { flex-direction: column; gap: 0.5rem; } }
     </style>
 </head>
 <body>
     <div class="container">
+        <a class="back" href="/">&larr; Back to all plans</a>
         <header>
             <h1>Digital Literacy</h1>
-            <div class="header-meta">
-                <div class="header-meta-item">
-                    <span class="header-meta-label">Teacher:</span>
-                    <span>Mr. McCarthy</span>
-                </div>
-                <div class="header-meta-item">
-                    <span class="header-meta-label">Week:</span>
-                    <span>22 (March 2-6, 2026)</span>
-                </div>
-                <div class="header-meta-item">
-                    <span class="header-meta-label">Unit:</span>
-                    <span>Prompt Engineering &rarr; Gaming &amp; Esports</span>
-                </div>
+            <div class="meta">
+                <div class="meta-item"><span class="meta-label">Teacher:</span><span>Mr. McCarthy</span></div>
+                <div class="meta-item"><span class="meta-label">Week:</span><span>22 (Mar 2–Mar 6, 2026)</span></div>
             </div>
         </header>
 
-        <div class="week-overview">
-            <div class="week-title">Week at a Glance</div>
-            <div class="week-summary">
-                Students sharpen their prompt engineering skills through a Guess Who game on Tuesday, then pivot to the Gaming &amp; Esports unit. Wednesday introduces the persuasive video project &mdash; students build an argument about whether gaming is beneficial for young people, plan a storyboard, and begin production in WeVideo. Thursday is a dedicated production day to build and refine their 60-90 second persuasive videos.
-            </div>
+        <div class="overview">
+            <div class="overview-title">Week at a Glance</div>
+            <div class="overview-body">The Art of Asking: Prompt Engineering Through Guess Who, Gaming: Make Your Case, Gaming Project: Production Day</div>
         </div>
 
         <!-- MONDAY -->
@@ -304,138 +56,68 @@
             <div class="lesson-header">
                 <div>
                     <div class="lesson-day">Monday</div>
-                    <div class="lesson-title">&mdash;</div>
+                    <div class="lesson-title">— Not yet posted —</div>
                     <div class="lesson-date">March 2, 2026</div>
                 </div>
             </div>
-            <p class="no-lesson">No lesson scheduled</p>
+            <p class="no-lesson">Lesson plan for this day has not been posted yet.</p>
         </div>
 
         <!-- TUESDAY -->
-        <div class="lesson-section">
+        <div class="lesson-section has-content">
             <div class="lesson-header">
                 <div>
-                    <div class="lesson-day">Tuesday &bull; Lesson 1</div>
+                    <div class="lesson-day">Tuesday</div>
                     <div class="lesson-title">The Art of Asking: Prompt Engineering Through Guess Who</div>
                     <div class="lesson-date">March 3, 2026</div>
                 </div>
             </div>
-
-            <div class="section-label">Do Now</div>
-            <div class="do-now-box">
-                Students consider how the way you ask a question changes what you get back. They compare a vague prompt ("tell me about dogs") to a specific one ("what are three differences between golden retrievers and poodles in terms of temperament?") and answer a multiple-choice question about which prompt would produce the most useful AI response.
-            </div>
-
-            <div class="section-label">Lesson Overview</div>
-            <div class="timeline">
-                <div class="timeline-item">
-                    <div class="timeline-time">0-5 min</div>
-                    <div class="timeline-content"><strong>Warm Up &amp; Key Concepts:</strong> Students explore the four keys of prompt engineering (Specificity, Constraints, Context, Iteration) through examples and a multiple-choice question about improving a vague prompt</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">5-25 min</div>
-                    <div class="timeline-content"><strong>Guess Who? Game:</strong> Students play at least 2 rounds of Guess Who against classmates or AI, discovering that the game is prompt engineering in disguise &mdash; precise yes/no questions eliminate uncertainty fast, just like precise prompts get better AI outputs</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">25-35 min</div>
-                    <div class="timeline-content"><strong>Reflection &mdash; From Game to AI:</strong> Students analyze their best and worst questions from the game, connecting game strategy to prompt engineering principles</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">35-40 min</div>
-                    <div class="timeline-content"><strong>Exit Ticket:</strong> Students write the best AI prompt they can, demonstrating everything they learned about specificity, constraints, context, and iteration</div>
-                </div>
-            </div>
-
-            <div class="section-label">Exit Ticket</div>
-            <div class="exit-ticket-box">
-                Students craft a real-world AI prompt for something they'd actually use (homework help, creative project, learning something new), applying all four prompt engineering keys.
-            </div>
+            <div class="lesson-unit">Prompt Engineering</div>
+            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> Why does being more specific in your prompt usually get you a better result from AI?</div>
+            
+            <ul class="lesson-objectives">
+              <li>Explain what prompt engineering is and why it matters when working with AI</li>
+              <li>Write clear, specific prompts that produce better AI responses</li>
+              <li>Apply iterative prompt refinement to improve output quality</li>
+            </ul>
         </div>
 
         <!-- WEDNESDAY -->
-        <div class="lesson-section">
+        <div class="lesson-section has-content">
             <div class="lesson-header">
                 <div>
-                    <div class="lesson-day">Wednesday &bull; Lesson 2</div>
+                    <div class="lesson-day">Wednesday</div>
                     <div class="lesson-title">Gaming: Make Your Case</div>
                     <div class="lesson-date">March 4, 2026</div>
                 </div>
             </div>
-
-            <div class="section-label">Do Now</div>
-            <div class="do-now-box">
-                Students write a quick 1-2 sentence take on whether gaming is beneficial for young people, then consider the Question of the Day: "What makes a video argument convincing &mdash; and how can editing techniques strengthen your message?"
-            </div>
-
-            <div class="section-label">Lesson Overview</div>
-            <div class="timeline">
-                <div class="timeline-item">
-                    <div class="timeline-time">0-5 min</div>
-                    <div class="timeline-content"><strong>Warm Up &amp; Quick Take:</strong> Students share their initial opinion on gaming and review learning objectives (thesis development, advanced WeVideo features, video structure, evidence vs. opinion)</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">5-15 min</div>
-                    <div class="timeline-content"><strong>Build Your Argument:</strong> Students sort 10 claims as FOR or AGAINST gaming, choose their position, and write a thesis statement with a clear reason</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">15-25 min</div>
-                    <div class="timeline-content"><strong>Plan Your Video:</strong> Students learn the 6-part persuasive video structure (Hook &rarr; Thesis &rarr; Evidence 1 &rarr; Evidence 2 &rarr; Counterargument &rarr; Conclusion), sketch a quick storyboard, and use the Script Helper AI chatbot to draft talking points</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">25-30 min</div>
-                    <div class="timeline-content"><strong>Advanced WeVideo Techniques:</strong> Students learn B-roll, text overlays, transitions, and voiceover recording to make their persuasive video more professional</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">30-40 min</div>
-                    <div class="timeline-content"><strong>Production Time:</strong> Students open WeVideo and begin building their 60-90 second persuasive video, applying the structure and advanced techniques they just learned</div>
-                </div>
-            </div>
-
-            <div class="section-label">Exit Ticket</div>
-            <div class="exit-ticket-box">
-                Students compare their initial warm-up opinion about gaming to the argument in their video, reflecting on how the research and evidence-gathering process changed or strengthened their thinking.
-            </div>
-
-            <a href="https://www.wevideo.com/" class="resource-link" target="_blank">Open WeVideo</a>
+            <div class="lesson-unit">Gaming & Esports</div>
+            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> What makes a gaming argument convincing — is it facts, passion, visuals, or something else?</div>
+            
+            <ul class="lesson-objectives">
+              <li>Develop a clear thesis and supporting arguments for a persuasive video</li>
+              <li>Use advanced WeVideo features (transitions, voiceover, B-roll, text overlays) to strengthen your message</li>
+              <li>Structure a video with an intro, evidence, counterargument, and conclusion</li>
+            </ul>
         </div>
 
         <!-- THURSDAY -->
-        <div class="lesson-section">
+        <div class="lesson-section has-content">
             <div class="lesson-header">
                 <div>
-                    <div class="lesson-day">Thursday &bull; Lesson 3</div>
+                    <div class="lesson-day">Thursday</div>
                     <div class="lesson-title">Gaming Project: Production Day</div>
                     <div class="lesson-date">March 5, 2026</div>
                 </div>
             </div>
-
-            <div class="section-label">Do Now</div>
-            <div class="do-now-box">
-                Students review their storyboard from yesterday and rate their video plan readiness on a 1-10 scale. They consider the Question of the Day: "What's the difference between a video that states an opinion and one that persuades?"
-            </div>
-
-            <div class="section-label">Lesson Overview</div>
-            <div class="timeline">
-                <div class="timeline-item">
-                    <div class="timeline-time">0-5 min</div>
-                    <div class="timeline-content"><strong>Check-In &amp; Schedule:</strong> Students identify where they are in the production process (starting, building, or refining) and review the project timeline &mdash; today is build day, tomorrow is peer review + refinement</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">5-35 min</div>
-                    <div class="timeline-content"><strong>Production Time:</strong> Students build their persuasive videos in WeVideo (60-90 seconds, Hook &rarr; Thesis &rarr; Evidence &rarr; Counterargument &rarr; Conclusion) with time checks and a Production Assistant AI chatbot for support</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">35-40 min</div>
-                    <div class="timeline-content"><strong>End-of-Class Check-In:</strong> Students describe where their video stands and identify what still needs to happen tomorrow</div>
-                </div>
-            </div>
-
-            <div class="section-label">Exit Ticket</div>
-            <div class="exit-ticket-box">
-                Students describe the hardest part of production today &mdash; whether it was finding B-roll, recording voiceover, timing, or structuring the counterargument &mdash; and note what help they need for tomorrow.
-            </div>
-
-            <a href="https://www.wevideo.com/" class="resource-link" target="_blank">Open WeVideo</a>
+            <div class="lesson-unit">Gaming & Esports</div>
+            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> What's the biggest challenge you're facing in your gaming project right now, and what's your plan to solve it?</div>
+            
+            <ul class="lesson-objectives">
+              <li>Apply persuasive video structure (hook → thesis → evidence → counterargument → conclusion)</li>
+              <li>Record voiceover narration and layer it over B-roll footage</li>
+              <li>Use text overlays and transitions to reinforce key arguments</li>
+            </ul>
         </div>
 
         <!-- FRIDAY -->
@@ -443,22 +125,12 @@
             <div class="lesson-header">
                 <div>
                     <div class="lesson-day">Friday</div>
-                    <div class="lesson-title">&mdash;</div>
+                    <div class="lesson-title">— Not yet posted —</div>
                     <div class="lesson-date">March 6, 2026</div>
                 </div>
             </div>
-            <p class="no-lesson">No lesson scheduled</p>
+            <p class="no-lesson">Lesson plan for this day has not been posted yet.</p>
         </div>
-
-        <!-- LOOKING AHEAD -->
-        <div class="week-overview" style="margin-top: 2rem;">
-            <div class="week-title">Looking Ahead</div>
-            <div class="week-summary">
-                <strong>Monday:</strong> Gaming Project: Refine &amp; Review &mdash; Peer review of rough cuts and final editing time.<br>
-                <strong>Tuesday:</strong> Gaming Project: Showcase Day! &mdash; Students present their finished persuasive videos to the class.
-            </div>
-        </div>
-
     </div>
 </body>
 </html>

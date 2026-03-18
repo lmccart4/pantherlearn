@@ -30,6 +30,7 @@ export default function LoginPage() {
   };
 
   return (
+    <main id="main-content">
     <div className="login-page">
       <div className="login-hero">
         <div className="login-glow" />
@@ -57,5 +58,6 @@ export default function LoginPage() {
         Sign in with your <strong>@paps.net</strong> school account.
       </p>
     </div>
+    </main>
   );
 }

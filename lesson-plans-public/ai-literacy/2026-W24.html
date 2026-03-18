@@ -20,10 +20,17 @@
         .overview-body { color: #94a3b8; line-height: 1.7; font-style: italic; }
         .lesson-section { background: #151515; border: 1px solid #2a2a2a; border-radius: 10px; padding: 2rem; margin-bottom: 2rem; transition: border-color 0.2s; }
         .lesson-section:hover { border-color: #3a3a3a; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        .lesson-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #222; }
+        .lesson-section.has-content { border-color: #1e3a2f; }
+        .lesson-section.has-content:hover { border-color: #02C39A; }
+        .lesson-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #222; }
         .lesson-day { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #666; margin-bottom: 0.5rem; }
         .lesson-title { font-size: 1.5rem; font-weight: 600; color: #fff; margin-bottom: 0.25rem; }
         .lesson-date { font-size: 0.85rem; color: #888; font-weight: 500; }
+        .lesson-unit { font-size: 0.8rem; color: #02C39A; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+        .lesson-qod { font-size: 0.95rem; color: #94a3b8; margin-bottom: 0.75rem; font-style: italic; }
+        .qod-label { color: #5b6b73; font-style: normal; font-weight: 600; }
+        .lesson-objectives { margin-top: 0.5rem; padding-left: 1.25rem; color: #8b9eb7; font-size: 0.9rem; }
+        .lesson-objectives li { margin-bottom: 0.25rem; }
         .no-lesson { color: #555; font-style: italic; padding: 1rem 0; }
         @media (max-width: 768px) { body { padding: 1rem; } h1 { font-size: 1.8rem; } .meta { flex-direction: column; gap: 0.5rem; } }
     </style>
@@ -41,19 +48,21 @@
 
         <div class="overview">
             <div class="overview-title">Week at a Glance</div>
-            <div class="overview-body">Plans for this week have not been posted yet.</div>
+            <div class="overview-body">Real or AI? The Ultimate Image Quiz, AI as a Co-Creator, Elastic Potential Energy</div>
         </div>
 
         <!-- MONDAY -->
-        <div class="lesson-section">
+        <div class="lesson-section has-content">
             <div class="lesson-header">
                 <div>
                     <div class="lesson-day">Monday</div>
-                    <div class="lesson-title">— Not yet posted —</div>
+                    <div class="lesson-title">Real or AI? The Ultimate Image Quiz</div>
                     <div class="lesson-date">March 16, 2026</div>
                 </div>
             </div>
-            <p class="no-lesson">Lesson plan for this day has not been posted yet.</p>
+            <div class="lesson-unit">AI and Creativity</div>
+            
+            
         </div>
 
         <!-- TUESDAY -->
@@ -69,27 +78,41 @@
         </div>
 
         <!-- WEDNESDAY -->
-        <div class="lesson-section">
+        <div class="lesson-section has-content">
             <div class="lesson-header">
                 <div>
                     <div class="lesson-day">Wednesday</div>
-                    <div class="lesson-title">— Not yet posted —</div>
+                    <div class="lesson-title">AI as a Co-Creator</div>
                     <div class="lesson-date">March 18, 2026</div>
                 </div>
             </div>
-            <p class="no-lesson">Lesson plan for this day has not been posted yet.</p>
+            <div class="lesson-unit">AI and Creativity</div>
+            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> If you and AI create something together, whose creative work is it — yours, the AI's, or both?</div>
+            
+            <ul class="lesson-objectives">
+              <li>Identify how AI is currently used as a creative tool across music, visual art, writing, and design</li>
+              <li>Distinguish between AI as a replacement for human creativity and AI as a collaborator that amplifies it</li>
+              <li>Evaluate the strengths and limitations of AI-generated creative work</li>
+            </ul>
         </div>
 
         <!-- THURSDAY -->
-        <div class="lesson-section">
+        <div class="lesson-section has-content">
             <div class="lesson-header">
                 <div>
                     <div class="lesson-day">Thursday</div>
-                    <div class="lesson-title">— Not yet posted —</div>
+                    <div class="lesson-title">Elastic Potential Energy</div>
                     <div class="lesson-date">March 19, 2026</div>
                 </div>
             </div>
-            <p class="no-lesson">Lesson plan for this day has not been posted yet.</p>
+            <div class="lesson-unit">Work & Energy</div>
+            
+            
+            <ul class="lesson-objectives">
+              <li>Define elastic potential energy and explain what makes a material 'elastic'</li>
+              <li>Use Hooke's Law (F = kx) to describe how springs store energy</li>
+              <li>Apply the elastic PE formula (EPE = ½kx²) to calculate stored energy</li>
+            </ul>
         </div>
 
         <!-- FRIDAY -->

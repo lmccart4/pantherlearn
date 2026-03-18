@@ -79,13 +79,14 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
         border: "1px solid var(--border, #2a2f3d)",
         overflow: "hidden",
         background: "#fff",
+        position: "relative",
       }}>
         <iframe
           src={url}
-          title={translatedCaption || "Embedded content"}
+          title={translatedCaption || block.title || "Interactive activity"}
           width="100%"
           height={height}
-          style={{ border: "none", display: "block" }}
+          style={{ border: "none", display: "block", maxHeight: "80vh" }}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
           allow="accelerometer; clipboard-write; encrypted-media; gyroscope"
           allowFullScreen

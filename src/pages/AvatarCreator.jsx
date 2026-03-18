@@ -187,6 +187,7 @@ export default function AvatarCreator() {
   const currentTierName = VISUAL_TIERS.filter((t) => level >= t.minLevel).pop()?.name;
 
   return (
+    <main id="main-content" style={{ display: "contents" }}>
     <div style={styles.page}>
       <div style={styles.container}>
         {/* ─── Header ─── */}
@@ -486,6 +487,7 @@ export default function AvatarCreator() {
         </div>
       </div>
     </div>
+    </main>
   );
 }
 

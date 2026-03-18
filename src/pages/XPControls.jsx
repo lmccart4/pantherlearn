@@ -246,6 +246,7 @@ export default function XPControls() {
   }
 
   return (
+    <main id="main-content" style={{ display: "contents" }}>
     <div style={pageStyle}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
@@ -602,5 +603,6 @@ export default function XPControls() {
         ))}
       </div>
     </div>
+    </main>
   );
 }

@@ -3,427 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Literacy - Week 22 Lesson Plan</title>
+    <title>AI Literacy — Week 22 Lesson Plan</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
-            background: #0d0d0d;
-            color: #e3e3e3;
-            line-height: 1.6;
-            padding: 2rem;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        header {
-            border-bottom: 1px solid #2a2a2a;
-            padding-bottom: 2rem;
-            margin-bottom: 3rem;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
-        }
-
-        .header-meta {
-            display: flex;
-            gap: 2rem;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: #8b8b8b;
-        }
-
-        .header-meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .header-meta-label {
-            color: #5b5b5b;
-            font-weight: 500;
-        }
-
-        .lesson-section {
-            background: #151515;
-            border: 1px solid #2a2a2a;
-            border-radius: 10px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            transition: all 0.2s ease;
-        }
-
-        .lesson-section:hover {
-            border-color: #3a3a3a;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .lesson-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #222;
-        }
-
-        .lesson-day {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #666;
-            margin-bottom: 0.5rem;
-        }
-
-        .lesson-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 0.25rem;
-        }
-
-        .lesson-date {
-            font-size: 0.85rem;
-            color: #888;
-            font-weight: 500;
-        }
-
-        .standards-tag {
-            display: inline-block;
-            background: #1e293b;
-            color: #94a3b8;
-            padding: 0.4rem 0.8rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            border: 1px solid #334155;
-        }
-
-        .section-label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #6b7280;
-            margin-top: 1.5rem;
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .section-label::before {
-            content: '';
-            width: 3px;
-            height: 12px;
-            background: #4f46e5;
-            border-radius: 2px;
-        }
-
-        .do-now-box, .exit-ticket-box {
-            background: #1a1a1a;
-            border-left: 3px solid #4f46e5;
-            padding: 1rem 1.25rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-        }
-
-        .exit-ticket-box {
-            border-left-color: #10b981;
-        }
-
-        .timeline {
-            margin-top: 1rem;
-        }
-
-        .timeline-item {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            position: relative;
-            padding-left: 1.5rem;
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: 5px;
-            top: 8px;
-            width: 6px;
-            height: 6px;
-            background: #4f46e5;
-            border-radius: 50%;
-        }
-
-        .timeline-item::after {
-            content: '';
-            position: absolute;
-            left: 7px;
-            top: 16px;
-            width: 2px;
-            height: calc(100% + 0.5rem);
-            background: #2a2a2a;
-        }
-
-        .timeline-item:last-child::after {
-            display: none;
-        }
-
-        .timeline-time {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #7c3aed;
-            min-width: 60px;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .timeline-content {
-            flex: 1;
-            color: #b4b4b4;
-        }
-
-        .timeline-content strong {
-            color: #e3e3e3;
-            font-weight: 500;
-        }
-
-        .resource-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #60a5fa;
-            text-decoration: none;
-            font-size: 0.85rem;
-            margin-top: 1rem;
-            padding: 0.5rem 0;
-            transition: color 0.2s ease;
-        }
-
-        .resource-link:hover {
-            color: #93c5fd;
-        }
-
-        .resource-link::before {
-            content: '\2192';
-            font-weight: bold;
-        }
-
-        .week-overview {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .week-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 1rem;
-        }
-
-        .week-summary {
-            color: #94a3b8;
-            line-height: 1.7;
-        }
-
-        .no-lesson {
-            color: #555;
-            font-style: italic;
-            padding: 1rem 0;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
-
-            h1 {
-                font-size: 1.8rem;
-            }
-
-            .header-meta {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .lesson-header {
-                flex-direction: column;
-            }
-
-            .standards-tag {
-                margin-top: 1rem;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif; background: #0d0d0d; color: #e3e3e3; line-height: 1.6; padding: 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        a.back { display: inline-flex; align-items: center; gap: 0.4rem; color: #60a5fa; text-decoration: none; font-size: 0.85rem; margin-bottom: 2rem; transition: color 0.2s; }
+        a.back:hover { color: #93c5fd; }
+        header { border-bottom: 1px solid #2a2a2a; padding-bottom: 2rem; margin-bottom: 3rem; }
+        h1 { font-size: 2.5rem; font-weight: 600; color: #fff; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+        .meta { display: flex; gap: 2rem; margin-top: 1rem; font-size: 0.9rem; color: #8b8b8b; flex-wrap: wrap; }
+        .meta-item { display: flex; align-items: center; gap: 0.5rem; }
+        .meta-label { color: #5b5b5b; font-weight: 500; }
+        .overview { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+        .overview-title { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; margin-bottom: 1rem; }
+        .overview-body { color: #94a3b8; line-height: 1.7; font-style: italic; }
+        .lesson-section { background: #151515; border: 1px solid #2a2a2a; border-radius: 10px; padding: 2rem; margin-bottom: 2rem; transition: border-color 0.2s; }
+        .lesson-section:hover { border-color: #3a3a3a; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .lesson-section.has-content { border-color: #1e3a2f; }
+        .lesson-section.has-content:hover { border-color: #02C39A; }
+        .lesson-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #222; }
+        .lesson-day { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #666; margin-bottom: 0.5rem; }
+        .lesson-title { font-size: 1.5rem; font-weight: 600; color: #fff; margin-bottom: 0.25rem; }
+        .lesson-date { font-size: 0.85rem; color: #888; font-weight: 500; }
+        .lesson-unit { font-size: 0.8rem; color: #02C39A; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+        .lesson-qod { font-size: 0.95rem; color: #94a3b8; margin-bottom: 0.75rem; font-style: italic; }
+        .qod-label { color: #5b6b73; font-style: normal; font-weight: 600; }
+        .lesson-objectives { margin-top: 0.5rem; padding-left: 1.25rem; color: #8b9eb7; font-size: 0.9rem; }
+        .lesson-objectives li { margin-bottom: 0.25rem; }
+        .no-lesson { color: #555; font-style: italic; padding: 1rem 0; }
+        @media (max-width: 768px) { body { padding: 1rem; } h1 { font-size: 1.8rem; } .meta { flex-direction: column; gap: 0.5rem; } }
     </style>
 </head>
 <body>
     <div class="container">
+        <a class="back" href="/">&larr; Back to all plans</a>
         <header>
             <h1>AI Literacy</h1>
-            <div class="header-meta">
-                <div class="header-meta-item">
-                    <span class="header-meta-label">Teacher:</span>
-                    <span>Mr. McCarthy</span>
-                </div>
-                <div class="header-meta-item">
-                    <span class="header-meta-label">Week:</span>
-                    <span>22 (March 2-6, 2026)</span>
-                </div>
-                <div class="header-meta-item">
-                    <span class="header-meta-label">Unit:</span>
-                    <span>Foundations of Generative AI &amp; Prompt Engineering</span>
-                </div>
+            <div class="meta">
+                <div class="meta-item"><span class="meta-label">Teacher:</span><span>Mr. McCarthy</span></div>
+                <div class="meta-item"><span class="meta-label">Week:</span><span>22 (Mar 2–Mar 6, 2026)</span></div>
             </div>
         </header>
 
-        <div class="week-overview">
-            <div class="week-title">Week at a Glance</div>
-            <div class="week-summary">
-                Students experience the human side of AI training on Monday with a Data Labeling Lab, then sharpen their prompt engineering skills through a Guess Who game on Tuesday. Thursday dives into how AI actually learns &mdash; students explore neural networks by becoming a neuron, building a network, training it, and watching backpropagation in action through an interactive lab.
-            </div>
+        <div class="overview">
+            <div class="overview-title">Week at a Glance</div>
+            <div class="overview-body">Data Labeling Lab, The Art of Asking: Prompt Engineering Through Guess Who, How AI Understands Meaning: Intro to Embeddings, How AI Learns: Intro to Neural Networks</div>
         </div>
 
         <!-- MONDAY -->
-        <div class="lesson-section">
+        <div class="lesson-section has-content">
             <div class="lesson-header">
                 <div>
-                    <div class="lesson-day">Monday &bull; Lesson 1</div>
+                    <div class="lesson-day">Monday</div>
                     <div class="lesson-title">Data Labeling Lab</div>
                     <div class="lesson-date">March 2, 2026</div>
                 </div>
             </div>
-
-            <div class="section-label">Do Now</div>
-            <div class="do-now-box">
-                Students are introduced to the Data Labeling Lab &mdash; an interactive activity where they take on the role of a data labeler, the humans who prepare training data that AI systems learn from. Students begin labeling data to experience firsthand the tedious, subjective, and sometimes ethically complex work behind AI training.
-            </div>
-
-            <div class="section-label">Lesson Overview</div>
-            <div class="timeline">
-                <div class="timeline-item">
-                    <div class="timeline-time">0-5 min</div>
-                    <div class="timeline-content"><strong>Introduction:</strong> Students learn what data labeling is and why it matters &mdash; every AI model depends on human-labeled training data</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">5-30 min</div>
-                    <div class="timeline-content"><strong>Data Labeling Lab:</strong> Students work through the interactive labeling activity, making judgment calls about how to categorize ambiguous data &mdash; experiencing the subjective nature of the work that shapes AI behavior</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">30-40 min</div>
-                    <div class="timeline-content"><strong>Reflection:</strong> Students reflect on how the activity made them feel and what it reveals about the often invisible, low-paid labor force that trains AI systems around the world</div>
-                </div>
-            </div>
-
-            <div class="section-label">Exit Ticket</div>
-            <div class="exit-ticket-box">
-                Students write about their experience doing the labeling activity &mdash; how it felt, and what it makes them think about the people (often in developing countries) who do this work at scale for pennies per task.
-            </div>
+            <div class="lesson-unit">Foundations of Generative AI</div>
+            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> If two people label the same image differently, whose label is 'correct' — and who gets to decide?</div>
+            
+            <ul class="lesson-objectives">
+              <li>Explain the role of data labeling in training AI models</li>
+              <li>Practice labeling data and experience the challenges of consistent categorization</li>
+              <li>Analyze how labeling decisions affect AI model behavior</li>
+            </ul>
         </div>
 
         <!-- TUESDAY -->
-        <div class="lesson-section">
+        <div class="lesson-section has-content">
             <div class="lesson-header">
                 <div>
-                    <div class="lesson-day">Tuesday &bull; Lesson 2</div>
+                    <div class="lesson-day">Tuesday</div>
                     <div class="lesson-title">The Art of Asking: Prompt Engineering Through Guess Who</div>
                     <div class="lesson-date">March 3, 2026</div>
                 </div>
             </div>
-
-            <div class="section-label">Do Now</div>
-            <div class="do-now-box">
-                Students consider how the way you ask a question changes what you get back. They compare a vague prompt ("tell me about dogs") to a specific one and answer a multiple-choice question about which prompt would produce the most useful AI response.
-            </div>
-
-            <div class="section-label">Lesson Overview</div>
-            <div class="timeline">
-                <div class="timeline-item">
-                    <div class="timeline-time">0-5 min</div>
-                    <div class="timeline-content"><strong>Warm Up &amp; Key Concepts:</strong> Students explore the four keys of prompt engineering (Specificity, Constraints, Context, Iteration) through examples and practice questions</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">5-25 min</div>
-                    <div class="timeline-content"><strong>Guess Who? Game:</strong> Students play at least 2 rounds of Guess Who against classmates or AI, discovering that precise yes/no questions eliminate uncertainty fast &mdash; just like precise prompts produce better AI outputs</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">25-35 min</div>
-                    <div class="timeline-content"><strong>Reflection &mdash; From Game to AI:</strong> Students analyze their best and worst questions from the game and connect game strategy to prompt engineering principles</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">35-40 min</div>
-                    <div class="timeline-content"><strong>Exit Ticket:</strong> Students write the best AI prompt they can for something they'd actually use, demonstrating specificity, constraints, context, and iteration</div>
-                </div>
-            </div>
-
-            <div class="section-label">Exit Ticket</div>
-            <div class="exit-ticket-box">
-                Students craft a real-world AI prompt for something they'd actually use (homework help, creative project, learning something new), applying all four prompt engineering keys they practiced.
-            </div>
+            <div class="lesson-unit">Prompt Engineering</div>
+            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> Why does being more specific in your prompt usually get you a better result from AI?</div>
+            
+            <ul class="lesson-objectives">
+              <li>Explain what prompt engineering is and why it matters when working with AI</li>
+              <li>Write clear, specific prompts that produce better AI responses</li>
+              <li>Apply iterative prompt refinement to improve output quality</li>
+            </ul>
         </div>
 
         <!-- WEDNESDAY -->
-        <div class="lesson-section">
+        <div class="lesson-section has-content">
             <div class="lesson-header">
                 <div>
                     <div class="lesson-day">Wednesday</div>
-                    <div class="lesson-title">&mdash;</div>
+                    <div class="lesson-title">How AI Understands Meaning: Intro to Embeddings</div>
                     <div class="lesson-date">March 4, 2026</div>
                 </div>
             </div>
-            <p class="no-lesson">No lesson scheduled</p>
+            <div class="lesson-unit">Foundations of Generative AI</div>
+            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> How can a computer understand that 'king' and 'queen' are related without ever being told what royalty is?</div>
+            
+            <ul class="lesson-objectives">
+              <li>Explain what an embedding is and why AI needs to turn words into numbers</li>
+              <li>Demonstrate that similar words have similar embeddings (close in number-space)</li>
+              <li>Identify real-world applications of embeddings (search, recommendations, translation)</li>
+            </ul>
         </div>
 
         <!-- THURSDAY -->
-        <div class="lesson-section">
+        <div class="lesson-section has-content">
             <div class="lesson-header">
                 <div>
-                    <div class="lesson-day">Thursday &bull; Lesson 3</div>
+                    <div class="lesson-day">Thursday</div>
                     <div class="lesson-title">How AI Learns: Intro to Neural Networks</div>
                     <div class="lesson-date">March 5, 2026</div>
                 </div>
             </div>
-
-            <div class="section-label">Do Now</div>
-            <div class="do-now-box">
-                Students consider how their own brain learns something new &mdash; like recognizing a friend's face in a crowd. They review the learning objectives and think about the connection: your brain has about 86 billion neurons, and artificial neural networks are inspired by this same architecture.
-            </div>
-
-            <div class="section-label">Lesson Overview</div>
-            <div class="timeline">
-                <div class="timeline-item">
-                    <div class="timeline-time">0-10 min</div>
-                    <div class="timeline-content"><strong>Warm Up &amp; Brain Connection:</strong> Students reflect on how their brain learns, review objectives (explain neural network structure, trace data flow, describe training, connect to real AI), and learn the key insight: neural networks are systems of connected nodes organized in layers</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">10-35 min</div>
-                    <div class="timeline-content"><strong>Neural Network Lab (4 experiments):</strong> Students work through an interactive lab where they (1) become a neuron, (2) build a network, (3) train it to classify creatures, and (4) observe backpropagation adjusting weights &mdash; learning that "knowledge" lives in the connection weights between nodes</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">35-40 min</div>
-                    <div class="timeline-content"><strong>Wrap Up &amp; Connections:</strong> Students explain where knowledge lives in a neural network (in the weights) and connect yesterday's embeddings lesson to today's neural networks &mdash; embeddings turn meaning into numbers, neural networks process those numbers through layers</div>
-                </div>
-            </div>
-
-            <div class="section-label">Exit Ticket</div>
-            <div class="exit-ticket-box">
-                Students connect the dots between embeddings (turning meaning into numbers) and neural networks (processing those numbers through weighted layers) to explain how these two concepts work together in real AI systems.
-            </div>
+            <div class="lesson-unit">Foundations of Generative AI</div>
+            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> If a neural network learns by adjusting millions of tiny numbers, can we ever truly understand why it made a specific decision?</div>
+            
+            <ul class="lesson-objectives">
+              <li>Explain how a neural network processes information through layers of connected neurons</li>
+              <li>Demonstrate that a network's knowledge lives in its weights (connection strengths)</li>
+              <li>Describe how training works: the network adjusts weights by learning from mistakes</li>
+            </ul>
         </div>
 
         <!-- FRIDAY -->
@@ -431,22 +132,12 @@
             <div class="lesson-header">
                 <div>
                     <div class="lesson-day">Friday</div>
-                    <div class="lesson-title">&mdash;</div>
+                    <div class="lesson-title">— Not yet posted —</div>
                     <div class="lesson-date">March 6, 2026</div>
                 </div>
             </div>
-            <p class="no-lesson">No lesson scheduled</p>
+            <p class="no-lesson">Lesson plan for this day has not been posted yet.</p>
         </div>
-
-        <!-- LOOKING AHEAD -->
-        <div class="week-overview" style="margin-top: 2rem;">
-            <div class="week-title">Looking Ahead</div>
-            <div class="week-summary">
-                <strong>Monday:</strong> Battleship: AI Literacy Review &mdash; Students test their knowledge of AI concepts in a gamified battleship review.<br>
-                <strong>Tuesday:</strong> Who's Making the Choices? &mdash; Students explore AI ethics and decision-making.
-            </div>
-        </div>
-
     </div>
 </body>
 </html>

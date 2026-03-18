@@ -377,6 +377,19 @@ export default function LessonViewer() {
   return (
     <TelemetryProvider courseId={telemetryCourseId} lessonId={telemetryLessonId}>
       <div className="lesson-layout">
+        {/* Mobile-only progress bar — visible when sidebar is hidden at ≤768px */}
+        {(() => {
+          const qs = (lesson?.blocks || []).filter(b => b.type === "question");
+          const answered = qs.filter(b => studentData[b.id]?.submitted).length;
+          if (!qs.length) return null;
+          const pct = Math.round((answered / qs.length) * 100);
+          return (
+            <div className="mobile-lesson-progress" aria-label={`${answered} of ${qs.length} questions answered`}>
+              <div className="mobile-lesson-progress__bar" style={{ width: `${pct}%` }} />
+              <span className="mobile-lesson-progress__label">{answered}/{qs.length} questions</span>
+            </div>
+          );
+        })()}
         <main className="lesson-content" id="main-content">
           {/* Back to course — students only */}
           {userRole !== "teacher" && !isPreview && (

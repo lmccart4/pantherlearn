@@ -140,7 +140,7 @@ export default function EmbeddingExplorerDashboard() {
   // ── Access guard ──
   if (!isTeacher) {
     return (
-      <main className="page-wrapper">
+      <main id="main-content" className="page-wrapper">
         <div className="empty-state">
           <div className="empty-state-icon">🔒</div>
           <div className="empty-state-title">Teacher Access Only</div>
@@ -152,7 +152,7 @@ export default function EmbeddingExplorerDashboard() {
 
   if (loading) {
     return (
-      <main className="page-wrapper">
+      <main id="main-content" className="page-wrapper">
         <div style={{ minHeight: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div className="spinner" />
         </div>
@@ -161,7 +161,7 @@ export default function EmbeddingExplorerDashboard() {
   }
 
   return (
-    <main className="page-wrapper">
+    <main id="main-content" className="page-wrapper">
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>

@@ -249,6 +249,7 @@ export default function TeamManager() {
   if (loading) return <div style={pageStyle}><div style={{ display: "flex", justifyContent: "center", padding: 60 }}><div className="spinner" /></div></div>;
 
   return (
+    <main id="main-content" style={{ display: "contents" }}>
     <div style={pageStyle}>
       {/* Header */}
       <button onClick={() => navigate(-1)} style={{ ...btnSecondary, marginBottom: 12 }}>← Back</button>
@@ -575,5 +576,6 @@ export default function TeamManager() {
         </div>
       )}
     </div>
+    </main>
   );
 }

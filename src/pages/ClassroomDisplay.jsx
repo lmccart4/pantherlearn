@@ -648,6 +648,7 @@ export default function ClassroomDisplay() {
   const formatTime = (date) => date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
   return (
+    <main id="main-content" style={{ display: "contents" }}>
     <div className="cd-root" style={{ "--cd-accent": accent }}>
       <AmbientCanvas />
 
@@ -726,5 +727,6 @@ export default function ClassroomDisplay() {
         )}
       </div>
     </div>
+    </main>
   );
 }

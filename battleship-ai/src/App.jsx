@@ -14,12 +14,17 @@ function getGradeTier(totalScore) {
   return { value: 0, label: "Missing", percent: 55 };
 }
 
+// ?preview=true bypasses auth for agent visual QA (read-only, no scores saved)
+const PREVIEW_MODE = new URLSearchParams(window.location.search).get("preview") === "true";
+const PREVIEW_USER = PREVIEW_MODE ? { uid: "preview", email: "preview@paps.net", displayName: "Preview User" } : null;
+
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(PREVIEW_MODE ? PREVIEW_USER : null);
+  const [loading, setLoading] = useState(!PREVIEW_MODE);
   const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
+    if (PREVIEW_MODE) return; // skip auth listener in preview
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const email = firebaseUser.email || "";
@@ -57,6 +62,7 @@ export default function App() {
   };
 
   const handleGameOver = async (stats) => {
+    if (PREVIEW_MODE) return; // no score saving in preview
     const tier = getGradeTier(stats.totalScore);
 
     // Backward-compatible LMS bridge (postMessage to parent)
