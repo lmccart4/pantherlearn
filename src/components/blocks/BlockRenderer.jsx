@@ -1,37 +1,42 @@
 // src/components/blocks/BlockRenderer.jsx
+import { lazy, Suspense } from "react";
 import TextBlock from "./TextBlock";
-import VideoBlock from "./VideoBlock";
-import QuestionBlock from "./QuestionBlock";
-import ChatbotBlock from "./ChatbotBlock";
 import DefinitionBlock from "./DefinitionBlock";
 import CalloutBlock from "./CalloutBlock";
 import ObjectivesBlock from "./ObjectivesBlock";
-import ActivityBlock from "./ActivityBlock";
-import VocabListBlock from "./VocabListBlock";
 import SectionHeader from "./SectionHeader";
-import ImageBlock from "./ImageBlock";
-import ChecklistBlock from "./ChecklistBlock";
-import EmbedBlock from "./EmbedBlock";
 import DividerBlock from "./DividerBlock";
-import SortingBlock from "./SortingBlock";
-import ExternalLinkBlock from "./ExternalLinkBlock";
-import CalculatorBlock from "./CalculatorBlock";
-import DataTableBlock from "./DataTableBlock";
-import SimulationBlock from "./SimulationBlock";
-import EvidenceUploadBlock from "./EvidenceUploadBlock";
-import BarChartBlock from "./BarChartBlock";
-import SketchBlock from "./SketchBlock";
-import GuessWhoBlock from "./GuessWhoBlock";
-import ChatbotWorkshopBlock from "./ChatbotWorkshopBlock";
-import BiasDetectiveBlock from "./BiasDetectiveBlock";
-import EmbeddingExplorerBlock from "./EmbeddingExplorerBlock";
-import SpaceRescueBlock from "./SpaceRescueBlock";
-import ExternalActivityBlock from "./ExternalActivityBlock";
-import RocketStagingBlock from "./RocketStagingBlock";
-import ConceptBuilderBlock from "./ConceptBuilderBlock";
-import MomentumMysteryLabBlock from "./MomentumMysteryLabBlock";
-import ScoreTallyBlock from "./ScoreTallyBlock";
 import ErrorBoundary from "./ErrorBoundary";
+
+// Moderately common blocks — lazy-loaded to reduce initial parse cost
+const VideoBlock = lazy(() => import("./VideoBlock"));
+const QuestionBlock = lazy(() => import("./QuestionBlock"));
+const ChatbotBlock = lazy(() => import("./ChatbotBlock"));
+const ActivityBlock = lazy(() => import("./ActivityBlock"));
+const VocabListBlock = lazy(() => import("./VocabListBlock"));
+const ImageBlock = lazy(() => import("./ImageBlock"));
+const ChecklistBlock = lazy(() => import("./ChecklistBlock"));
+const EmbedBlock = lazy(() => import("./EmbedBlock"));
+const ExternalLinkBlock = lazy(() => import("./ExternalLinkBlock"));
+const CalculatorBlock = lazy(() => import("./CalculatorBlock"));
+const DataTableBlock = lazy(() => import("./DataTableBlock"));
+const EvidenceUploadBlock = lazy(() => import("./EvidenceUploadBlock"));
+const ExternalActivityBlock = lazy(() => import("./ExternalActivityBlock"));
+const ScoreTallyBlock = lazy(() => import("./ScoreTallyBlock"));
+
+// Heavy / specialized blocks — lazy-loaded so they don't bloat the initial bundle
+const SortingBlock = lazy(() => import("./SortingBlock"));
+const SimulationBlock = lazy(() => import("./SimulationBlock"));
+const BarChartBlock = lazy(() => import("./BarChartBlock"));
+const SketchBlock = lazy(() => import("./SketchBlock"));
+const GuessWhoBlock = lazy(() => import("./GuessWhoBlock"));
+const ChatbotWorkshopBlock = lazy(() => import("./ChatbotWorkshopBlock"));
+const BiasDetectiveBlock = lazy(() => import("./BiasDetectiveBlock"));
+const EmbeddingExplorerBlock = lazy(() => import("./EmbeddingExplorerBlock"));
+const SpaceRescueBlock = lazy(() => import("./SpaceRescueBlock"));
+const RocketStagingBlock = lazy(() => import("./RocketStagingBlock"));
+const ConceptBuilderBlock = lazy(() => import("./ConceptBuilderBlock"));
+const MomentumMysteryLabBlock = lazy(() => import("./MomentumMysteryLabBlock"));
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -82,8 +87,10 @@ export default function BlockRenderer({ block, extraProps = {} }) {
   }
 
   return (
-    <ErrorBoundary>
-      <Component block={block} {...extraProps} />
-    </ErrorBoundary>
+    <Suspense fallback={null}>
+      <ErrorBoundary>
+        <Component block={block} {...extraProps} />
+      </ErrorBoundary>
+    </Suspense>
   );
 }

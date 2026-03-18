@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Equation Solvers — Physics</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-2: #242836;
+    --surface-3: #2e3345;
+    --text: #e8e9ed;
+    --text-muted: #8b8fa3;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108, 92, 231, 0.3);
+    --green: #00cec9;
+    --orange: #fdcb6e;
+    --red: #e17055;
+    --pink: #fd79a8;
+    --blue: #74b9ff;
+    --yellow: #ffeaa7;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { max-width: 900px; margin: 0 auto; padding: 16px; }
+
+  /* Header */
+  .header { text-align: center; padding: 32px 16px 24px; }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  .header p { color: var(--text-muted); font-size: 0.95rem; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    flex: 1;
+    text-align: center;
+    min-width: 120px;
+  }
+  .tab:hover { border-color: var(--accent); color: var(--text); }
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--surface-3); }
+  .card h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Score bar */
+  .score-bar {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .score-item {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    flex: 1;
+    min-width: 100px;
+    text-align: center;
+  }
+  .score-item .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .score-item .value { font-size: 1.4rem; font-weight: 800; margin-top: 2px; }
+  .score-item .value.correct { color: var(--green); }
+  .score-item .value.incorrect { color: var(--red); }
+  .score-item .value.streak { color: var(--orange); }
+  .score-item .value.pct { color: var(--blue); }
+
+  /* Buttons */
+  .btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .btn-primary:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .btn-secondary {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--surface-3);
+  }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+  .btn-green { background: var(--green); color: var(--bg); }
+  .btn-green:hover { filter: brightness(1.15); }
+  .btn-orange { background: var(--orange); color: var(--bg); }
+  .btn-orange:hover { filter: brightness(1.15); }
+
+  /* Forms */
+  select, input[type="number"], input[type="text"] {
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  select:focus, input:focus { outline: none; border-color: var(--accent); }
+  label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; display: block; }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .form-group { margin-bottom: 14px; }
+
+  /* Collapsible */
+  .collapsible { cursor: pointer; user-select: none; }
+  .collapsible .chevron { transition: transform 0.3s; display: inline-block; font-size: 0.75rem; color: var(--text-muted); }
+  .collapsible.open .chevron { transform: rotate(180deg); }
+  .collapse-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.3s ease;
+  }
+  .collapse-body.open { max-height: 2000px; }
+
+  /* Equation display */
+  .eq {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 1.2rem;
+    color: var(--yellow);
+    background: var(--surface-2);
+    padding: 12px 18px;
+    border-radius: 10px;
+    text-align: center;
+    margin: 10px 0;
+    border: 1px solid var(--surface-3);
+    letter-spacing: 0.5px;
+  }
+  .eq-sm { font-size: 1rem; padding: 8px 14px; margin: 6px 0; }
+
+  /* Step-by-step display */
+  .steps { margin: 16px 0; }
+  .step {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    border-left: 3px solid var(--accent);
+    align-items: flex-start;
+    animation: stepIn 0.3s ease forwards;
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  @keyframes stepIn { to { opacity: 1; transform: translateX(0); } }
+  .step-num {
+    background: var(--accent);
+    color: #fff;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-content { flex: 1; }
+  .step-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+  .step-eq {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+
+  /* Feedback */
+  .feedback {
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    margin: 16px 0;
+    font-weight: 600;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .feedback.correct {
+    background: rgba(0, 206, 201, 0.1);
+    border: 1px solid var(--green);
+    color: var(--green);
+  }
+  .feedback.incorrect {
+    background: rgba(225, 112, 85, 0.1);
+    border: 1px solid var(--red);
+    color: var(--red);
+  }
+  .feedback.hint {
+    background: rgba(253, 203, 110, 0.1);
+    border: 1px solid var(--orange);
+    color: var(--orange);
+  }
+
+  /* Equation reference sheet */
+  .ref-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding-top: 16px;
+  }
+  .ref-cat h3 {
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .ref-eq {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 0.95rem;
+    color: var(--text);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--surface-3);
+  }
+  .ref-eq:last-child { border-bottom: none; }
+  .ref-eq .var-desc { color: var(--text-muted); font-family: inherit; font-size: 0.75rem; margin-left: 8px; }
+
+  /* Category pills */
+  .cat-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .cat-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--surface-3);
+    background: var(--surface-2);
+    color: var(--text-muted);
+  }
+  .cat-pill:hover { border-color: var(--accent); color: var(--text); }
+  .cat-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* Difficulty pills */
+  .diff-pills { display: flex; gap: 8px; margin-bottom: 16px; }
+  .diff-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--surface-3);
+    background: var(--surface-2);
+    color: var(--text-muted);
+  }
+  .diff-pill:hover { border-color: var(--accent); color: var(--text); }
+  .diff-pill.active.basic { background: var(--green); border-color: var(--green); color: var(--bg); }
+  .diff-pill.active.intermediate { background: var(--orange); border-color: var(--orange); color: var(--bg); }
+  .diff-pill.active.advanced { background: var(--red); border-color: var(--red); color: var(--bg); }
+
+  /* Variables select grid */
+  .var-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .var-btn {
+    padding: 10px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    color: var(--text);
+    cursor: pointer;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-family: 'Georgia', 'Times New Roman', serif;
+  }
+  .var-btn:hover { border-color: var(--accent); background: var(--surface-3); }
+  .var-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 0 12px var(--accent-glow); }
+
+  /* Answer input area */
+  .answer-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    margin-top: 16px;
+  }
+  .answer-row .form-group { flex: 1; margin: 0; }
+
+  /* Problem display */
+  .problem-text {
+    font-size: 1rem;
+    line-height: 1.7;
+    padding: 16px 20px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    margin: 12px 0;
+    border: 1px solid var(--surface-3);
+  }
+  .given-val { color: var(--blue); font-weight: 600; }
+  .find-val { color: var(--yellow); font-weight: 600; }
+
+  /* Category stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .stat-card {
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 14px;
+    border: 1px solid var(--surface-3);
+  }
+  .stat-card h4 { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
+  .stat-card .stat-nums { display: flex; gap: 16px; }
+  .stat-card .stat-nums span { font-size: 0.85rem; }
+  .stat-card .stat-bar {
+    height: 4px;
+    background: var(--surface-3);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .stat-card .stat-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* Hidden */
+  .hidden { display: none !important; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .header h1 { font-size: 1.5rem; }
+    .form-row { grid-template-columns: 1fr; }
+    .ref-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .score-bar { gap: 8px; }
+    .score-item { padding: 10px 14px; min-width: 70px; }
+    .score-item .value { font-size: 1.1rem; }
+    .answer-row { flex-direction: column; align-items: stretch; }
+    .tabs { gap: 6px; }
+    .tab { padding: 8px 12px; font-size: 0.8rem; min-width: 80px; }
+  }
+
+  /* Pulse animation for streak */
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+  .pulse { animation: pulse 0.4s ease; }
+
+  /* Solver equation highlight */
+  .hl-var { color: var(--yellow); font-weight: 700; }
+  .hl-known { color: var(--blue); }
+  .hl-result { color: var(--green); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Interactive Equation Solvers</h1>
+    <p>Step-by-step physics equation practice</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('solver')">Solver</div>
+    <div class="tab" onclick="switchTab('practice')">Practice</div>
+    <div class="tab" onclick="switchTab('stats')">Stats</div>
+  </div>
+
+  <!-- Score Bar (visible in practice mode) -->
+  <div class="score-bar hidden" id="scoreBar">
+    <div class="score-item"><div class="label">Correct</div><div class="value correct" id="correctCount">0</div></div>
+    <div class="score-item"><div class="label">Incorrect</div><div class="value incorrect" id="incorrectCount">0</div></div>
+    <div class="score-item"><div class="label">Streak</div><div class="value streak" id="streakCount">0</div></div>
+    <div class="score-item"><div class="label">Accuracy</div><div class="value pct" id="accuracyPct">--</div></div>
+  </div>
+
+  <!-- SOLVER TAB -->
+  <div id="solverTab">
+    <div class="card">
+      <h2>Select an Equation</h2>
+      <div class="cat-pills">
+        <div class="cat-pill active" onclick="selectSolverCat('kinematics')">Kinematics</div>
+        <div class="cat-pill" onclick="selectSolverCat('newton')">Newton's Laws</div>
+        <div class="cat-pill" onclick="selectSolverCat('energy')">Energy</div>
+        <div class="cat-pill" onclick="selectSolverCat('momentum')">Momentum</div>
+      </div>
+      <div class="form-group">
+        <label>Equation</label>
+        <select id="solverEqSelect" onchange="updateSolverEquation()"></select>
+      </div>
+      <div class="eq" id="solverEqDisplay">v = v₀ + at</div>
+      <div style="margin-top:16px">
+        <label>Solve for:</label>
+        <div class="var-grid" id="solverVarGrid"></div>
+      </div>
+    </div>
+
+    <div class="card hidden" id="solverInputCard">
+      <h2>Enter Known Values</h2>
+      <div id="solverInputs"></div>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="btn btn-primary" onclick="solveSolver()">Solve Step-by-Step</button>
+        <button class="btn btn-secondary" onclick="clearSolver()">Clear</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="solverResultCard">
+      <h2>Step-by-Step Solution</h2>
+      <div class="steps" id="solverSteps"></div>
+      <div class="eq" id="solverAnswer" style="border-color:var(--green);color:var(--green)"></div>
+    </div>
+  </div>
+
+  <!-- PRACTICE TAB -->
+  <div id="practiceTab" class="hidden">
+    <div class="card">
+      <h2>Practice Settings</h2>
+      <div class="cat-pills" id="practiceCatPills">
+        <div class="cat-pill active" onclick="selectPracticeCat('all')">All</div>
+        <div class="cat-pill" onclick="selectPracticeCat('kinematics')">Kinematics</div>
+        <div class="cat-pill" onclick="selectPracticeCat('newton')">Newton's Laws</div>
+        <div class="cat-pill" onclick="selectPracticeCat('energy')">Energy</div>
+        <div class="cat-pill" onclick="selectPracticeCat('momentum')">Momentum</div>
+      </div>
+      <label>Difficulty</label>
+      <div class="diff-pills">
+        <div class="diff-pill active basic" onclick="selectDifficulty('basic')">Basic</div>
+        <div class="diff-pill intermediate" onclick="selectDifficulty('intermediate')">Intermediate</div>
+        <div class="diff-pill advanced" onclick="selectDifficulty('advanced')">Advanced</div>
+      </div>
+      <button class="btn btn-primary" onclick="generateProblem()">Generate Problem</button>
+    </div>
+
+    <div class="card hidden" id="problemCard">
+      <h2 id="problemTitle">Problem</h2>
+      <div class="problem-text" id="problemText"></div>
+      <div class="answer-row">
+        <div class="form-group">
+          <label id="answerLabel">Your Answer</label>
+          <input type="number" id="answerInput" step="any" placeholder="Enter your answer..." onkeydown="if(event.key==='Enter')checkAnswer()">
+        </div>
+        <button class="btn btn-green" onclick="checkAnswer()" style="height:42px;margin-bottom:0">Check</button>
+        <button class="btn btn-orange btn-sm" onclick="showHint()" style="height:42px;margin-bottom:0">Hint</button>
+      </div>
+      <div id="practiceFeedback"></div>
+      <div class="hidden" id="practiceStepsWrap">
+        <div style="margin-top:16px">
+          <div class="collapsible" onclick="toggleCollapse(this)">
+            <span style="font-weight:600;font-size:0.9rem">Show full solution</span>
+            <span class="chevron"> ▼</span>
+          </div>
+          <div class="collapse-body" id="practiceSteps"></div>
+        </div>
+      </div>
+      <div style="margin-top:16px;text-align:center" id="nextBtnWrap" class="hidden">
+        <button class="btn btn-primary" onclick="generateProblem()">Next Problem</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS TAB -->
+  <div id="statsTab" class="hidden">
+    <div class="card">
+      <h2>Performance by Category</h2>
+      <div class="stats-grid" id="statsGrid"></div>
+      <div style="margin-top:20px;text-align:center">
+        <button class="btn btn-secondary" onclick="resetStats()">Reset All Stats</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reference Card (always visible at bottom) -->
+  <div class="card" style="margin-top:8px">
+    <div class="collapsible" onclick="toggleCollapse(this)">
+      <h2 style="margin:0;cursor:pointer">Equation Reference Sheet <span class="chevron">▼</span></h2>
+    </div>
+    <div class="collapse-body" id="refSheet">
+      <div class="ref-grid">
+        <div class="ref-cat">
+          <h3>Kinematics</h3>
+          <div class="ref-eq">v = v₀ + at <span class="var-desc">velocity</span></div>
+          <div class="ref-eq">d = v₀t + ½at² <span class="var-desc">displacement</span></div>
+          <div class="ref-eq">v² = v₀² + 2ad <span class="var-desc">no time</span></div>
+        </div>
+        <div class="ref-cat">
+          <h3>Newton's Laws</h3>
+          <div class="ref-eq">F = ma <span class="var-desc">net force</span></div>
+          <div class="ref-eq">W = mg <span class="var-desc">weight</span></div>
+          <div class="ref-eq">f = μN <span class="var-desc">friction</span></div>
+        </div>
+        <div class="ref-cat">
+          <h3>Energy</h3>
+          <div class="ref-eq">KE = ½mv² <span class="var-desc">kinetic energy</span></div>
+          <div class="ref-eq">PE = mgh <span class="var-desc">potential energy</span></div>
+          <div class="ref-eq">W = Fd <span class="var-desc">work</span></div>
+        </div>
+        <div class="ref-cat">
+          <h3>Momentum</h3>
+          <div class="ref-eq">p = mv <span class="var-desc">momentum</span></div>
+          <div class="ref-eq">J = FΔt <span class="var-desc">impulse</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────
+const EQUATIONS = {
+  kinematics: [
+    {
+      id: 'k1', name: 'v = v₀ + at', display: 'v = v₀ + at',
+      vars: [
+        { sym: 'v', label: 'v', desc: 'Final velocity', unit: 'm/s' },
+        { sym: 'v0', label: 'v₀', desc: 'Initial velocity', unit: 'm/s' },
+        { sym: 'a', label: 'a', desc: 'Acceleration', unit: 'm/s²' },
+        { sym: 't', label: 't', desc: 'Time', unit: 's' }
+      ],
+      solve(known, target) {
+        const { v, v0, a, t } = known;
+        const steps = [];
+        if (target === 'v') {
+          steps.push({ label: 'Start with the equation', eq: 'v = v₀ + at' });
+          steps.push({ label: 'Substitute known values', eq: `v = ${v0} + (${a})(${t})` });
+          const result = v0 + a * t;
+          steps.push({ label: 'Calculate', eq: `v = ${v0} + ${rnd(a * t)}` });
+          steps.push({ label: 'Result', eq: `v = ${rnd(result)} m/s` });
+          return { result: rnd(result), unit: 'm/s', steps };
+        }
+        if (target === 'v0') {
+          steps.push({ label: 'Start with the equation', eq: 'v = v₀ + at' });
+          steps.push({ label: 'Isolate v₀: subtract at from both sides', eq: 'v₀ = v − at' });
+          steps.push({ label: 'Substitute known values', eq: `v₀ = ${v} − (${a})(${t})` });
+          const result = v - a * t;
+          steps.push({ label: 'Calculate', eq: `v₀ = ${v} − ${rnd(a * t)}` });
+          steps.push({ label: 'Result', eq: `v₀ = ${rnd(result)} m/s` });
+          return { result: rnd(result), unit: 'm/s', steps };
+        }
+        if (target === 'a') {
+          steps.push({ label: 'Start with the equation', eq: 'v = v₀ + at' });
+          steps.push({ label: 'Subtract v₀ from both sides', eq: 'v − v₀ = at' });
+          steps.push({ label: 'Divide both sides by t', eq: 'a = (v − v₀) / t' });
+          steps.push({ label: 'Substitute known values', eq: `a = (${v} − ${v0}) / ${t}` });
+          const result = (v - v0) / t;
+          steps.push({ label: 'Calculate', eq: `a = ${rnd(v - v0)} / ${t}` });
+          steps.push({ label: 'Result', eq: `a = ${rnd(result)} m/s²` });
+          return { result: rnd(result), unit: 'm/s²', steps };
+        }
+        if (target === 't') {
+          steps.push({ label: 'Start with the equation', eq: 'v = v₀ + at' });
+          steps.push({ label: 'Subtract v₀ from both sides', eq: 'v − v₀ = at' });
+          steps.push({ label: 'Divide both sides by a', eq: 't = (v − v₀) / a' });
+          steps.push({ label: 'Substitute known values', eq: `t = (${v} − ${v0}) / ${a}` });
+          const result = (v - v0) / a;
+          steps.push({ label: 'Calculate', eq: `t = ${rnd(v - v0)} / ${a}` });
+          steps.push({ label: 'Result', eq: `t = ${rnd(result)} s` });
+          return { result: rnd(result), unit: 's', steps };
+        }
+      },
+      generate(difficulty) {
+        const v0 = randInt(0, 20);
+        const a = randInt(1, 10);
+        const t = randInt(1, 10);
+        const v = rnd(v0 + a * t);
+        const all = { v, v0, a, t };
+        const targets = difficulty === 'basic' ? ['v'] : ['v', 'v0', 'a', 't'];
+        const target = targets[randInt(0, targets.length - 1)];
+        const given = { ...all };
+        delete given[target];
+        return { given, target, all, eqName: 'v = v₀ + at' };
+      }
+    },
+    {
+      id: 'k2', name: 'd = v₀t + ½at²', display: 'd = v₀t + ½at²',
+      vars: [
+        { sym: 'd', label: 'd', desc: 'Displacement', unit: 'm' },
+        { sym: 'v0', label: 'v₀', desc: 'Initial velocity', unit: 'm/s' },
+        { sym: 'a', label: 'a', desc: 'Acceleration', unit: 'm/s²' },
+        { sym: 't', label: 't', desc: 'Time', unit: 's' }
+      ],
+      solve(known, target) {
+        const { d, v0, a, t } = known;
+        const steps = [];
+        if (target === 'd') {
+          steps.push({ label: 'Start with the equation', eq: 'd = v₀t + ½at²' });
+          steps.push({ label: 'Substitute known values', eq: `d = (${v0})(${t}) + ½(${a})(${t})²` });
+          const term1 = v0 * t;
+          const term2 = 0.5 * a * t * t;
+          steps.push({ label: 'Calculate each term', eq: `d = ${rnd(term1)} + ${rnd(term2)}` });
+          const result = term1 + term2;
+          steps.push({ label: 'Result', eq: `d = ${rnd(result)} m` });
+          return { result: rnd(result), unit: 'm', steps };
+        }
+        if (target === 'v0') {
+          steps.push({ label: 'Start with the equation', eq: 'd = v₀t + ½at²' });
+          steps.push({ label: 'Subtract ½at² from both sides', eq: 'd − ½at² = v₀t' });
+          steps.push({ label: 'Divide both sides by t', eq: 'v₀ = (d − ½at²) / t' });
+          const halfat2 = 0.5 * a * t * t;
+          steps.push({ label: 'Substitute known values', eq: `v₀ = (${d} − ½(${a})(${t})²) / ${t}` });
+          steps.push({ label: 'Calculate', eq: `v₀ = (${d} − ${rnd(halfat2)}) / ${t}` });
+          const result = (d - halfat2) / t;
+          steps.push({ label: 'Result', eq: `v₀ = ${rnd(result)} m/s` });
+          return { result: rnd(result), unit: 'm/s', steps };
+        }
+        if (target === 'a') {
+          steps.push({ label: 'Start with the equation', eq: 'd = v₀t + ½at²' });
+          steps.push({ label: 'Subtract v₀t from both sides', eq: 'd − v₀t = ½at²' });
+          steps.push({ label: 'Multiply both sides by 2', eq: '2(d − v₀t) = at²' });
+          steps.push({ label: 'Divide both sides by t²', eq: 'a = 2(d − v₀t) / t²' });
+          steps.push({ label: 'Substitute known values', eq: `a = 2(${d} − (${v0})(${t})) / (${t})²` });
+          const num = 2 * (d - v0 * t);
+          const den = t * t;
+          steps.push({ label: 'Calculate', eq: `a = ${rnd(num)} / ${rnd(den)}` });
+          const result = num / den;
+          steps.push({ label: 'Result', eq: `a = ${rnd(result)} m/s²` });
+          return { result: rnd(result), unit: 'm/s²', steps };
+        }
+        if (target === 't') {
+          steps.push({ label: 'Start with the equation', eq: 'd = v₀t + ½at²' });
+          steps.push({ label: 'Rearrange to standard form', eq: '½at² + v₀t − d = 0' });
+          steps.push({ label: 'Use the quadratic formula', eq: 't = (−v₀ ± √(v₀² + 2ad)) / a' });
+          const disc = v0 * v0 + 2 * a * d;
+          steps.push({ label: 'Calculate the discriminant', eq: `v₀² + 2ad = (${v0})² + 2(${a})(${d}) = ${rnd(disc)}` });
+          steps.push({ label: 'Take the square root', eq: `√${rnd(disc)} = ${rnd(Math.sqrt(disc))}` });
+          const result = (-v0 + Math.sqrt(disc)) / a;
+          steps.push({ label: 'Take the positive root', eq: `t = (−${v0} + ${rnd(Math.sqrt(disc))}) / ${a}` });
+          steps.push({ label: 'Result', eq: `t = ${rnd(result)} s` });
+          return { result: rnd(result), unit: 's', steps };
+        }
+      },
+      generate(difficulty) {
+        const v0 = randInt(0, 15);
+        const a = randInt(1, 8);
+        const t = randInt(1, 8);
+        const d = rnd(v0 * t + 0.5 * a * t * t);
+        const all = { d, v0, a, t };
+        const targets = difficulty === 'basic' ? ['d'] : ['d', 'v0', 'a'];
+        const target = targets[randInt(0, targets.length - 1)];
+        const given = { ...all };
+        delete given[target];
+        return { given, target, all, eqName: 'd = v₀t + ½at²' };
+      }
+    },
+    {
+      id: 'k3', name: 'v² = v₀² + 2ad', display: 'v² = v₀² + 2ad',
+      vars: [
+        { sym: 'v', label: 'v', desc: 'Final velocity', unit: 'm/s' },
+        { sym: 'v0', label: 'v₀', desc: 'Initial velocity', unit: 'm/s' },
+        { sym: 'a', label: 'a', desc: 'Acceleration', unit: 'm/s²' },
+        { sym: 'd', label: 'd', desc: 'Displacement', unit: 'm' }
+      ],
+      solve(known, target) {
+        const { v, v0, a, d } = known;
+        const steps = [];
+        if (target === 'v') {
+          steps.push({ label: 'Start with the equation', eq: 'v² = v₀² + 2ad' });
+          steps.push({ label: 'Substitute known values', eq: `v² = (${v0})² + 2(${a})(${d})` });
+          const v2 = v0 * v0 + 2 * a * d;
+          steps.push({ label: 'Calculate', eq: `v² = ${rnd(v0 * v0)} + ${rnd(2 * a * d)} = ${rnd(v2)}` });
+          steps.push({ label: 'Take the square root of both sides', eq: `v = √${rnd(v2)}` });
+          const result = Math.sqrt(v2);
+          steps.push({ label: 'Result', eq: `v = ${rnd(result)} m/s` });
+          return { result: rnd(result), unit: 'm/s', steps };
+        }
+        if (target === 'v0') {
+          steps.push({ label: 'Start with the equation', eq: 'v² = v₀² + 2ad' });
+          steps.push({ label: 'Subtract 2ad from both sides', eq: 'v₀² = v² − 2ad' });
+          steps.push({ label: 'Substitute known values', eq: `v₀² = (${v})² − 2(${a})(${d})` });
+          const v02 = v * v - 2 * a * d;
+          steps.push({ label: 'Calculate', eq: `v₀² = ${rnd(v * v)} − ${rnd(2 * a * d)} = ${rnd(v02)}` });
+          steps.push({ label: 'Take the square root', eq: `v₀ = √${rnd(v02)}` });
+          const result = Math.sqrt(Math.abs(v02));
+          steps.push({ label: 'Result', eq: `v₀ = ${rnd(result)} m/s` });
+          return { result: rnd(result), unit: 'm/s', steps };
+        }
+        if (target === 'a') {
+          steps.push({ label: 'Start with the equation', eq: 'v² = v₀² + 2ad' });
+          steps.push({ label: 'Subtract v₀² from both sides', eq: 'v² − v₀² = 2ad' });
+          steps.push({ label: 'Divide both sides by 2d', eq: 'a = (v² − v₀²) / 2d' });
+          steps.push({ label: 'Substitute known values', eq: `a = ((${v})² − (${v0})²) / (2 × ${d})` });
+          const num = v * v - v0 * v0;
+          const den = 2 * d;
+          steps.push({ label: 'Calculate', eq: `a = (${rnd(v * v)} − ${rnd(v0 * v0)}) / ${rnd(den)}` });
+          steps.push({ label: 'Simplify', eq: `a = ${rnd(num)} / ${rnd(den)}` });
+          const result = num / den;
+          steps.push({ label: 'Result', eq: `a = ${rnd(result)} m/s²` });
+          return { result: rnd(result), unit: 'm/s²', steps };
+        }
+        if (target === 'd') {
+          steps.push({ label: 'Start with the equation', eq: 'v² = v₀² + 2ad' });
+          steps.push({ label: 'Subtract v₀² from both sides', eq: 'v² − v₀² = 2ad' });
+          steps.push({ label: 'Divide both sides by 2a', eq: 'd = (v² − v₀²) / 2a' });
+          steps.push({ label: 'Substitute known values', eq: `d = ((${v})² − (${v0})²) / (2 × ${a})` });
+          const num = v * v - v0 * v0;
+          const den = 2 * a;
+          steps.push({ label: 'Calculate', eq: `d = ${rnd(num)} / ${rnd(den)}` });
+          const result = num / den;
+          steps.push({ label: 'Result', eq: `d = ${rnd(result)} m` });
+          return { result: rnd(result), unit: 'm', steps };
+        }
+      },
+      generate(difficulty) {
+        const v0 = randInt(0, 15);
+        const a = randInt(1, 8);
+        const d = randInt(5, 50);
+        const v = rnd(Math.sqrt(v0 * v0 + 2 * a * d));
+        const all = { v: rnd(v), v0, a, d };
+        const targets = difficulty === 'basic' ? ['v'] : ['v', 'v0', 'a', 'd'];
+        const target = targets[randInt(0, targets.length - 1)];
+        const given = { ...all };
+        delete given[target];
+        return { given, target, all, eqName: 'v² = v₀² + 2ad' };
+      }
+    }
+  ],
+  newton: [
+    {
+      id: 'n1', name: 'F = ma', display: 'F = ma',
+      vars: [
+        { sym: 'F', label: 'F', desc: 'Net force', unit: 'N' },
+        { sym: 'm', label: 'm', desc: 'Mass', unit: 'kg' },
+        { sym: 'a', label: 'a', desc: 'Acceleration', unit: 'm/s²' }
+      ],
+      solve(known, target) {
+        const { F, m, a } = known;
+        const steps = [];
+        if (target === 'F') {
+          steps.push({ label: 'Start with Newton\'s second law', eq: 'F = ma' });
+          steps.push({ label: 'Substitute known values', eq: `F = (${m})(${a})` });
+          const result = m * a;
+          steps.push({ label: 'Result', eq: `F = ${rnd(result)} N` });
+          return { result: rnd(result), unit: 'N', steps };
+        }
+        if (target === 'm') {
+          steps.push({ label: 'Start with Newton\'s second law', eq: 'F = ma' });
+          steps.push({ label: 'Divide both sides by a', eq: 'm = F / a' });
+          steps.push({ label: 'Substitute known values', eq: `m = ${F} / ${a}` });
+          const result = F / a;
+          steps.push({ label: 'Result', eq: `m = ${rnd(result)} kg` });
+          return { result: rnd(result), unit: 'kg', steps };
+        }
+        if (target === 'a') {
+          steps.push({ label: 'Start with Newton\'s second law', eq: 'F = ma' });
+          steps.push({ label: 'Divide both sides by m', eq: 'a = F / m' });
+          steps.push({ label: 'Substitute known values', eq: `a = ${F} / ${m}` });
+          const result = F / m;
+          steps.push({ label: 'Result', eq: `a = ${rnd(result)} m/s²` });
+          return { result: rnd(result), unit: 'm/s²', steps };
+        }
+      },
+      generate(difficulty) {
+        const m = randInt(1, 100);
+        const a = randInt(1, 20);
+        const F = rnd(m * a);
+        const all = { F, m, a };
+        const targets = difficulty === 'basic' ? ['F'] : ['F', 'm', 'a'];
+        const target = targets[randInt(0, targets.length - 1)];
+        const given = { ...all };
+        delete given[target];
+        return { given, target, all, eqName: 'F = ma' };
+      }
+    },
+    {
+      id: 'n2', name: 'W = mg', display: 'W = mg',
+      vars: [
+        { sym: 'W', label: 'W', desc: 'Weight', unit: 'N' },
+        { sym: 'm', label: 'm', desc: 'Mass', unit: 'kg' },
+        { sym: 'g', label: 'g', desc: 'Gravity (9.8)', unit: 'm/s²' }
+      ],
+      solve(known, target) {
+        const { W, m, g } = known;
+        const steps = [];
+        if (target === 'W') {
+          steps.push({ label: 'Start with the weight equation', eq: 'W = mg' });
+          steps.push({ label: 'Substitute known values', eq: `W = (${m})(${g})` });
+          const result = m * g;
+          steps.push({ label: 'Result', eq: `W = ${rnd(result)} N` });
+          return { result: rnd(result), unit: 'N', steps };
+        }
+        if (target === 'm') {
+          steps.push({ label: 'Start with the weight equation', eq: 'W = mg' });
+          steps.push({ label: 'Divide both sides by g', eq: 'm = W / g' });
+          steps.push({ label: 'Substitute known values', eq: `m = ${W} / ${g}` });
+          const result = W / g;
+          steps.push({ label: 'Result', eq: `m = ${rnd(result)} kg` });
+          return { result: rnd(result), unit: 'kg', steps };
+        }
+        if (target === 'g') {
+          steps.push({ label: 'Start with the weight equation', eq: 'W = mg' });
+          steps.push({ label: 'Divide both sides by m', eq: 'g = W / m' });
+          steps.push({ label: 'Substitute known values', eq: `g = ${W} / ${m}` });
+          const result = W / m;
+          steps.push({ label: 'Result', eq: `g = ${rnd(result)} m/s²` });
+          return { result: rnd(result), unit: 'm/s²', steps };
+        }
+      },
+      generate(difficulty) {
+        const m = randInt(1, 100);
+        const g = 9.8;
+        const W = rnd(m * g);
+        const all = { W, m, g };
+        const targets = difficulty === 'basic' ? ['W'] : ['W', 'm'];
+        const target = targets[randInt(0, targets.length - 1)];
+        const given = { ...all };
+        delete given[target];
+        return { given, target, all, eqName: 'W = mg' };
+      }
+    },
+    {
+      id: 'n3', name: 'f = μN', display: 'f = μN',
+      vars: [
+        { sym: 'f', label: 'f', desc: 'Friction force', unit: 'N' },
+        { sym: 'mu', label: 'μ', desc: 'Coefficient of friction', unit: '(none)' },
+        { sym: 'N', label: 'N', desc: 'Normal force', unit: 'N' }
+      ],
+      solve(known, target) {
+        const { f, mu, N } = known;
+        const steps = [];
+        if (target === 'f') {
+          steps.push({ label: 'Start with the friction equation', eq: 'f = μN' });
+          steps.push({ label: 'Substitute known values', eq: `f = (${mu})(${N})` });
+          const result = mu * N;
+          steps.push({ label: 'Result', eq: `f = ${rnd(result)} N` });
+          return { result: rnd(result), unit: 'N', steps };
+        }
+        if (target === 'mu') {
+          steps.push({ label: 'Start with the friction equation', eq: 'f = μN' });
+          steps.push({ label: 'Divide both sides by N', eq: 'μ = f / N' });
+          steps.push({ label: 'Substitute known values', eq: `μ = ${f} / ${N}` });
+          const result = f / N;
+          steps.push({ label: 'Result', eq: `μ = ${rnd(result)}` });
+          return { result: rnd(result), unit: '', steps };
+        }
+        if (target === 'N') {
+          steps.push({ label: 'Start with the friction equation', eq: 'f = μN' });
+          steps.push({ label: 'Divide both sides by μ', eq: 'N = f / μ' });
+          steps.push({ label: 'Substitute known values', eq: `N = ${f} / ${mu}` });
+          const result = f / mu;
+          steps.push({ label: 'Result', eq: `N = ${rnd(result)} N` });
+          return { result: rnd(result), unit: 'N', steps };
+        }
+      },
+      generate(difficulty) {
+        const mu = rnd(randInt(1, 9) / 10);
+        const N = randInt(10, 200);
+        const f = rnd(mu * N);
+        const all = { f, mu, N };
+        const targets = difficulty === 'basic' ? ['f'] : ['f', 'mu', 'N'];
+        const target = targets[randInt(0, targets.length - 1)];
+        const given = { ...all };
+        delete given[target];
+        return { given, target, all, eqName: 'f = μN' };
+      }
+    }
+  ],
+  energy: [
+    {
+      id: 'e1', name: 'KE = ½mv²', display: 'KE = ½mv²',
+      vars: [
+        { sym: 'KE', label: 'KE', desc: 'Kinetic energy', unit: 'J' },
+        { sym: 'm', label: 'm', desc: 'Mass', unit: 'kg' },
+        { sym: 'v', label: 'v', desc: 'Velocity', unit: 'm/s' }
+      ],
+      solve(known, target) {
+        const { KE, m, v } = known;
+        const steps = [];
+        if (target === 'KE') {
+          steps.push({ label: 'Start with the kinetic energy equation', eq: 'KE = ½mv²' });
+          steps.push({ label: 'Substitute known values', eq: `KE = ½(${m})(${v})²` });
+          steps.push({ label: 'Square the velocity', eq: `KE = ½(${m})(${rnd(v * v)})` });
+          const result = 0.5 * m * v * v;
+          steps.push({ label: 'Result', eq: `KE = ${rnd(result)} J` });
+          return { result: rnd(result), unit: 'J', steps };
+        }
+        if (target === 'm') {
+          steps.push({ label: 'Start with the kinetic energy equation', eq: 'KE = ½mv²' });
+          steps.push({ label: 'Multiply both sides by 2', eq: '2KE = mv²' });
+          steps.push({ label: 'Divide both sides by v²', eq: 'm = 2KE / v²' });
+          steps.push({ label: 'Substitute known values', eq: `m = 2(${KE}) / (${v})²` });
+          const result = (2 * KE) / (v * v);
+          steps.push({ label: 'Calculate', eq: `m = ${rnd(2 * KE)} / ${rnd(v * v)}` });
+          steps.push({ label: 'Result', eq: `m = ${rnd(result)} kg` });
+          return { result: rnd(result), unit: 'kg', steps };
+        }
+        if (target === 'v') {
+          steps.push({ label: 'Start with the kinetic energy equation', eq: 'KE = ½mv²' });
+          steps.push({ label: 'Multiply both sides by 2', eq: '2KE = mv²' });
+          steps.push({ label: 'Divide both sides by m', eq: 'v² = 2KE / m' });
+          steps.push({ label: 'Take the square root', eq: 'v = √(2KE / m)' });
+          steps.push({ label: 'Substitute known values', eq: `v = √(2(${KE}) / ${m})` });
+          const inner = (2 * KE) / m;
+          steps.push({ label: 'Calculate', eq: `v = √${rnd(inner)}` });
+          const result = Math.sqrt(inner);
+          steps.push({ label: 'Result', eq: `v = ${rnd(result)} m/s` });
+          return { result: rnd(result), unit: 'm/s', steps };
+        }
+      },
+      generate(difficulty) {
+        const m = randInt(1, 50);
+        const v = randInt(1, 20);
+        const KE = rnd(0.5 * m * v * v);
+        const all = { KE, m, v };
+        const targets = difficulty === 'basic' ? ['KE'] : ['KE', 'm', 'v'];
+        const target = targets[randInt(0, targets.length - 1)];
+        const given = { ...all };
+        delete given[target];
+        return { given, target, all, eqName: 'KE = ½mv²' };
+      }
+    },
+    {
+      id: 'e2', name: 'PE = mgh', display: 'PE = mgh',
+      vars: [
+        { sym: 'PE', label: 'PE', desc: 'Potential energy', unit: 'J' },
+        { sym: 'm', label: 'm', desc: 'Mass', unit: 'kg' },
+        { sym: 'g', label: 'g', desc: 'Gravity (9.8)', unit: 'm/s²' },
+        { sym: 'h', label: 'h', desc: 'Height', unit: 'm' }
+      ],
+      solve(known, target) {
+        const { PE, m, g, h } = known;
+        const steps = [];
+        if (target === 'PE') {
+          steps.push({ label: 'Start with the potential energy equation', eq: 'PE = mgh' });
+          steps.push({ label: 'Substitute known values', eq: `PE = (${m})(${g})(${h})` });
+          const result = m * g * h;
+          steps.push({ label: 'Result', eq: `PE = ${rnd(result)} J` });
+          return { result: rnd(result), unit: 'J', steps };
+        }
+        if (target === 'm') {
+          steps.push({ label: 'Start with the potential energy equation', eq: 'PE = mgh' });
+          steps.push({ label: 'Divide both sides by gh', eq: 'm = PE / (gh)' });
+          steps.push({ label: 'Substitute known values', eq: `m = ${PE} / (${g} × ${h})` });
+          const result = PE / (g * h);
+          steps.push({ label: 'Calculate', eq: `m = ${PE} / ${rnd(g * h)}` });
+          steps.push({ label: 'Result', eq: `m = ${rnd(result)} kg` });
+          return { result: rnd(result), unit: 'kg', steps };
+        }
+        if (target === 'g') {
+          steps.push({ label: 'Start with the potential energy equation', eq: 'PE = mgh' });
+          steps.push({ label: 'Divide both sides by mh', eq: 'g = PE / (mh)' });
+          steps.push({ label: 'Substitute known values', eq: `g = ${PE} / (${m} × ${h})` });
+          const result = PE / (m * h);
+          steps.push({ label: 'Result', eq: `g = ${rnd(result)} m/s²` });
+          return { result: rnd(result), unit: 'm/s²', steps };
+        }
+        if (target === 'h') {
+          steps.push({ label: 'Start with the potential energy equation', eq: 'PE = mgh' });
+          steps.push({ label: 'Divide both sides by mg', eq: 'h = PE / (mg)' });
+          steps.push({ label: 'Substitute known values', eq: `h = ${PE} / (${m} × ${g})` });
+          const result = PE / (m * g);
+          steps.push({ label: 'Calculate', eq: `h = ${PE} / ${rnd(m * g)}` });
+          steps.push({ label: 'Result', eq: `h = ${rnd(result)} m` });
+          return { result: rnd(result), unit: 'm', steps };
+        }
+      },
+      generate(difficulty) {
+        const m = randInt(1, 50);
+        const g = 9.8;
+        const h = randInt(1, 30);
+        const PE = rnd(m * g * h);
+        const all = { PE, m, g, h };
+        const targets = difficulty === 'basic' ? ['PE'] : ['PE', 'm', 'h'];
+        const target = targets[randInt(0, targets.length - 1)];
+        const given = { ...all };
+        delete given[target];
+        return { given, target, all, eqName: 'PE = mgh' };
+      }
+    },
+    {
+      id: 'e3', name: 'W = Fd', display: 'W = Fd',
+      vars: [
+        { sym: 'W', label: 'W', desc: 'Work', unit: 'J' },
+        { sym: 'F', label: 'F', desc: 'Force', unit: 'N' },
+        { sym: 'd', label: 'd', desc: 'Distance', unit: 'm' }
+      ],
+      solve(known, target) {
+        const { W, F, d } = known;
+        const steps = [];
+        if (target === 'W') {
+          steps.push({ label: 'Start with the work equation', eq: 'W = Fd' });
+          steps.push({ label: 'Substitute known values', eq: `W = (${F})(${d})` });
+          const result = F * d;
+          steps.push({ label: 'Result', eq: `W = ${rnd(result)} J` });
+          return { result: rnd(result), unit: 'J', steps };
+        }
+        if (target === 'F') {
+          steps.push({ label: 'Start with the work equation', eq: 'W = Fd' });
+          steps.push({ label: 'Divide both sides by d', eq: 'F = W / d' });
+          steps.push({ label: 'Substitute known values', eq: `F = ${W} / ${d}` });
+          const result = W / d;
+          steps.push({ label: 'Result', eq: `F = ${rnd(result)} N` });
+          return { result: rnd(result), unit: 'N', steps };
+        }
+        if (target === 'd') {
+          steps.push({ label: 'Start with the work equation', eq: 'W = Fd' });
+          steps.push({ label: 'Divide both sides by F', eq: 'd = W / F' });
+          steps.push({ label: 'Substitute known values', eq: `d = ${W} / ${F}` });
+          const result = W / F;
+          steps.push({ label: 'Result', eq: `d = ${rnd(result)} m` });
+          return { result: rnd(result), unit: 'm', steps };
+        }
+      },
+      generate(difficulty) {
+        const F = randInt(5, 200);
+        const d = randInt(1, 50);
+        const W = rnd(F * d);
+        const all = { W, F, d };
+        const targets = difficulty === 'basic' ? ['W'] : ['W', 'F', 'd'];
+        const target = targets[randInt(0, targets.length - 1)];
+        const given = { ...all };
+        delete given[target];
+        return { given, target, all, eqName: 'W = Fd' };
+      }
+    }
+  ],
+  momentum: [
+    {
+      id: 'm1', name: 'p = mv', display: 'p = mv',
+      vars: [
+        { sym: 'p', label: 'p', desc: 'Momentum', unit: 'kg·m/s' },
+        { sym: 'm', label: 'm', desc: 'Mass', unit: 'kg' },
+        { sym: 'v', label: 'v', desc: 'Velocity', unit: 'm/s' }
+      ],
+      solve(known, target) {
+        const { p, m, v } = known;
+        const steps = [];
+        if (target === 'p') {
+          steps.push({ label: 'Start with the momentum equation', eq: 'p = mv' });
+          steps.push({ label: 'Substitute known values', eq: `p = (${m})(${v})` });
+          const result = m * v;
+          steps.push({ label: 'Result', eq: `p = ${rnd(result)} kg·m/s` });
+          return { result: rnd(result), unit: 'kg·m/s', steps };
+        }
+        if (target === 'm') {
+          steps.push({ label: 'Start with the momentum equation', eq: 'p = mv' });
+          steps.push({ label: 'Divide both sides by v', eq: 'm = p / v' });
+          steps.push({ label: 'Substitute known values', eq: `m = ${p} / ${v}` });
+          const result = p / v;
+          steps.push({ label: 'Result', eq: `m = ${rnd(result)} kg` });
+          return { result: rnd(result), unit: 'kg', steps };
+        }
+        if (target === 'v') {
+          steps.push({ label: 'Start with the momentum equation', eq: 'p = mv' });
+          steps.push({ label: 'Divide both sides by m', eq: 'v = p / m' });
+          steps.push({ label: 'Substitute known values', eq: `v = ${p} / ${m}` });
+          const result = p / m;
+          steps.push({ label: 'Result', eq: `v = ${rnd(result)} m/s` });
+          return { result: rnd(result), unit: 'm/s', steps };
+        }
+      },
+      generate(difficulty) {
+        const m = randInt(1, 80);
+        const v = randInt(1, 30);
+        const p = rnd(m * v);
+        const all = { p, m, v };
+        const targets = difficulty === 'basic' ? ['p'] : ['p', 'm', 'v'];
+        const target = targets[randInt(0, targets.length - 1)];
+        const given = { ...all };
+        delete given[target];
+        return { given, target, all, eqName: 'p = mv' };
+      }
+    },
+    {
+      id: 'm2', name: 'J = FΔt', display: 'J = FΔt',
+      vars: [
+        { sym: 'J', label: 'J', desc: 'Impulse', unit: 'N·s' },
+        { sym: 'F', label: 'F', desc: 'Force', unit: 'N' },
+        { sym: 'dt', label: 'Δt', desc: 'Time interval', unit: 's' }
+      ],
+      solve(known, target) {
+        const { J, F, dt } = known;
+        const steps = [];
+        if (target === 'J') {
+          steps.push({ label: 'Start with the impulse equation', eq: 'J = FΔt' });
+          steps.push({ label: 'Substitute known values', eq: `J = (${F})(${dt})` });
+          const result = F * dt;
+          steps.push({ label: 'Result', eq: `J = ${rnd(result)} N·s` });
+          return { result: rnd(result), unit: 'N·s', steps };
+        }
+        if (target === 'F') {
+          steps.push({ label: 'Start with the impulse equation', eq: 'J = FΔt' });
+          steps.push({ label: 'Divide both sides by Δt', eq: 'F = J / Δt' });
+          steps.push({ label: 'Substitute known values', eq: `F = ${J} / ${dt}` });
+          const result = J / dt;
+          steps.push({ label: 'Result', eq: `F = ${rnd(result)} N` });
+          return { result: rnd(result), unit: 'N', steps };
+        }
+        if (target === 'dt') {
+          steps.push({ label: 'Start with the impulse equation', eq: 'J = FΔt' });
+          steps.push({ label: 'Divide both sides by F', eq: 'Δt = J / F' });
+          steps.push({ label: 'Substitute known values', eq: `Δt = ${J} / ${F}` });
+          const result = J / F;
+          steps.push({ label: 'Result', eq: `Δt = ${rnd(result)} s` });
+          return { result: rnd(result), unit: 's', steps };
+        }
+      },
+      generate(difficulty) {
+        const F = randInt(5, 200);
+        const dt = rnd(randInt(1, 50) / 10);
+        const J = rnd(F * dt);
+        const all = { J, F, dt };
+        const targets = difficulty === 'basic' ? ['J'] : ['J', 'F', 'dt'];
+        const target = targets[randInt(0, targets.length - 1)];
+        const given = { ...all };
+        delete given[target];
+        return { given, target, all, eqName: 'J = FΔt' };
+      }
+    }
+  ]
+};
+
+// Advanced multi-step problems
+const ADVANCED_PROBLEMS = [
+  {
+    category: 'kinematics',
+    title: 'Multi-step: Find displacement using two equations',
+    generate() {
+      const v0 = randInt(0, 10);
+      const a = randInt(1, 6);
+      const t = randInt(2, 8);
+      const v = rnd(v0 + a * t);
+      const d = rnd(v0 * t + 0.5 * a * t * t);
+      return {
+        text: `A car starts at <span class="given-val">v₀ = ${v0} m/s</span> and accelerates at <span class="given-val">a = ${a} m/s²</span> for <span class="given-val">t = ${t} s</span>. Find the <span class="find-val">final velocity</span> and then the <span class="find-val">displacement</span>.`,
+        target: 'd',
+        answer: d,
+        unit: 'm',
+        hint: 'First find v using v = v₀ + at, then use d = v₀t + ½at² (or you can go directly).',
+        steps: [
+          { label: 'Step 1: Find final velocity', eq: `v = v₀ + at = ${v0} + (${a})(${t}) = ${v} m/s` },
+          { label: 'Step 2: Find displacement', eq: `d = v₀t + ½at²` },
+          { label: 'Substitute values', eq: `d = (${v0})(${t}) + ½(${a})(${t})²` },
+          { label: 'Calculate first term', eq: `v₀t = (${v0})(${t}) = ${rnd(v0 * t)}` },
+          { label: 'Calculate second term', eq: `½at² = ½(${a})(${t * t}) = ${rnd(0.5 * a * t * t)}` },
+          { label: 'Result', eq: `d = ${rnd(v0 * t)} + ${rnd(0.5 * a * t * t)} = ${d} m` }
+        ]
+      };
+    }
+  },
+  {
+    category: 'newton',
+    title: 'Multi-step: Find acceleration from weight and force',
+    generate() {
+      const m = randInt(5, 50);
+      const g = 9.8;
+      const W = rnd(m * g);
+      const F = randInt(20, 300);
+      const a_result = rnd(F / m);
+      return {
+        text: `An object weighs <span class="given-val">W = ${W} N</span>. A net force of <span class="given-val">F = ${F} N</span> acts on it. Find its <span class="find-val">acceleration</span>. (Use g = 9.8 m/s²)`,
+        target: 'a',
+        answer: a_result,
+        unit: 'm/s²',
+        hint: 'First find mass from W = mg, then use F = ma to find acceleration.',
+        steps: [
+          { label: 'Step 1: Find mass from weight', eq: `W = mg → m = W / g` },
+          { label: 'Substitute', eq: `m = ${W} / ${g} = ${rnd(m)} kg` },
+          { label: 'Step 2: Apply Newton\'s second law', eq: `F = ma → a = F / m` },
+          { label: 'Substitute', eq: `a = ${F} / ${rnd(m)}` },
+          { label: 'Result', eq: `a = ${a_result} m/s²` }
+        ]
+      };
+    }
+  },
+  {
+    category: 'energy',
+    title: 'Multi-step: Find velocity from height (energy conservation)',
+    generate() {
+      const m = randInt(1, 20);
+      const g = 9.8;
+      const h = randInt(2, 30);
+      const PE = rnd(m * g * h);
+      const v = rnd(Math.sqrt(2 * g * h));
+      return {
+        text: `A <span class="given-val">${m} kg</span> object falls from a height of <span class="given-val">h = ${h} m</span>. Assuming all PE converts to KE, find the <span class="find-val">velocity</span> at the bottom. (Use g = 9.8 m/s²)`,
+        target: 'v',
+        answer: v,
+        unit: 'm/s',
+        hint: 'Set PE = KE: mgh = ½mv². Notice that mass cancels!',
+        steps: [
+          { label: 'Set PE equal to KE (energy conservation)', eq: 'mgh = ½mv²' },
+          { label: 'Mass cancels from both sides', eq: 'gh = ½v²' },
+          { label: 'Multiply both sides by 2', eq: '2gh = v²' },
+          { label: 'Take the square root', eq: 'v = √(2gh)' },
+          { label: 'Substitute known values', eq: `v = √(2 × ${g} × ${h})` },
+          { label: 'Calculate', eq: `v = √${rnd(2 * g * h)} = ${v} m/s` }
+        ]
+      };
+    }
+  },
+  {
+    category: 'momentum',
+    title: 'Multi-step: Find force from momentum change',
+    generate() {
+      const m = randInt(1, 30);
+      const v1 = randInt(0, 10);
+      const v2 = randInt(v1 + 5, v1 + 25);
+      const dt = rnd(randInt(1, 30) / 10);
+      const dp = rnd(m * (v2 - v1));
+      const F = rnd(dp / dt);
+      return {
+        text: `A <span class="given-val">${m} kg</span> object changes velocity from <span class="given-val">v₁ = ${v1} m/s</span> to <span class="given-val">v₂ = ${v2} m/s</span> in <span class="given-val">Δt = ${dt} s</span>. Find the <span class="find-val">average force</span>.`,
+        target: 'F',
+        answer: F,
+        unit: 'N',
+        hint: 'First find the change in momentum (Δp = mΔv), then use J = FΔt.',
+        steps: [
+          { label: 'Find the change in velocity', eq: `Δv = v₂ − v₁ = ${v2} − ${v1} = ${rnd(v2 - v1)} m/s` },
+          { label: 'Find the impulse (change in momentum)', eq: `J = mΔv = (${m})(${rnd(v2 - v1)}) = ${dp} kg·m/s` },
+          { label: 'Use impulse-momentum theorem', eq: 'J = FΔt → F = J / Δt' },
+          { label: 'Substitute', eq: `F = ${dp} / ${dt}` },
+          { label: 'Result', eq: `F = ${F} N` }
+        ]
+      };
+    }
+  }
+];
+
+// ─── LABEL MAP ──────────────────────────────────────────────────────
+const VAR_LABELS = {
+  v: 'v', v0: 'v₀', a: 'a', t: 't', d: 'd', F: 'F', m: 'm', g: 'g',
+  W: 'W', f: 'f', mu: 'μ', N: 'N', KE: 'KE', PE: 'PE', h: 'h',
+  p: 'p', J: 'J', dt: 'Δt'
+};
+
+const CAT_NAMES = { kinematics: 'Kinematics', newton: "Newton's Laws", energy: 'Energy', momentum: 'Momentum' };
+
+// ─── STATE ──────────────────────────────────────────────────────────
+let state = {
+  activeTab: 'solver',
+  solverCat: 'kinematics',
+  solverEqIdx: 0,
+  solverTarget: null,
+  practiceCat: 'all',
+  difficulty: 'basic',
+  currentProblem: null,
+  answered: false,
+  hintShown: false,
+  stats: { kinematics: { correct: 0, incorrect: 0 }, newton: { correct: 0, incorrect: 0 }, energy: { correct: 0, incorrect: 0 }, momentum: { correct: 0, incorrect: 0 } },
+  streak: 0,
+  bestStreak: 0
+};
+
+// ─── PERSISTENCE ────────────────────────────────────────────────────
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('physicsEqSolver'));
+    if (saved && saved.stats) {
+      state.stats = saved.stats;
+      state.streak = saved.streak || 0;
+      state.bestStreak = saved.bestStreak || 0;
+    }
+  } catch (e) {}
+}
+function saveState() {
+  localStorage.setItem('physicsEqSolver', JSON.stringify({ stats: state.stats, streak: state.streak, bestStreak: state.bestStreak }));
+}
+
+// ─── UTILS ──────────────────────────────────────────────────────────
+function rnd(n) { return Math.round(n * 100) / 100; }
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+function totalCorrect() { return Object.values(state.stats).reduce((s, c) => s + c.correct, 0); }
+function totalIncorrect() { return Object.values(state.stats).reduce((s, c) => s + c.incorrect, 0); }
+
+// ─── TAB SWITCHING ──────────────────────────────────────────────────
+function switchTab(tab) {
+  state.activeTab = tab;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['solver', 'practice', 'stats'][i] === tab);
+  });
+  document.getElementById('solverTab').classList.toggle('hidden', tab !== 'solver');
+  document.getElementById('practiceTab').classList.toggle('hidden', tab !== 'practice');
+  document.getElementById('statsTab').classList.toggle('hidden', tab !== 'stats');
+  document.getElementById('scoreBar').classList.toggle('hidden', tab !== 'practice');
+  if (tab === 'stats') renderStats();
+  if (tab === 'practice') updateScoreBar();
+}
+
+// ─── COLLAPSIBLE ────────────────────────────────────────────────────
+function toggleCollapse(el) {
+  el.classList.toggle('open');
+  const body = el.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+// ─── SOLVER TAB ─────────────────────────────────────────────────────
+function selectSolverCat(cat) {
+  state.solverCat = cat;
+  state.solverEqIdx = 0;
+  state.solverTarget = null;
+  document.querySelectorAll('#solverTab .cat-pill').forEach(p => p.classList.toggle('active', p.textContent.toLowerCase().replace(/[^a-z]/g, '').includes(cat.toLowerCase().replace(/[^a-z]/g, ''))));
+  // More robust: use onclick text match
+  const pills = document.querySelectorAll('#solverTab .cat-pills .cat-pill');
+  pills.forEach(p => {
+    const txt = p.textContent.trim().toLowerCase();
+    const match = (cat === 'kinematics' && txt === 'kinematics') ||
+                  (cat === 'newton' && txt === "newton's laws") ||
+                  (cat === 'energy' && txt === 'energy') ||
+                  (cat === 'momentum' && txt === 'momentum');
+    p.classList.toggle('active', match);
+  });
+  populateSolverEqSelect();
+  updateSolverEquation();
+  document.getElementById('solverInputCard').classList.add('hidden');
+  document.getElementById('solverResultCard').classList.add('hidden');
+}
+
+function populateSolverEqSelect() {
+  const sel = document.getElementById('solverEqSelect');
+  const eqs = EQUATIONS[state.solverCat];
+  sel.innerHTML = eqs.map((eq, i) => `<option value="${i}">${eq.name}</option>`).join('');
+}
+
+function updateSolverEquation() {
+  const eqs = EQUATIONS[state.solverCat];
+  state.solverEqIdx = parseInt(document.getElementById('solverEqSelect').value) || 0;
+  const eq = eqs[state.solverEqIdx];
+  document.getElementById('solverEqDisplay').textContent = eq.display;
+
+  // Build variable buttons
+  const grid = document.getElementById('solverVarGrid');
+  grid.innerHTML = eq.vars.map(v =>
+    `<div class="var-btn" onclick="selectSolverVar('${v.sym}')" data-sym="${v.sym}">${v.label}<div style="font-size:0.7rem;color:var(--text-muted);font-family:sans-serif;margin-top:2px">${v.desc}</div></div>`
+  ).join('');
+  state.solverTarget = null;
+  document.getElementById('solverInputCard').classList.add('hidden');
+  document.getElementById('solverResultCard').classList.add('hidden');
+}
+
+function selectSolverVar(sym) {
+  state.solverTarget = sym;
+  document.querySelectorAll('#solverVarGrid .var-btn').forEach(b => b.classList.toggle('active', b.dataset.sym === sym));
+
+  // Build input fields for the other variables
+  const eq = EQUATIONS[state.solverCat][state.solverEqIdx];
+  const otherVars = eq.vars.filter(v => v.sym !== sym);
+  const inputs = document.getElementById('solverInputs');
+  inputs.innerHTML = '<div class="form-row">' + otherVars.map(v =>
+    `<div class="form-group"><label>${v.label} — ${v.desc} (${v.unit})</label><input type="number" step="any" id="solver_${v.sym}" placeholder="${v.unit}"></div>`
+  ).join('') + '</div>';
+  document.getElementById('solverInputCard').classList.remove('hidden');
+  document.getElementById('solverResultCard').classList.add('hidden');
+}
+
+function solveSolver() {
+  const eq = EQUATIONS[state.solverCat][state.solverEqIdx];
+  const known = {};
+  let valid = true;
+  eq.vars.forEach(v => {
+    if (v.sym === state.solverTarget) return;
+    const inp = document.getElementById('solver_' + v.sym);
+    if (!inp || inp.value === '') { valid = false; return; }
+    known[v.sym] = parseFloat(inp.value);
+  });
+  if (!valid) { alert('Please fill in all known values.'); return; }
+
+  const result = eq.solve(known, state.solverTarget);
+  if (!result) { alert('Could not solve. Check your values.'); return; }
+
+  // Render steps
+  const stepsEl = document.getElementById('solverSteps');
+  stepsEl.innerHTML = result.steps.map((s, i) =>
+    `<div class="step" style="animation-delay:${i * 0.1}s"><div class="step-num">${i + 1}</div><div class="step-content"><div class="step-label">${s.label}</div><div class="step-eq">${s.eq}</div></div></div>`
+  ).join('');
+  document.getElementById('solverAnswer').textContent = result.steps[result.steps.length - 1].eq;
+  document.getElementById('solverResultCard').classList.remove('hidden');
+}
+
+function clearSolver() {
+  document.querySelectorAll('#solverInputs input').forEach(i => i.value = '');
+  document.getElementById('solverResultCard').classList.add('hidden');
+}
+
+// ─── PRACTICE TAB ───────────────────────────────────────────────────
+function selectPracticeCat(cat) {
+  state.practiceCat = cat;
+  document.querySelectorAll('#practiceCatPills .cat-pill').forEach(p => {
+    const txt = p.textContent.trim().toLowerCase();
+    const match = (cat === 'all' && txt === 'all') ||
+                  (cat === 'kinematics' && txt === 'kinematics') ||
+                  (cat === 'newton' && txt === "newton's laws") ||
+                  (cat === 'energy' && txt === 'energy') ||
+                  (cat === 'momentum' && txt === 'momentum');
+    p.classList.toggle('active', match);
+  });
+}
+
+function selectDifficulty(diff) {
+  state.difficulty = diff;
+  document.querySelectorAll('.diff-pill').forEach(p => {
+    const d = p.textContent.trim().toLowerCase();
+    p.classList.remove('active');
+    if (d === diff) p.classList.add('active');
+  });
+}
+
+function generateProblem() {
+  state.answered = false;
+  state.hintShown = false;
+  document.getElementById('practiceFeedback').innerHTML = '';
+  document.getElementById('practiceStepsWrap').classList.add('hidden');
+  document.getElementById('nextBtnWrap').classList.add('hidden');
+  document.getElementById('answerInput').value = '';
+  document.getElementById('answerInput').disabled = false;
+
+  // Decide if advanced
+  if (state.difficulty === 'advanced') {
+    generateAdvancedProblem();
+    return;
+  }
+
+  // Pick category
+  let cats = state.practiceCat === 'all' ? Object.keys(EQUATIONS) : [state.practiceCat];
+  const cat = cats[randInt(0, cats.length - 1)];
+  const eqs = EQUATIONS[cat];
+  const eq = eqs[randInt(0, eqs.length - 1)];
+
+  const prob = eq.generate(state.difficulty);
+  const givenVars = Object.keys(prob.given);
+  const targetVar = prob.target;
+
+  // Build problem text
+  const givenText = givenVars.map(k => {
+    const vObj = eq.vars.find(v => v.sym === k);
+    return `<span class="given-val">${vObj ? vObj.label : k} = ${prob.given[k]} ${vObj ? vObj.unit : ''}</span>`;
+  }).join(', ');
+
+  const targetObj = eq.vars.find(v => v.sym === targetVar);
+  const findText = `<span class="find-val">${targetObj ? targetObj.label : targetVar} (${targetObj ? targetObj.desc : ''}, in ${targetObj ? targetObj.unit : ''})</span>`;
+
+  document.getElementById('problemTitle').textContent = `${CAT_NAMES[cat]} — ${prob.eqName}`;
+  document.getElementById('problemText').innerHTML = `Given: ${givenText}<br>Find: ${findText}`;
+  document.getElementById('answerLabel').textContent = `Your Answer (${targetObj ? targetObj.unit : ''})`;
+
+  // Compute answer
+  const solution = eq.solve(prob.given, targetVar);
+  state.currentProblem = {
+    category: cat,
+    answer: solution.result,
+    unit: solution.unit,
+    tolerance: Math.max(Math.abs(solution.result) * 0.02, 0.1),
+    steps: solution.steps,
+    hint: `Use ${prob.eqName} and solve for ${targetObj ? targetObj.label : targetVar}.`
+  };
+
+  document.getElementById('problemCard').classList.remove('hidden');
+  document.getElementById('answerInput').focus();
+}
+
+function generateAdvancedProblem() {
+  let cats = state.practiceCat === 'all' ? ADVANCED_PROBLEMS : ADVANCED_PROBLEMS.filter(p => p.category === state.practiceCat);
+  if (cats.length === 0) cats = ADVANCED_PROBLEMS;
+  const template = cats[randInt(0, cats.length - 1)];
+  const prob = template.generate();
+
+  document.getElementById('problemTitle').textContent = `Advanced — ${template.title}`;
+  document.getElementById('problemText').innerHTML = prob.text;
+  const unitLabel = prob.unit || '';
+  document.getElementById('answerLabel').textContent = `Your Answer (${unitLabel})`;
+
+  state.currentProblem = {
+    category: template.category,
+    answer: prob.answer,
+    unit: prob.unit,
+    tolerance: Math.max(Math.abs(prob.answer) * 0.02, 0.1),
+    steps: prob.steps,
+    hint: prob.hint
+  };
+
+  document.getElementById('problemCard').classList.remove('hidden');
+  document.getElementById('answerInput').focus();
+}
+
+function checkAnswer() {
+  if (state.answered || !state.currentProblem) return;
+  const input = document.getElementById('answerInput');
+  const userAnswer = parseFloat(input.value);
+  if (isNaN(userAnswer)) { input.style.borderColor = 'var(--red)'; return; }
+
+  state.answered = true;
+  input.disabled = true;
+  const prob = state.currentProblem;
+  const correct = Math.abs(userAnswer - prob.answer) <= prob.tolerance;
+
+  const fb = document.getElementById('practiceFeedback');
+  if (correct) {
+    state.stats[prob.category].correct++;
+    state.streak++;
+    if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+    fb.innerHTML = `<div class="feedback correct">Correct! ${prob.answer} ${prob.unit}</div>`;
+    const streakEl = document.getElementById('streakCount');
+    streakEl.classList.add('pulse');
+    setTimeout(() => streakEl.classList.remove('pulse'), 400);
+  } else {
+    state.stats[prob.category].incorrect++;
+    state.streak = 0;
+    fb.innerHTML = `<div class="feedback incorrect">Not quite. The answer is ${prob.answer} ${prob.unit}. (You entered ${userAnswer})</div>`;
+  }
+
+  // Show solution steps
+  const wrap = document.getElementById('practiceStepsWrap');
+  const stepsEl = document.getElementById('practiceSteps');
+  stepsEl.innerHTML = '<div class="steps" style="padding-top:12px">' + prob.steps.map((s, i) =>
+    `<div class="step" style="animation-delay:${i * 0.08}s"><div class="step-num">${i + 1}</div><div class="step-content"><div class="step-label">${s.label}</div><div class="step-eq">${s.eq}</div></div></div>`
+  ).join('') + '</div>';
+  wrap.classList.remove('hidden');
+  document.getElementById('nextBtnWrap').classList.remove('hidden');
+
+  updateScoreBar();
+  saveState();
+}
+
+function showHint() {
+  if (!state.currentProblem || state.answered) return;
+  const fb = document.getElementById('practiceFeedback');
+  fb.innerHTML = `<div class="feedback hint">${state.currentProblem.hint}</div>`;
+  state.hintShown = true;
+}
+
+function updateScoreBar() {
+  const c = totalCorrect();
+  const ic = totalIncorrect();
+  document.getElementById('correctCount').textContent = c;
+  document.getElementById('incorrectCount').textContent = ic;
+  document.getElementById('streakCount').textContent = state.streak;
+  const total = c + ic;
+  document.getElementById('accuracyPct').textContent = total > 0 ? Math.round((c / total) * 100) + '%' : '--';
+}
+
+// ─── STATS TAB ──────────────────────────────────────────────────────
+function renderStats() {
+  const grid = document.getElementById('statsGrid');
+  grid.innerHTML = Object.keys(state.stats).map(cat => {
+    const s = state.stats[cat];
+    const total = s.correct + s.incorrect;
+    const pct = total > 0 ? Math.round((s.correct / total) * 100) : 0;
+    return `<div class="stat-card">
+      <h4>${CAT_NAMES[cat]}</h4>
+      <div class="stat-nums">
+        <span style="color:var(--green)">&#10003; ${s.correct}</span>
+        <span style="color:var(--red)">&#10007; ${s.incorrect}</span>
+        <span style="color:var(--blue)">${pct}%</span>
+      </div>
+      <div class="stat-bar"><div class="stat-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('') +
+  `<div class="stat-card"><h4>Best Streak</h4><div class="stat-nums"><span style="color:var(--orange);font-size:1.4rem;font-weight:800">${state.bestStreak}</span></div></div>
+   <div class="stat-card"><h4>Total Problems</h4><div class="stat-nums"><span style="color:var(--text);font-size:1.4rem;font-weight:800">${totalCorrect() + totalIncorrect()}</span></div></div>`;
+}
+
+function resetStats() {
+  if (!confirm('Reset all stats? This cannot be undone.')) return;
+  state.stats = { kinematics: { correct: 0, incorrect: 0 }, newton: { correct: 0, incorrect: 0 }, energy: { correct: 0, incorrect: 0 }, momentum: { correct: 0, incorrect: 0 } };
+  state.streak = 0;
+  state.bestStreak = 0;
+  saveState();
+  renderStats();
+  updateScoreBar();
+}
+
+// ─── INIT ───────────────────────────────────────────────────────────
+loadState();
+populateSolverEqSelect();
+updateSolverEquation();
+updateScoreBar();
+</script>
+</body>
+</html>

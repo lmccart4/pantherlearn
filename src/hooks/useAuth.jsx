@@ -30,6 +30,9 @@ function getRoleFromEmail(email) {
   // Test students bypass the @paps.net requirement
   if (TEST_STUDENT_EMAILS.includes(lower)) return "student";
 
+  // Agent accounts (QA / automation) get teacher-level access
+  if (lower.endsWith("@lachlan.internal")) return "teacher";
+
   if (!lower.endsWith("@paps.net")) return null;
 
   // Check override list first
@@ -55,43 +58,48 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const email = firebaseUser.email;
-        const role = getRoleFromEmail(email);
-        const testStudent = isTestStudentEmail(email);
+      try {
+        if (firebaseUser) {
+          const email = firebaseUser.email;
+          const role = getRoleFromEmail(email);
+          const testStudent = isTestStudentEmail(email);
 
-        // Block non-paps.net emails (unless test student)
-        if (!role) {
-          setAuthError("Access restricted to @paps.net accounts only.");
-          await logOut();
+          // Block non-paps.net emails (unless test student)
+          if (!role) {
+            setAuthError("Access restricted to @paps.net accounts only.");
+            await logOut();
+            setUser(null);
+            setUserRole(null);
+            setIsTestStudent(false);
+            setNickname(null);
+            return;
+          }
+
+          setAuthError(null);
+          setUser(firebaseUser);
+          setUserRole(role);
+          setIsTestStudent(testStudent);
+
+          // Sync user profile in Firestore (create or update)
+          const userNickname = await syncUserProfile(firebaseUser, role, testStudent);
+          setNickname(userNickname);
+
+          // Auto-link enrollment records for students
+          if (role === "student") {
+            await autoLinkEnrollments(firebaseUser);
+          }
+        } else {
           setUser(null);
           setUserRole(null);
           setIsTestStudent(false);
           setNickname(null);
-          setLoading(false);
-          return;
         }
-
-        setAuthError(null);
-        setUser(firebaseUser);
-        setUserRole(role);
-        setIsTestStudent(testStudent);
-
-        // Sync user profile in Firestore (create or update)
-        const userNickname = await syncUserProfile(firebaseUser, role, testStudent);
-        setNickname(userNickname);
-
-        // Auto-link enrollment records for students
-        if (role === "student") {
-          await autoLinkEnrollments(firebaseUser);
-        }
-      } else {
-        setUser(null);
-        setUserRole(null);
-        setIsTestStudent(false);
-        setNickname(null);
+      } catch (err) {
+        console.error("[Auth] Error during auth state change:", err);
+        setAuthError("Something went wrong. Please refresh and try again.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return unsubscribe;

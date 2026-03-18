@@ -104,6 +104,8 @@ function AppRoutes() {
             loop
             muted
             playsInline
+            preload="none"
+            fetchpriority="high"
             aria-hidden="true"
           >
             <source src="/bg-atmosphere.mp4" type="video/mp4" />
@@ -145,6 +147,7 @@ function AppRoutes() {
             <Route path="/embedding-explorer/:courseId" element={<EmbeddingExplorer />} />
             <Route path="/embedding-explorer-dashboard/:courseId" element={<EmbeddingExplorerDashboard />} />
             <Route path="/momentum-mystery-lab/:courseId" element={<MomentumMysteryLab />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
       </Suspense>

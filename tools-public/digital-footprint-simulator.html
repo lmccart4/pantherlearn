@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Footprint Simulator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-2: #242836;
+    --surface-3: #2e3345;
+    --text: #e8e9ed;
+    --text-muted: #8b8fa3;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108, 92, 231, 0.3);
+    --green: #00cec9;
+    --orange: #fdcb6e;
+    --red: #e17055;
+    --pink: #fd79a8;
+    --blue: #74b9ff;
+    --yellow: #ffeaa7;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { max-width: 900px; margin: 0 auto; padding: 16px; }
+
+  .header {
+    text-align: center;
+    padding: 32px 16px 24px;
+  }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--blue), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  .header p { color: var(--text-muted); font-size: 0.95rem; }
+
+  /* Progress bar */
+  .progress-bar {
+    background: var(--surface);
+    border-radius: 20px;
+    height: 8px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--blue));
+    border-radius: 20px;
+    transition: width 0.5s ease;
+  }
+
+  /* Score display */
+  .score-display {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: 12px;
+    padding: 14px 18px;
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+  }
+  .score-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+  }
+  .score-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .score-good { color: var(--green); }
+  .score-mid { color: var(--orange); }
+  .score-bad { color: var(--red); }
+
+  /* Scenario card */
+  .scenario-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .scenario-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .scenario-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: var(--surface-2);
+  }
+  .scenario-meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+  .scenario-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .scenario-description {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    line-height: 1.7;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  button:active { transform: scale(0.97); }
+
+  .choice-btn {
+    padding: 14px 20px;
+    text-align: left;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .choice-btn:hover {
+    border-color: var(--accent);
+    background: rgba(108, 92, 231, 0.1);
+  }
+  .choice-btn.selected-good {
+    border-color: var(--green);
+    background: rgba(0, 206, 201, 0.1);
+  }
+  .choice-btn.selected-mid {
+    border-color: var(--orange);
+    background: rgba(253, 203, 110, 0.1);
+  }
+  .choice-btn.selected-bad {
+    border-color: var(--red);
+    background: rgba(225, 112, 85, 0.1);
+  }
+  .choice-btn:disabled { cursor: default; opacity: 0.7; }
+  .choice-btn:disabled:hover { transform: none; }
+
+  .choice-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .choice-impact {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    display: none;
+  }
+  .choice-impact.visible { display: inline-block; }
+  .impact-good { background: rgba(0, 206, 201, 0.2); color: var(--green); }
+  .impact-mid { background: rgba(253, 203, 110, 0.2); color: var(--orange); }
+  .impact-bad { background: rgba(225, 112, 85, 0.2); color: var(--red); }
+
+  /* Feedback */
+  .feedback {
+    margin-top: 16px;
+    padding: 16px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    display: none;
+    line-height: 1.6;
+  }
+  .feedback.visible { display: block; }
+  .feedback-good {
+    background: rgba(0, 206, 201, 0.1);
+    border: 1px solid rgba(0, 206, 201, 0.3);
+    color: var(--green);
+  }
+  .feedback-mid {
+    background: rgba(253, 203, 110, 0.1);
+    border: 1px solid rgba(253, 203, 110, 0.3);
+    color: var(--orange);
+  }
+  .feedback-bad {
+    background: rgba(225, 112, 85, 0.1);
+    border: 1px solid rgba(225, 112, 85, 0.3);
+    color: var(--red);
+  }
+
+  .next-btn {
+    margin-top: 16px;
+    padding: 12px 28px;
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+    display: none;
+  }
+  .next-btn.visible { display: inline-block; }
+  .next-btn:hover { background: #5a4bd4; }
+
+  /* Timeline (footprint history) */
+  .timeline {
+    margin-top: 24px;
+  }
+  .timeline h3 {
+    font-size: 1rem;
+    margin-bottom: 16px;
+    color: var(--accent);
+  }
+  .timeline-item {
+    display: flex;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--surface-3);
+    font-size: 0.88rem;
+  }
+  .timeline-item:last-child { border-bottom: none; }
+  .timeline-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+  .dot-good { background: var(--green); }
+  .dot-mid { background: var(--orange); }
+  .dot-bad { background: var(--red); }
+  .timeline-text { color: var(--text-muted); }
+  .timeline-text strong { color: var(--text); }
+
+  /* Final report */
+  .final-report {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 28px;
+    display: none;
+  }
+  .final-report.visible { display: block; }
+  .final-report h2 {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .final-report .subtitle {
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    font-size: 0.9rem;
+  }
+
+  .report-section {
+    margin-bottom: 20px;
+  }
+  .report-section h4 {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+
+  .grade-badge {
+    display: inline-block;
+    font-size: 2.5rem;
+    font-weight: 800;
+    padding: 8px 24px;
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+  .grade-a { background: rgba(0, 206, 201, 0.15); color: var(--green); }
+  .grade-b { background: rgba(116, 185, 255, 0.15); color: var(--blue); }
+  .grade-c { background: rgba(253, 203, 110, 0.15); color: var(--orange); }
+  .grade-d { background: rgba(225, 112, 85, 0.15); color: var(--red); }
+
+  .tip-list {
+    list-style: none;
+    padding: 0;
+  }
+  .tip-list li {
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  .tip-list li strong { color: var(--text); }
+
+  .restart-btn {
+    padding: 12px 28px;
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+    margin-top: 16px;
+  }
+  .restart-btn:hover { background: #5a4bd4; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .header h1 { font-size: 1.5rem; }
+    .score-display { flex-direction: column; }
+    .scenario-card { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Digital Footprint Simulator</h1>
+    <p>Make choices online and see how they shape your digital identity</p>
+  </div>
+
+  <div id="gameArea">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+    </div>
+
+    <div class="score-display">
+      <div class="score-card">
+        <div class="score-value" id="privacyScore">100</div>
+        <div class="score-label">Privacy Score</div>
+      </div>
+      <div class="score-card">
+        <div class="score-value" id="reputationScore">50</div>
+        <div class="score-label">Reputation</div>
+      </div>
+      <div class="score-card">
+        <div class="score-value" id="scenarioCount">1 / 10</div>
+        <div class="score-label">Scenario</div>
+      </div>
+    </div>
+
+    <div id="scenarioContainer"></div>
+
+    <div class="timeline" id="timeline" style="display:none">
+      <h3>Your Digital Footprint Trail</h3>
+      <div id="timelineItems"></div>
+    </div>
+  </div>
+
+  <div class="final-report" id="finalReport"></div>
+</div>
+
+<script>
+(function() {
+  const scenarios = [
+    {
+      icon: '📸',
+      platform: 'Instagram',
+      title: 'The Group Photo',
+      description: 'Your friend took a hilarious photo of your group at lunch — one person is making a funny face with food falling out of their mouth. Your friend wants to post it on Instagram and tag everyone.',
+      choices: [
+        { text: 'Tell your friend to ask everyone in the photo before posting — especially the person making the face', privacy: 0, reputation: 10, quality: 'good', feedback: 'Great call! Always get consent before posting photos of others. This protects everyone\'s privacy and shows respect.' },
+        { text: 'Say "sure, post it!" — it\'s funny and everyone will laugh', privacy: -5, reputation: -5, quality: 'mid', feedback: 'This might seem harmless, but the person making the face might not want that image online. Photos can resurface years later — even in college applications.' },
+        { text: 'Grab the phone and post it yourself to get more likes', privacy: -15, reputation: -15, quality: 'bad', feedback: 'Posting someone else\'s embarrassing photo without permission is a serious privacy violation. This could damage trust and even lead to cyberbullying complaints.' }
+      ]
+    },
+    {
+      icon: '🎮',
+      platform: 'Discord',
+      title: 'The Gaming Server Argument',
+      description: 'Someone in your gaming Discord is being annoying and trash-talking you in front of 200 people. You\'re frustrated and want to respond.',
+      choices: [
+        { text: 'Mute or block them, or take a break. Don\'t engage publicly.', privacy: 0, reputation: 10, quality: 'good', feedback: 'Smart move. Public arguments online almost never end well. Walking away protects your reputation and your peace of mind.' },
+        { text: 'Respond with a calm, measured reply and then move on', privacy: 0, reputation: 5, quality: 'mid', feedback: 'Not bad — but public arguments often escalate even when you\'re calm. Others may screenshot it. Consider whether it\'s worth the risk.' },
+        { text: 'Go off on them — roast them so hard everyone laughs', privacy: -5, reputation: -15, quality: 'bad', feedback: 'Even if you "win" the argument, aggressive messages live forever. Screenshots get shared. Future employers and colleges do look at social media behavior.' }
+      ]
+    },
+    {
+      icon: '📝',
+      platform: 'Google Forms',
+      title: 'The Free Stuff Survey',
+      description: 'A website promises a free $50 gift card if you fill out a "quick survey." It asks for your full name, birthday, email, phone number, school name, and home address.',
+      choices: [
+        { text: 'Close the page — this is a data harvesting scam', privacy: 10, reputation: 5, quality: 'good', feedback: 'Exactly right! Legitimate companies don\'t need your home address and birthday for a survey. This data gets sold or used for identity theft.' },
+        { text: 'Fill in some fields but use a fake name and skip the address', privacy: -5, reputation: 0, quality: 'mid', feedback: 'Using fake info helps, but you still gave them your real email and phone number. They now have ways to reach you and track you.' },
+        { text: 'Fill it all out — $50 is $50!', privacy: -20, reputation: -5, quality: 'bad', feedback: 'You just gave a stranger your full identity profile. This data can be used for spam, scams, identity theft, or sold to data brokers. There is no gift card.' }
+      ]
+    },
+    {
+      icon: '💬',
+      platform: 'TikTok',
+      title: 'The Viral Rant',
+      description: 'You\'re really frustrated with a teacher who you think graded your project unfairly. You want to make a TikTok venting about it. Your friends say it\'ll probably go viral at school.',
+      choices: [
+        { text: 'Talk to the teacher directly or ask a parent/counselor for help instead', privacy: 5, reputation: 10, quality: 'good', feedback: 'This is the mature move. Handling conflicts privately shows character and actually gets results. A viral rant might feel good for 5 minutes but could follow you.' },
+        { text: 'Make the video but don\'t name the teacher and keep it vague', privacy: -5, reputation: -5, quality: 'mid', feedback: 'Even without naming them, people at your school will know exactly who you mean. Teachers and administrators monitor social media. This could backfire.' },
+        { text: 'Name them, show the grade, and tell everyone how unfair they are', privacy: -10, reputation: -20, quality: 'bad', feedback: 'This could get you in serious trouble — disciplinary action, damaged teacher relationships, and a public record of poor conflict resolution. College admissions officers look for this.' }
+      ]
+    },
+    {
+      icon: '🔐',
+      platform: 'Account Setup',
+      title: 'The Password Situation',
+      description: 'You\'re signing up for a new app and need to create a password. You already use the same password for most of your accounts because it\'s easy to remember.',
+      choices: [
+        { text: 'Create a unique password and use a password manager to remember it', privacy: 15, reputation: 5, quality: 'good', feedback: 'This is best practice. If one site gets hacked, your other accounts stay safe. Password managers make this easy.' },
+        { text: 'Use your usual password but add a number at the end', privacy: -5, reputation: 0, quality: 'mid', feedback: 'Adding "123" doesn\'t help much. If your base password leaks, hackers try common variations automatically. It\'s better than nothing, but not by much.' },
+        { text: 'Use the same password as everything else — you\'ll never remember a new one', privacy: -15, reputation: -5, quality: 'bad', feedback: 'Password reuse is the #1 way accounts get hacked. When one site has a data breach (and they do), attackers try your password on every other site.' }
+      ]
+    },
+    {
+      icon: '📍',
+      platform: 'Snapchat',
+      title: 'Location Sharing',
+      description: 'Your friend wants you to turn on Snap Map so they can always see your location. Most of your friends have it on and they say it\'s "no big deal."',
+      choices: [
+        { text: 'Keep location off or use Ghost Mode. Share location only when needed.', privacy: 10, reputation: 5, quality: 'good', feedback: 'Protecting your location data is one of the most important privacy decisions you can make. Your location history reveals everything about your daily life.' },
+        { text: 'Turn it on but only for close friends (not "everyone")', privacy: -5, reputation: 0, quality: 'mid', feedback: 'Better than sharing with everyone, but even "close friends" lists can include people you barely know. Location data is extremely sensitive.' },
+        { text: 'Turn it on for everyone — you have nothing to hide', privacy: -15, reputation: -5, quality: 'bad', feedback: 'Broadcasting your real-time location tells everyone when you\'re home, at school, or away. This is a safety and privacy risk that goes way beyond social media.' }
+      ]
+    },
+    {
+      icon: '📧',
+      platform: 'Email',
+      title: 'The Scholarship Email',
+      description: 'You get an email saying you\'ve won a $10,000 scholarship. You just need to click a link and enter your Social Security number to "verify your identity." The email looks official.',
+      choices: [
+        { text: 'Don\'t click anything. Look up the organization independently and contact them directly.', privacy: 10, reputation: 5, quality: 'good', feedback: 'This is textbook phishing awareness. Legitimate scholarships never ask for your SSN via email. Always verify independently.' },
+        { text: 'Click the link to check it out, but don\'t enter any personal information', privacy: -5, reputation: 0, quality: 'mid', feedback: 'Clicking phishing links can still be dangerous — some install malware or tracking cookies. It\'s better not to click at all and verify the sender independently.' },
+        { text: 'Enter your information — you don\'t want to miss out on free money', privacy: -25, reputation: -10, quality: 'bad', feedback: 'You just gave scammers your Social Security number. This can lead to identity theft, fraudulent accounts opened in your name, and years of cleanup.' }
+      ]
+    },
+    {
+      icon: '👤',
+      platform: 'Social Media',
+      title: 'The Profile Setup',
+      description: 'You\'re creating a new social media profile. The app asks for your bio, location, birthday, school, and phone number. It says "complete profiles get more followers."',
+      choices: [
+        { text: 'Share minimal info — a username and bio only. Skip phone, birthday, and school.', privacy: 10, reputation: 5, quality: 'good', feedback: 'Less is more. Every piece of personal info you share can be combined to build a profile of you. You don\'t need followers who only found you because you gave away your school.' },
+        { text: 'Fill in everything except the phone number', privacy: -5, reputation: 0, quality: 'mid', feedback: 'Your birthday + school + real name is enough for someone to attempt identity fraud or find you in person. Think about who can see this info.' },
+        { text: 'Fill in everything to get the most followers', privacy: -15, reputation: -5, quality: 'bad', feedback: 'You\'ve created a goldmine for data harvesting. Strangers now know your age, location, school, and phone number. This information never fully goes away.' }
+      ]
+    },
+    {
+      icon: '🤳',
+      platform: 'BeReal',
+      title: 'The Awkward BeReal',
+      description: 'Your BeReal notification goes off and you\'re in a situation that might look bad out of context — you\'re at a party and there are drinks visible in the background (they\'re your parents\', not yours).',
+      choices: [
+        { text: 'Skip this one or take a photo that doesn\'t show the background', privacy: 5, reputation: 10, quality: 'good', feedback: 'Smart thinking. Context gets lost online. A photo that looks bad out of context can cause real problems — even if you did nothing wrong.' },
+        { text: 'Post it with a caption explaining the situation', privacy: -5, reputation: -5, quality: 'mid', feedback: 'Captions help, but people often see photos without reading captions. Screenshots lose captions entirely. The image alone could be misinterpreted.' },
+        { text: 'Post it without explanation — who cares what people think', privacy: -5, reputation: -15, quality: 'bad', feedback: 'This photo could surface in a college application review, a job screening, or a school investigation. "It wasn\'t mine" is very hard to prove from a photo.' }
+      ]
+    },
+    {
+      icon: '🌐',
+      platform: 'Chrome',
+      title: 'The Browser Permissions',
+      description: 'A new website you\'re visiting asks to: send you notifications, access your camera, know your location, and store cookies. It\'s just a recipe website.',
+      choices: [
+        { text: 'Deny all permissions — a recipe site doesn\'t need any of this', privacy: 10, reputation: 5, quality: 'good', feedback: 'Exactly! A recipe website has zero reason to access your camera or location. Always question why a site needs specific permissions. When in doubt, deny.' },
+        { text: 'Allow cookies but deny the rest', privacy: -3, reputation: 0, quality: 'mid', feedback: 'Cookies can still track you across websites and build advertising profiles. Denying camera and location is good, but consider rejecting non-essential cookies too.' },
+        { text: 'Click "Allow All" so the pop-ups go away', privacy: -15, reputation: -5, quality: 'bad', feedback: 'You just gave a random website access to your camera, microphone, location, and the ability to spam you with notifications. This is how tracking and data collection happens.' }
+      ]
+    }
+  ];
+
+  let currentScenario = 0;
+  let privacyScore = 100;
+  let reputationScore = 50;
+  let footprintTrail = [];
+  let answered = false;
+
+  function renderScenario() {
+    if (currentScenario >= scenarios.length) {
+      showFinalReport();
+      return;
+    }
+
+    answered = false;
+    const s = scenarios[currentScenario];
+    const progress = ((currentScenario) / scenarios.length) * 100;
+    document.getElementById('progressFill').style.width = progress + '%';
+    document.getElementById('scenarioCount').textContent = `${currentScenario + 1} / ${scenarios.length}`;
+
+    const container = document.getElementById('scenarioContainer');
+    let choicesHtml = s.choices.map((c, i) => `
+      <button class="choice-btn" id="choice-${i}" onclick="makeChoice(${i})">
+        <div class="choice-label">
+          <span>${c.text}</span>
+          <span class="choice-impact" id="impact-${i}"></span>
+        </div>
+      </button>
+    `).join('');
+
+    container.innerHTML = `
+      <div class="scenario-card">
+        <div class="scenario-header">
+          <div class="scenario-icon">${s.icon}</div>
+          <div>
+            <div class="scenario-meta">${s.platform} · Scenario ${currentScenario + 1}</div>
+            <div class="scenario-title">${s.title}</div>
+          </div>
+        </div>
+        <div class="scenario-description">${s.description}</div>
+        <div class="choices">${choicesHtml}</div>
+        <div class="feedback" id="feedback"></div>
+        <button class="next-btn" id="nextBtn" onclick="nextScenario()">Next Scenario →</button>
+      </div>
+    `;
+  }
+
+  window.makeChoice = function(index) {
+    if (answered) return;
+    answered = true;
+
+    const s = scenarios[currentScenario];
+    const choice = s.choices[index];
+
+    // Update scores
+    privacyScore = Math.max(0, Math.min(100, privacyScore + choice.privacy));
+    reputationScore = Math.max(0, Math.min(100, reputationScore + choice.reputation));
+
+    // Update score display
+    updateScoreDisplay();
+
+    // Highlight chosen option
+    s.choices.forEach((c, i) => {
+      const btn = document.getElementById(`choice-${i}`);
+      const impact = document.getElementById(`impact-${i}`);
+      btn.disabled = true;
+
+      if (i === index) {
+        btn.classList.add(`selected-${c.quality}`);
+      }
+
+      // Show impact labels on all choices
+      impact.classList.add('visible');
+      if (c.quality === 'good') {
+        impact.textContent = '✓ Best choice';
+        impact.classList.add('impact-good');
+      } else if (c.quality === 'mid') {
+        impact.textContent = '~ Okay';
+        impact.classList.add('impact-mid');
+      } else {
+        impact.textContent = '✗ Risky';
+        impact.classList.add('impact-bad');
+      }
+    });
+
+    // Show feedback
+    const fb = document.getElementById('feedback');
+    fb.className = `feedback visible feedback-${choice.quality}`;
+    fb.textContent = choice.feedback;
+
+    // Show next button
+    document.getElementById('nextBtn').classList.add('visible');
+
+    // Add to footprint trail
+    footprintTrail.push({
+      scenario: s.title,
+      platform: s.platform,
+      choice: choice.text,
+      quality: choice.quality,
+      privacy: choice.privacy,
+      reputation: choice.reputation
+    });
+
+    renderTimeline();
+  };
+
+  window.nextScenario = function() {
+    currentScenario++;
+    renderScenario();
+  };
+
+  function updateScoreDisplay() {
+    const priv = document.getElementById('privacyScore');
+    const rep = document.getElementById('reputationScore');
+
+    priv.textContent = privacyScore;
+    priv.className = 'score-value ' + (privacyScore >= 70 ? 'score-good' : privacyScore >= 40 ? 'score-mid' : 'score-bad');
+
+    rep.textContent = reputationScore;
+    rep.className = 'score-value ' + (reputationScore >= 70 ? 'score-good' : reputationScore >= 40 ? 'score-mid' : 'score-bad');
+  }
+
+  function renderTimeline() {
+    const timeline = document.getElementById('timeline');
+    const items = document.getElementById('timelineItems');
+    if (footprintTrail.length === 0) { timeline.style.display = 'none'; return; }
+    timeline.style.display = 'block';
+
+    items.innerHTML = footprintTrail.map(t => `
+      <div class="timeline-item">
+        <div class="timeline-dot dot-${t.quality}"></div>
+        <div class="timeline-text">
+          <strong>${t.platform}:</strong> ${t.scenario} — ${t.choice.substring(0, 60)}${t.choice.length > 60 ? '...' : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function showFinalReport() {
+    document.getElementById('gameArea').style.display = 'none';
+    const report = document.getElementById('finalReport');
+    report.classList.add('visible');
+
+    const total = privacyScore + reputationScore;
+    let grade, gradeClass, summary;
+    if (total >= 170) { grade = 'A+'; gradeClass = 'grade-a'; summary = 'You\'re a digital privacy champion! You consistently made smart choices that protect your identity and reputation online.'; }
+    else if (total >= 140) { grade = 'A'; gradeClass = 'grade-a'; summary = 'Excellent awareness! You understand most digital risks and generally make good choices about your online presence.'; }
+    else if (total >= 110) { grade = 'B'; gradeClass = 'grade-b'; summary = 'Pretty good! You have decent instincts but there are some areas where you could be more careful with your digital footprint.'; }
+    else if (total >= 80) { grade = 'C'; gradeClass = 'grade-c'; summary = 'You made some risky choices that could affect your privacy and reputation. Time to level up your digital awareness!'; }
+    else { grade = 'D'; gradeClass = 'grade-d'; summary = 'Your digital footprint needs serious attention. Many of your choices put your privacy and reputation at risk. Let\'s learn from this!'; }
+
+    const goodChoices = footprintTrail.filter(t => t.quality === 'good').length;
+    const midChoices = footprintTrail.filter(t => t.quality === 'mid').length;
+    const badChoices = footprintTrail.filter(t => t.quality === 'bad').length;
+
+    let tips = [];
+    if (badChoices > 0) {
+      tips.push('<strong>Think before you share.</strong> Every piece of personal information you put online becomes part of your permanent digital footprint.');
+      tips.push('<strong>Verify before you click.</strong> Phishing and scams target people who act quickly without thinking.');
+    }
+    if (midChoices > 2) {
+      tips.push('<strong>Question every permission.</strong> Apps and websites don\'t need most of the data they ask for.');
+    }
+    tips.push('<strong>Your digital footprint is your resume.</strong> Colleges, employers, and scholarship committees search for candidates online.');
+    tips.push('<strong>Privacy is a skill.</strong> The more you practice good habits, the more automatic they become.');
+
+    report.innerHTML = `
+      <h2>Your Digital Footprint Report</h2>
+      <p class="subtitle">${summary}</p>
+
+      <div class="grade-badge ${gradeClass}">${grade}</div>
+
+      <div class="score-display" style="margin-bottom: 24px;">
+        <div class="score-card">
+          <div class="score-value ${privacyScore >= 70 ? 'score-good' : privacyScore >= 40 ? 'score-mid' : 'score-bad'}">${privacyScore}/100</div>
+          <div class="score-label">Final Privacy Score</div>
+        </div>
+        <div class="score-card">
+          <div class="score-value ${reputationScore >= 70 ? 'score-good' : reputationScore >= 40 ? 'score-mid' : 'score-bad'}">${reputationScore}/100</div>
+          <div class="score-label">Final Reputation</div>
+        </div>
+        <div class="score-card">
+          <div class="score-value">${goodChoices}/${scenarios.length}</div>
+          <div class="score-label">Best Choices Made</div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <h4>Your Choices Breakdown</h4>
+        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+          <div style="padding: 10px 16px; background: rgba(0,206,201,0.1); border-radius: 8px; flex:1; text-align:center;">
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--green);">${goodChoices}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Smart</div>
+          </div>
+          <div style="padding: 10px 16px; background: rgba(253,203,110,0.1); border-radius: 8px; flex:1; text-align:center;">
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--orange);">${midChoices}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Okay</div>
+          </div>
+          <div style="padding: 10px 16px; background: rgba(225,112,85,0.1); border-radius: 8px; flex:1; text-align:center;">
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--red);">${badChoices}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Risky</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <h4>Key Takeaways</h4>
+        <ul class="tip-list">
+          ${tips.map(t => `<li>${t}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div class="report-section">
+        <h4>Your Full Footprint Trail</h4>
+        ${footprintTrail.map(t => `
+          <div class="timeline-item">
+            <div class="timeline-dot dot-${t.quality}"></div>
+            <div class="timeline-text">
+              <strong>${t.platform}:</strong> ${t.scenario}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <button class="restart-btn" onclick="restartGame()">Play Again</button>
+    `;
+  }
+
+  window.restartGame = function() {
+    currentScenario = 0;
+    privacyScore = 100;
+    reputationScore = 50;
+    footprintTrail = [];
+    document.getElementById('gameArea').style.display = 'block';
+    document.getElementById('finalReport').classList.remove('visible');
+    document.getElementById('timeline').style.display = 'none';
+    updateScoreDisplay();
+    renderScenario();
+  };
+
+  // Initialize
+  updateScoreDisplay();
+  renderScenario();
+})();
+</script>
+</body>
+</html>

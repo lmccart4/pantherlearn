@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Settings Walkthrough</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-2: #242836;
+    --surface-3: #2e3345;
+    --text: #e8e9ed;
+    --text-muted: #8b8fa3;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108, 92, 231, 0.3);
+    --green: #00cec9;
+    --orange: #fdcb6e;
+    --red: #e17055;
+    --pink: #fd79a8;
+    --blue: #74b9ff;
+    --yellow: #ffeaa7;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { max-width: 900px; margin: 0 auto; padding: 16px; }
+
+  .header {
+    text-align: center;
+    padding: 32px 16px 24px;
+  }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--green), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  .header p { color: var(--text-muted); font-size: 0.95rem; }
+
+  /* Progress bar */
+  .progress-bar {
+    background: var(--surface);
+    border-radius: 20px;
+    height: 8px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: 20px;
+    transition: width 0.5s ease;
+  }
+
+  /* Platform selector */
+  .platform-nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .platform-tab {
+    background: var(--surface);
+    border: 2px solid var(--surface-3);
+    border-radius: 12px;
+    padding: 12px 18px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: inherit;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    position: relative;
+    min-width: 150px;
+    justify-content: center;
+  }
+  .platform-tab:hover {
+    border-color: var(--accent);
+    background: rgba(108, 92, 231, 0.08);
+  }
+  .platform-tab.active {
+    border-color: var(--accent);
+    background: rgba(108, 92, 231, 0.12);
+  }
+  .platform-tab.completed {
+    border-color: var(--green);
+  }
+  .platform-tab .tab-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .platform-tab .check-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    background: var(--green);
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: #0f1117;
+    font-weight: 800;
+  }
+  .platform-tab.completed .check-badge { display: flex; }
+  .platform-tab.quiz-tab .tab-icon { background: linear-gradient(135deg, var(--accent), var(--pink)); }
+
+  /* Score display */
+  .score-display {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: 12px;
+    padding: 14px 18px;
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+  }
+  .score-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+  }
+  .score-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .score-good { color: var(--green); }
+  .score-mid { color: var(--orange); }
+  .score-bad { color: var(--red); }
+
+  /* Settings card (simulated app UI) */
+  .settings-screen {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .settings-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--surface-3);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .settings-app-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+  }
+  .settings-app-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .settings-app-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .settings-category {
+    padding: 14px 24px 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+  }
+  .setting-row {
+    padding: 14px 24px;
+    border-bottom: 1px solid rgba(46, 51, 69, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    transition: background 0.3s;
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-row.safe { background: rgba(0, 206, 201, 0.05); }
+  .setting-row.moderate { background: rgba(253, 203, 110, 0.05); }
+  .setting-row.risky { background: rgba(225, 112, 85, 0.05); }
+  .setting-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .setting-name {
+    font-size: 0.92rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .setting-desc {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .privacy-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .privacy-dot.safe { background: var(--green); }
+  .privacy-dot.moderate { background: var(--orange); }
+  .privacy-dot.risky { background: var(--red); }
+
+  /* Toggle switch */
+  .toggle-switch {
+    width: 48px;
+    height: 26px;
+    border-radius: 13px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s;
+    flex-shrink: 0;
+    border: none;
+    font-family: inherit;
+  }
+  .toggle-switch.on { background: var(--accent); }
+  .toggle-switch.off { background: var(--surface-3); }
+  .toggle-switch .toggle-knob {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    top: 3px;
+    transition: left 0.3s;
+  }
+  .toggle-switch.on .toggle-knob { left: 25px; }
+  .toggle-switch.off .toggle-knob { left: 3px; }
+
+  /* Dropdown select */
+  .setting-select {
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    min-width: 130px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b8fa3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+    transition: border-color 0.3s;
+  }
+  .setting-select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  /* Radio group */
+  .radio-group {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .radio-option {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--surface-3);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+  .radio-option:hover { border-color: var(--accent); }
+  .radio-option.selected {
+    border-color: var(--accent);
+    background: rgba(108, 92, 231, 0.15);
+    color: var(--text);
+  }
+
+  /* Score review after each platform */
+  .platform-review {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 20px;
+    display: none;
+  }
+  .platform-review.visible { display: block; }
+  .platform-review h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .review-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(46, 51, 69, 0.5);
+  }
+  .review-item:last-child { border-bottom: none; }
+  .review-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .review-icon.correct { background: rgba(0, 206, 201, 0.2); color: var(--green); }
+  .review-icon.wrong { background: rgba(225, 112, 85, 0.2); color: var(--red); }
+  .review-text {
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+  .review-text strong { color: var(--text); }
+  .review-text .explanation { color: var(--text-muted); font-size: 0.82rem; }
+
+  /* Buttons */
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  button:active { transform: scale(0.97); }
+
+  .action-btn {
+    padding: 14px 32px;
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-top: 16px;
+  }
+  .action-btn:hover { background: #5a4bd4; }
+  .action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .action-btn:disabled:hover { background: var(--accent); transform: none; }
+  .action-btn.submit {
+    background: linear-gradient(135deg, var(--green), var(--accent));
+    font-size: 1rem;
+    padding: 16px 40px;
+  }
+  .action-btn.submit:hover { opacity: 0.9; }
+
+  /* Quiz */
+  .quiz-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .quiz-question {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .quiz-number {
+    color: var(--accent);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .quiz-option {
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    color: var(--text);
+    text-align: left;
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.4;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .quiz-option:hover {
+    border-color: var(--accent);
+    background: rgba(108, 92, 231, 0.08);
+  }
+  .quiz-option.selected {
+    border-color: var(--accent);
+    background: rgba(108, 92, 231, 0.15);
+  }
+  .quiz-option.correct {
+    border-color: var(--green);
+    background: rgba(0, 206, 201, 0.1);
+  }
+  .quiz-option.incorrect {
+    border-color: var(--red);
+    background: rgba(225, 112, 85, 0.1);
+  }
+  .quiz-option:disabled { cursor: default; }
+  .quiz-option:disabled:hover { transform: none; }
+  .quiz-feedback {
+    margin-top: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    display: none;
+  }
+  .quiz-feedback.visible { display: block; }
+  .quiz-feedback.correct {
+    background: rgba(0, 206, 201, 0.1);
+    border: 1px solid rgba(0, 206, 201, 0.25);
+    color: var(--green);
+  }
+  .quiz-feedback.incorrect {
+    background: rgba(225, 112, 85, 0.1);
+    border: 1px solid rgba(225, 112, 85, 0.25);
+    color: var(--red);
+  }
+
+  /* Final summary */
+  .final-summary {
+    text-align: center;
+    padding: 20px 0;
+  }
+  .final-score {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin: 16px 0 4px;
+  }
+  .final-max {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+  .final-grade {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    padding: 10px 24px;
+    border-radius: 10px;
+    display: inline-block;
+  }
+  .final-grade.excellent { background: rgba(0, 206, 201, 0.15); color: var(--green); }
+  .final-grade.good { background: rgba(116, 185, 255, 0.15); color: var(--blue); }
+  .final-grade.fair { background: rgba(253, 203, 110, 0.15); color: var(--orange); }
+  .final-grade.poor { background: rgba(225, 112, 85, 0.15); color: var(--red); }
+
+  .breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .breakdown-item {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .breakdown-item .b-score {
+    font-size: 1.4rem;
+    font-weight: 800;
+  }
+  .breakdown-item .b-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+
+  /* Views */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Intro */
+  .intro-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .intro-card h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .intro-card p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    max-width: 600px;
+    margin: 0 auto 20px;
+    line-height: 1.7;
+  }
+  .intro-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 24px 0;
+    text-align: left;
+  }
+  .intro-feature {
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .intro-feature .feat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .intro-feature .feat-text strong {
+    display: block;
+    font-size: 0.88rem;
+    margin-bottom: 2px;
+  }
+  .intro-feature .feat-text span {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .header h1 { font-size: 1.5rem; }
+    .platform-nav { gap: 8px; }
+    .platform-tab {
+      font-size: 0.78rem;
+      padding: 10px 12px;
+      min-width: 0;
+      flex: 1;
+    }
+    .platform-tab .tab-icon { width: 26px; height: 26px; font-size: 0.9rem; }
+    .setting-row {
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .radio-group {
+      flex-wrap: wrap;
+      width: 100%;
+    }
+    .setting-select { width: 100%; }
+    .settings-header { padding: 16px 18px 12px; }
+    .settings-category { padding: 12px 18px 6px; }
+    .setting-row { padding: 12px 18px; }
+    .score-display { gap: 8px; }
+    .score-card { padding: 10px 12px; min-width: 90px; }
+    .score-value { font-size: 1.3rem; }
+    .breakdown-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Animations */
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-in {
+    animation: slideIn 0.35s ease-out;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  .pulse { animation: pulse 0.4s ease; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Privacy Settings Walkthrough</h1>
+    <p>Learn to configure app privacy settings to protect your digital life</p>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+  </div>
+
+  <!-- Intro View -->
+  <div class="view active" id="introView">
+    <div class="intro-card animate-in">
+      <h2>Can You Lock Down Your Privacy?</h2>
+      <p>Most apps start with your privacy wide open. Your job is to find the safest settings on 4 different platforms, then answer questions about why these settings matter.</p>
+      <div class="intro-features">
+        <div class="intro-feature">
+          <div class="feat-icon" style="background: linear-gradient(135deg, #e17055, #fd79a8)">&#x1F4F1;</div>
+          <div class="feat-text">
+            <strong>BuzzFeed Social</strong>
+            <span>Social media platform</span>
+          </div>
+        </div>
+        <div class="intro-feature">
+          <div class="feat-icon" style="background: linear-gradient(135deg, #e17055, #fdcb6e)">&#x1F3AC;</div>
+          <div class="feat-text">
+            <strong>StreamVault</strong>
+            <span>Streaming &amp; video</span>
+          </div>
+        </div>
+        <div class="intro-feature">
+          <div class="feat-icon" style="background: linear-gradient(135deg, #74b9ff, #00cec9)">&#x1F4AC;</div>
+          <div class="feat-text">
+            <strong>ChatZone</strong>
+            <span>Messaging app</span>
+          </div>
+        </div>
+        <div class="intro-feature">
+          <div class="feat-icon" style="background: linear-gradient(135deg, #6c5ce7, #74b9ff)">&#x1F3AE;</div>
+          <div class="feat-text">
+            <strong>GameHub</strong>
+            <span>Gaming platform</span>
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 0.85rem;">Settings: 24 pts &bull; Quiz: 10 pts &bull; Total: 34 pts</p>
+      <button class="action-btn" onclick="startActivity()">Start Walkthrough</button>
+    </div>
+  </div>
+
+  <!-- Main Activity View -->
+  <div class="view" id="mainView">
+    <div class="score-display">
+      <div class="score-card">
+        <div class="score-value" id="currentScore" style="color: var(--green);">0</div>
+        <div class="score-label">Points Earned</div>
+      </div>
+      <div class="score-card">
+        <div class="score-value" id="platformsDone" style="color: var(--accent);">0/4</div>
+        <div class="score-label">Platforms Done</div>
+      </div>
+      <div class="score-card">
+        <div class="score-value" id="safeSettings" style="color: var(--blue);">0</div>
+        <div class="score-label">Safe Choices</div>
+      </div>
+    </div>
+
+    <div class="platform-nav" id="platformNav"></div>
+
+    <div id="platformContent"></div>
+  </div>
+
+  <!-- Quiz View -->
+  <div class="view" id="quizView">
+    <div id="quizContent"></div>
+    <div style="text-align: center; margin-top: 8px;">
+      <button class="action-btn" id="quizSubmitBtn" disabled onclick="finishQuiz()">View Results</button>
+    </div>
+  </div>
+
+  <!-- Final View -->
+  <div class="view" id="finalView">
+    <div class="final-summary animate-in" id="finalContent"></div>
+  </div>
+</div>
+
+<script>
+// ====================== DATA ======================
+const platforms = [
+  {
+    id: "buzzfeed",
+    name: "BuzzFeed Social",
+    icon: "\u{1F4F1}",
+    gradient: "linear-gradient(135deg, #e17055, #fd79a8)",
+    desc: "Social media platform",
+    settings: [
+      {
+        id: "account_privacy",
+        name: "Account Privacy",
+        desc: "Controls who can see your posts and profile",
+        category: "Account",
+        type: "radio",
+        options: ["Public", "Private"],
+        default: 0,
+        safe: 1,
+        explanations: {
+          0: "Anyone on the internet can see your photos, posts, and personal info.",
+          1: "Only people you approve can see your content. This is the safest choice."
+        }
+      },
+      {
+        id: "story_sharing",
+        name: "Story Sharing",
+        desc: "Who can view your stories",
+        category: "Account",
+        type: "select",
+        options: ["Everyone", "Friends", "Close Friends"],
+        default: 0,
+        safe: 2,
+        explanations: {
+          0: "Any user on the platform can view your stories, including strangers.",
+          1: "Better than everyone, but your full friends list may include people you barely know.",
+          2: "Only your inner circle can see your stories. Maximum privacy."
+        }
+      },
+      {
+        id: "location_sharing",
+        name: "Location Sharing",
+        desc: "Attach your location to posts and stories",
+        category: "Privacy",
+        type: "toggle",
+        onLabel: "On",
+        offLabel: "Off",
+        default: true,
+        safe: false,
+        explanations: {
+          true: "Your real-time location is visible to others. This can reveal where you live, work, and hang out.",
+          false: "Your location stays private. No one can track your movements through your posts."
+        }
+      },
+      {
+        id: "messaging",
+        name: "Who Can Message You",
+        desc: "Controls who can send you direct messages",
+        category: "Privacy",
+        type: "select",
+        options: ["Everyone", "Followers", "No One"],
+        default: 0,
+        safe: 2,
+        explanations: {
+          0: "Anyone can message you, including strangers and spam accounts.",
+          1: "Only followers can message you, but you may have followers you don't know personally.",
+          2: "No unsolicited messages. You initiate all conversations."
+        }
+      },
+      {
+        id: "activity_status",
+        name: "Activity Status",
+        desc: "Show when you are online or were last active",
+        category: "Privacy",
+        type: "toggle",
+        onLabel: "Show",
+        offLabel: "Hide",
+        default: true,
+        safe: false,
+        explanations: {
+          true: "Others can see exactly when you are online, which can be used to monitor your habits.",
+          false: "Your online status is hidden. No one can tell when you are using the app."
+        }
+      },
+      {
+        id: "third_party",
+        name: "Third-Party Data Sharing",
+        desc: "Share your data with connected apps and advertisers",
+        category: "Data",
+        type: "toggle",
+        onLabel: "Allowed",
+        offLabel: "Blocked",
+        default: true,
+        safe: false,
+        explanations: {
+          true: "Your browsing habits, interests, and personal info are sold to advertisers and partner apps.",
+          false: "Your data stays within the platform. Third parties cannot access your information."
+        }
+      }
+    ]
+  },
+  {
+    id: "streamvault",
+    name: "StreamVault",
+    icon: "\u{1F3AC}",
+    gradient: "linear-gradient(135deg, #e17055, #fdcb6e)",
+    desc: "Streaming & video platform",
+    settings: [
+      {
+        id: "watch_history",
+        name: "Watch History",
+        desc: "Controls whether your watch history is visible to others",
+        category: "Activity",
+        type: "select",
+        options: ["Public", "Private", "Off"],
+        default: 0,
+        safe: 2,
+        explanations: {
+          0: "Everyone can see what you watch, revealing your interests and habits.",
+          1: "Only you can see your history, but the platform still tracks it.",
+          2: "No watch history is recorded. Maximum privacy from tracking."
+        }
+      },
+      {
+        id: "search_history",
+        name: "Search History",
+        desc: "Whether the platform saves your searches",
+        category: "Activity",
+        type: "toggle",
+        onLabel: "Save",
+        offLabel: "Don't Save",
+        default: true,
+        safe: false,
+        explanations: {
+          true: "Every search is logged and can be used to build a profile of your interests.",
+          false: "Searches are not saved. The platform cannot build a search profile on you."
+        }
+      },
+      {
+        id: "comments",
+        name: "Who Can Comment",
+        desc: "Controls who can comment on your uploaded content",
+        category: "Interaction",
+        type: "select",
+        options: ["Everyone", "Subscribers", "No One"],
+        default: 0,
+        safe: 2,
+        explanations: {
+          0: "Anyone can leave comments, including trolls and spam bots.",
+          1: "Only your subscribers can comment, but you may have subscribers you don't know.",
+          2: "Comments are disabled. No unwanted interactions on your content."
+        }
+      },
+      {
+        id: "personalized_ads",
+        name: "Personalized Ads",
+        desc: "Use your viewing data to show targeted advertisements",
+        category: "Data",
+        type: "toggle",
+        onLabel: "On",
+        offLabel: "Off",
+        default: true,
+        safe: false,
+        explanations: {
+          true: "The platform analyzes everything you watch to serve you targeted ads.",
+          false: "You still see ads, but they are not based on your personal viewing data."
+        }
+      },
+      {
+        id: "playlists_visible",
+        name: "Playlist & Likes Visibility",
+        desc: "Who can see your saved playlists and liked videos",
+        category: "Activity",
+        type: "select",
+        options: ["Everyone", "Subscribers", "Only Me"],
+        default: 0,
+        safe: 2,
+        explanations: {
+          0: "Your taste in content is visible to everyone, including potential employers or colleges.",
+          1: "Only your subscribers can see your likes and playlists.",
+          2: "Your saved content is completely private. Only you can see it."
+        }
+      },
+      {
+        id: "autoplay",
+        name: "Recommendations Tracking",
+        desc: "Let the platform track your behavior to personalize recommendations",
+        category: "Data",
+        type: "toggle",
+        onLabel: "On",
+        offLabel: "Off",
+        default: true,
+        safe: false,
+        explanations: {
+          true: "The platform creates a detailed profile of your viewing behavior for its algorithm.",
+          false: "Recommendations are generic. The platform is not profiling your behavior."
+        }
+      }
+    ]
+  },
+  {
+    id: "chatzone",
+    name: "ChatZone",
+    icon: "\u{1F4AC}",
+    gradient: "linear-gradient(135deg, #74b9ff, #00cec9)",
+    desc: "Messaging app",
+    settings: [
+      {
+        id: "read_receipts",
+        name: "Read Receipts",
+        desc: "Let others know when you have read their messages",
+        category: "Messaging",
+        type: "toggle",
+        onLabel: "On",
+        offLabel: "Off",
+        default: true,
+        safe: false,
+        explanations: {
+          true: "People can see exactly when you read their message, creating pressure to respond immediately.",
+          false: "No one knows if you have read their message. You respond on your own terms."
+        }
+      },
+      {
+        id: "last_seen",
+        name: "Last Seen",
+        desc: "Who can see when you were last online",
+        category: "Messaging",
+        type: "select",
+        options: ["Everyone", "Contacts", "Nobody"],
+        default: 0,
+        safe: 2,
+        explanations: {
+          0: "Anyone can see exactly when you last used the app, tracking your schedule.",
+          1: "Only your contacts can see your last-seen timestamp.",
+          2: "No one can see when you were last online. Full privacy."
+        }
+      },
+      {
+        id: "profile_photo",
+        name: "Profile Photo Visibility",
+        desc: "Who can see your profile picture",
+        category: "Profile",
+        type: "select",
+        options: ["Everyone", "Contacts", "Nobody"],
+        default: 0,
+        safe: 2,
+        explanations: {
+          0: "Anyone with your number can see your profile photo, even strangers.",
+          1: "Only people in your contacts list can see your photo.",
+          2: "No one can see your profile photo. Maximum visual privacy."
+        }
+      },
+      {
+        id: "group_add",
+        name: "Who Can Add You to Groups",
+        desc: "Controls who can add you to group chats",
+        category: "Profile",
+        type: "select",
+        options: ["Everyone", "Contacts", "Nobody"],
+        default: 0,
+        safe: 2,
+        explanations: {
+          0: "Anyone can add you to group chats without your permission, including spam groups.",
+          1: "Only people in your contacts can add you to groups.",
+          2: "No one can add you without an invite you accept first."
+        }
+      },
+      {
+        id: "encryption",
+        name: "End-to-End Encryption",
+        desc: "Encrypt all messages so only you and the recipient can read them",
+        category: "Security",
+        type: "toggle",
+        onLabel: "On",
+        offLabel: "Off",
+        default: false,
+        safe: true,
+        explanations: {
+          false: "Messages can potentially be read by the platform, hackers, or third parties.",
+          true: "Messages are encrypted. Only you and your conversation partner can read them."
+        }
+      },
+      {
+        id: "link_preview",
+        name: "Automatic Link Previews",
+        desc: "Automatically load previews of links sent to you",
+        category: "Security",
+        type: "toggle",
+        onLabel: "On",
+        offLabel: "Off",
+        default: true,
+        safe: false,
+        explanations: {
+          true: "Links are loaded automatically, which can expose your IP address to external servers and load malicious content.",
+          false: "Links are not previewed until you manually open them, protecting against tracking and malicious sites."
+        }
+      }
+    ]
+  },
+  {
+    id: "gamehub",
+    name: "GameHub",
+    icon: "\u{1F3AE}",
+    gradient: "linear-gradient(135deg, #6c5ce7, #74b9ff)",
+    desc: "Gaming platform",
+    settings: [
+      {
+        id: "online_status",
+        name: "Online Status Visibility",
+        desc: "Who can see when you are online playing games",
+        category: "Profile",
+        type: "select",
+        options: ["Everyone", "Friends", "Nobody"],
+        default: 0,
+        safe: 2,
+        explanations: {
+          0: "Anyone on the platform can see your online status and gaming patterns.",
+          1: "Only your friends list can see when you are online.",
+          2: "You appear offline to everyone. Complete invisibility."
+        }
+      },
+      {
+        id: "game_activity",
+        name: "Game Activity Sharing",
+        desc: "Share what games you are playing and your play time",
+        category: "Profile",
+        type: "toggle",
+        onLabel: "On",
+        offLabel: "Off",
+        default: true,
+        safe: false,
+        explanations: {
+          true: "Others can see exactly what you play and for how long, which can reveal a lot about your habits.",
+          false: "Your gaming activity is private. No one can see what you are playing."
+        }
+      },
+      {
+        id: "voice_chat",
+        name: "Voice Chat Permissions",
+        desc: "Who can invite you to voice chat",
+        category: "Communication",
+        type: "select",
+        options: ["Everyone", "Friends", "Nobody"],
+        default: 0,
+        safe: 2,
+        explanations: {
+          0: "Any player can attempt to voice chat with you, including strangers.",
+          1: "Only friends can invite you to voice chat.",
+          2: "No one can initiate voice chat with you. You control all voice interactions."
+        }
+      },
+      {
+        id: "friend_requests",
+        name: "Friend Request Permissions",
+        desc: "Who can send you friend requests",
+        category: "Communication",
+        type: "select",
+        options: ["Everyone", "Friends of Friends", "Nobody"],
+        default: 0,
+        safe: 2,
+        explanations: {
+          0: "Anyone on the platform can send you a friend request.",
+          1: "Only people who share a mutual friend can add you.",
+          2: "No incoming friend requests. You send all requests yourself."
+        }
+      },
+      {
+        id: "real_name",
+        name: "Real Name Display",
+        desc: "Show your real name alongside your gamer tag",
+        category: "Profile",
+        type: "toggle",
+        onLabel: "Show",
+        offLabel: "Hide",
+        default: true,
+        safe: false,
+        explanations: {
+          true: "Your real name is visible to other players, which can be used to find you on other platforms.",
+          false: "Only your gamer tag is visible. Your real identity stays separate from gaming."
+        }
+      },
+      {
+        id: "purchase_history",
+        name: "Purchase History Visibility",
+        desc: "Whether others can see your game purchases and spending",
+        category: "Data",
+        type: "toggle",
+        onLabel: "Visible",
+        offLabel: "Hidden",
+        default: true,
+        safe: false,
+        explanations: {
+          true: "Others can see what games and items you have bought, revealing spending habits.",
+          false: "Your purchase history is private. No one can see what you have spent money on."
+        }
+      }
+    ]
+  }
+];
+
+const quizQuestions = [
+  {
+    question: "Why is it important to set your social media account to Private instead of Public?",
+    options: [
+      "Private accounts get more followers",
+      "It prevents strangers from seeing your personal posts, photos, and information",
+      "Private accounts load faster",
+      "It doesn't really matter — both are equally safe"
+    ],
+    correct: 1,
+    feedback: "A private account means only people you approve can see your content. Public accounts expose your posts, photos, and personal details to anyone on the internet, including strangers, advertisers, and potential bad actors."
+  },
+  {
+    question: "What is the biggest risk of leaving Location Sharing turned on?",
+    options: [
+      "It drains your battery faster",
+      "People can track where you live, go to school, and spend your time",
+      "It makes your phone run slower",
+      "It uses too much mobile data"
+    ],
+    correct: 1,
+    feedback: "Location sharing reveals patterns about your daily life. Someone could figure out where you live, where you go to school, your daily routine, and your current location in real time. This information in the wrong hands is a serious safety risk."
+  },
+  {
+    question: "Why should you disable personalized ads and recommendation tracking?",
+    options: [
+      "You will see fewer ads overall",
+      "These features collect detailed data about your behavior, interests, and habits to build a profile of you",
+      "It makes the app run faster",
+      "Ads are always dangerous to click on"
+    ],
+    correct: 1,
+    feedback: "Personalized ads require the platform to constantly monitor what you watch, click, search for, and how long you spend on each piece of content. This data is compiled into a detailed profile that can be shared with advertisers and data brokers."
+  },
+  {
+    question: "Why is end-to-end encryption important for messaging apps?",
+    options: [
+      "It makes messages send faster",
+      "It changes the font of your messages",
+      "It ensures only you and the recipient can read your messages — not the platform, hackers, or anyone else",
+      "It adds fun stickers to your messages"
+    ],
+    correct: 2,
+    feedback: "End-to-end encryption scrambles your messages so that only the intended recipient can decode them. Without it, the platform company, hackers who breach their servers, or even government agencies could potentially read your private conversations."
+  },
+  {
+    question: "Why should you hide your real name on gaming platforms?",
+    options: [
+      "Gamer tags look cooler than real names",
+      "Your real name can be used to find your other social media accounts, school, and personal information",
+      "Games run faster without real names",
+      "Real names take up too much screen space"
+    ],
+    correct: 1,
+    feedback: "Your real name is a gateway to your entire online identity. Someone with your real name could find your social media profiles, school, family members, and other personal information. Keeping your gaming identity separate from your real identity is a key privacy practice."
+  }
+];
+
+// ====================== STATE ======================
+let state = {
+  currentPlatform: 0,
+  platformScores: [0, 0, 0, 0],
+  platformCompleted: [false, false, false, false],
+  settingValues: {},
+  quizAnswers: new Array(5).fill(-1),
+  quizScore: 0,
+  totalSafeChoices: 0,
+  submitted: false
+};
+
+// Initialize setting values to defaults
+platforms.forEach((p, pi) => {
+  p.settings.forEach(s => {
+    const key = pi + "_" + s.id;
+    state.settingValues[key] = s.default;
+  });
+});
+
+// ====================== DOM HELPERS ======================
+function $(id) { return document.getElementById(id); }
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+function updateProgress() {
+  const completedPlatforms = state.platformCompleted.filter(Boolean).length;
+  const quizDone = state.quizAnswers.every(a => a >= 0);
+  let progress = (completedPlatforms / 5) * 100;
+  if (quizDone) progress = 100;
+  $('progressFill').style.width = progress + '%';
+}
+
+function updateScoreDisplay() {
+  const settingsScore = state.platformScores.reduce((a, b) => a + b, 0);
+  $('currentScore').textContent = settingsScore + state.quizScore;
+  $('platformsDone').textContent = state.platformCompleted.filter(Boolean).length + '/4';
+  $('safeSettings').textContent = state.totalSafeChoices;
+}
+
+function countSafe() {
+  let count = 0;
+  platforms.forEach((p, pi) => {
+    p.settings.forEach(s => {
+      const key = pi + "_" + s.id;
+      const val = state.settingValues[key];
+      if (s.type === 'toggle') {
+        if (val === s.safe) count++;
+      } else {
+        if (val === s.safe) count++;
+      }
+    });
+  });
+  state.totalSafeChoices = count;
+}
+
+// ====================== PLATFORM NAV ======================
+function buildPlatformNav() {
+  const nav = $('platformNav');
+  let html = '';
+  platforms.forEach((p, i) => {
+    const active = i === state.currentPlatform ? 'active' : '';
+    const completed = state.platformCompleted[i] ? 'completed' : '';
+    html += `<button class="platform-tab ${active} ${completed}" onclick="switchPlatform(${i})">
+      <div class="tab-icon" style="background: ${p.gradient}">${p.icon}</div>
+      <span>${p.name}</span>
+      <div class="check-badge">\u2713</div>
+    </button>`;
+  });
+  // Quiz tab
+  const allDone = state.platformCompleted.every(Boolean);
+  const quizCompleted = state.quizAnswers.every(a => a >= 0);
+  html += `<button class="platform-tab quiz-tab ${allDone && !quizCompleted ? 'active' : ''} ${quizCompleted ? 'completed' : ''}"
+    onclick="goToQuiz()" ${!allDone ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''}>
+    <div class="tab-icon">\u{1F4DD}</div>
+    <span>Quiz</span>
+    <div class="check-badge">\u2713</div>
+  </button>`;
+  nav.innerHTML = html;
+}
+
+function switchPlatform(index) {
+  state.currentPlatform = index;
+  buildPlatformNav();
+  renderPlatform(index);
+}
+
+// ====================== RENDER PLATFORM ======================
+function renderPlatform(index) {
+  const p = platforms[index];
+  const container = $('platformContent');
+
+  if (state.platformCompleted[index]) {
+    renderPlatformReview(index);
+    return;
+  }
+
+  let html = `<div class="settings-screen animate-in">
+    <div class="settings-header">
+      <div class="settings-app-icon" style="background: ${p.gradient}">${p.icon}</div>
+      <div>
+        <div class="settings-app-name">${p.name}</div>
+        <div class="settings-app-desc">${p.desc} &mdash; Privacy &amp; Security Settings</div>
+      </div>
+    </div>`;
+
+  let currentCategory = '';
+  p.settings.forEach(s => {
+    if (s.category !== currentCategory) {
+      currentCategory = s.category;
+      html += `<div class="settings-category">${currentCategory}</div>`;
+    }
+    const key = index + "_" + s.id;
+    const val = state.settingValues[key];
+    const privacyLevel = getPrivacyLevel(s, val);
+
+    html += `<div class="setting-row ${privacyLevel}" id="row_${key}">
+      <div class="setting-info">
+        <div class="setting-name">
+          <span class="privacy-dot ${privacyLevel}"></span>
+          ${s.name}
+        </div>
+        <div class="setting-desc">${s.desc}</div>
+      </div>`;
+
+    if (s.type === 'toggle') {
+      const isOn = val === true;
+      html += `<button class="toggle-switch ${isOn ? 'on' : 'off'}" onclick="toggleSetting(${index}, '${s.id}')">
+        <div class="toggle-knob"></div>
+      </button>`;
+    } else if (s.type === 'select') {
+      html += `<select class="setting-select" onchange="selectSetting(${index}, '${s.id}', this.value)">`;
+      s.options.forEach((opt, oi) => {
+        html += `<option value="${oi}" ${val === oi ? 'selected' : ''}>${opt}</option>`;
+      });
+      html += `</select>`;
+    } else if (s.type === 'radio') {
+      html += `<div class="radio-group">`;
+      s.options.forEach((opt, oi) => {
+        html += `<button class="radio-option ${val === oi ? 'selected' : ''}" onclick="radioSetting(${index}, '${s.id}', ${oi})">${opt}</button>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+  });
+
+  html += `</div>`;
+
+  html += `<div style="text-align: center;">
+    <button class="action-btn" onclick="completePlatform(${index})">Lock In Settings</button>
+  </div>`;
+
+  container.innerHTML = html;
+}
+
+function getPrivacyLevel(setting, value) {
+  if (setting.type === 'toggle') {
+    return value === setting.safe ? 'safe' : 'risky';
+  } else {
+    if (value === setting.safe) return 'safe';
+    // For multi-option: middle options are moderate
+    if (setting.options.length > 2 && value !== setting.default) return 'moderate';
+    return value === setting.default ? 'risky' : 'moderate';
+  }
+}
+
+// ====================== SETTING INTERACTIONS ======================
+function toggleSetting(platformIdx, settingId) {
+  const key = platformIdx + "_" + settingId;
+  state.settingValues[key] = !state.settingValues[key];
+  countSafe();
+  updateScoreDisplay();
+  renderPlatform(platformIdx);
+}
+
+function selectSetting(platformIdx, settingId, value) {
+  const key = platformIdx + "_" + settingId;
+  state.settingValues[key] = parseInt(value);
+  countSafe();
+  updateScoreDisplay();
+  renderPlatform(platformIdx);
+}
+
+function radioSetting(platformIdx, settingId, value) {
+  const key = platformIdx + "_" + settingId;
+  state.settingValues[key] = value;
+  countSafe();
+  updateScoreDisplay();
+  renderPlatform(platformIdx);
+}
+
+// ====================== COMPLETE PLATFORM ======================
+function completePlatform(index) {
+  const p = platforms[index];
+  let score = 0;
+  p.settings.forEach(s => {
+    const key = index + "_" + s.id;
+    const val = state.settingValues[key];
+    if (s.type === 'toggle') {
+      if (val === s.safe) score++;
+    } else {
+      if (val === s.safe) score++;
+    }
+  });
+  state.platformScores[index] = score;
+  state.platformCompleted[index] = true;
+  countSafe();
+  updateScoreDisplay();
+  updateProgress();
+  buildPlatformNav();
+  renderPlatformReview(index);
+
+  // Auto advance to next uncompleted platform or quiz
+  const nextUncompleted = state.platformCompleted.findIndex(c => !c);
+  if (nextUncompleted >= 0) {
+    setTimeout(() => {
+      switchPlatform(nextUncompleted);
+    }, 100);
+  }
+}
+
+function renderPlatformReview(index) {
+  const p = platforms[index];
+  const container = $('platformContent');
+  const score = state.platformScores[index];
+
+  let html = `<div class="platform-review visible animate-in">
+    <h3 style="display: flex; align-items: center; gap: 10px;">
+      <span style="display: inline-flex; width: 32px; height: 32px; border-radius: 8px; align-items: center; justify-content: center; background: ${p.gradient}; font-size: 1rem;">${p.icon}</span>
+      ${p.name} — ${score}/6 points
+    </h3>`;
+
+  p.settings.forEach(s => {
+    const key = index + "_" + s.id;
+    const val = state.settingValues[key];
+    let isCorrect;
+    if (s.type === 'toggle') {
+      isCorrect = val === s.safe;
+    } else {
+      isCorrect = val === s.safe;
+    }
+
+    const chosenLabel = s.type === 'toggle'
+      ? (val ? (s.onLabel || 'On') : (s.offLabel || 'Off'))
+      : s.options[val];
+    const safeLabel = s.type === 'toggle'
+      ? (s.safe ? (s.onLabel || 'On') : (s.offLabel || 'Off'))
+      : s.options[s.safe];
+
+    html += `<div class="review-item">
+      <div class="review-icon ${isCorrect ? 'correct' : 'wrong'}">${isCorrect ? '\u2713' : '\u2717'}</div>
+      <div class="review-text">
+        <strong>${s.name}: ${chosenLabel}</strong>
+        ${!isCorrect ? `<br><span style="color: var(--green); font-size: 0.82rem;">Best choice: ${safeLabel}</span>` : ''}
+        <br><span class="explanation">${s.explanations[val]}</span>
+      </div>
+    </div>`;
+  });
+
+  html += `</div>`;
+
+  // If all platforms done, show go-to-quiz button
+  if (state.platformCompleted.every(Boolean)) {
+    html += `<div style="text-align: center;">
+      <button class="action-btn" onclick="goToQuiz()" style="background: linear-gradient(135deg, var(--accent), var(--pink));">
+        Continue to Privacy Quiz \u2192
+      </button>
+    </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+// ====================== QUIZ ======================
+function goToQuiz() {
+  if (!state.platformCompleted.every(Boolean)) return;
+  showView('quizView');
+  buildPlatformNav();
+  renderQuiz();
+  updateProgress();
+}
+
+function renderQuiz() {
+  const container = $('quizContent');
+  let html = `<div style="text-align: center; margin-bottom: 24px;">
+    <h2 style="font-size: 1.3rem; font-weight: 700;">Privacy Knowledge Quiz</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">5 questions &bull; 2 points each &bull; 10 points possible</p>
+  </div>`;
+
+  quizQuestions.forEach((q, qi) => {
+    const answered = state.quizAnswers[qi] >= 0;
+    const isCorrect = state.quizAnswers[qi] === q.correct;
+
+    html += `<div class="quiz-card animate-in" style="animation-delay: ${qi * 0.08}s">
+      <div class="quiz-number">Question ${qi + 1} of 5</div>
+      <div class="quiz-question">${q.question}</div>
+      <div class="quiz-options">`;
+
+    q.options.forEach((opt, oi) => {
+      let cls = 'quiz-option';
+      if (answered) {
+        if (oi === q.correct) cls += ' correct';
+        else if (oi === state.quizAnswers[qi] && oi !== q.correct) cls += ' incorrect';
+      } else if (state.quizAnswers[qi] === oi) {
+        cls += ' selected';
+      }
+      html += `<button class="${cls}" onclick="answerQuiz(${qi}, ${oi})" ${answered ? 'disabled' : ''}>${opt}</button>`;
+    });
+
+    html += `</div>`;
+
+    if (answered) {
+      html += `<div class="quiz-feedback visible ${isCorrect ? 'correct' : 'incorrect'}">
+        ${isCorrect ? '\u2713 Correct!' : '\u2717 Not quite.'} ${q.feedback}
+      </div>`;
+    }
+
+    html += `</div>`;
+  });
+
+  container.innerHTML = html;
+
+  // Update button state
+  const allAnswered = state.quizAnswers.every(a => a >= 0);
+  $('quizSubmitBtn').disabled = !allAnswered;
+}
+
+function answerQuiz(qIdx, optIdx) {
+  if (state.quizAnswers[qIdx] >= 0) return;
+  state.quizAnswers[qIdx] = optIdx;
+  if (optIdx === quizQuestions[qIdx].correct) {
+    state.quizScore += 2;
+  }
+  updateScoreDisplay();
+  renderQuiz();
+
+  const allAnswered = state.quizAnswers.every(a => a >= 0);
+  if (allAnswered) {
+    updateProgress();
+  }
+}
+
+function finishQuiz() {
+  showView('finalView');
+  renderFinal();
+}
+
+// ====================== FINAL ======================
+function renderFinal() {
+  const settingsScore = state.platformScores.reduce((a, b) => a + b, 0);
+  const totalScore = settingsScore + state.quizScore;
+  const maxScore = 34;
+  const pct = Math.round((totalScore / maxScore) * 100);
+
+  let grade, gradeClass;
+  if (pct >= 90) { grade = 'Privacy Expert'; gradeClass = 'excellent'; }
+  else if (pct >= 75) { grade = 'Privacy Aware'; gradeClass = 'good'; }
+  else if (pct >= 55) { grade = 'Needs Improvement'; gradeClass = 'fair'; }
+  else { grade = 'Privacy Risk'; gradeClass = 'poor'; }
+
+  let html = `<div class="final-summary animate-in">
+    <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 4px;">Your Results</h2>
+    <div class="final-score" style="color: ${pct >= 75 ? 'var(--green)' : pct >= 55 ? 'var(--orange)' : 'var(--red)'};">${totalScore}</div>
+    <div class="final-max">out of ${maxScore} points (${pct}%)</div>
+    <div class="final-grade ${gradeClass}">${grade}</div>
+
+    <div class="breakdown-grid">`;
+
+  platforms.forEach((p, i) => {
+    const s = state.platformScores[i];
+    const color = s >= 5 ? 'var(--green)' : s >= 3 ? 'var(--orange)' : 'var(--red)';
+    html += `<div class="breakdown-item">
+      <div style="font-size: 1rem; margin-bottom: 4px;">${p.icon}</div>
+      <div class="b-score" style="color: ${color}">${s}/6</div>
+      <div class="b-label">${p.name}</div>
+    </div>`;
+  });
+
+  const quizColor = state.quizScore >= 8 ? 'var(--green)' : state.quizScore >= 6 ? 'var(--orange)' : 'var(--red)';
+  html += `<div class="breakdown-item">
+      <div style="font-size: 1rem; margin-bottom: 4px;">\u{1F4DD}</div>
+      <div class="b-score" style="color: ${quizColor}">${state.quizScore}/10</div>
+      <div class="b-label">Privacy Quiz</div>
+    </div>`;
+
+  html += `</div>
+
+    <div style="margin-top: 24px;">
+      <button class="action-btn submit" onclick="submitScore()" ${state.submitted ? 'disabled' : ''}>
+        ${state.submitted ? 'Score Submitted \u2713' : 'Submit for Grade'}
+      </button>
+    </div>
+    <div style="margin-top: 12px;">
+      <button class="action-btn" style="background: var(--surface-2); color: var(--text-muted);" onclick="resetAll()">Start Over</button>
+    </div>
+  </div>`;
+
+  $('finalContent').innerHTML = html;
+}
+
+function submitScore() {
+  if (state.submitted) return;
+  const settingsScore = state.platformScores.reduce((a, b) => a + b, 0);
+  const totalScore = settingsScore + state.quizScore;
+  const maxScore = 34;
+
+  window.parent.postMessage({
+    type: "activityScore",
+    score: totalScore,
+    maxScore: maxScore,
+    completedAt: new Date().toISOString()
+  }, "*");
+
+  state.submitted = true;
+  renderFinal();
+}
+
+function resetAll() {
+  state = {
+    currentPlatform: 0,
+    platformScores: [0, 0, 0, 0],
+    platformCompleted: [false, false, false, false],
+    settingValues: {},
+    quizAnswers: new Array(5).fill(-1),
+    quizScore: 0,
+    totalSafeChoices: 0,
+    submitted: false
+  };
+  platforms.forEach((p, pi) => {
+    p.settings.forEach(s => {
+      const key = pi + "_" + s.id;
+      state.settingValues[key] = s.default;
+    });
+  });
+  showView('introView');
+  $('progressFill').style.width = '0%';
+  updateScoreDisplay();
+}
+
+// ====================== START ======================
+function startActivity() {
+  showView('mainView');
+  buildPlatformNav();
+  renderPlatform(0);
+  updateScoreDisplay();
+}
+</script>
+</body>
+</html>

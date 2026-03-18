@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Engineering Sandbox</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #232736;
+  --border: #2e3347;
+  --text: #e4e6f0;
+  --text-muted: #8b8fa8;
+  --accent: #6c63ff;
+  --accent-glow: rgba(108, 99, 255, 0.25);
+  --context: #ff6b6b;
+  --role: #ffa94d;
+  --action: #51cf66;
+  --format: #339af0;
+  --tone: #cc5de8;
+  --success: #51cf66;
+  --warning: #ffa94d;
+  --danger: #ff6b6b;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-header {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 24px;
+  text-align: center;
+}
+
+.app-header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--tone));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+
+.app-header p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.progress-bar-container {
+  max-width: 400px;
+  margin: 12px auto 0;
+}
+
+.progress-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.progress-bar-track {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--tone));
+  border-radius: 3px;
+  transition: width var(--transition);
+  width: 0%;
+}
+
+/* Tab Navigation */
+.tab-nav {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+}
+
+.tab-nav::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  flex-shrink: 0;
+  padding: 14px 18px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.tab-btn:hover { color: var(--text); }
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Tab Content */
+.tab-content { display: none; padding: 24px 16px; max-width: 900px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.card h2 {
+  font-size: 1.15rem;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.card h3 {
+  font-size: 1rem;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+/* CRAFT Section */
+.craft-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.craft-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.craft-item:last-child { border-bottom: none; }
+
+.craft-item-content { flex: 1; }
+
+.craft-item-content strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.craft-item-content span {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.craft-c .craft-letter { background: rgba(255, 107, 107, 0.15); color: var(--context); }
+.craft-r .craft-letter { background: rgba(255, 169, 77, 0.15); color: var(--role); }
+.craft-a .craft-letter { background: rgba(81, 207, 102, 0.15); color: var(--action); }
+.craft-f .craft-letter { background: rgba(51, 154, 240, 0.15); color: var(--format); }
+.craft-t .craft-letter { background: rgba(204, 93, 232, 0.15); color: var(--tone); }
+
+/* Builder */
+.builder-field {
+  margin-bottom: 16px;
+}
+
+.builder-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.builder-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.builder-dot.context { background: var(--context); }
+.builder-dot.role { background: var(--role); }
+.builder-dot.action { background: var(--action); }
+.builder-dot.format { background: var(--format); }
+.builder-dot.tone { background: var(--tone); }
+
+.builder-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 44px;
+  transition: border-color var(--transition);
+}
+
+.builder-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.builder-input::placeholder { color: var(--text-muted); opacity: 0.6; }
+
+.builder-tip {
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: rgba(108, 99, 255, 0.08);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: none;
+}
+
+.builder-tip.visible { display: block; }
+
+/* Preview */
+.preview-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  min-height: 80px;
+  line-height: 1.8;
+  font-size: 0.9rem;
+}
+
+.preview-box .ctx { color: var(--context); border-bottom: 2px solid rgba(255,107,107,0.3); }
+.preview-box .rl { color: var(--role); border-bottom: 2px solid rgba(255,169,77,0.3); }
+.preview-box .act { color: var(--action); border-bottom: 2px solid rgba(81,207,102,0.3); }
+.preview-box .fmt { color: var(--format); border-bottom: 2px solid rgba(51,154,240,0.3); }
+.preview-box .tn { color: var(--tone); border-bottom: 2px solid rgba(204,93,232,0.3); }
+
+.preview-placeholder { color: var(--text-muted); font-style: italic; }
+
+/* Quality Score */
+.score-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.score-ring {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  flex-shrink: 0;
+}
+
+.score-ring svg {
+  width: 70px;
+  height: 70px;
+  transform: rotate(-90deg);
+}
+
+.score-ring .ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 6;
+}
+
+.score-ring .ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 188.5;
+  stroke-dashoffset: 188.5;
+  transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+}
+
+.score-number {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.score-breakdown {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+}
+
+.score-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+
+.score-icon { font-size: 0.7rem; }
+.score-icon.filled { color: var(--success); }
+.score-icon.empty { color: var(--text-muted); }
+
+/* Comparison */
+.comparison-progress {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.comparison-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 600px) {
+  .comparison-pair { grid-template-columns: 1fr; }
+}
+
+.prompt-option {
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+}
+
+.prompt-option:hover { border-color: var(--accent); }
+
+.prompt-option.selected-correct {
+  border-color: var(--success);
+  background: rgba(81, 207, 102, 0.05);
+}
+
+.prompt-option.selected-wrong {
+  border-color: var(--danger);
+  background: rgba(255, 107, 107, 0.05);
+}
+
+.prompt-option.reveal-correct {
+  border-color: var(--success);
+}
+
+.prompt-option-label {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  background: var(--surface2);
+  color: var(--text-muted);
+}
+
+.prompt-option p {
+  font-size: 0.88rem;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.comparison-result {
+  display: none;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.comparison-result.visible { display: block; }
+.comparison-result.correct { background: rgba(81,207,102,0.1); border: 1px solid rgba(81,207,102,0.3); }
+.comparison-result.wrong { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); }
+
+.comparison-score-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  margin-top: 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Templates */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.template-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.template-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.template-card h4 {
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.template-card p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.template-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--surface2);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* Template Detail Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.modal-close {
+  float: right;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.modal-close:hover { color: var(--text); }
+
+.modal-craft-item {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 0.85rem;
+}
+
+.modal-craft-label {
+  font-weight: 600;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.modal-prompt-output {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin: 12px 0;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.modal-customize textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  resize: vertical;
+  min-height: 100px;
+  margin-top: 8px;
+}
+
+.modal-customize textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Challenge Mode */
+.challenge-scenario {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.challenge-scenario h4 { margin-bottom: 4px; }
+.challenge-scenario p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin-bottom: 12px;
+}
+
+.challenge-textarea {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.challenge-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.checklist { margin-top: 12px; }
+
+.checklist label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.checklist input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover { background: #5a52e0; }
+
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover { background: var(--border); }
+
+.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+/* Copy toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--success);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 200;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Section headers within tabs */
+.section-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+/* Divider */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+/* Next button area */
+.nav-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .tab-btn { padding: 12px 12px; font-size: 0.78rem; }
+  .tab-content { padding: 16px 12px; }
+  .card { padding: 16px; }
+  .comparison-pair { gap: 8px; }
+  .score-breakdown { grid-template-columns: 1fr; }
+  .template-grid { grid-template-columns: 1fr; }
+  .app-header h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>Prompt Engineering Sandbox</h1>
+  <p>Learn to write better prompts with the CRAFT framework</p>
+  <div class="progress-bar-container">
+    <div class="progress-bar-label">
+      <span>Overall Progress</span>
+      <span id="progressPercent">0%</span>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+  </div>
+</header>
+
+<nav class="tab-nav" id="tabNav">
+  <button class="tab-btn active" data-tab="craft">CRAFT Framework</button>
+  <button class="tab-btn" data-tab="builder">Prompt Builder</button>
+  <button class="tab-btn" data-tab="compare">Compare Prompts</button>
+  <button class="tab-btn" data-tab="templates">Templates</button>
+  <button class="tab-btn" data-tab="challenge">Challenge Mode</button>
+</nav>
+
+<!-- TAB 1: CRAFT Framework -->
+<div class="tab-content active" id="tab-craft">
+  <div class="card">
+    <h2>The CRAFT Framework</h2>
+    <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:16px;">
+      Every great prompt has five ingredients. Use CRAFT to build prompts that give you exactly what you need.
+    </p>
+
+    <div class="craft-item craft-c">
+      <div class="craft-letter">C</div>
+      <div class="craft-item-content">
+        <strong>Context</strong>
+        <span>Set the scene. Give the AI the background it needs. Who is the audience? What's the situation? What do you already know?</span>
+      </div>
+    </div>
+
+    <div class="craft-item craft-r">
+      <div class="craft-letter">R</div>
+      <div class="craft-item-content">
+        <strong>Role</strong>
+        <span>Assign the AI a role. "You are a history tutor," "Act as a debate coach," or "You are a science journalist." This shapes the expertise and perspective of the response.</span>
+      </div>
+    </div>
+
+    <div class="craft-item craft-a">
+      <div class="craft-letter">A</div>
+      <div class="craft-item-content">
+        <strong>Action</strong>
+        <span>Tell the AI exactly what to do. Be specific: "Explain," "Compare," "Generate a list of," "Write a paragraph that..." The clearer the action, the better the output.</span>
+      </div>
+    </div>
+
+    <div class="craft-item craft-f">
+      <div class="craft-letter">F</div>
+      <div class="craft-item-content">
+        <strong>Format</strong>
+        <span>How should the output look? Bullet points? A 5-paragraph essay? A table? A numbered list? Specify length, structure, and organization.</span>
+      </div>
+    </div>
+
+    <div class="craft-item craft-t">
+      <div class="craft-letter">T</div>
+      <div class="craft-item-content">
+        <strong>Tone</strong>
+        <span>What's the vibe? Formal, casual, encouraging, academic, humorous? Tone controls the voice and style of the response.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Example: CRAFT in Action</h3>
+    <div style="margin-bottom:12px;">
+      <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:8px;">Weak prompt:</p>
+      <div style="background:var(--bg); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border); font-size:0.88rem; color:var(--danger);">
+        "Tell me about photosynthesis"
+      </div>
+    </div>
+    <div>
+      <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:8px;">CRAFT prompt:</p>
+      <div style="background:var(--bg); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border); font-size:0.88rem; line-height:1.8;">
+        <span style="color:var(--context);">[Context]</span> I'm a 9th grader studying for a biology test on cellular processes. <span style="color:var(--role);">[Role]</span> Act as a patient biology tutor. <span style="color:var(--action);">[Action]</span> Explain the two stages of photosynthesis (light reactions and Calvin cycle) and how they connect. <span style="color:var(--format);">[Format]</span> Use a numbered list with simple analogies for each stage, then a 2-sentence summary. <span style="color:var(--tone);">[Tone]</span> Keep it friendly and easy to understand, like you're explaining to a friend.
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-buttons">
+    <button class="btn btn-primary" onclick="switchTab('builder')">Try the Prompt Builder &rarr;</button>
+  </div>
+</div>
+
+<!-- TAB 2: Prompt Builder -->
+<div class="tab-content" id="tab-builder">
+  <div class="card">
+    <h2>Interactive Prompt Builder</h2>
+    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
+      Fill in each CRAFT component and watch your prompt come together. The more detail you add, the higher your quality score.
+    </p>
+
+    <div class="builder-field">
+      <div class="builder-label"><div class="builder-dot context"></div> Context</div>
+      <textarea class="builder-input" id="b-context" placeholder="Set the scene... Who is the audience? What's the situation? (e.g., 'I'm a high school junior writing a research paper on renewable energy for my AP Environmental Science class.')" rows="2"></textarea>
+      <div class="builder-tip" id="tip-context"></div>
+    </div>
+
+    <div class="builder-field">
+      <div class="builder-label"><div class="builder-dot role"></div> Role</div>
+      <textarea class="builder-input" id="b-role" placeholder="Assign the AI a role... (e.g., 'Act as an experienced environmental scientist and writing coach.')" rows="2"></textarea>
+      <div class="builder-tip" id="tip-role"></div>
+    </div>
+
+    <div class="builder-field">
+      <div class="builder-label"><div class="builder-dot action"></div> Action</div>
+      <textarea class="builder-input" id="b-action" placeholder="What should the AI do? Be specific... (e.g., 'Help me create a strong thesis statement and outline for my paper comparing solar and wind energy.')" rows="2"></textarea>
+      <div class="builder-tip" id="tip-action"></div>
+    </div>
+
+    <div class="builder-field">
+      <div class="builder-label"><div class="builder-dot format"></div> Format</div>
+      <textarea class="builder-input" id="b-format" placeholder="How should the output look? (e.g., 'Give me 3 thesis options, then a detailed outline with Roman numerals. Each section should have 2-3 sub-points.')" rows="2"></textarea>
+      <div class="builder-tip" id="tip-format"></div>
+    </div>
+
+    <div class="builder-field">
+      <div class="builder-label"><div class="builder-dot tone"></div> Tone</div>
+      <textarea class="builder-input" id="b-tone" placeholder="What style or voice? (e.g., 'Academic but accessible. Avoid overly technical jargon.')" rows="2"></textarea>
+      <div class="builder-tip" id="tip-tone"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3>Combined Prompt Preview</h3>
+      <button class="btn btn-sm btn-secondary" onclick="copyPreview()">Copy</button>
+    </div>
+    <div class="preview-box" id="promptPreview">
+      <span class="preview-placeholder">Start typing above to see your combined prompt...</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:12px;">Quality Score</h3>
+    <div class="score-container">
+      <div class="score-ring">
+        <svg viewBox="0 0 70 70">
+          <circle class="ring-bg" cx="35" cy="35" r="30"/>
+          <circle class="ring-fill" id="scoreRing" cx="35" cy="35" r="30"/>
+        </svg>
+        <div class="score-number" id="scoreNumber">0</div>
+      </div>
+      <div class="score-breakdown">
+        <div class="score-item"><span class="score-icon empty" id="sc-context">&#9675;</span> Context</div>
+        <div class="score-item"><span class="score-icon empty" id="sc-role">&#9675;</span> Role</div>
+        <div class="score-item"><span class="score-icon empty" id="sc-action">&#9675;</span> Action</div>
+        <div class="score-item"><span class="score-icon empty" id="sc-format">&#9675;</span> Format</div>
+        <div class="score-item"><span class="score-icon empty" id="sc-tone">&#9675;</span> Tone</div>
+        <div class="score-item"><span class="score-icon empty" id="sc-detail">&#9675;</span> Detail Level</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-secondary" onclick="clearBuilder()">Clear All</button>
+    <button class="btn btn-primary" onclick="switchTab('compare')">Try Comparison Exercises &rarr;</button>
+  </div>
+</div>
+
+<!-- TAB 3: Compare Prompts -->
+<div class="tab-content" id="tab-compare">
+  <div class="card">
+    <h2>Prompt Comparison Exercises</h2>
+    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px;">
+      Which prompt would get a better response from an AI? Pick the stronger one, then see the analysis.
+    </p>
+    <div class="comparison-progress" id="compareProgress">Question 1 of 8</div>
+    <div class="comparison-score-bar">
+      Score: <span id="compareScore">0</span> / <span id="compareTotal">8</span>
+    </div>
+  </div>
+
+  <div id="compareContainer"></div>
+
+  <div id="compareComplete" style="display:none;">
+    <div class="card" style="text-align:center;">
+      <h2 style="margin-bottom:8px;">Exercises Complete</h2>
+      <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:16px;">
+        You scored <span id="compareFinalScore">0</span> out of 8.
+      </p>
+      <div id="compareFeedback" style="font-size:0.9rem; margin-bottom:16px;"></div>
+      <button class="btn btn-primary" onclick="resetComparisons()">Try Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Templates -->
+<div class="tab-content" id="tab-templates">
+  <div class="card">
+    <h2>Prompt Templates Gallery</h2>
+    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
+      Ready-to-use prompt templates for common student tasks. Click any template to view the CRAFT breakdown, customize it, and copy.
+    </p>
+  </div>
+
+  <div class="template-grid" id="templateGrid"></div>
+</div>
+
+<!-- TAB 5: Challenge Mode -->
+<div class="tab-content" id="tab-challenge">
+  <div class="card">
+    <h2>Challenge Mode</h2>
+    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px;">
+      Write the best prompt you can for each scenario. Then evaluate yourself with the CRAFT checklist.
+    </p>
+    <div class="comparison-score-bar">
+      Challenge Score: <span id="challengeScore">0</span> / <span id="challengeMax">25</span>
+    </div>
+  </div>
+
+  <div id="challengeContainer"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="templateModal">
+  <div class="modal-content" id="modalInner"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Copied to clipboard!</div>
+
+<script>
+// ==================== DATA ====================
+
+const comparisons = [
+  {
+    task: "Writing an Essay",
+    a: "Write me an essay about climate change.",
+    b: "I'm a 10th grader writing a persuasive essay for English class. Act as a writing tutor. Help me write a 5-paragraph persuasive essay arguing that schools should teach climate science starting in elementary school. Use an introduction with a hook, three body paragraphs with evidence, and a strong conclusion. Keep the tone serious but accessible for a teen audience.",
+    correct: "b",
+    analysis: "Prompt B uses all five CRAFT elements. It gives context (10th grader, English class), assigns a role (writing tutor), specifies the action (persuasive essay on a specific topic), defines the format (5 paragraphs with clear structure), and sets the tone (serious but accessible). Prompt A gives the AI almost nothing to work with."
+  },
+  {
+    task: "Coding Help",
+    a: "I'm learning Python in my computer science class and I'm stuck on a homework problem about loops. Act as a CS tutor who explains things step by step. Walk me through how to write a for loop that prints all even numbers from 1 to 20. Show the code, then explain each line. Use a patient, encouraging tone like you're sitting next to me.",
+    b: "How do I write a for loop in Python?",
+    correct: "a",
+    analysis: "Prompt A provides context (learning Python, stuck on homework), a role (CS tutor), a specific action (walk through a for loop for even numbers 1-20), format (code + line-by-line explanation), and tone (patient, encouraging). Prompt B is too vague and could return anything from a one-line answer to an advanced tutorial."
+  },
+  {
+    task: "Research Help",
+    a: "Tell me about World War 2.",
+    b: "I'm a high school junior preparing for an AP History exam. You're a history professor who specializes in WWII. Summarize the five most important turning points of World War 2, explaining why each one changed the course of the war. Present this as a numbered list with 2-3 sentences per point. Use an informative, academic tone.",
+    correct: "b",
+    analysis: "Prompt B nails every CRAFT element: context (AP History exam prep), role (WWII history professor), action (summarize 5 turning points with reasoning), format (numbered list, 2-3 sentences each), and tone (informative, academic). Prompt A would get a response that could be a paragraph or a 10-page overview."
+  },
+  {
+    task: "Creative Writing",
+    a: "I'm working on a creative writing portfolio for my English class. Act as a published fiction author. Help me brainstorm three unique short story concepts that explore the theme of 'technology and loneliness.' For each concept, give me a one-sentence premise, a main character description, and a potential twist ending. Keep the tone imaginative and thought-provoking.",
+    b: "Give me a story idea about technology.",
+    correct: "a",
+    analysis: "Prompt A sets up the context (portfolio for English class), assigns a creative expert role (published fiction author), gives a clear action (brainstorm 3 concepts on a specific theme), defines the format (premise + character + twist for each), and establishes tone (imaginative, thought-provoking). Prompt B is so open-ended you might get anything from a kids' story to a tech manual."
+  },
+  {
+    task: "Study Preparation",
+    a: "Make me flashcards for biology.",
+    b: "I have a biology exam on Friday covering cell division (mitosis and meiosis). Act as a study coach. Create 10 flashcard-style questions and answers that cover the key differences between mitosis and meiosis, the phases of each, and common exam tricks. Format each as 'Q:' and 'A:' with concise answers. Keep the language simple and direct.",
+    correct: "b",
+    analysis: "Prompt B is specific about context (exam on Friday, specific topics), role (study coach), action (create 10 flashcard Q&As covering specific subtopics), format (Q: and A: structure), and tone (simple and direct). Prompt A could produce flashcards on any biology topic at any difficulty level."
+  },
+  {
+    task: "Math Problem Solving",
+    a: "I'm in Algebra 2 and I keep getting the wrong answer on quadratic equation problems. You're a math tutor who's great at breaking things down. Solve x^2 + 5x + 6 = 0 using the quadratic formula, showing every single step so I can see where I might be making mistakes. Write it out step by step with explanations. Be encouraging and patient.",
+    b: "Solve x^2 + 5x + 6 = 0",
+    correct: "a",
+    analysis: "Prompt A tells the AI the student's level (Algebra 2), their struggle (getting wrong answers), assigns a role (patient math tutor), gives a specific action (solve using quadratic formula showing every step), defines format (step by step with explanations), and sets tone (encouraging, patient). Prompt B would just get the answer with no learning."
+  },
+  {
+    task: "Debate Preparation",
+    a: "Help me with my debate.",
+    b: "I'm on my school's debate team and our next topic is 'Social media does more harm than good.' I'm arguing the 'for' position (that it does more harm). Act as a debate coach. Generate my three strongest arguments with supporting evidence, and anticipate two counterarguments the other side might use with my rebuttals. Format as an outline. Tone should be logical and persuasive.",
+    correct: "b",
+    analysis: "Prompt B covers every CRAFT element: context (school debate team, specific topic and position), role (debate coach), action (3 arguments + evidence, 2 counterarguments + rebuttals), format (outline), and tone (logical, persuasive). Prompt A gives the AI no idea what the debate is about, what side you're on, or what help you need."
+  },
+  {
+    task: "Language Learning",
+    a: "I'm a second-year Spanish student preparing for an oral exam next week. Act as a native Spanish-speaking language tutor. Create a practice dialogue at an intermediate level between two friends planning a weekend trip, using vocabulary related to travel, food, and weather. Write it in Spanish with English translations in parentheses. Keep it natural and conversational.",
+    b: "Write a Spanish dialogue for me.",
+    correct: "a",
+    analysis: "Prompt A provides context (second-year student, oral exam prep), role (native Spanish-speaking tutor), action (create a practice dialogue with specific vocabulary themes), format (Spanish with English translations), and tone (natural, conversational). Prompt B could return anything from a beginner greeting to an advanced business negotiation."
+  }
+];
+
+const templates = [
+  {
+    id: "essay",
+    title: "Essay Writing Helper",
+    desc: "Get help structuring and writing essays",
+    tag: "English",
+    craft: {
+      context: "I'm a [grade] student writing a [type] essay for [class] about [topic].",
+      role: "Act as an experienced writing tutor.",
+      action: "Help me [create an outline / write my introduction / develop my thesis / revise my draft]. Focus on [specific area of need].",
+      format: "[Essay structure with introduction, body paragraphs, and conclusion / Outline with Roman numerals / Paragraph-by-paragraph feedback]. Keep it to approximately [length].",
+      tone: "[Academic / persuasive / analytical / personal] tone appropriate for a high school [class]."
+    },
+    full: "I'm a [grade] student writing a [type] essay for [class] about [topic]. Act as an experienced writing tutor. Help me [create an outline / write my introduction / develop my thesis / revise my draft], focusing on [specific area of need]. Format it as [essay structure / outline / feedback], keeping it to approximately [length]. Use a [academic / persuasive / analytical] tone appropriate for a high school [class]."
+  },
+  {
+    id: "study",
+    title: "Study Guide Creator",
+    desc: "Generate study guides for any subject",
+    tag: "All Subjects",
+    craft: {
+      context: "I have a [subject] exam on [date] covering [topics/chapters].",
+      role: "Act as a study coach who knows how to help students retain information.",
+      action: "Create a comprehensive study guide covering the key concepts, vocabulary, and likely test questions for [topics].",
+      format: "Organize by topic with: key terms and definitions, main concepts explained simply, and 3 practice questions per section.",
+      tone: "Clear and direct. Use simple language that makes complex ideas easy to remember."
+    },
+    full: "I have a [subject] exam on [date] covering [topics/chapters]. Act as a study coach who knows how to help students retain information. Create a comprehensive study guide covering the key concepts, vocabulary, and likely test questions for these topics. Organize by topic with: key terms and definitions, main concepts explained simply, and 3 practice questions per section. Use clear, direct language that makes complex ideas easy to remember."
+  },
+  {
+    id: "math",
+    title: "Math Problem Explainer",
+    desc: "Step-by-step math explanations",
+    tag: "Math",
+    craft: {
+      context: "I'm in [course] and I'm struggling with [topic/concept]. Here's the problem: [problem].",
+      role: "Act as a patient math tutor who breaks things down into small steps.",
+      action: "Solve this problem step by step, explaining the reasoning behind each step. Then give me a similar practice problem to try.",
+      format: "Number each step. After the solution, provide: (1) a summary of the method, (2) common mistakes to avoid, and (3) one practice problem.",
+      tone: "Patient and encouraging. Explain like I'm learning this for the first time."
+    },
+    full: "I'm in [course] and I'm struggling with [topic/concept]. Here's the problem: [problem]. Act as a patient math tutor who breaks things down into small steps. Solve this problem step by step, explaining the reasoning behind each step. Number each step, then provide: (1) a summary of the method, (2) common mistakes to avoid, and (3) one practice problem. Be patient and encouraging, and explain like I'm learning this for the first time."
+  },
+  {
+    id: "lab",
+    title: "Science Lab Report Helper",
+    desc: "Structure and write lab reports",
+    tag: "Science",
+    craft: {
+      context: "I completed a lab experiment in [class] about [experiment topic]. My data/observations: [brief data summary].",
+      role: "Act as a science teacher who grades lab reports.",
+      action: "Help me write a lab report with all required sections. Guide me on how to analyze my data and form conclusions.",
+      format: "Standard lab report format: Title, Purpose, Hypothesis, Materials, Procedure, Data/Observations, Analysis, Conclusion. Include tips for each section.",
+      tone: "Scientific and precise, but accessible for a high school student."
+    },
+    full: "I completed a lab experiment in [class] about [experiment topic]. My data/observations: [brief data summary]. Act as a science teacher who grades lab reports. Help me write a lab report with all required sections and guide me on how to analyze my data and form conclusions. Use standard lab report format: Title, Purpose, Hypothesis, Materials, Procedure, Data/Observations, Analysis, Conclusion. Include tips for each section. Keep the tone scientific and precise, but accessible for a high school student."
+  },
+  {
+    id: "history",
+    title: "History Source Analysis",
+    desc: "Analyze primary and secondary sources",
+    tag: "History",
+    craft: {
+      context: "I'm studying [historical period/event] in [class]. I need to analyze this source: [describe or paste source excerpt].",
+      role: "Act as a history professor who teaches critical source analysis.",
+      action: "Help me analyze this source using the HAPP method (Historical context, Audience, Purpose, Point of view). Explain what this source reveals about the time period.",
+      format: "Break the analysis into four labeled sections (H, A, P, P). End with a 'So What?' paragraph explaining the source's significance.",
+      tone: "Analytical and educational. Help me think like a historian."
+    },
+    full: "I'm studying [historical period/event] in [class]. I need to analyze this source: [describe or paste source excerpt]. Act as a history professor who teaches critical source analysis. Help me analyze this source using the HAPP method (Historical context, Audience, Purpose, Point of view) and explain what this source reveals about the time period. Break the analysis into four labeled sections (H, A, P, P) and end with a 'So What?' paragraph explaining the source's significance. Use an analytical, educational tone that helps me think like a historian."
+  },
+  {
+    id: "creative",
+    title: "Creative Writing Brainstorm",
+    desc: "Generate story ideas and develop narratives",
+    tag: "English",
+    craft: {
+      context: "I need to write a [type: short story/poem/script] for [class]. The theme or prompt is: [theme/prompt]. My interests include [relevant interests].",
+      role: "Act as a creative writing mentor who helps students find their voice.",
+      action: "Brainstorm [3-5] unique [story concepts / poem ideas / scene ideas] that fit this theme. For each, develop the core idea with a unique angle.",
+      format: "For each idea: a one-sentence pitch, a suggested opening line, and 2-3 key elements to develop. Star your top recommendation.",
+      tone: "Imaginative and inspiring. Encourage creative risk-taking."
+    },
+    full: "I need to write a [type] for [class]. The theme or prompt is: [theme/prompt]. My interests include [relevant interests]. Act as a creative writing mentor who helps students find their voice. Brainstorm [3-5] unique concepts that fit this theme, each with a unique angle. For each idea, provide: a one-sentence pitch, a suggested opening line, and 2-3 key elements to develop. Star your top recommendation. Be imaginative and inspiring, and encourage creative risk-taking."
+  },
+  {
+    id: "debate",
+    title: "Debate Argument Builder",
+    desc: "Build and prepare debate arguments",
+    tag: "Speech & Debate",
+    craft: {
+      context: "I'm preparing for a debate on the topic: '[topic].' I'm arguing the [for/against] position.",
+      role: "Act as an experienced debate coach.",
+      action: "Build my case: generate [3] main arguments with supporting evidence, anticipate [2] opposing arguments, and prepare rebuttals for each.",
+      format: "Outline format: I. Main arguments (with sub-points for evidence), II. Anticipated counterarguments, III. Rebuttals. Add a one-sentence 'closing punch' at the end.",
+      tone: "Logical, persuasive, and confident."
+    },
+    full: "I'm preparing for a debate on the topic: '[topic].' I'm arguing the [for/against] position. Act as an experienced debate coach. Build my case: generate 3 main arguments with supporting evidence, anticipate 2 opposing arguments, and prepare rebuttals for each. Use outline format: I. Main arguments (with sub-points for evidence), II. Anticipated counterarguments, III. Rebuttals. Add a one-sentence 'closing punch' at the end. Keep the tone logical, persuasive, and confident."
+  },
+  {
+    id: "vocab",
+    title: "Vocabulary Practice",
+    desc: "Learn and practice vocabulary words",
+    tag: "English / Languages",
+    craft: {
+      context: "I'm studying these vocabulary words for [class/test]: [list of words].",
+      role: "Act as a vocabulary tutor who uses creative memory techniques.",
+      action: "For each word, provide the definition, a memorable example sentence using a relatable scenario, and a mnemonic or memory trick to remember it.",
+      format: "Table or structured list: Word | Definition | Example Sentence | Memory Trick. End with a 5-question mini quiz.",
+      tone: "Fun and engaging. Use examples a high schooler would relate to."
+    },
+    full: "I'm studying these vocabulary words for [class/test]: [list of words]. Act as a vocabulary tutor who uses creative memory techniques. For each word, provide the definition, a memorable example sentence using a relatable scenario, and a mnemonic or memory trick to remember it. Format as a structured list: Word | Definition | Example Sentence | Memory Trick. End with a 5-question mini quiz. Keep it fun and engaging, using examples a high schooler would relate to."
+  },
+  {
+    id: "reading",
+    title: "Reading Comprehension Helper",
+    desc: "Understand and analyze texts",
+    tag: "English",
+    craft: {
+      context: "I'm reading [title] by [author] for [class]. I'm currently on [chapter/section] and I need help understanding [specific aspect].",
+      role: "Act as a literature teacher who helps students develop deep reading skills.",
+      action: "Help me understand [theme/character motivation/symbolism/plot significance]. Connect it to the larger work and explain why it matters.",
+      format: "Start with a clear, simple explanation. Then provide: (1) key quotes to pay attention to, (2) questions to think about, and (3) connections to themes in the full work.",
+      tone: "Thoughtful and conversational. Help me think critically without just telling me the answers."
+    },
+    full: "I'm reading [title] by [author] for [class]. I'm on [chapter/section] and I need help understanding [specific aspect]. Act as a literature teacher who helps students develop deep reading skills. Help me understand the topic and connect it to the larger work. Start with a clear explanation, then provide: (1) key quotes to pay attention to, (2) questions to think about, and (3) connections to themes in the full work. Be thoughtful and conversational — help me think critically without just telling me the answers."
+  },
+  {
+    id: "project",
+    title: "Project Idea Generator",
+    desc: "Brainstorm project ideas for any class",
+    tag: "All Subjects",
+    craft: {
+      context: "I need to choose a project for [class]. Requirements: [list requirements]. My interests: [interests]. Timeline: [how long].",
+      role: "Act as a creative project advisor who knows what makes high school projects stand out.",
+      action: "Generate [5] project ideas that meet the requirements and align with my interests. For each, explain the concept, what makes it unique, and how to get started.",
+      format: "Numbered list. For each idea: Title, 2-sentence description, why it's interesting, and first 3 steps to begin.",
+      tone: "Enthusiastic but practical. Make each idea feel doable and exciting."
+    },
+    full: "I need to choose a project for [class]. Requirements: [list requirements]. My interests: [interests]. Timeline: [how long]. Act as a creative project advisor who knows what makes high school projects stand out. Generate 5 project ideas that meet the requirements and align with my interests. For each, explain the concept and what makes it unique. Format as a numbered list with: Title, 2-sentence description, why it's interesting, and first 3 steps to begin. Be enthusiastic but practical — make each idea feel doable and exciting."
+  }
+];
+
+const challenges = [
+  {
+    title: "Challenge 1: The Study Helper",
+    scenario: "You have a biology test tomorrow on genetics (DNA replication, Punnett squares, and dominant/recessive traits). You need help studying efficiently. Write a prompt that will get an AI to help you prepare.",
+    id: "ch1"
+  },
+  {
+    title: "Challenge 2: The Creative Project",
+    scenario: "Your English teacher wants you to create a modern retelling of a Greek myth as a short story. You need to pick a myth, plan the modern setting, and get ideas for how to update the characters. Write a prompt to get started.",
+    id: "ch2"
+  },
+  {
+    title: "Challenge 3: The Presentation Coach",
+    scenario: "You have to give a 5-minute presentation on the effects of social media on teen mental health for your health class. You're nervous about public speaking. Write a prompt that helps you prepare both the content and your delivery.",
+    id: "ch3"
+  },
+  {
+    title: "Challenge 4: The Code Debugger",
+    scenario: "You wrote a Python program for your CS class that's supposed to calculate the average of a list of grades, but it keeps giving you the wrong answer. Write a prompt that would help you figure out what's wrong (make up example code if you want).",
+    id: "ch4"
+  },
+  {
+    title: "Challenge 5: The History Analyst",
+    scenario: "For your AP US History class, you need to write a DBQ (Document-Based Question) essay about the causes of the Civil War. You have 5 documents to analyze. Write a prompt that helps you build your argument and organize your essay.",
+    id: "ch5"
+  }
+];
+
+// ==================== STATE ====================
+
+let state = {
+  builderUsed: false,
+  compareAnswers: {},
+  compareScore: 0,
+  challengeScores: {},
+  templateViewed: 0,
+  completedSections: {}
+};
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('prompt-sandbox-state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      state = { ...state, ...parsed };
+    }
+    // Load builder fields
+    ['context','role','action','format','tone'].forEach(f => {
+      const val = localStorage.getItem('builder-' + f);
+      if (val) document.getElementById('b-' + f).value = val;
+    });
+    // Load challenge textareas
+    challenges.forEach(ch => {
+      const val = localStorage.getItem('challenge-' + ch.id);
+      if (val) {
+        const el = document.getElementById('textarea-' + ch.id);
+        if (el) el.value = val;
+      }
+    });
+  } catch(e) {}
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('prompt-sandbox-state', JSON.stringify(state));
+  } catch(e) {}
+}
+
+// ==================== TABS ====================
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+  document.getElementById('tab-' + tabId).classList.add('active');
+  // Scroll to top
+  window.scrollTo(0, 0);
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ==================== BUILDER ====================
+
+const tips = {
+  context: [
+    { check: v => v.length < 15, msg: "Add more detail. What class is this for? What grade level?" },
+    { check: v => v.length >= 15 && !/(class|course|grade|student|school|exam|test|project|assignment)/i.test(v), msg: "Try mentioning what class or assignment this is for." },
+    { check: v => v.length >= 15 && /(class|course|grade|student|school)/i.test(v) && v.length < 60, msg: "Good start! Consider adding what you already know or what specific area you need help with." },
+    { check: v => v.length >= 60, msg: "" }
+  ],
+  role: [
+    { check: v => v.length < 10, msg: "Assign a specific role. 'Act as a...' or 'You are a...'" },
+    { check: v => v.length >= 10 && !/(act as|you are|pretend|imagine|role|expert|tutor|teacher|coach|professor|mentor)/i.test(v), msg: "Use phrases like 'Act as a...' or 'You are a...' to assign a clear role." },
+    { check: v => v.length >= 10 && /(act as|you are|expert|tutor|teacher|coach)/i.test(v) && v.length < 40, msg: "Nice! Try adding a specific quality (e.g., 'patient,' 'experienced,' 'who specializes in...')." },
+    { check: v => v.length >= 40, msg: "" }
+  ],
+  action: [
+    { check: v => v.length < 15, msg: "Be specific about what you want the AI to do." },
+    { check: v => v.length >= 15 && !/(explain|create|write|generate|list|compare|analyze|summarize|help|build|solve|describe)/i.test(v), msg: "Use a clear action verb: explain, create, compare, analyze, summarize, etc." },
+    { check: v => v.length >= 15 && /(explain|create|write|generate)/i.test(v) && v.length < 50, msg: "Good! Make it more specific. Instead of just 'explain,' say exactly what needs explaining." },
+    { check: v => v.length >= 50, msg: "" }
+  ],
+  format: [
+    { check: v => v.length < 10, msg: "Specify the output format: bullet points, numbered list, essay, table, etc." },
+    { check: v => v.length >= 10 && !/(list|bullet|number|paragraph|essay|table|step|section|format|outline|heading)/i.test(v), msg: "Mention a structure: bullet points, numbered list, paragraphs, table, outline, etc." },
+    { check: v => v.length >= 10 && /(list|bullet|number|paragraph|essay)/i.test(v) && !/(word|sentence|length|short|long|brief|concise|\d)/i.test(v), msg: "Great! Try adding a length requirement (e.g., word count, number of items, or sentence limit)." },
+    { check: v => v.length >= 10 && /(word|sentence|length|\d)/i.test(v), msg: "" }
+  ],
+  tone: [
+    { check: v => v.length < 8, msg: "Set the tone: formal, casual, friendly, academic, encouraging, humorous..." },
+    { check: v => v.length >= 8 && v.length < 25, msg: "Good! Consider adding who the audience is or another tone descriptor for clarity." },
+    { check: v => v.length >= 25, msg: "" }
+  ]
+};
+
+function updateBuilder() {
+  const fields = {};
+  ['context','role','action','format','tone'].forEach(f => {
+    fields[f] = document.getElementById('b-' + f).value.trim();
+    localStorage.setItem('builder-' + f, fields[f]);
+  });
+
+  // Update tips
+  Object.keys(tips).forEach(field => {
+    const val = fields[field];
+    const tipEl = document.getElementById('tip-' + field);
+    if (!val) { tipEl.classList.remove('visible'); return; }
+    let msg = '';
+    for (const tip of tips[field]) {
+      if (tip.check(val)) { msg = tip.msg; break; }
+    }
+    if (msg) {
+      tipEl.textContent = msg;
+      tipEl.classList.add('visible');
+    } else {
+      tipEl.classList.remove('visible');
+    }
+  });
+
+  // Update preview
+  const preview = document.getElementById('promptPreview');
+  const parts = [];
+  if (fields.context) parts.push(`<span class="ctx">${esc(fields.context)}</span>`);
+  if (fields.role) parts.push(`<span class="rl">${esc(fields.role)}</span>`);
+  if (fields.action) parts.push(`<span class="act">${esc(fields.action)}</span>`);
+  if (fields.format) parts.push(`<span class="fmt">${esc(fields.format)}</span>`);
+  if (fields.tone) parts.push(`<span class="tn">${esc(fields.tone)}</span>`);
+
+  if (parts.length === 0) {
+    preview.innerHTML = '<span class="preview-placeholder">Start typing above to see your combined prompt...</span>';
+  } else {
+    preview.innerHTML = parts.join(' ');
+  }
+
+  // Update score
+  updateScore(fields);
+
+  // Track builder usage
+  if (Object.values(fields).some(v => v.length > 0)) {
+    state.builderUsed = true;
+    state.completedSections.builder = true;
+    saveState();
+    updateProgress();
+  }
+}
+
+function updateScore(fields) {
+  let score = 0;
+  const checks = {
+    context: fields.context.length >= 20,
+    role: fields.role.length >= 15,
+    action: fields.action.length >= 20,
+    format: fields.format.length >= 15,
+    tone: fields.tone.length >= 8
+  };
+
+  // Basic presence scoring (0-10 each)
+  Object.keys(checks).forEach(k => {
+    const el = document.getElementById('sc-' + k);
+    if (checks[k]) {
+      score += 15;
+      el.innerHTML = '&#9679;';
+      el.className = 'score-icon filled';
+    } else if (fields[k].length > 0) {
+      score += 7;
+      el.innerHTML = '&#9681;';
+      el.className = 'score-icon filled';
+    } else {
+      el.innerHTML = '&#9675;';
+      el.className = 'score-icon empty';
+    }
+  });
+
+  // Detail bonus
+  const totalLen = Object.values(fields).join('').length;
+  const detailEl = document.getElementById('sc-detail');
+  if (totalLen > 200) {
+    score += 25;
+    detailEl.innerHTML = '&#9679;';
+    detailEl.className = 'score-icon filled';
+  } else if (totalLen > 100) {
+    score += 12;
+    detailEl.innerHTML = '&#9681;';
+    detailEl.className = 'score-icon filled';
+  } else {
+    detailEl.innerHTML = '&#9675;';
+    detailEl.className = 'score-icon empty';
+  }
+
+  score = Math.min(100, score);
+
+  document.getElementById('scoreNumber').textContent = score;
+
+  const ring = document.getElementById('scoreRing');
+  const circumference = 2 * Math.PI * 30;
+  const offset = circumference - (score / 100) * circumference;
+  ring.style.strokeDashoffset = offset;
+
+  if (score >= 80) ring.style.stroke = 'var(--success)';
+  else if (score >= 50) ring.style.stroke = 'var(--warning)';
+  else if (score > 0) ring.style.stroke = 'var(--danger)';
+  else ring.style.stroke = 'var(--accent)';
+}
+
+['context','role','action','format','tone'].forEach(f => {
+  document.getElementById('b-' + f).addEventListener('input', updateBuilder);
+});
+
+function clearBuilder() {
+  ['context','role','action','format','tone'].forEach(f => {
+    document.getElementById('b-' + f).value = '';
+    localStorage.removeItem('builder-' + f);
+  });
+  updateBuilder();
+}
+
+function copyPreview() {
+  const fields = ['context','role','action','format','tone'].map(f =>
+    document.getElementById('b-' + f).value.trim()
+  ).filter(v => v);
+  if (!fields.length) return;
+  copyText(fields.join(' '));
+}
+
+// ==================== COMPARISONS ====================
+
+function renderComparisons() {
+  const container = document.getElementById('compareContainer');
+  container.innerHTML = '';
+
+  comparisons.forEach((comp, i) => {
+    const answered = state.compareAnswers[i] !== undefined;
+    const userPick = state.compareAnswers[i];
+    const isCorrect = userPick === comp.correct;
+
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.id = 'compare-' + i;
+    if (answered && i < comparisons.length - 1 && state.compareAnswers[i+1] === undefined && !answered) {
+      // show
+    }
+
+    let optAClass = '';
+    let optBClass = '';
+    if (answered) {
+      if (userPick === 'a') optAClass = isCorrect ? 'selected-correct' : 'selected-wrong';
+      if (userPick === 'b') optBClass = isCorrect ? 'selected-correct' : 'selected-wrong';
+      if (comp.correct === 'a' && userPick !== 'a') optAClass = 'reveal-correct';
+      if (comp.correct === 'b' && userPick !== 'b') optBClass = 'reveal-correct';
+    }
+
+    div.innerHTML = `
+      <p class="section-title">Task: ${esc(comp.task)}</p>
+      <div class="comparison-pair">
+        <div class="prompt-option ${optAClass}" ${!answered ? `onclick="pickComparison(${i},'a')"` : ''} style="${answered ? 'cursor:default' : ''}">
+          <div class="prompt-option-label">Prompt A</div>
+          <p>${esc(comp.a)}</p>
+        </div>
+        <div class="prompt-option ${optBClass}" ${!answered ? `onclick="pickComparison(${i},'b')"` : ''} style="${answered ? 'cursor:default' : ''}">
+          <div class="prompt-option-label">Prompt B</div>
+          <p>${esc(comp.b)}</p>
+        </div>
+      </div>
+      <div class="comparison-result ${answered ? 'visible' : ''} ${answered ? (isCorrect ? 'correct' : 'wrong') : ''}">
+        ${answered ? (isCorrect ? '<strong>Correct!</strong> ' : '<strong>Not quite.</strong> ') : ''}${answered ? esc(comp.analysis) : ''}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  updateCompareUI();
+}
+
+function pickComparison(index, choice) {
+  if (state.compareAnswers[index] !== undefined) return;
+  state.compareAnswers[index] = choice;
+  if (choice === comparisons[index].correct) {
+    state.compareScore++;
+  }
+  saveState();
+  renderComparisons();
+
+  // Check completion
+  const answeredCount = Object.keys(state.compareAnswers).length;
+  if (answeredCount === comparisons.length) {
+    state.completedSections.compare = true;
+    saveState();
+    updateProgress();
+    document.getElementById('compareComplete').style.display = 'block';
+    document.getElementById('compareFinalScore').textContent = state.compareScore;
+    const fb = document.getElementById('compareFeedback');
+    if (state.compareScore === 8) fb.textContent = 'Perfect score! You really know what makes a great prompt.';
+    else if (state.compareScore >= 6) fb.textContent = 'Great job! You have a strong understanding of prompt engineering.';
+    else if (state.compareScore >= 4) fb.textContent = 'Good effort! Review the analyses to sharpen your skills.';
+    else fb.textContent = 'Keep practicing! Review the CRAFT framework and try again.';
+  }
+
+  // Scroll to result
+  setTimeout(() => {
+    document.getElementById('compare-' + index).scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+function updateCompareUI() {
+  const answered = Object.keys(state.compareAnswers).length;
+  document.getElementById('compareProgress').textContent = `Question ${Math.min(answered + 1, comparisons.length)} of ${comparisons.length}`;
+  document.getElementById('compareScore').textContent = state.compareScore;
+  document.getElementById('compareTotal').textContent = comparisons.length;
+}
+
+function resetComparisons() {
+  state.compareAnswers = {};
+  state.compareScore = 0;
+  state.completedSections.compare = false;
+  saveState();
+  updateProgress();
+  document.getElementById('compareComplete').style.display = 'none';
+  renderComparisons();
+  window.scrollTo(0, 0);
+}
+
+// ==================== TEMPLATES ====================
+
+function renderTemplates() {
+  const grid = document.getElementById('templateGrid');
+  grid.innerHTML = '';
+  templates.forEach((tpl, i) => {
+    const card = document.createElement('div');
+    card.className = 'template-card';
+    card.onclick = () => openTemplate(i);
+    card.innerHTML = `
+      <h4>${esc(tpl.title)}</h4>
+      <p>${esc(tpl.desc)}</p>
+      <span class="template-tag">${esc(tpl.tag)}</span>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function openTemplate(index) {
+  const tpl = templates[index];
+  const modal = document.getElementById('templateModal');
+  const inner = document.getElementById('modalInner');
+
+  state.templateViewed++;
+  if (state.templateViewed >= 3) {
+    state.completedSections.templates = true;
+    saveState();
+    updateProgress();
+  }
+
+  const craftColors = { context: 'var(--context)', role: 'var(--role)', action: 'var(--action)', format: 'var(--format)', tone: 'var(--tone)' };
+  const craftLabels = { context: 'Context', role: 'Role', action: 'Action', format: 'Format', tone: 'Tone' };
+
+  let craftHTML = '';
+  Object.keys(tpl.craft).forEach(k => {
+    craftHTML += `<div class="modal-craft-item"><span class="modal-craft-label" style="color:${craftColors[k]}">${craftLabels[k]}:</span><span>${esc(tpl.craft[k])}</span></div>`;
+  });
+
+  inner.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2 style="margin-bottom:4px;">${esc(tpl.title)}</h2>
+    <span class="template-tag" style="margin-bottom:16px; display:inline-block;">${esc(tpl.tag)}</span>
+
+    <h3 style="margin-top:16px; margin-bottom:8px;">CRAFT Breakdown</h3>
+    ${craftHTML}
+
+    <h3 style="margin-top:16px; margin-bottom:8px;">Combined Prompt</h3>
+    <div class="modal-prompt-output">${esc(tpl.full)}</div>
+
+    <h3 style="margin-top:16px; margin-bottom:4px;">Customize It</h3>
+    <p style="color:var(--text-muted); font-size:0.8rem;">Edit the prompt below, then copy it to use with any AI tool.</p>
+    <div class="modal-customize">
+      <textarea id="customizeArea">${esc(tpl.full)}</textarea>
+    </div>
+
+    <div class="btn-group" style="margin-top:12px;">
+      <button class="btn btn-primary" onclick="copyCustomized()">Copy Prompt</button>
+      <button class="btn btn-secondary" onclick="loadIntoBuilder(${index})">Open in Builder</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+    </div>
+  `;
+
+  modal.classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('templateModal').classList.remove('active');
+}
+
+function copyCustomized() {
+  const text = document.getElementById('customizeArea').value;
+  copyText(text);
+}
+
+function loadIntoBuilder(index) {
+  const tpl = templates[index];
+  document.getElementById('b-context').value = tpl.craft.context;
+  document.getElementById('b-role').value = tpl.craft.role;
+  document.getElementById('b-action').value = tpl.craft.action;
+  document.getElementById('b-format').value = tpl.craft.format;
+  document.getElementById('b-tone').value = tpl.craft.tone;
+  ['context','role','action','format','tone'].forEach(f => {
+    localStorage.setItem('builder-' + f, tpl.craft[f]);
+  });
+  closeModal();
+  switchTab('builder');
+  updateBuilder();
+}
+
+document.getElementById('templateModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('templateModal')) closeModal();
+});
+
+// ==================== CHALLENGES ====================
+
+function renderChallenges() {
+  const container = document.getElementById('challengeContainer');
+  container.innerHTML = '';
+
+  challenges.forEach((ch, i) => {
+    const savedText = localStorage.getItem('challenge-' + ch.id) || '';
+    const checkedItems = state.challengeScores[ch.id] || {};
+
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="challenge-scenario">
+        <h4>${esc(ch.title)}</h4>
+        <p>${esc(ch.scenario)}</p>
+        <textarea class="challenge-textarea" id="textarea-${ch.id}" placeholder="Write your prompt here..." oninput="saveChallengeText('${ch.id}')">${esc(savedText)}</textarea>
+      </div>
+
+      <div class="checklist" id="checklist-${ch.id}">
+        <p style="font-size:0.85rem; font-weight:600; margin-bottom:8px;">Self-Evaluation (check what your prompt includes):</p>
+        <label><input type="checkbox" ${checkedItems.c ? 'checked' : ''} onchange="updateChallengeCheck('${ch.id}','c',this.checked)"> <span style="color:var(--context);">Context</span> — Did you set the scene? (class, grade, situation)</label>
+        <label><input type="checkbox" ${checkedItems.r ? 'checked' : ''} onchange="updateChallengeCheck('${ch.id}','r',this.checked)"> <span style="color:var(--role);">Role</span> — Did you assign the AI a role?</label>
+        <label><input type="checkbox" ${checkedItems.a ? 'checked' : ''} onchange="updateChallengeCheck('${ch.id}','a',this.checked)"> <span style="color:var(--action);">Action</span> — Did you specify exactly what the AI should do?</label>
+        <label><input type="checkbox" ${checkedItems.f ? 'checked' : ''} onchange="updateChallengeCheck('${ch.id}','f',this.checked)"> <span style="color:var(--format);">Format</span> — Did you define the output format?</label>
+        <label><input type="checkbox" ${checkedItems.t ? 'checked' : ''} onchange="updateChallengeCheck('${ch.id}','t',this.checked)"> <span style="color:var(--tone);">Tone</span> — Did you set the tone/style?</label>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-sm btn-secondary" onclick="copyChallengePrompt('${ch.id}')">Copy Prompt</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  updateChallengeScore();
+}
+
+function saveChallengeText(id) {
+  const val = document.getElementById('textarea-' + id).value;
+  localStorage.setItem('challenge-' + id, val);
+}
+
+function updateChallengeCheck(id, letter, checked) {
+  if (!state.challengeScores[id]) state.challengeScores[id] = {};
+  state.challengeScores[id][letter] = checked;
+  saveState();
+  updateChallengeScore();
+}
+
+function updateChallengeScore() {
+  let total = 0;
+  Object.values(state.challengeScores).forEach(checks => {
+    total += Object.values(checks).filter(v => v).length;
+  });
+  document.getElementById('challengeScore').textContent = total;
+  document.getElementById('challengeMax').textContent = challenges.length * 5;
+
+  if (total >= challenges.length * 3) {
+    state.completedSections.challenge = true;
+    saveState();
+    updateProgress();
+  }
+}
+
+function copyChallengePrompt(id) {
+  const text = document.getElementById('textarea-' + id).value;
+  if (text.trim()) copyText(text);
+}
+
+// ==================== PROGRESS ====================
+
+function updateProgress() {
+  const sections = ['craft', 'builder', 'compare', 'templates', 'challenge'];
+  // CRAFT is always "viewed"
+  state.completedSections.craft = true;
+  const completed = sections.filter(s => state.completedSections[s]).length;
+  const pct = Math.round((completed / sections.length) * 100);
+  document.getElementById('progressPercent').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+  saveState();
+}
+
+// ==================== UTILITIES ====================
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = 0;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('Copied to clipboard!'); }
+    catch(e) { showToast('Copy failed'); }
+    document.body.removeChild(ta);
+  }
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ==================== INIT ====================
+
+function init() {
+  loadState();
+  renderComparisons();
+  renderTemplates();
+  renderChallenges();
+  updateBuilder();
+  updateProgress();
+}
+
+init();
+</script>
+</body>
+</html>

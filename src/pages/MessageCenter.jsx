@@ -2,7 +2,7 @@
 // Teacher-only Message Center — full-page view of all ClassChat conversations
 // organized by section/period and sub-organized by participant.
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 
@@ -29,6 +29,16 @@ export default function MessageCenter() {
   const [announcements, setAnnouncements] = useState([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(false);
   const [deletingAnn, setDeletingAnn] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newAnn, setNewAnn] = useState({ title: "", body: "", icon: "📢", pinned: false });
+  const [savingAnn, setSavingAnn] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const ANNOUNCEMENT_EMOJIS = [
+    "📢","📣","🔔","🎉","⚠️","✅","❌","📅","📌","🏆",
+    "🎯","💡","📝","🔗","🧪","🎓","📚","🖥️","🧠","⭐",
+    "🚀","🔥","💬","🕐","📊","🎒","✏️","🏫","👀","🙌",
+  ];
 
   // Loading state
   const [loadingCourses, setLoadingCourses] = useState(true);
@@ -84,22 +94,22 @@ export default function MessageCenter() {
         setEnrollments(enrollList);
         setSectionMap(uidToSection);
 
-        // Fetch user profiles for enrolled students
-        const users = {};
+        // Fetch user profiles for enrolled students (parallel)
         const uniqueUids = [...new Set(enrollList.map((e) => e.uid))];
-        for (const uid of uniqueUids) {
-          try {
-            const userDoc = await getDoc(doc(db, "users", uid));
-            if (userDoc.exists()) {
-              const data = userDoc.data();
-              users[uid] = {
-                displayName: data.displayName || data.email || uid,
-                email: data.email || "",
-                photoURL: data.photoURL || "",
-              };
-            }
-          } catch (e) { /* user doc may not exist */ }
-        }
+        const userDocs = await Promise.all(
+          uniqueUids.map((uid) => getDoc(doc(db, "users", uid)).catch(() => null))
+        );
+        const users = {};
+        userDocs.forEach((userDoc, i) => {
+          if (userDoc?.exists()) {
+            const data = userDoc.data();
+            users[uniqueUids[i]] = {
+              displayName: data.displayName || data.email || uniqueUids[i],
+              email: data.email || "",
+              photoURL: data.photoURL || "",
+            };
+          }
+        });
         setStudentMap(users);
 
         // Fetch ALL chats for this course (teacher has read access)
@@ -150,6 +160,37 @@ export default function MessageCenter() {
       console.error("Failed to delete announcement:", err);
     }
     setDeletingAnn(null);
+  };
+
+  const handleCreateAnnouncement = async () => {
+    if (!selectedCourse || !newAnn.title.trim()) return;
+    setSavingAnn(true);
+    try {
+      const ref = await addDoc(collection(db, "courses", selectedCourse, "announcements"), {
+        title: newAnn.title.trim(),
+        body: newAnn.body.trim(),
+        icon: newAnn.icon || "📢",
+        pinned: newAnn.pinned,
+        authorName: user?.displayName || "Mr. McCarthy",
+        authorUid: user?.uid,
+        createdAt: serverTimestamp(),
+      });
+      const created = {
+        id: ref.id,
+        title: newAnn.title.trim(),
+        body: newAnn.body.trim(),
+        icon: newAnn.icon || "📢",
+        pinned: newAnn.pinned,
+        authorName: user?.displayName || "Mr. McCarthy",
+        createdAt: new Date(),
+      };
+      setAnnouncements((prev) => newAnn.pinned ? [created, ...prev] : [created, ...prev]);
+      setNewAnn({ title: "", body: "", icon: "📢", pinned: false });
+      setShowCreateModal(false);
+    } catch (err) {
+      console.error("Failed to create announcement:", err);
+    }
+    setSavingAnn(false);
   };
 
   // ─── Expand/collapse chat and lazy-load messages ───
@@ -312,7 +353,27 @@ export default function MessageCenter() {
         </p>
 
         {isLoading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><div className="spinner" /></div>
+          <div>
+            {/* Course tab skeletons */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton" style={{ width: 120, height: 36, borderRadius: 8 }} />
+              ))}
+            </div>
+            {/* Stats card skeletons */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 28 }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton skeleton-card" style={{ height: 88 }} />
+              ))}
+            </div>
+            {/* Section + conversation row skeletons */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="skeleton" style={{ height: 48, borderRadius: "10px 10px 0 0" }} />
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="skeleton skeleton-line" style={{ height: 58, borderRadius: 0, marginBottom: 0 }} />
+              ))}
+            </div>
+          </div>
         ) : (
           <>
             {/* Course tabs + view tabs + search/sort */}
@@ -481,14 +542,29 @@ export default function MessageCenter() {
 
             {activeTab === "announcements" && (
               <>
-                {/* Announcements count */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--text)" }}>
-                    {announcements.length} {announcements.length === 1 ? "announcement" : "announcements"}
-                  </span>
-                  <span style={{ fontSize: 12, color: "var(--text3)" }}>
-                    for {courses.find((c) => c.id === selectedCourse)?.title || "this course"}
-                  </span>
+                {/* Announcements count + create button */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--text)" }}>
+                      {announcements.length} {announcements.length === 1 ? "announcement" : "announcements"}
+                    </span>
+                    <span style={{ fontSize: 12, color: "var(--text3)" }}>
+                      for {courses.find((c) => c.id === selectedCourse)?.title || "this course"}
+                    </span>
+                  </div>
+                  {selectedCourse && (
+                    <button
+                      onClick={() => setShowCreateModal(true)}
+                      style={{
+                        padding: "8px 16px", borderRadius: 8, border: "none",
+                        background: "var(--amber)", color: "#1a1a1a",
+                        fontSize: 13, fontWeight: 700, cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 6,
+                      }}
+                    >
+                      + New Announcement
+                    </button>
+                  )}
                 </div>
 
                 {loadingAnnouncements ? (
@@ -573,6 +649,139 @@ export default function MessageCenter() {
             )}
           </>
         )}
+
+      {/* Create Announcement Modal */}
+      {showCreateModal && (
+        <div
+          onClick={() => setShowCreateModal(false)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1000, padding: 20,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--surface)", border: "1px solid var(--border)",
+              borderRadius: 14, padding: 28, width: "100%", maxWidth: 520,
+              display: "flex", flexDirection: "column", gap: 16,
+              boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--text)" }}>
+              New Announcement
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text3)", marginTop: -10 }}>
+              {courses.find((c) => c.id === selectedCourse)?.title || "This course"}
+            </div>
+
+            {/* Icon + Title row */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker((p) => !p)}
+                  style={{
+                    width: 52, height: "100%", minHeight: 42, borderRadius: 8, textAlign: "center",
+                    border: "1px solid var(--border)", background: "var(--bg)",
+                    fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                  title="Pick emoji"
+                >
+                  {newAnn.icon}
+                </button>
+                {showEmojiPicker && (
+                  <div style={{
+                    position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 10,
+                    background: "var(--surface)", border: "1px solid var(--border)",
+                    borderRadius: 10, padding: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                    display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4, width: 220,
+                  }}>
+                    {ANNOUNCEMENT_EMOJIS.map((e) => (
+                      <button
+                        key={e}
+                        type="button"
+                        onClick={() => { setNewAnn((p) => ({ ...p, icon: e })); setShowEmojiPicker(false); }}
+                        style={{
+                          background: newAnn.icon === e ? "var(--surface2)" : "transparent",
+                          border: "none", borderRadius: 6, fontSize: 20, cursor: "pointer",
+                          padding: 4, lineHeight: 1,
+                        }}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <input
+                type="text"
+                placeholder="Announcement title..."
+                value={newAnn.title}
+                onChange={(e) => setNewAnn((p) => ({ ...p, title: e.target.value }))}
+                style={{
+                  flex: 1, padding: "10px 14px", borderRadius: 8,
+                  border: "1px solid var(--border)", background: "var(--bg)",
+                  color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 14,
+                }}
+                autoFocus
+                onFocus={() => setShowEmojiPicker(false)}
+              />
+            </div>
+
+            {/* Body */}
+            <textarea
+              placeholder="Message body (optional)..."
+              value={newAnn.body}
+              onChange={(e) => setNewAnn((p) => ({ ...p, body: e.target.value }))}
+              rows={4}
+              style={{
+                width: "100%", padding: "10px 14px", borderRadius: 8,
+                border: "1px solid var(--border)", background: "var(--bg)",
+                color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 14,
+                resize: "vertical", boxSizing: "border-box",
+              }}
+            />
+
+            {/* Pinned toggle */}
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13, color: "var(--text2)" }}>
+              <input
+                type="checkbox"
+                checked={newAnn.pinned}
+                onChange={(e) => setNewAnn((p) => ({ ...p, pinned: e.target.checked }))}
+              />
+              Pin this announcement
+            </label>
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                style={{
+                  padding: "8px 18px", borderRadius: 8, border: "1px solid var(--border)",
+                  background: "transparent", color: "var(--text2)", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateAnnouncement}
+                disabled={savingAnn || !newAnn.title.trim()}
+                style={{
+                  padding: "8px 18px", borderRadius: 8, border: "none",
+                  background: newAnn.title.trim() ? "var(--amber)" : "var(--surface2)",
+                  color: newAnn.title.trim() ? "#1a1a1a" : "var(--text3)",
+                  fontSize: 13, fontWeight: 700, cursor: newAnn.title.trim() ? "pointer" : "not-allowed",
+                  opacity: savingAnn ? 0.6 : 1,
+                }}
+              >
+                {savingAnn ? "Posting..." : "Post Announcement"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

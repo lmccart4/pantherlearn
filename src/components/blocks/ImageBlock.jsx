@@ -32,15 +32,23 @@ export default function ImageBlock({ block }) {
 
   if (!block.url) return null;
 
+  // Use explicit dimensions when provided to prevent CLS; fall back to aspect-ratio CSS
+  const hasExplicitDims = block.width && block.height;
+  const aspectRatio = hasExplicitDims ? `${block.width} / ${block.height}` : "16 / 9";
+
   return (
     <div style={{ margin: "24px 0", textAlign: "center" }}>
       <img
         src={imgUrl}
         alt={block.alt || translatedCaption || "Lesson image"}
+        loading="lazy"
+        width={block.width || undefined}
+        height={block.height || undefined}
         style={{
           maxWidth: "100%",
-          width: "auto",
+          width: hasExplicitDims ? block.width : "auto",
           maxHeight: 500,
+          aspectRatio: hasExplicitDims ? undefined : aspectRatio,
           borderRadius: "var(--radius, 12px)",
           border: "1px solid var(--border, #2a2f3d)",
         }}

@@ -223,7 +223,7 @@ export default function GradingDashboard() {
 
       try {
         // Fetch enrollments for THIS course only (not all enrollments)
-        const enrollSnap = await getDocs(
+        const enrollSnap = await getDocsFromServer(
           query(collection(db, "enrollments"), where("courseId", "==", selectedCourse))
         );
         const courseEnrollments = [];
@@ -243,24 +243,26 @@ export default function GradingDashboard() {
           });
         });
 
-        // Fetch only enrolled users (not ALL users in the system)
+        // Fetch only enrolled users (not ALL users in the system) — parallel batch
         const users = {};
         const uidBatches = [...enrolledUids];
-        for (let i = 0; i < uidBatches.length; i++) {
-          try {
-            const userDoc = await getDoc(doc(db, "users", uidBatches[i]));
-            if (userDoc.exists()) {
-              const data = userDoc.data();
-              users[userDoc.id] = {
-                uid: userDoc.id,
-                displayName: data.displayName || data.email || userDoc.id,
-                email: data.email || "",
-                photoURL: data.photoURL || "",
-                role: data.role || "student",
-              };
-            }
-          } catch (e) { /* user doc may not exist */ }
-        }
+        const userDocResults = await Promise.allSettled(
+          uidBatches.map((uid) => getDoc(doc(db, "users", uid)))
+        );
+        userDocResults.forEach((result, i) => {
+          if (result.status !== "fulfilled") return;
+          const userDoc = result.value;
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            users[userDoc.id] = {
+              uid: userDoc.id,
+              displayName: data.displayName || data.email || userDoc.id,
+              email: data.email || "",
+              photoURL: data.photoURL || "",
+              role: data.role || "student",
+            };
+          }
+        });
         setStudentMap(users);
 
         // Enrich enrollment data with user profile info

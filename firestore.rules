@@ -263,6 +263,11 @@ service cloud.firestore {
     match /agentContext/{agentName} {
       allow read: if isTeacher();
       allow write: if isTeacher();
+      // history subcollection: run log entries written by update-agent-status.cjs, read by Memory tab
+      match /history/{runId} {
+        allow read: if isTeacher();
+        allow write: if isTeacher();
+      }
     }
   }
 }

@@ -47,6 +47,7 @@ export default function BotBuilder() {
   const [reflectionPhase, setReflectionPhase] = useState(null);
   const [pendingPhase, setPendingPhase] = useState(null);
   const [reflectedPhases, setReflectedPhases] = useState(new Set());
+  const [publishError, setPublishError] = useState(null);
 
   // Load student's bot projects for this course
   useEffect(() => {
@@ -187,9 +188,10 @@ export default function BotBuilder() {
       } else {
         // Validate: must have a bot name
         if (!project.botName?.trim()) {
-          alert("Please name your chatbot before publishing!");
+          setPublishError("Please name your chatbot before publishing!");
           return;
         }
+        setPublishError(null);
         await publishBot(db, project.id);
         setProject(prev => ({ ...prev, published: true, publishedAt: new Date() }));
         // Award XP on first publish only (check if was previously unpublished)
@@ -376,6 +378,9 @@ export default function BotBuilder() {
             <div className={`bb-save-badge ${saving ? "saving" : ""}`}>
               {saving ? "Saving..." : "All changes saved"}
             </div>
+            {publishError && (
+              <span style={{ fontSize: 13, color: "#f87171", marginRight: 8 }}>{publishError}</span>
+            )}
             <button
               className={`bb-publish-btn ${project.published ? "published" : ""}`}
               onClick={handleTogglePublish}

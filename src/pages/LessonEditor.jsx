@@ -1,6 +1,6 @@
 // src/pages/LessonEditor.jsx
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, getDocsFromServer, doc, setDoc, deleteDoc, query, orderBy } from "firebase/firestore";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
@@ -810,7 +810,7 @@ export default function LessonEditor() {
   useEffect(() => {
     if (!selectedCourse) { setLessons([]); return; }
     const fetch = async () => {
-      const snapshot = await getDocs(query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc")));
+      const snapshot = await getDocsFromServer(query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc")));
       setLessons(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     };
     fetch();
@@ -900,7 +900,7 @@ export default function LessonEditor() {
 
   // FIX #36: Shared helper — refreshes the lesson list from Firestore
   const refreshLessons = async () => {
-    const snapshot = await getDocs(query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc")));
+    const snapshot = await getDocsFromServer(query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc")));
     setLessons(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
 
@@ -963,7 +963,7 @@ export default function LessonEditor() {
 
     // Refresh sidebar silently
     try {
-      const snapshot = await getDocs(query(collection(db, "courses", sc, "lessons"), orderBy("order", "asc")));
+      const snapshot = await getDocsFromServer(query(collection(db, "courses", sc, "lessons"), orderBy("order", "asc")));
       setLessons(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (_) {}
 

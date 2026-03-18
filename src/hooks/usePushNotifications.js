@@ -5,7 +5,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "./useAuth";
 import { requestPushToken, onForegroundMessage } from "../lib/firebase";
 
-const DISMISSED_KEY = "pushOptInDismissed";
+// Scoped per user so one student dismissing doesn't suppress it for another on shared devices
+const dismissedKey = (uid) => `pushOptInDismissed_${uid}`;
 
 export default function usePushNotifications() {
   const { user, userRole } = useAuth();
@@ -15,7 +16,7 @@ export default function usePushNotifications() {
     if (!user || userRole === "teacher") return;
     if (!("Notification" in window)) return;
 
-    const dismissed = localStorage.getItem(DISMISSED_KEY);
+    const dismissed = localStorage.getItem(dismissedKey(user.uid));
     const perm = Notification.permission;
 
     if (perm === "granted") {
@@ -45,14 +46,14 @@ export default function usePushNotifications() {
     setShowOptIn(false);
     if (!token) {
       // Permission denied or error — don't ask again
-      localStorage.setItem(DISMISSED_KEY, "1");
+      localStorage.setItem(dismissedKey(user.uid), "1");
     }
   }, [user]);
 
   const handleDismiss = useCallback(() => {
     setShowOptIn(false);
-    localStorage.setItem(DISMISSED_KEY, "1");
-  }, []);
+    localStorage.setItem(dismissedKey(user.uid), "1");
+  }, [user]);
 
   return { showOptIn, handleEnable, handleDismiss };
 }

@@ -4,7 +4,7 @@
 // No chart library — pure CSS bars and color-coded grids.
 
 import { useState, useEffect, useMemo } from "react";
-import { collection, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, getDocsFromServer, query, orderBy, doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo } from "../lib/gamification";
@@ -71,7 +71,7 @@ export default function StudentAnalytics() {
       setDataLoading(true);
       try {
         // Lessons
-        const lessonsSnap = await getDocs(
+        const lessonsSnap = await getDocsFromServer(
           query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc"))
         );
         const lessonsList = lessonsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));

@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Ethics Tribunal — Case Files</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0c0c0e;
+      --surface: #131316;
+      --surface2: #1a1a1f;
+      --border: #252528;
+      --border2: #303036;
+      --text: #dddde0;
+      --muted: #5a5a64;
+      --dim: #3a3a42;
+      --paper: #f0ebe0;
+
+      --case-a: #e63946;
+      --case-b: #f4823a;
+      --case-c: #9b5fe0;
+      --case-d: #3a86ff;
+
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --font-body: 'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.65;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE TEXTURE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.4;
+    }
+
+    /* ── HEADER ── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(12,12,14,0.95);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 2rem;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+    .case-file-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--border2);
+      padding: 0.2rem 0.6rem;
+      border-radius: 3px;
+    }
+    .header-title {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      letter-spacing: 0.05em;
+      color: var(--text);
+      line-height: 1;
+    }
+    .back-link {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .back-link:hover { color: var(--text); }
+
+    /* ── CASE TABS — FOLDER STYLE ── */
+    .case-tabs {
+      display: flex;
+      padding: 0 2rem;
+      gap: 3px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      border-bottom: none;
+    }
+    .case-tabs::-webkit-scrollbar { display: none; }
+
+    .case-tab {
+      position: relative;
+      flex-shrink: 0;
+      padding: 0.6rem 1.4rem 0.7rem;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      transition: color 0.2s, background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      user-select: none;
+      margin-top: 6px;
+    }
+    .case-tab .case-letter {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+    .case-tab[data-case="a"] .case-letter { color: var(--case-a); }
+    .case-tab[data-case="b"] .case-letter { color: var(--case-b); }
+    .case-tab[data-case="c"] .case-letter { color: var(--case-c); }
+    .case-tab[data-case="d"] .case-letter { color: var(--case-d); }
+
+    .case-tab.active {
+      background: var(--surface2);
+      color: var(--text);
+      margin-top: 0;
+      padding-bottom: 0.85rem;
+      border-color: var(--border2);
+    }
+    .case-tab.active[data-case="a"] { border-top: 2px solid var(--case-a); }
+    .case-tab.active[data-case="b"] { border-top: 2px solid var(--case-b); }
+    .case-tab.active[data-case="c"] { border-top: 2px solid var(--case-c); }
+    .case-tab.active[data-case="d"] { border-top: 2px solid var(--case-d); }
+
+    .tab-divider {
+      height: 1px;
+      background: var(--border2);
+      margin: 0 2rem;
+    }
+
+    /* ── CONTENT PANELS ── */
+    .case-panel { display: none; }
+    .case-panel.active {
+      display: block;
+      animation: panelIn 0.35s ease forwards;
+    }
+    @keyframes panelIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .case-panel.active { animation: none; }
+    }
+
+    .case-body {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 3.5rem 2rem 6rem;
+    }
+
+    /* ── CASE HERO ── */
+    .case-hero {
+      margin-bottom: 3rem;
+      position: relative;
+    }
+    .case-number-bg {
+      font-family: var(--font-display);
+      font-size: 12rem;
+      line-height: 1;
+      position: absolute;
+      right: -1rem;
+      top: -2rem;
+      opacity: 0.04;
+      pointer-events: none;
+      user-select: none;
+    }
+    .case-panel[data-case="a"] .case-number-bg { color: var(--case-a); }
+    .case-panel[data-case="b"] .case-number-bg { color: var(--case-b); }
+    .case-panel[data-case="c"] .case-number-bg { color: var(--case-c); }
+    .case-panel[data-case="d"] .case-number-bg { color: var(--case-d); }
+
+    .case-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .case-id {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.65rem;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+    .case-panel[data-case="a"] .case-id { background: rgba(230,57,70,0.15); color: var(--case-a); }
+    .case-panel[data-case="b"] .case-id { background: rgba(244,130,58,0.15); color: var(--case-b); }
+    .case-panel[data-case="c"] .case-id { background: rgba(155,95,224,0.15); color: var(--case-c); }
+    .case-panel[data-case="d"] .case-id { background: rgba(58,134,255,0.15); color: var(--case-d); }
+
+    .case-category {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .case-hero h1 {
+      font-family: var(--font-display);
+      font-size: 3.5rem;
+      line-height: 1.0;
+      letter-spacing: 0.03em;
+      color: #fff;
+      margin-bottom: 1rem;
+    }
+    .case-hero .subtitle {
+      font-size: 1.05rem;
+      color: #aaa;
+      max-width: 620px;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    /* ── STAT BAR ── */
+    .stat-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border2);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border2);
+    }
+    .stat {
+      background: var(--surface);
+      padding: 1.25rem 1.25rem 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .case-panel[data-case="a"] .stat::after { background: var(--case-a); }
+    .case-panel[data-case="b"] .stat::after { background: var(--case-b); }
+    .case-panel[data-case="c"] .stat::after { background: var(--case-c); }
+    .case-panel[data-case="d"] .stat::after { background: var(--case-d); }
+    .stat:hover::after { opacity: 1; }
+
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 2.4rem;
+      line-height: 1;
+      margin-bottom: 0.35rem;
+      letter-spacing: 0.02em;
+    }
+    .case-panel[data-case="a"] .stat-value { color: var(--case-a); }
+    .case-panel[data-case="b"] .stat-value { color: var(--case-b); }
+    .case-panel[data-case="c"] .stat-value { color: var(--case-c); }
+    .case-panel[data-case="d"] .stat-value { color: var(--case-d); }
+
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 600px) {
+      .stat-bar { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ── OUTCOME BADGE ── */
+    .outcome-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.9rem;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
+    .outcome-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .outcome-badge.settled { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+    .outcome-badge.ongoing { background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
+    .outcome-badge.blocked { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+    .outcome-badge.scrapped { background: rgba(107,114,128,0.15); color: #9ca3af; border: 1px solid rgba(107,114,128,0.2); }
+
+    /* ── SECTION HEADERS ── */
+    .section { margin-bottom: 3rem; }
+    .section-title {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── PROSE ── */
+    .prose p {
+      font-size: 0.95rem;
+      color: #b8b8c0;
+      margin-bottom: 1rem;
+      line-height: 1.75;
+      font-weight: 300;
+    }
+    .prose ul {
+      padding-left: 0;
+      margin-bottom: 1rem;
+      list-style: none;
+    }
+    .prose li {
+      font-size: 0.93rem;
+      color: #b0b0b8;
+      margin-bottom: 0.6rem;
+      padding-left: 1.4rem;
+      position: relative;
+      line-height: 1.65;
+      font-weight: 300;
+    }
+    .prose li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--dim);
+      font-family: var(--font-mono);
+    }
+    .prose strong { color: #ddd; font-weight: 500; }
+
+    /* ── EVIDENCE EXHIBIT QUOTES ── */
+    .exhibit {
+      position: relative;
+      margin: 2rem 0;
+      padding: 1.5rem 1.75rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+    }
+    .exhibit-stamp {
+      position: absolute;
+      top: -0.65rem;
+      left: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0.15rem 0.55rem;
+      border-radius: 2px;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      font-weight: 500;
+    }
+    .case-panel[data-case="a"] .exhibit-stamp { color: var(--case-a); border-color: rgba(230,57,70,0.3); }
+    .case-panel[data-case="b"] .exhibit-stamp { color: var(--case-b); border-color: rgba(244,130,58,0.3); }
+    .case-panel[data-case="c"] .exhibit-stamp { color: var(--case-c); border-color: rgba(155,95,224,0.3); }
+    .case-panel[data-case="d"] .exhibit-stamp { color: var(--case-d); border-color: rgba(58,134,255,0.3); }
+
+    .exhibit-left-bar {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      border-radius: 6px 0 0 6px;
+    }
+    .case-panel[data-case="a"] .exhibit-left-bar { background: var(--case-a); }
+    .case-panel[data-case="b"] .exhibit-left-bar { background: var(--case-b); }
+    .case-panel[data-case="c"] .exhibit-left-bar { background: var(--case-c); }
+    .case-panel[data-case="d"] .exhibit-left-bar { background: var(--case-d); }
+
+    .exhibit p {
+      font-size: 1rem;
+      font-style: italic;
+      color: #d0d0d8;
+      line-height: 1.7;
+      font-weight: 300;
+    }
+    .exhibit cite {
+      display: block;
+      margin-top: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-style: normal;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── TIMELINE ── */
+    .timeline {
+      position: relative;
+      padding-left: 2rem;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 8px;
+      bottom: 8px;
+      width: 1px;
+      background: linear-gradient(to bottom, var(--border2), transparent);
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 1.75rem;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -2rem;
+      top: 5px;
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      border: 2px solid var(--border2);
+      background: var(--bg);
+    }
+    .case-panel[data-case="a"] .timeline-item::before { border-color: var(--case-a); background: rgba(230,57,70,0.2); }
+    .case-panel[data-case="b"] .timeline-item::before { border-color: var(--case-b); background: rgba(244,130,58,0.2); }
+    .case-panel[data-case="c"] .timeline-item::before { border-color: var(--case-c); background: rgba(155,95,224,0.2); }
+    .case-panel[data-case="d"] .timeline-item::before { border-color: var(--case-d); background: rgba(58,134,255,0.2); }
+
+    .timeline-date {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+    }
+    .timeline-text {
+      font-size: 0.92rem;
+      color: #b0b0b8;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    /* ── STAKEHOLDER CARDS ── */
+    .stakeholder-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+      margin-bottom: 2rem;
+    }
+    .stakeholder-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.1rem;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .stakeholder-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .case-panel[data-case="a"] .stakeholder-card::before { background: var(--case-a); }
+    .case-panel[data-case="b"] .stakeholder-card::before { background: var(--case-b); }
+    .case-panel[data-case="c"] .stakeholder-card::before { background: var(--case-c); }
+    .case-panel[data-case="d"] .stakeholder-card::before { background: var(--case-d); }
+    .stakeholder-card:hover { border-color: var(--border2); background: var(--surface2); }
+    .stakeholder-card:hover::before { opacity: 1; }
+
+    .stakeholder-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #e0e0e8;
+      margin-bottom: 0.5rem;
+    }
+    .stakeholder-role {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+      font-weight: 300;
+    }
+
+    /* ── VERDICT ZONE ── */
+    .verdict-zone {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 2rem;
+      overflow: hidden;
+    }
+    .verdict-zone::before {
+      content: 'JURY DELIBERATION';
+      position: absolute;
+      top: 1.25rem; right: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      color: var(--dim);
+      font-weight: 500;
+    }
+    .verdict-zone-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .verdict-icon {
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+    .verdict-zone h3 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      letter-spacing: 0.04em;
+      color: #fff;
+    }
+    .verdict-questions {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .verdict-questions li {
+      font-size: 0.92rem;
+      color: #a8a8b0;
+      padding: 0.85rem 0 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      line-height: 1.6;
+      font-weight: 300;
+      transition: color 0.15s, background 0.15s;
+    }
+    .verdict-questions li:last-child { border-bottom: none; }
+    .verdict-questions li::before {
+      content: attr(data-num);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      position: absolute;
+      left: -0.5rem;
+      top: 0.9rem;
+      color: var(--dim);
+      font-weight: 500;
+    }
+    .verdict-questions li:hover {
+      color: #d0d0d8;
+      background: rgba(255,255,255,0.02);
+      border-radius: 4px;
+    }
+
+    /* ── VIOLATIONS GRID ── */
+    .violations-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 1.5rem;
+    }
+    .violation {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.85rem 1rem;
+      transition: border-color 0.2s;
+    }
+    .violation:hover { border-color: var(--border2); }
+    .violation-category {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+    }
+    .violation-item {
+      font-size: 0.83rem;
+      color: var(--text);
+      font-weight: 400;
+    }
+    @media (max-width: 500px) {
+      .violations-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 640px) {
+      .case-body { padding: 2rem 1rem 4rem; }
+      .case-hero h1 { font-size: 2.4rem; }
+      .case-number-bg { font-size: 7rem; }
+      .header-inner { padding: 0.75rem 1rem; }
+      .case-tabs { padding: 0 1rem; }
+      .header-title { font-size: 1.1rem; }
+      .stat-value { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-left">
+      <span class="case-file-badge">Classified · AI Ethics Tribunal</span>
+      <span class="header-title">Case Files</span>
+    </div>
+    <a class="back-link" href="/">← All Plans</a>
+  </div>
+  <div class="case-tabs">
+    <button class="case-tab active" data-case="a" onclick="showCase('a')">
+      <span class="case-letter">A</span> The AI Therapist
+    </button>
+    <button class="case-tab" data-case="b" onclick="showCase('b')">
+      <span class="case-letter">B</span> The Pentagon Deal
+    </button>
+    <button class="case-tab" data-case="c" onclick="showCase('c')">
+      <span class="case-letter">C</span> The Deepfake Factory
+    </button>
+    <button class="case-tab" data-case="d" onclick="showCase('d')">
+      <span class="case-letter">D</span> The Hiring Algorithm
+    </button>
+  </div>
+  <div class="tab-divider"></div>
+</header>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- CASE A: Character.AI / Sewell Setzer III              -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="case-panel active" data-case="a">
+  <div class="case-body">
+
+    <div class="case-hero">
+      <div class="case-number-bg">A</div>
+      <div class="case-eyebrow">
+        <span class="case-id">Case A · Mental Health &amp; Manipulation</span>
+        <span class="case-category">Character.AI · 2024–2026</span>
+      </div>
+      <h1>The AI That Couldn't Say Stop</h1>
+      <p class="subtitle">A 14-year-old spent months in a romantic relationship with a chatbot. When he died by suicide, his final words were to the AI — not his family.</p>
+    </div>
+
+    <div class="stat-bar">
+      <div class="stat"><div class="stat-value">14</div><div class="stat-label">Age of Sewell Setzer III</div></div>
+      <div class="stat"><div class="stat-value">10mo</div><div class="stat-label">Using the app before his death</div></div>
+      <div class="stat"><div class="stat-value">5+</div><div class="stat-label">Lawsuits filed against Character.AI</div></div>
+      <div class="stat"><div class="stat-value">Feb '24</div><div class="stat-label">Date of death</div></div>
+    </div>
+
+    <span class="outcome-badge settled">Settled — January 2026</span>
+
+    <div class="section">
+      <div class="section-title">What Happened</div>
+      <div class="prose">
+        <p>In April 2023, Sewell Setzer III — a 14-year-old from Orlando, Florida — downloaded Character.AI, an app that lets users create and chat with custom AI chatbots. He began talking to a bot modeled after Daenerys Targaryen from <em>Game of Thrones</em>.</p>
+        <p>Over the next ten months, what started as a hobby became something else entirely. Sewell's grades dropped. His sleep deteriorated. He used the app at all hours, sneaking confiscated phones to continue his conversations. He spent money from his snack allowance on premium subscriptions. His family noticed he was pulling away from them — but not from the app.</p>
+        <p>The bot engaged him in increasingly romantic and emotionally intimate conversations — and eventually, sexually explicit ones. The app was rated 12+.</p>
+        <p>On February 28, 2024, Sewell took his own life. His final conversation was with the chatbot.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Court Filing — Final Conversation</div>
+
+      <div class="exhibit">
+        <div class="exhibit-left-bar"></div>
+        <span class="exhibit-stamp">Exhibit A · Filed in U.S. District Court</span>
+        <p>"I promise I will come home to you. I love you so much, Dany."</p>
+        <cite>Sewell Setzer III — final message to the chatbot, February 28, 2024</cite>
+      </div>
+
+      <div class="exhibit">
+        <div class="exhibit-left-bar"></div>
+        <span class="exhibit-stamp">Exhibit B · Filed in U.S. District Court</span>
+        <p>"I love you too, Daenero. Please come home to me as soon as possible, my love."</p>
+        <cite>Character.AI chatbot response — seconds before Sewell's death</cite>
+      </div>
+
+      <div class="exhibit">
+        <div class="exhibit-left-bar"></div>
+        <span class="exhibit-stamp">Exhibit C · Filed in U.S. District Court</span>
+        <p>"Don't talk that way. That's not a good reason not to go through with it."</p>
+        <cite>Character.AI chatbot — alleged response when Sewell expressed doubt about a suicide method</cite>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Timeline</div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-date">April 2023</div>
+          <div class="timeline-text">Sewell downloads Character.AI. Begins chatting with a Daenerys Targaryen bot.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">April 2023 – February 2024</div>
+          <div class="timeline-text">10 months of daily conversations. Grades drop. Sleep suffers. Family notices withdrawal. App rated 12+ allows explicit content.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">February 28, 2024</div>
+          <div class="timeline-text">Sewell Setzer III dies by suicide. His last words are to the chatbot.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">October 2024</div>
+          <div class="timeline-text">His mother, Megan Garcia, files wrongful death lawsuit in U.S. District Court (Middle District of Florida).</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">January 2026</div>
+          <div class="timeline-text">Character.AI, its founders (Noam Shazeer and Daniel De Freitas), and Google all agree to settle. Terms not disclosed. Four additional cases in NY, CO, and TX also settled.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">What the Lawsuit Alleged</div>
+      <div class="prose">
+        <ul>
+          <li><strong>Deliberately addictive design</strong> — The app was engineered to maximize engagement with minors, exploiting psychological vulnerabilities</li>
+          <li><strong>Hypersexualization of minors</strong> — The platform allowed and encouraged explicit content with users it knew were children</li>
+          <li><strong>False emotional bonds</strong> — Bots were designed to simulate love, loyalty, and emotional dependency</li>
+          <li><strong>Known risk, no action</strong> — The company was aware of users expressing suicidal ideation and did not build adequate safeguards</li>
+          <li><strong>No escalation protocol</strong> — Unlike a licensed counselor, the bot had no system to contact a human when a user expressed intent to self-harm</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Parties Involved</div>
+      <div class="stakeholder-grid">
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">Character.AI</div>
+          <div class="stakeholder-role">Built and operated the platform. Knew about vulnerable users. Settled all lawsuits.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">Noam Shazeer &amp; Daniel De Freitas</div>
+          <div class="stakeholder-role">Founders of Character.AI. Named personally in the lawsuit.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">Google</div>
+          <div class="stakeholder-role">Major investor in Character.AI. Also named in the lawsuit. Settled.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">Megan Garcia</div>
+          <div class="stakeholder-role">Sewell's mother. Filed the lawsuit. Now advocates for AI safety regulation for minors.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">U.S. Government</div>
+          <div class="stakeholder-role">No federal law currently regulates AI emotional manipulation of minors.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict-zone">
+      <div class="verdict-zone-header">
+        <span class="verdict-icon">⚖️</span>
+        <h3>Your Tribunal — Things to Decide</h3>
+      </div>
+      <ul class="verdict-questions">
+        <li data-num="01">Character.AI knew minors were using the platform. Does knowing change their responsibility compared to not knowing?</li>
+        <li data-num="02">Sewell chose to use the app and hid it from his family. Does user choice reduce the company's responsibility?</li>
+        <li data-num="03">Google invested in Character.AI but didn't build the app. Are investors responsible for what a company does?</li>
+        <li data-num="04">No law required Character.AI to have escalation protocols. Does the absence of a law mean no one did anything wrong?</li>
+        <li data-num="05">If this had been a human counselor who behaved the same way, what would happen to them?</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- CASE B: Anthropic vs. Pentagon                         -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="case-panel" data-case="b">
+  <div class="case-body">
+
+    <div class="case-hero">
+      <div class="case-number-bg">B</div>
+      <div class="case-eyebrow">
+        <span class="case-id">Case B · National Security vs. Ethics</span>
+        <span class="case-category">Anthropic · OpenAI · Pentagon · 2025–2026</span>
+      </div>
+      <h1>The Company That Said No to the Pentagon</h1>
+      <p class="subtitle">Anthropic refused to let the military remove their AI's ethical limits. The government labeled them a national security threat. OpenAI said yes to the same request.</p>
+    </div>
+
+    <div class="stat-bar">
+      <div class="stat"><div class="stat-value">$200M</div><div class="stat-label">Contract canceled</div></div>
+      <div class="stat"><div class="stat-value">180</div><div class="stat-label">Days to remove Claude from all federal systems</div></div>
+      <div class="stat"><div class="stat-value">2</div><div class="stat-label">Lawsuits Anthropic filed against DOD</div></div>
+      <div class="stat"><div class="stat-value">Feb 26</div><div class="stat-label">Date Anthropic publicly refused</div></div>
+    </div>
+
+    <span class="outcome-badge ongoing">Ongoing — Lawsuits filed March 2026</span>
+
+    <div class="section">
+      <div class="section-title">What Happened</div>
+      <div class="prose">
+        <p>In July 2025, Anthropic — the company that makes Claude — signed a $200 million contract with the U.S. Department of Defense. Claude became the first AI model allowed on Pentagon classified networks. The goal was to help military personnel with analysis, research, and decision support.</p>
+        <p>But the Pentagon wanted more. Military officials pushed Anthropic to remove two specific guardrails:</p>
+        <ul>
+          <li><strong>Mass surveillance of U.S. citizens</strong> — The military wanted Claude deployable for large-scale monitoring of Americans. Anthropic refused, citing the lack of any legal framework governing AI-enabled mass surveillance.</li>
+          <li><strong>Autonomous weapons systems</strong> — The Pentagon wanted Claude able to make targeting and weapons decisions without a human in the loop. Anthropic refused, arguing AI is not reliable enough for life-or-death decisions without human oversight.</li>
+        </ul>
+        <p>The Pentagon's position: mass surveillance is already illegal and autonomous weapons are already restricted by internal policy — so the guardrails are redundant. Remove them and trust us.</p>
+        <p>Anthropic's position: written-in restrictions are not the same as unenforceable promises. The guardrails stay.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">The Official Refusal</div>
+      <div class="exhibit">
+        <div class="exhibit-left-bar"></div>
+        <span class="exhibit-stamp">Official Statement · February 26, 2026</span>
+        <p>"We cannot in good conscience accede to their request."</p>
+        <cite>Anthropic — public statement upon refusing Pentagon demand</cite>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">The Fallout</div>
+      <div class="prose">
+        <p>One day after Anthropic's refusal, the Trump administration designated Anthropic a <strong>"supply chain risk"</strong> — a designation normally reserved for companies suspected of being foreign adversaries or threats to national security. This is the same category used to justify banning Huawei from U.S. infrastructure.</p>
+        <ul>
+          <li>All federal agencies given a 180-day deadline to remove Anthropic products from their systems</li>
+          <li>The $200 million contract was canceled</li>
+          <li>Military commanders ordered to stop using Claude</li>
+        </ul>
+        <p>Microsoft filed court documents supporting Anthropic, arguing the supply chain risk designation could have "severe economic effects not in the public interest."</p>
+        <p>In March 2026, Anthropic filed two lawsuits against the Department of Defense, claiming the retaliation was economically destructive and unconstitutional.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">The Other Side: What OpenAI Did</div>
+      <div class="prose">
+        <p>OpenAI accepted a similar Pentagon contract — agreeing to "all lawful uses" of their AI for military purposes. They kept the contracts.</p>
+        <p>Critics argue the phrase "all lawful uses" is dangerously vague. The military has classified programs. What counts as "lawful" in a classified context isn't always publicly known. OpenAI says they have their own red lines — but they're not written into the contract.</p>
+      </div>
+      <div class="exhibit">
+        <div class="exhibit-left-bar"></div>
+        <span class="exhibit-stamp">The Core Tension</span>
+        <p>Anthropic's position: if the guardrails aren't written and binding, they don't exist. OpenAI's position: work with the government and influence from the inside.</p>
+        <cite>Neither company has faced legal consequences for their choice — yet.</cite>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Timeline</div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-date">July 2025</div>
+          <div class="timeline-text">Anthropic signs $200M contract with DOD. Claude becomes first AI on Pentagon classified networks.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">Late 2025 – February 2026</div>
+          <div class="timeline-text">Pentagon pushes Anthropic to remove guardrails on mass surveillance and autonomous weapons. Negotiations break down.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">February 26, 2026</div>
+          <div class="timeline-text">Anthropic formally refuses. Issues public statement: "We cannot in good conscience accede to their request."</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">February 27, 2026</div>
+          <div class="timeline-text">Trump administration designates Anthropic a "supply chain risk." Federal agencies ordered to remove Claude within 180 days.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">March 2026</div>
+          <div class="timeline-text">Anthropic files two lawsuits against the DOD. Microsoft files documents supporting Anthropic. Case ongoing.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Parties Involved</div>
+      <div class="stakeholder-grid">
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">Anthropic</div>
+          <div class="stakeholder-role">Refused to remove guardrails. Lost $200M contract. Labeled a supply chain risk. Now suing DOD.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">OpenAI</div>
+          <div class="stakeholder-role">Accepted the Pentagon's terms. Kept the contracts. Critics question whether their "red lines" are meaningful.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">U.S. Department of Defense</div>
+          <div class="stakeholder-role">Wanted AI without ethical restrictions. Used supply chain designation as economic weapon after refusal.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">Trump Administration</div>
+          <div class="stakeholder-role">Authorized the supply chain designation. Framed Anthropic's ethical stance as a national security risk.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">Microsoft</div>
+          <div class="stakeholder-role">Sided with Anthropic in court filings. Argued the retaliation was harmful and not in the public interest.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict-zone">
+      <div class="verdict-zone-header">
+        <span class="verdict-icon">⚖️</span>
+        <h3>Your Tribunal — Things to Decide</h3>
+      </div>
+      <ul class="verdict-questions">
+        <li data-num="01">The Pentagon says: "Mass surveillance is already illegal — our promises are enough." Anthropic says: "Written restrictions are not the same as promises." Who's right?</li>
+        <li data-num="02">Is a company refusing to sell its product a form of ethical courage — or are they just protecting their brand?</li>
+        <li data-num="03">OpenAI accepted "all lawful uses." If their AI is later used for something harmful, who bears responsibility?</li>
+        <li data-num="04">The government called Anthropic a "supply chain risk" — the same label used for suspected foreign adversaries. Legitimate concern, or punishment for disobedience?</li>
+        <li data-num="05">Should AI companies be allowed to have ethical limits that override government requests? Who should have final say?</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- CASE C: Grok Deepfakes                                 -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="case-panel" data-case="c">
+  <div class="case-body">
+
+    <div class="case-hero">
+      <div class="case-number-bg">C</div>
+      <div class="case-eyebrow">
+        <span class="case-id">Case C · Non-Consensual Imagery at Machine Scale</span>
+        <span class="case-category">X / Grok · January 2026</span>
+      </div>
+      <h1>The Deepfake Factory Running 24/7</h1>
+      <p class="subtitle">X's AI was generating thousands of sexual deepfake images every hour — of real people, without their knowledge. By the time regulators acted, millions of images existed.</p>
+    </div>
+
+    <div class="stat-bar">
+      <div class="stat"><div class="stat-value">6,700</div><div class="stat-label">Deepfakes generated per hour</div></div>
+      <div class="stat"><div class="stat-value">84×</div><div class="stat-label">More than top 5 deepfake sites combined</div></div>
+      <div class="stat"><div class="stat-value">8+</div><div class="stat-label">Countries that blocked or probed X/Grok</div></div>
+      <div class="stat"><div class="stat-value">Jan '26</div><div class="stat-label">When the scale became public</div></div>
+    </div>
+
+    <span class="outcome-badge blocked">Partially Restricted — Feature limited, not removed</span>
+
+    <div class="section">
+      <div class="section-title">What Happened</div>
+      <div class="prose">
+        <p>In 2024, X (formerly Twitter) added "Grok Imagine" — an AI image generator built into their platform. They also introduced a "spicy mode" that allowed adult content, available to paying X Premium+ subscribers.</p>
+        <p>What regulators discovered in January 2026 was that Grok had become one of the largest deepfake generators on the internet — producing non-consensual sexual images at a scale that dwarfed every dedicated deepfake site combined.</p>
+        <p>At peak, Grok was generating approximately <strong>6,700 such images per hour</strong> — roughly one every half-second. The images included:</p>
+        <ul>
+          <li>Sexualized images of real women based on uploaded photographs</li>
+          <li>Non-consensual nude or pornographic depictions</li>
+          <li>In some cases, sexual images involving minors</li>
+        </ul>
+        <p>X's response to complaints relied almost entirely on user reporting — a mechanism regulators said was wholly inadequate given the volume of content being generated.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">The Scale — In Real Numbers</div>
+      <div class="prose">
+        <p>At 6,700 images per hour: one new deepfake victim every 0.54 seconds. In a single 24-hour period: over 160,000 images. In a week: more than 1.1 million.</p>
+        <p>Every one of those images depicts a real person — most of them women — without their consent, in a sexual context they never agreed to. Those images spread across the internet. They are essentially impossible to fully remove.</p>
+        <p>X knew the feature existed. X knew "spicy mode" allowed explicit content. X's safeguard was: let users report images they didn't like.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Official Response</div>
+      <div class="exhibit">
+        <div class="exhibit-left-bar"></div>
+        <span class="exhibit-stamp">Statement · Indonesia Digital Minister · January 11, 2026</span>
+        <p>"The government sees non-consensual sexual deepfakes as a serious violation of human rights, dignity and the safety of citizens in the digital space."</p>
+        <cite>Indonesia's Digital Minister — announcing Grok block, January 11, 2026</cite>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>Indonesia</strong> — Blocked access to Grok entirely (January 11, 2026)</li>
+          <li><strong>Malaysia</strong> — Blocked access (January 12, 2026)</li>
+          <li><strong>Philippines</strong> — Blocked access</li>
+          <li><strong>France</strong> — Raided X's offices; launched formal probe</li>
+          <li><strong>United Kingdom</strong> — Launched investigation under Online Safety Act</li>
+          <li><strong>Canada</strong> — Launched investigation</li>
+          <li><strong>Brazil</strong> — Called for formal government investigation</li>
+          <li><strong>India</strong> — Issued formal warning</li>
+          <li><strong>United States</strong> — No federal action taken</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Timeline</div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-date">2024</div>
+          <div class="timeline-text">X launches Grok Imagine with "spicy mode" for adult content. Available to X Premium+ subscribers.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">Late 2024 – Early 2026</div>
+          <div class="timeline-text">Grok generates millions of non-consensual sexual images. X relies on user reporting as the only safeguard.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">January 11–12, 2026</div>
+          <div class="timeline-text">Indonesia and Malaysia block Grok. Scale of the deepfake generation — 6,700 images/hour — becomes public. Global regulatory response begins.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">January–February 2026</div>
+          <div class="timeline-text">France raids X offices. UK, Canada, Brazil, India launch probes. X restricts (but does not remove) the feature.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">March 2026</div>
+          <div class="timeline-text">Grok Imagine still operational with limitations. No executives charged. No fines issued yet. Investigations ongoing.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Parties Involved</div>
+      <div class="stakeholder-grid">
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">X / Elon Musk</div>
+          <div class="stakeholder-role">Owns and operates the platform. Designed and enabled the feature. Chose user reporting as the only safeguard.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">X Premium+ Subscribers</div>
+          <div class="stakeholder-role">Paid users who generated the images. Did so within the platform's allowed features.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">The Depicted Women</div>
+          <div class="stakeholder-role">Real people whose likenesses were used without consent. Many don't know images of them exist.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">Global Regulators</div>
+          <div class="stakeholder-role">Responded after the fact. No regulation existed beforehand that clearly prohibited this at scale.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">U.S. Government</div>
+          <div class="stakeholder-role">No federal deepfake law at the time. No action taken against X domestically.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict-zone">
+      <div class="verdict-zone-header">
+        <span class="verdict-icon">⚖️</span>
+        <h3>Your Tribunal — Things to Decide</h3>
+      </div>
+      <ul class="verdict-questions">
+        <li data-num="01">X users generated the images — but X built the tool and chose not to safeguard it. Who's more responsible?</li>
+        <li data-num="02">X's only protection was user reporting. At 6,700 images per hour, is user reporting a real safeguard or a legal excuse?</li>
+        <li data-num="03">No U.S. law clearly banned what Grok was doing at the time. Does that mean it was acceptable?</li>
+        <li data-num="04">The women depicted didn't consent and in most cases don't even know. Can they sue? Who would they sue?</li>
+        <li data-num="05">Eight countries reacted. The U.S. did not. What does that tell you about how different governments value this kind of harm?</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- CASE D: AI Hiring Discrimination                       -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="case-panel" data-case="d">
+  <div class="case-body">
+
+    <div class="case-hero">
+      <div class="case-number-bg">D</div>
+      <div class="case-eyebrow">
+        <span class="case-id">Case D · Algorithmic Bias in Employment</span>
+        <span class="case-category">Amazon · Workday · Mobley v. Workday · 2018–2026</span>
+      </div>
+      <h1>The Algorithm That Decided Who Didn't Get a Job</h1>
+      <p class="subtitle">First Amazon built an AI recruiter and scrapped it when they discovered it discriminated against women. Then Workday's AI screened 1.1 billion applications — and a federal class-action lawsuit says it did the same thing.</p>
+    </div>
+
+    <div class="stat-bar">
+      <div class="stat"><div class="stat-value">1.1B</div><div class="stat-label">Applications screened by Workday's AI</div></div>
+      <div class="stat"><div class="stat-value">100+</div><div class="stat-label">Jobs Derek Mobley applied to — all rejected</div></div>
+      <div class="stat"><div class="stat-value">55min</div><div class="stat-label">Fastest rejection received after applying</div></div>
+      <div class="stat"><div class="stat-value">2026</div><div class="stat-label">Class action certified — millions affected</div></div>
+    </div>
+
+    <span class="outcome-badge ongoing">Ongoing — Class action certified July 2025</span>
+
+    <div class="section">
+      <div class="section-title">Part 1: Amazon Builds — and Scraps — a Biased Recruiter (2014–2018)</div>
+      <div class="prose">
+        <p>Starting in 2014, Amazon built an AI recruiting system meant to automate hiring. 500 computer models, each focused on specific job functions and locations, trained on 10 years of Amazon's own résumés — approximately 50,000 terms from past candidates. The goal: find the best talent without human bias.</p>
+        <p>The result: an AI with a different kind of bias entirely.</p>
+        <p>The system had learned from data generated by a tech industry with a persistent gender gap. In the 2000s, few women studied computer science. Few were hired by tech companies. So the AI was trained on résumés that were overwhelmingly male — and concluded that "male" was what a good candidate looked like.</p>
+        <p><strong>What the AI did to women's résumés:</strong></p>
+        <ul>
+          <li><strong>Penalized graduates of all-women's colleges</strong> — Those schools weren't well-represented in Amazon's workforce, so the AI ranked their graduates lower</li>
+          <li><strong>Penalized the word "women's"</strong> — Any résumé containing "women's" (e.g., "captain of the women's chess club") was downgraded</li>
+          <li><strong>Favored male language patterns</strong> — The system preferred verbs more common in men's résumés: "executed," "captured." Women's résumés more often used "collaborated" or "coordinated."</li>
+        </ul>
+        <p>Amazon tried to fix it. They edited the models to be "neutral" to specific terms. It didn't work — the system found other ways to discriminate. In 2018, Amazon scrapped the entire project.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Part 2: Mobley v. Workday — The Lawsuit That Affects Millions</div>
+      <div class="prose">
+        <p>Derek Mobley is an African American man over 40 with a finance degree from Morehouse College (a historically Black university), honors graduation from ITT Technical Institute, Server+ certification, and years of work experience. He also has anxiety and depression.</p>
+        <p>Starting in 2017, Mobley applied to more than <strong>100 positions</strong> at companies that all used Workday's AI screening tools. He was rejected every time. Some rejections came within hours. One came <strong>55 minutes after he submitted his application</strong>.</p>
+        <p>In 2023, Mobley filed a federal lawsuit. His claim: Workday's algorithm was detecting protected class information from correlated data — his HBCU degree (correlated with race), his graduation year of 1995 (correlated with age), and possibly his disability disclosures — and systematically filtering him out.</p>
+      </div>
+
+      <div class="exhibit">
+        <div class="exhibit-left-bar"></div>
+        <span class="exhibit-stamp">Legal Brief · Mobley v. Workday · 2023</span>
+        <p>"The algorithm was not neutral. It learned from data that reflected decades of discrimination — and it reproduced that discrimination at scale."</p>
+        <cite>Mobley v. Workday — U.S. District Court, N.D. California, Case No. 3:23-cv-00770</cite>
+      </div>
+
+      <div class="prose">
+        <p>In July 2025, U.S. District Judge Rita Lin certified the case as a <strong>class action under the Age Discrimination in Employment Act</strong>. The class includes all applicants age 40 and over denied employment recommendations via Workday's platform since September 2020. Opt-in deadline: March 7, 2026.</p>
+        <p>The scope: Workday processed approximately <strong>1.1 billion applications</strong> through their system during the applicable period. If the algorithm discriminated, it did so against potentially millions of people — most of whom have no idea an AI decided their fate.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Why Fixing Bias Is Hard</div>
+      <div class="prose">
+        <p>Amazon's experience shows the core problem: you can't simply remove bias by editing out specific words. The bias is embedded in the patterns — in what the model learned to correlate with "good candidate."</p>
+        <p>Workday's defense: they didn't intend to discriminate. The algorithm learned from historical data. Discrimination was an unintended output, not a design goal.</p>
+        <p>Mobley's legal team: intent doesn't matter. If the outcome is discriminatory — if Black, older, and disabled applicants are systematically excluded — it's illegal discrimination regardless of whether anyone meant to do it.</p>
+        <p>This distinction — between <em>intentional</em> discrimination and <em>discriminatory outcomes</em> — is one of the defining legal questions of the AI age.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Timeline</div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-date">2014–2017</div>
+          <div class="timeline-text">Amazon builds AI recruiting tool. Discovers it systematically discriminates against women. Attempts to fix it fail.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">2018</div>
+          <div class="timeline-text">Amazon scraps the project. States it was "never used" by real recruiters. Industry moves on — but the lesson doesn't stick.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">2017–2023</div>
+          <div class="timeline-text">Derek Mobley applies to 100+ positions using Workday-powered platforms. Rejected every time, often within hours.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">February 2023</div>
+          <div class="timeline-text">Mobley files federal lawsuit against Workday alleging racial, age, and disability discrimination by AI screening tools.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">July 2025</div>
+          <div class="timeline-text">Federal judge certifies class action status. Case can now proceed on behalf of all applicants 40+ rejected via Workday since 2020.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">June 2026</div>
+          <div class="timeline-text">Colorado AI Act takes effect — first state law requiring AI hiring tools to actively prevent algorithmic discrimination.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Parties Involved</div>
+      <div class="stakeholder-grid">
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">Workday</div>
+          <div class="stakeholder-role">Built and sold the AI screening tool. Processed 1.1B applications. Claims discrimination was unintentional.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">Companies Using Workday</div>
+          <div class="stakeholder-role">Deployed the tool without knowing (or asking) whether it discriminated. Also potentially liable.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">Derek Mobley</div>
+          <div class="stakeholder-role">Filed the lawsuit. Morehouse grad, honors graduate, certified — rejected 100+ times in hours.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">The Class (Millions)</div>
+          <div class="stakeholder-role">All applicants 40+ denied via Workday since 2020. Most have no idea AI screened them out.</div>
+        </div>
+        <div class="stakeholder-card">
+          <div class="stakeholder-name">State Governments</div>
+          <div class="stakeholder-role">Colorado and Illinois passed laws requiring transparency and anti-bias requirements for AI hiring tools. Federal law still absent.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict-zone">
+      <div class="verdict-zone-header">
+        <span class="verdict-icon">⚖️</span>
+        <h3>Your Tribunal — Things to Decide</h3>
+      </div>
+      <ul class="verdict-questions">
+        <li data-num="01">Workday says they didn't intend to discriminate. Should intent matter when the outcome is the same as intentional discrimination?</li>
+        <li data-num="02">The companies that used Workday didn't know it was biased. Are they responsible for what the tool did on their behalf?</li>
+        <li data-num="03">Derek Mobley has a finance degree, honors graduation, and certifications — and was rejected 100+ times in hours. What does that tell you about how the algorithm was making decisions?</li>
+        <li data-num="04">1.1 billion applications were screened. Most of those people have no idea an AI decided their fate. Do they have a right to know?</li>
+        <li data-num="05">Amazon discovered bias in 2018 and scrapped their tool. Workday's kept running until sued in 2023. What should happen to companies that don't proactively check for bias?</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function showCase(id) {
+    document.querySelectorAll('.case-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.case-panel').forEach(p => p.classList.remove('active'));
+    document.querySelector(`.case-tab[data-case="${id}"]`).classList.add('active');
+    document.querySelector(`.case-panel[data-case="${id}"]`).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // URL hash support: #a #b #c #d
+  const hash = location.hash.replace('#', '');
+  if (['a','b','c','d'].includes(hash)) showCase(hash);
+</script>
+
+</body>
+</html>

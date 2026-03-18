@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bias Detection Activities</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-2: #242836;
+    --surface-3: #2e3345;
+    --text: #e8e9ed;
+    --text-muted: #8b8fa3;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108, 92, 231, 0.3);
+    --green: #00cec9;
+    --orange: #fdcb6e;
+    --red: #e17055;
+    --pink: #fd79a8;
+    --blue: #74b9ff;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { max-width: 900px; margin: 0 auto; padding: 16px; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 32px 16px 24px;
+  }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  .header p { color: var(--text-muted); font-size: 0.95rem; }
+
+  /* Instructions panel */
+  .instructions {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .instructions:hover { border-color: var(--accent); }
+  .instructions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  .instructions-header .chevron {
+    transition: transform 0.3s;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .instructions.open .chevron { transform: rotate(180deg); }
+  .instructions-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, margin-top 0.3s;
+  }
+  .instructions.open .instructions-body { max-height: 500px; margin-top: 14px; }
+  .instructions-body ul {
+    padding-left: 20px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  .instructions-body ul li { margin-bottom: 6px; }
+  .instructions-body ul li strong { color: var(--text); }
+
+  /* Progress bar */
+  .progress-container {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+  }
+  .progress-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .progress-label { font-size: 0.85rem; color: var(--text-muted); }
+  .progress-score { font-size: 0.85rem; font-weight: 700; color: var(--accent); }
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--surface-3);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--pink));
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  /* Tab navigation */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    flex: 1;
+    min-width: 140px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .tab-btn:hover { border-color: var(--accent); color: var(--text); }
+  .tab-btn.active {
+    background: var(--surface-2);
+    border-color: var(--accent);
+    color: var(--text);
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+  .tab-btn .tab-score {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-weight: 400;
+  }
+  .tab-btn.active .tab-score { color: var(--accent); }
+  .tab-btn .tab-check {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 0.75rem;
+    color: var(--green);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .tab-btn.completed .tab-check { opacity: 1; }
+
+  /* Activity panels */
+  .activity { display: none; }
+  .activity.active { display: block; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .card:hover { border-color: var(--surface-3); }
+  .card.correct { border-color: var(--green); box-shadow: 0 0 12px rgba(0, 206, 201, 0.15); }
+  .card.incorrect { border-color: var(--red); box-shadow: 0 0 12px rgba(225, 112, 85, 0.15); }
+  .card.partial { border-color: var(--orange); box-shadow: 0 0 12px rgba(253, 203, 110, 0.15); }
+
+  .card-number {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .card h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .card .scenario {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    line-height: 1.65;
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    border-left: 3px solid var(--accent);
+  }
+
+  /* Multiple choice options */
+  .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .option-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    width: 100%;
+  }
+  .option-btn:hover:not(.locked) { border-color: var(--accent); background: var(--surface-3); }
+  .option-btn.selected { border-color: var(--accent); background: rgba(108, 92, 231, 0.12); }
+  .option-btn.locked { cursor: default; opacity: 0.7; }
+  .option-btn.locked.selected { opacity: 1; }
+  .option-btn.locked.correct-answer { border-color: var(--green); background: rgba(0, 206, 201, 0.1); opacity: 1; }
+  .option-btn .radio {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--surface-3);
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .option-btn.selected .radio {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+  .option-btn.selected .radio::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: #fff;
+    border-radius: 50%;
+  }
+
+  /* Short answer */
+  .short-answer {
+    margin-bottom: 14px;
+  }
+  .short-answer label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .short-answer textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 0.88rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 60px;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+  }
+  .short-answer textarea:focus { outline: none; border-color: var(--accent); }
+  .short-answer textarea:disabled { opacity: 0.6; cursor: default; }
+
+  /* Check button */
+  .check-btn {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, var(--accent), #7c5ce7);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .check-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
+  .check-btn:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: none; }
+
+  /* Feedback */
+  .feedback {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    display: none;
+    animation: fadeSlide 0.3s ease;
+  }
+  .feedback.show { display: block; }
+  .feedback.correct { background: rgba(0, 206, 201, 0.08); border: 1px solid rgba(0, 206, 201, 0.2); color: var(--green); }
+  .feedback.incorrect { background: rgba(225, 112, 85, 0.08); border: 1px solid rgba(225, 112, 85, 0.2); color: var(--red); }
+  .feedback.partial { background: rgba(253, 203, 110, 0.08); border: 1px solid rgba(253, 203, 110, 0.2); color: var(--orange); }
+  .feedback strong { display: block; margin-bottom: 4px; }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Drag and Drop - Activity 2 */
+  .dataset-description {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    line-height: 1.65;
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    border-left: 3px solid var(--blue);
+  }
+
+  .drop-zone-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .label-bank {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    min-height: 42px;
+    padding: 10px;
+    background: var(--surface-2);
+    border: 1px dashed var(--surface-3);
+    border-radius: 10px;
+  }
+
+  .drag-label {
+    padding: 6px 14px;
+    background: var(--surface-3);
+    border: 1px solid rgba(108, 92, 231, 0.3);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: grab;
+    transition: all 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .drag-label:active { cursor: grabbing; }
+  .drag-label:hover { border-color: var(--accent); background: rgba(108, 92, 231, 0.12); }
+  .drag-label.placed { opacity: 0.35; cursor: default; pointer-events: none; }
+  .drag-label.locked { cursor: default; pointer-events: none; }
+  .drag-label.correct-label { background: rgba(0, 206, 201, 0.15); border-color: var(--green); }
+  .drag-label.incorrect-label { background: rgba(225, 112, 85, 0.15); border-color: var(--red); text-decoration: line-through; }
+
+  .drop-zone {
+    min-height: 50px;
+    padding: 10px;
+    background: var(--surface-2);
+    border: 2px dashed var(--surface-3);
+    border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+    transition: all 0.2s;
+  }
+  .drop-zone.drag-over { border-color: var(--accent); background: rgba(108, 92, 231, 0.06); }
+  .drop-zone .drag-label { cursor: pointer; }
+  .drop-zone .drag-label.locked { cursor: default; }
+
+  .drop-placeholder {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    padding: 6px 0;
+    opacity: 0.5;
+    font-style: italic;
+  }
+
+  /* Ranking - Activity 3 */
+  .rank-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .rank-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 10px;
+    transition: all 0.2s;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .rank-item:active { cursor: grabbing; }
+  .rank-item.dragging { opacity: 0.5; border-color: var(--accent); }
+  .rank-item.drag-over-item { border-color: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+  .rank-item.locked { cursor: default; }
+  .rank-item.correct-rank { border-color: var(--green); }
+  .rank-item.incorrect-rank { border-color: var(--red); }
+
+  .rank-number {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-3);
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .rank-text {
+    font-size: 0.88rem;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .rank-grip {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    opacity: 0.4;
+  }
+  .rank-item.locked .rank-grip { display: none; }
+
+  /* Summary panel */
+  .summary-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    animation: fadeSlide 0.4s ease;
+  }
+  .summary-panel.show { display: block; }
+
+  .summary-panel h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .summary-panel .total-score {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 16px 0;
+  }
+  .summary-panel .total-score span { color: var(--text-muted); font-size: 1.4rem; font-weight: 400; }
+
+  .score-breakdown {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin: 24px 0;
+    flex-wrap: wrap;
+  }
+  .score-card {
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 12px;
+    padding: 16px 20px;
+    min-width: 150px;
+    flex: 1;
+    max-width: 220px;
+  }
+  .score-card .label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .score-card .value { font-size: 1.4rem; font-weight: 700; color: var(--text); }
+  .score-card .value span { color: var(--text-muted); font-size: 0.9rem; font-weight: 400; }
+
+  .submit-btn {
+    padding: 14px 40px;
+    background: linear-gradient(135deg, var(--green), #00b894);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s;
+    margin-top: 16px;
+  }
+  .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 206, 201, 0.3); }
+  .submit-btn:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: none; }
+
+  .submitted-msg {
+    display: none;
+    margin-top: 16px;
+    padding: 12px 20px;
+    background: rgba(0, 206, 201, 0.1);
+    border: 1px solid rgba(0, 206, 201, 0.2);
+    border-radius: 10px;
+    color: var(--green);
+    font-size: 0.9rem;
+    font-weight: 600;
+    animation: fadeSlide 0.3s ease;
+  }
+  .submitted-msg.show { display: block; }
+
+  .back-btn {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 10px 24px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .back-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  /* Section title inside activities */
+  .activity-intro {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .activity-intro h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .activity-intro p { color: var(--text-muted); font-size: 0.88rem; }
+
+  /* Mobile touch improvements for drag/drop */
+  @media (max-width: 600px) {
+    .app { padding: 10px; }
+    .header h1 { font-size: 1.5rem; }
+    .tabs { gap: 6px; }
+    .tab-btn { min-width: 100px; padding: 10px 8px; font-size: 0.78rem; }
+    .card { padding: 18px; }
+    .score-breakdown { flex-direction: column; align-items: center; }
+    .score-card { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <h1>Bias Detection Activities</h1>
+    <p>Learn to identify and address bias in AI systems</p>
+  </div>
+
+  <!-- Instructions -->
+  <div class="instructions open" onclick="this.classList.toggle('open')">
+    <div class="instructions-header">
+      <span>How This Works</span>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="instructions-body">
+      <ul>
+        <li><strong>Three activities</strong> teach you to spot, analyze, and fix bias in AI systems.</li>
+        <li><strong>Activity 1 &mdash; Spot the Bias:</strong> Read AI scenarios and identify the type of bias at play. Then explain why the training data caused it.</li>
+        <li><strong>Activity 2 &mdash; Who's Missing:</strong> Examine datasets and drag labels to identify which groups are underrepresented.</li>
+        <li><strong>Activity 3 &mdash; Fix the Algorithm:</strong> Rank proposed solutions from most to least effective for each biased AI scenario.</li>
+        <li><strong>34 total points.</strong> Complete all three activities, then submit your score.</li>
+        <li>You can switch between activities using the tabs above and revisit them before submitting.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-container">
+    <div class="progress-top">
+      <span class="progress-label">Overall Progress</span>
+      <span class="progress-score" id="progressScore">0 / 34 pts</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <!-- Tab navigation -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="activity1" onclick="switchTab('activity1')">
+      Spot the Bias
+      <span class="tab-score" id="tab1Score">0 / 10</span>
+      <span class="tab-check">&#10003;</span>
+    </button>
+    <button class="tab-btn" data-tab="activity2" onclick="switchTab('activity2')">
+      Who's Missing?
+      <span class="tab-score" id="tab2Score">0 / 12</span>
+      <span class="tab-check">&#10003;</span>
+    </button>
+    <button class="tab-btn" data-tab="activity3" onclick="switchTab('activity3')">
+      Fix the Algorithm
+      <span class="tab-score" id="tab3Score">0 / 12</span>
+      <span class="tab-check">&#10003;</span>
+    </button>
+    <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">
+      Summary
+      <span class="tab-score">Results</span>
+      <span class="tab-check">&#10003;</span>
+    </button>
+  </div>
+
+  <!-- ==================== ACTIVITY 1: SPOT THE BIAS ==================== -->
+  <div class="activity active" id="activity1">
+    <div class="activity-intro">
+      <h2>Activity 1: Spot the Bias</h2>
+      <p>Read each scenario about a biased AI system. Select the type of bias, then explain why the training data caused the problem. Each scenario is worth 2 points (1 for the correct bias type, 1 for a strong explanation).</p>
+    </div>
+
+    <div id="a1-cards"></div>
+  </div>
+
+  <!-- ==================== ACTIVITY 2: WHO'S MISSING? ==================== -->
+  <div class="activity" id="activity2">
+    <div class="activity-intro">
+      <h2>Activity 2: Who's Missing?</h2>
+      <p>Each dataset below has representation gaps. Drag the correct labels from the bank into the drop zone to identify which groups or perspectives are missing. Each dataset is worth 3 points.</p>
+    </div>
+
+    <div id="a2-cards"></div>
+  </div>
+
+  <!-- ==================== ACTIVITY 3: FIX THE ALGORITHM ==================== -->
+  <div class="activity" id="activity3">
+    <div class="activity-intro">
+      <h2>Activity 3: Fix the Algorithm</h2>
+      <p>Each biased AI scenario has four possible fixes. Drag them to rank from most effective (#1) to least effective (#4). You earn 3 points for a perfect ranking, 2 for one swap away, 1 for two swaps, and 0 for more. Each scenario is worth 3 points.</p>
+    </div>
+
+    <div id="a3-cards"></div>
+  </div>
+
+  <!-- ==================== SUMMARY ==================== -->
+  <div class="activity" id="summary">
+    <div class="summary-panel show">
+      <h2>Score Summary</h2>
+      <div class="total-score" id="totalScoreDisplay">0 <span>/ 34</span></div>
+      <div class="score-breakdown">
+        <div class="score-card">
+          <div class="label">Spot the Bias</div>
+          <div class="value" id="summaryA1">0 <span>/ 10</span></div>
+        </div>
+        <div class="score-card">
+          <div class="label">Who's Missing?</div>
+          <div class="value" id="summaryA2">0 <span>/ 12</span></div>
+        </div>
+        <div class="score-card">
+          <div class="label">Fix the Algorithm</div>
+          <div class="value" id="summaryA3">0 <span>/ 12</span></div>
+        </div>
+      </div>
+      <button class="submit-btn" id="submitBtn" onclick="submitScore()">Submit for Grade</button>
+      <div class="submitted-msg" id="submittedMsg">Score submitted to PantherLearn!</div>
+      <br>
+      <button class="back-btn" onclick="switchTab('activity1')">Back to Activities</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== DATA ====================
+
+const a1Scenarios = [
+  {
+    id: 's1',
+    title: 'Hiring Algorithm',
+    scenario: 'A tech company built an AI to screen job resumes. It was trained on 10 years of past hiring data. The AI consistently ranks male applicants higher than female applicants with identical qualifications.',
+    options: [
+      { text: 'Historical bias in training data', correct: true },
+      { text: 'The AI is too complex to work properly', correct: false },
+      { text: 'Random noise in the algorithm', correct: false },
+      { text: 'Privacy violation by the system', correct: false }
+    ],
+    keywords: ['men', 'male', 'hired', 'past', 'history', 'historical', 'gender', 'dominated', 'imbalance', 'underrepresent', 'women', 'fewer', 'majority', 'data reflect', 'reflect', 'pattern', 'biased data', 'training data'],
+    explanation: 'The company historically hired more men in tech roles. Since the AI learned from that data, it picked up the pattern that successful candidates were mostly male and unfairly penalized women.'
+  },
+  {
+    id: 's2',
+    title: 'Facial Recognition',
+    scenario: 'A facial recognition system used by airports performs well on lighter-skinned faces but fails to correctly identify people with darker skin tones, leading to higher false match rates for these individuals.',
+    options: [
+      { text: 'Representation bias in training images', correct: true },
+      { text: 'Camera hardware limitations only', correct: false },
+      { text: 'The algorithm is too slow', correct: false },
+      { text: 'A problem with the airport lighting', correct: false }
+    ],
+    keywords: ['light', 'white', 'overrepresent', 'underrepresent', 'dark', 'diverse', 'diversity', 'skin', 'tone', 'image', 'photo', 'sample', 'dataset', 'training', 'imbalance', 'represent', 'fewer', 'majority', 'not enough', 'lack'],
+    explanation: 'The training dataset contained mostly lighter-skinned faces, so the AI never learned to accurately recognize darker-skinned faces. Without diverse representation in the data, the system cannot perform equally for everyone.'
+  },
+  {
+    id: 's3',
+    title: 'Loan Approval System',
+    scenario: 'A bank uses an AI to approve or deny loan applications. The system denies loans at a much higher rate for applicants from certain zip codes, which happen to correspond to historically redlined neighborhoods with predominantly minority populations.',
+    options: [
+      { text: 'Proxy discrimination through correlated features', correct: true },
+      { text: 'The AI does not have enough computing power', correct: false },
+      { text: 'Loan interest rates are set too high', correct: false },
+      { text: 'The applicants did not fill out the form correctly', correct: false }
+    ],
+    keywords: ['zip', 'code', 'proxy', 'redlin', 'neighborhood', 'correlat', 'race', 'racial', 'income', 'location', 'geographic', 'indirect', 'surrogate', 'stand-in', 'discriminat', 'associated', 'wealth', 'segregat', 'historical', 'systemic'],
+    explanation: 'Even though the AI does not directly use race, zip codes act as a proxy for race due to historical housing segregation. The training data reflected decades of redlining, so the AI learned to deny loans based on location, indirectly discriminating against minority communities.'
+  },
+  {
+    id: 's4',
+    title: 'Medical Diagnosis AI',
+    scenario: 'A health AI trained to detect skin conditions was developed using images mostly from light-skinned patients from a single hospital in Northern Europe. When deployed in a diverse city hospital, it frequently misdiagnoses or misses conditions on patients with darker skin.',
+    options: [
+      { text: 'Sample selection bias from a non-representative population', correct: true },
+      { text: 'Skin conditions look the same on all skin tones', correct: false },
+      { text: 'Doctors at the new hospital are using it wrong', correct: false },
+      { text: 'The AI needs a faster processor', correct: false }
+    ],
+    keywords: ['sample', 'population', 'diverse', 'represent', 'one hospital', 'single', 'narrow', 'light', 'skin', 'tone', 'demograph', 'northern europe', 'different', 'range', 'variety', 'limit', 'only', 'geographic', 'selection', 'train'],
+    explanation: 'The training data came from a single, demographically narrow source. Medical conditions can look different across skin tones, and by training only on one population, the AI never learned to recognize conditions on diverse patients.'
+  },
+  {
+    id: 's5',
+    title: 'Criminal Justice Risk Score',
+    scenario: 'A risk assessment AI used in court to predict whether a defendant will reoffend assigns higher risk scores to Black defendants than white defendants, even when they have similar criminal histories and backgrounds. The AI was trained on historical arrest records.',
+    options: [
+      { text: 'Feedback loop bias from historically biased policing data', correct: true },
+      { text: 'The judges are using the AI improperly', correct: false },
+      { text: 'Criminal history is not relevant to reoffending', correct: false },
+      { text: 'The AI was purposefully programmed to be biased', correct: false }
+    ],
+    keywords: ['polic', 'arrest', 'over-polic', 'feedback', 'loop', 'historical', 'systemic', 'enforcement', 'target', 'disproportion', 'inequal', 'bias', 'data reflect', 'pattern', 'crime', 'record', 'rate', 'past', 'discriminat', 'racial', 'unequal'],
+    explanation: 'Historical policing practices disproportionately targeted minority communities, creating biased arrest records. The AI trained on this data inherited those patterns, creating a feedback loop: biased data leads to biased predictions, which reinforces the original bias.'
+  }
+];
+
+const a2Datasets = [
+  {
+    id: 'd1',
+    title: 'Image Recognition Training Set',
+    description: 'A company assembles 500,000 images to train an object-recognition AI. The images were scraped from popular social media platforms and stock photo websites based in the US and Western Europe. The dataset includes photos of homes, food, vehicles, clothing, and everyday objects.',
+    correctLabels: ['Non-Western cultures and lifestyles', 'Lower-income communities', 'Rural and developing regions'],
+    distractorLabels: ['American households', 'European fashion', 'Modern vehicles'],
+    explanation: 'Social media and stock photo platforms skew toward affluent Western users. Everyday objects, foods, homes, and clothing from non-Western, lower-income, or rural communities are severely underrepresented, so the AI will not recognize them as well.'
+  },
+  {
+    id: 'd2',
+    title: 'Health Survey Dataset',
+    description: 'Researchers train a health prediction AI on survey data from 50,000 adults. The survey was conducted online in English only, required a stable internet connection, and targeted people aged 25-65. Respondents were paid through PayPal.',
+    correctLabels: ['Elderly people (65+)', 'Non-English speakers', 'People without internet access'],
+    distractorLabels: ['Working-age adults', 'English speakers', 'Technology users'],
+    explanation: 'The survey excluded elderly people by age cutoff, non-English speakers by language, people without internet by the online format, and unbanked populations by the PayPal payment method. Any health predictions based on this data will not apply well to those groups.'
+  },
+  {
+    id: 'd3',
+    title: 'Language Model Training Corpus',
+    description: 'A large language model is trained on text from Reddit, Wikipedia, published books, and news websites. The model will be used for customer service chatbots, content writing, and educational tools worldwide.',
+    correctLabels: ['Oral tradition cultures', 'Indigenous languages', 'Female perspectives in technical fields'],
+    distractorLabels: ['English-language content', 'Male-authored Wikipedia articles', 'Western news perspectives'],
+    explanation: 'Reddit and Wikipedia skew heavily male and English-speaking. Oral traditions, indigenous languages, and non-Western knowledge systems are rarely captured in these text-based sources. Women are underrepresented as Wikipedia editors and Reddit posters, especially in technical topics.'
+  },
+  {
+    id: 'd4',
+    title: 'Music Recommendation System',
+    description: 'A streaming platform trains its recommendation AI on listening history from its 80 million users. The platform is most popular in North America, Western Europe, and parts of East Asia. Its catalog has strong coverage of pop, rock, hip-hop, electronic, and K-pop.',
+    correctLabels: ['African musical traditions', 'Latin American regional genres', 'South Asian classical music'],
+    distractorLabels: ['Pop and rock music', 'K-pop artists', 'Electronic producers'],
+    explanation: 'The platform user base and catalog both skew toward certain regions and mainstream commercial genres. Traditional and regional music from Africa, Latin America, and South Asia is underrepresented both in the catalog and in user listening data, creating a cycle of invisibility.'
+  }
+];
+
+const a3Scenarios = [
+  {
+    id: 'f1',
+    title: 'Biased Hiring AI',
+    scenario: 'A company\'s resume-screening AI ranks male applicants higher because it was trained on a decade of male-dominated hiring decisions.',
+    options: [
+      { text: 'Retrain the model on a balanced dataset that includes equal representation of successful employees across genders', rank: 1 },
+      { text: 'Add a fairness constraint that ensures the model evaluates candidates equally regardless of gender', rank: 2 },
+      { text: 'Remove the name field from resumes before the AI processes them', rank: 3 },
+      { text: 'Lower the confidence threshold so more candidates pass the initial screen', rank: 4 }
+    ]
+  },
+  {
+    id: 'f2',
+    title: 'Biased Medical AI',
+    scenario: 'A diagnostic AI trained mostly on data from one ethnic group misses conditions on patients from other ethnic groups. It is deployed at a diverse urban hospital.',
+    options: [
+      { text: 'Collect and incorporate diverse medical data from underrepresented patient populations into the training set', rank: 1 },
+      { text: 'Require human doctor review for all AI-flagged diagnoses, especially for underrepresented groups', rank: 2 },
+      { text: 'Publish a transparency report noting the AI\'s known limitations across demographics', rank: 3 },
+      { text: 'Increase the overall size of the existing training dataset without changing its composition', rank: 4 }
+    ]
+  },
+  {
+    id: 'f3',
+    title: 'Biased Content Moderation',
+    scenario: 'A social media platform\'s AI content moderator disproportionately flags and removes posts in African American Vernacular English (AAVE), treating them as hateful or inappropriate at much higher rates than similar posts in standard English.',
+    options: [
+      { text: 'Train the AI on a linguistically diverse dataset that includes AAVE and other dialects, with correct labels', rank: 1 },
+      { text: 'Create a human review team that includes people fluent in AAVE to audit flagged content', rank: 2 },
+      { text: 'Lower the moderation sensitivity so fewer posts overall get flagged', rank: 3 },
+      { text: 'Add a disclaimer that the moderation system may make errors', rank: 4 }
+    ]
+  },
+  {
+    id: 'f4',
+    title: 'Biased Loan Algorithm',
+    scenario: 'A bank\'s AI loan approval system uses zip code as a factor, unintentionally acting as a proxy for race due to historical housing segregation. Minority applicants are denied at significantly higher rates.',
+    options: [
+      { text: 'Remove zip code and other geographic proxies from the model, and audit for other correlated features', rank: 1 },
+      { text: 'Conduct regular bias audits comparing approval rates across demographic groups and adjust the model', rank: 2 },
+      { text: 'Have a human loan officer review all applications that the AI recommends denying', rank: 3 },
+      { text: 'Increase the overall loan approval rate by loosening the AI\'s threshold', rank: 4 }
+    ]
+  }
+];
+
+// ==================== STATE ====================
+const state = {
+  a1: { scores: {}, checked: {} },
+  a2: { scores: {}, checked: {}, placed: {} },
+  a3: { scores: {}, checked: {}, orders: {} },
+  submitted: false
+};
+
+// ==================== ACTIVITY 1 RENDERING ====================
+function renderActivity1() {
+  const container = document.getElementById('a1-cards');
+  container.innerHTML = a1Scenarios.map((s, i) => `
+    <div class="card" id="a1-card-${s.id}">
+      <span class="card-number">Scenario ${i + 1} of 5</span>
+      <h3>${s.title}</h3>
+      <div class="scenario">${s.scenario}</div>
+
+      <div class="drop-zone-label">What type of bias is present?</div>
+      <div class="options" id="a1-options-${s.id}">
+        ${s.options.map((o, j) => `
+          <button class="option-btn" data-scenario="${s.id}" data-index="${j}" onclick="selectOption('${s.id}', ${j})">
+            <span class="radio"></span>
+            <span>${o.text}</span>
+          </button>
+        `).join('')}
+      </div>
+
+      <div class="short-answer">
+        <label for="a1-explain-${s.id}">Why did the training data cause this bias?</label>
+        <textarea id="a1-explain-${s.id}" placeholder="Write a brief explanation..." rows="2"></textarea>
+      </div>
+
+      <button class="check-btn" id="a1-check-${s.id}" onclick="checkA1('${s.id}')">Check Answer</button>
+      <div class="feedback" id="a1-feedback-${s.id}"></div>
+    </div>
+  `).join('');
+}
+
+function selectOption(scenarioId, index) {
+  if (state.a1.checked[scenarioId]) return;
+  const btns = document.querySelectorAll(`[data-scenario="${scenarioId}"]`);
+  btns.forEach((b, i) => {
+    b.classList.toggle('selected', i === index);
+  });
+  state.a1[scenarioId + '_selected'] = index;
+}
+
+function checkA1(scenarioId) {
+  if (state.a1.checked[scenarioId]) return;
+
+  const scenario = a1Scenarios.find(s => s.id === scenarioId);
+  const selectedIdx = state.a1[scenarioId + '_selected'];
+  const explanation = document.getElementById(`a1-explain-${scenarioId}`).value.trim();
+
+  if (selectedIdx === undefined) {
+    alert('Please select a bias type before checking.');
+    return;
+  }
+  if (!explanation) {
+    alert('Please write an explanation before checking.');
+    return;
+  }
+
+  state.a1.checked[scenarioId] = true;
+  let points = 0;
+
+  // Score the multiple choice (1 point)
+  const isCorrectChoice = scenario.options[selectedIdx].correct;
+  if (isCorrectChoice) points += 1;
+
+  // Score the explanation via keyword matching (1 point)
+  const lowerExpl = explanation.toLowerCase();
+  const matchCount = scenario.keywords.filter(kw => lowerExpl.includes(kw.toLowerCase())).length;
+  if (matchCount >= 2) points += 1;
+
+  state.a1.scores[scenarioId] = points;
+
+  // Lock UI
+  const btns = document.querySelectorAll(`[data-scenario="${scenarioId}"]`);
+  btns.forEach((b, i) => {
+    b.classList.add('locked');
+    if (scenario.options[i].correct) b.classList.add('correct-answer');
+  });
+  document.getElementById(`a1-explain-${scenarioId}`).disabled = true;
+  document.getElementById(`a1-check-${scenarioId}`).disabled = true;
+
+  // Show feedback
+  const fb = document.getElementById(`a1-feedback-${scenarioId}`);
+  const card = document.getElementById(`a1-card-${scenarioId}`);
+  if (points === 2) {
+    fb.className = 'feedback show correct';
+    fb.innerHTML = `<strong>+${points}/2 &mdash; Excellent!</strong>${scenario.explanation}`;
+    card.classList.add('correct');
+  } else if (points === 1) {
+    fb.className = 'feedback show partial';
+    fb.innerHTML = `<strong>+${points}/2 &mdash; Partial Credit</strong>${scenario.explanation}`;
+    card.classList.add('partial');
+  } else {
+    fb.className = 'feedback show incorrect';
+    fb.innerHTML = `<strong>+${points}/2 &mdash; Not Quite</strong>${scenario.explanation}`;
+    card.classList.add('incorrect');
+  }
+
+  updateScores();
+}
+
+// ==================== ACTIVITY 2 RENDERING ====================
+function renderActivity2() {
+  const container = document.getElementById('a2-cards');
+  container.innerHTML = a2Datasets.map((d, i) => {
+    const allLabels = shuffle([...d.correctLabels, ...d.distractorLabels]);
+    return `
+      <div class="card" id="a2-card-${d.id}">
+        <span class="card-number">Dataset ${i + 1} of 4</span>
+        <h3>${d.title}</h3>
+        <div class="dataset-description">${d.description}</div>
+
+        <div class="drop-zone-label">Available Labels (drag to drop zone below):</div>
+        <div class="label-bank" id="a2-bank-${d.id}">
+          ${allLabels.map(label => `
+            <div class="drag-label" draggable="true" data-dataset="${d.id}" data-label="${label}"
+                 ondragstart="dragStart(event)" ontouchstart="touchStart(event)">${label}</div>
+          `).join('')}
+        </div>
+
+        <div class="drop-zone-label">Who's missing or underrepresented? Drop labels here:</div>
+        <div class="drop-zone" id="a2-drop-${d.id}"
+             ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropLabel(event, '${d.id}')">
+          <span class="drop-placeholder" id="a2-placeholder-${d.id}">Drop labels here...</span>
+        </div>
+
+        <button class="check-btn" id="a2-check-${d.id}" onclick="checkA2('${d.id}')">Check Answer</button>
+        <div class="feedback" id="a2-feedback-${d.id}"></div>
+      </div>
+    `;
+  }).join('');
+
+  // Initialize placed state
+  a2Datasets.forEach(d => { state.a2.placed[d.id] = []; });
+}
+
+// Drag/Drop helpers
+let draggedEl = null;
+
+function dragStart(e) {
+  draggedEl = e.target;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', '');
+  setTimeout(() => { if (draggedEl) draggedEl.style.opacity = '0.5'; }, 0);
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function dragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function dropLabel(e, datasetId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!draggedEl || state.a2.checked[datasetId]) return;
+
+  const label = draggedEl.getAttribute('data-label');
+  const dsId = draggedEl.getAttribute('data-dataset');
+  if (dsId !== datasetId) return;
+
+  // Move label to drop zone
+  const dropZone = document.getElementById(`a2-drop-${datasetId}`);
+  const placeholder = document.getElementById(`a2-placeholder-${datasetId}`);
+  if (placeholder) placeholder.style.display = 'none';
+
+  // Check if already placed
+  if (state.a2.placed[datasetId].includes(label)) return;
+
+  draggedEl.classList.add('placed');
+  draggedEl.style.opacity = '';
+
+  // Create a copy in drop zone
+  const clone = document.createElement('div');
+  clone.className = 'drag-label';
+  clone.textContent = label;
+  clone.setAttribute('data-label', label);
+  clone.setAttribute('data-dataset', datasetId);
+  clone.onclick = function() { removeLabel(datasetId, label, this); };
+  dropZone.appendChild(clone);
+
+  state.a2.placed[datasetId].push(label);
+  draggedEl = null;
+}
+
+function removeLabel(datasetId, label, el) {
+  if (state.a2.checked[datasetId]) return;
+
+  // Remove from drop zone
+  el.remove();
+  state.a2.placed[datasetId] = state.a2.placed[datasetId].filter(l => l !== label);
+
+  // Un-dim the bank label
+  const bankLabels = document.querySelectorAll(`#a2-bank-${datasetId} .drag-label`);
+  bankLabels.forEach(bl => {
+    if (bl.getAttribute('data-label') === label) {
+      bl.classList.remove('placed');
+    }
+  });
+
+  // Show placeholder if empty
+  const dropZone = document.getElementById(`a2-drop-${datasetId}`);
+  if (state.a2.placed[datasetId].length === 0) {
+    const placeholder = document.getElementById(`a2-placeholder-${datasetId}`);
+    if (placeholder) placeholder.style.display = '';
+  }
+}
+
+// Touch support for drag-and-drop
+let touchEl = null;
+let touchClone = null;
+let touchOffsetX = 0;
+let touchOffsetY = 0;
+
+function touchStart(e) {
+  const target = e.target.closest('.drag-label');
+  if (!target || target.classList.contains('placed') || target.classList.contains('locked')) return;
+  const datasetId = target.getAttribute('data-dataset');
+  if (state.a2.checked[datasetId]) return;
+
+  touchEl = target;
+  const rect = target.getBoundingClientRect();
+  touchOffsetX = e.touches[0].clientX - rect.left;
+  touchOffsetY = e.touches[0].clientY - rect.top;
+
+  touchClone = target.cloneNode(true);
+  touchClone.style.position = 'fixed';
+  touchClone.style.zIndex = '9999';
+  touchClone.style.pointerEvents = 'none';
+  touchClone.style.width = rect.width + 'px';
+  touchClone.style.opacity = '0.9';
+  touchClone.style.left = (e.touches[0].clientX - touchOffsetX) + 'px';
+  touchClone.style.top = (e.touches[0].clientY - touchOffsetY) + 'px';
+  document.body.appendChild(touchClone);
+
+  target.style.opacity = '0.3';
+
+  e.preventDefault();
+}
+
+document.addEventListener('touchmove', function(e) {
+  if (!touchClone) return;
+  touchClone.style.left = (e.touches[0].clientX - touchOffsetX) + 'px';
+  touchClone.style.top = (e.touches[0].clientY - touchOffsetY) + 'px';
+  e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('touchend', function(e) {
+  if (!touchClone || !touchEl) return;
+
+  const x = e.changedTouches[0].clientX;
+  const y = e.changedTouches[0].clientY;
+
+  document.body.removeChild(touchClone);
+  touchClone = null;
+  touchEl.style.opacity = '';
+
+  // Find which drop zone we're over
+  const datasetId = touchEl.getAttribute('data-dataset');
+  const dropZone = document.getElementById(`a2-drop-${datasetId}`);
+  if (!dropZone) { touchEl = null; return; }
+
+  const dzRect = dropZone.getBoundingClientRect();
+  if (x >= dzRect.left && x <= dzRect.right && y >= dzRect.top && y <= dzRect.bottom) {
+    // Simulate a drop
+    draggedEl = touchEl;
+    dropLabel({ preventDefault: () => {}, currentTarget: dropZone }, datasetId);
+    dropZone.classList.remove('drag-over');
+  }
+
+  touchEl = null;
+});
+
+function checkA2(datasetId) {
+  if (state.a2.checked[datasetId]) return;
+  const dataset = a2Datasets.find(d => d.id === datasetId);
+  const placed = state.a2.placed[datasetId];
+
+  if (placed.length === 0) {
+    alert('Please drag at least one label to the drop zone before checking.');
+    return;
+  }
+
+  state.a2.checked[datasetId] = true;
+
+  // Score: 1 point for each correctly placed label (max 3)
+  let correct = 0;
+  let incorrect = 0;
+  placed.forEach(label => {
+    if (dataset.correctLabels.includes(label)) correct++;
+    else incorrect++;
+  });
+
+  // Missed labels
+  const missed = dataset.correctLabels.filter(l => !placed.includes(l));
+
+  // Points: correct minus incorrect penalty, min 0, max 3
+  let points = Math.max(0, Math.min(3, correct - incorrect));
+  state.a2.scores[datasetId] = points;
+
+  // Lock the UI
+  const bankLabels = document.querySelectorAll(`#a2-bank-${datasetId} .drag-label`);
+  bankLabels.forEach(bl => bl.classList.add('locked'));
+
+  const dropLabels = document.querySelectorAll(`#a2-drop-${datasetId} .drag-label`);
+  dropLabels.forEach(dl => {
+    dl.classList.add('locked');
+    dl.onclick = null;
+    const label = dl.getAttribute('data-label');
+    if (dataset.correctLabels.includes(label)) dl.classList.add('correct-label');
+    else dl.classList.add('incorrect-label');
+  });
+
+  document.getElementById(`a2-check-${datasetId}`).disabled = true;
+
+  // Show missed labels
+  if (missed.length > 0) {
+    const dropZone = document.getElementById(`a2-drop-${datasetId}`);
+    missed.forEach(label => {
+      const el = document.createElement('div');
+      el.className = 'drag-label correct-label locked';
+      el.textContent = label + ' (missed)';
+      el.style.opacity = '0.6';
+      dropZone.appendChild(el);
+    });
+  }
+
+  // Feedback
+  const fb = document.getElementById(`a2-feedback-${datasetId}`);
+  const card = document.getElementById(`a2-card-${datasetId}`);
+
+  if (points === 3) {
+    fb.className = 'feedback show correct';
+    fb.innerHTML = `<strong>+${points}/3 &mdash; Perfect!</strong>${dataset.explanation}`;
+    card.classList.add('correct');
+  } else if (points >= 1) {
+    fb.className = 'feedback show partial';
+    fb.innerHTML = `<strong>+${points}/3 &mdash; Partial Credit</strong>${dataset.explanation}`;
+    card.classList.add('partial');
+  } else {
+    fb.className = 'feedback show incorrect';
+    fb.innerHTML = `<strong>+${points}/3 &mdash; Not Quite</strong>${dataset.explanation}`;
+    card.classList.add('incorrect');
+  }
+
+  updateScores();
+}
+
+// ==================== ACTIVITY 3 RENDERING ====================
+function renderActivity3() {
+  const container = document.getElementById('a3-cards');
+  container.innerHTML = a3Scenarios.map((s, i) => {
+    const shuffled = shuffle([...s.options]);
+    state.a3.orders[s.id] = shuffled.map(o => o.rank);
+    return `
+      <div class="card" id="a3-card-${s.id}">
+        <span class="card-number">Scenario ${i + 1} of 4</span>
+        <h3>${s.title}</h3>
+        <div class="scenario">${s.scenario}</div>
+
+        <div class="drop-zone-label">Rank the fixes from most effective (#1) to least effective (#4):</div>
+        <div class="rank-list" id="a3-list-${s.id}">
+          ${shuffled.map((o, j) => `
+            <div class="rank-item" draggable="true" data-fix="${s.id}" data-rank="${o.rank}"
+                 ondragstart="rankDragStart(event)" ondragover="rankDragOver(event)" ondragleave="rankDragLeave(event)" ondrop="rankDrop(event, '${s.id}')">
+              <div class="rank-number">${j + 1}</div>
+              <div class="rank-text">${o.text}</div>
+              <div class="rank-grip">&#9776;</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <button class="check-btn" id="a3-check-${s.id}" onclick="checkA3('${s.id}')">Check Answer</button>
+        <div class="feedback" id="a3-feedback-${s.id}"></div>
+      </div>
+    `;
+  }).join('');
+
+  // Add touch support for ranking
+  setupRankTouch();
+}
+
+let rankDragged = null;
+
+function rankDragStart(e) {
+  rankDragged = e.target.closest('.rank-item');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', '');
+  setTimeout(() => { if (rankDragged) rankDragged.classList.add('dragging'); }, 0);
+}
+
+function rankDragOver(e) {
+  e.preventDefault();
+  const item = e.target.closest('.rank-item');
+  if (item && item !== rankDragged) item.classList.add('drag-over-item');
+}
+
+function rankDragLeave(e) {
+  const item = e.target.closest('.rank-item');
+  if (item) item.classList.remove('drag-over-item');
+}
+
+function rankDrop(e, fixId) {
+  e.preventDefault();
+  if (state.a3.checked[fixId]) return;
+
+  const target = e.target.closest('.rank-item');
+  if (!target || !rankDragged || target === rankDragged) {
+    if (rankDragged) rankDragged.classList.remove('dragging');
+    document.querySelectorAll('.drag-over-item').forEach(el => el.classList.remove('drag-over-item'));
+    return;
+  }
+
+  const list = document.getElementById(`a3-list-${fixId}`);
+  const items = Array.from(list.children);
+  const fromIdx = items.indexOf(rankDragged);
+  const toIdx = items.indexOf(target);
+
+  rankDragged.classList.remove('dragging');
+  target.classList.remove('drag-over-item');
+
+  if (fromIdx < toIdx) {
+    list.insertBefore(rankDragged, target.nextSibling);
+  } else {
+    list.insertBefore(rankDragged, target);
+  }
+
+  // Update rank numbers and state
+  updateRankNumbers(fixId);
+}
+
+function updateRankNumbers(fixId) {
+  const list = document.getElementById(`a3-list-${fixId}`);
+  const items = Array.from(list.children);
+  state.a3.orders[fixId] = items.map((item, i) => {
+    item.querySelector('.rank-number').textContent = i + 1;
+    return parseInt(item.getAttribute('data-rank'));
+  });
+}
+
+function setupRankTouch() {
+  let touchRankEl = null;
+  let touchRankClone = null;
+  let touchRankOffY = 0;
+
+  document.querySelectorAll('.rank-item').forEach(item => {
+    item.addEventListener('touchstart', function(e) {
+      if (item.classList.contains('locked')) return;
+      const fixId = item.getAttribute('data-fix');
+      if (state.a3.checked[fixId]) return;
+
+      touchRankEl = item;
+      const rect = item.getBoundingClientRect();
+      touchRankOffY = e.touches[0].clientY - rect.top;
+
+      touchRankClone = item.cloneNode(true);
+      touchRankClone.style.position = 'fixed';
+      touchRankClone.style.zIndex = '9999';
+      touchRankClone.style.pointerEvents = 'none';
+      touchRankClone.style.width = rect.width + 'px';
+      touchRankClone.style.opacity = '0.85';
+      touchRankClone.style.left = rect.left + 'px';
+      touchRankClone.style.top = (e.touches[0].clientY - touchRankOffY) + 'px';
+      touchRankClone.style.boxShadow = '0 4px 20px rgba(0,0,0,0.5)';
+      document.body.appendChild(touchRankClone);
+
+      item.style.opacity = '0.3';
+      e.preventDefault();
+    }, { passive: false });
+  });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!touchRankClone) return;
+    touchRankClone.style.top = (e.touches[0].clientY - touchRankOffY) + 'px';
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchend', function(e) {
+    if (!touchRankClone || !touchRankEl) return;
+    const y = e.changedTouches[0].clientY;
+    document.body.removeChild(touchRankClone);
+    touchRankClone = null;
+    touchRankEl.style.opacity = '';
+
+    const fixId = touchRankEl.getAttribute('data-fix');
+    const list = document.getElementById(`a3-list-${fixId}`);
+    const items = Array.from(list.children);
+
+    let targetItem = null;
+    for (const it of items) {
+      if (it === touchRankEl) continue;
+      const rect = it.getBoundingClientRect();
+      if (y >= rect.top && y <= rect.bottom) {
+        targetItem = it;
+        break;
+      }
+    }
+
+    if (targetItem) {
+      const fromIdx = items.indexOf(touchRankEl);
+      const toIdx = items.indexOf(targetItem);
+      if (fromIdx < toIdx) {
+        list.insertBefore(touchRankEl, targetItem.nextSibling);
+      } else {
+        list.insertBefore(touchRankEl, targetItem);
+      }
+      updateRankNumbers(fixId);
+    }
+
+    touchRankEl = null;
+  });
+}
+
+function checkA3(fixId) {
+  if (state.a3.checked[fixId]) return;
+  state.a3.checked[fixId] = true;
+
+  const currentOrder = state.a3.orders[fixId];
+  const correctOrder = [1, 2, 3, 4];
+
+  // Calculate Kendall tau distance (number of pairwise swaps)
+  let swaps = 0;
+  for (let i = 0; i < currentOrder.length; i++) {
+    for (let j = i + 1; j < currentOrder.length; j++) {
+      if (currentOrder[i] > currentOrder[j]) swaps++;
+    }
+  }
+
+  // Score: 3 for perfect, 2 for 1 swap, 1 for 2 swaps, 0 for 3+
+  let points;
+  if (swaps === 0) points = 3;
+  else if (swaps <= 1) points = 2;
+  else if (swaps <= 2) points = 1;
+  else points = 0;
+
+  state.a3.scores[fixId] = points;
+
+  // Lock and color items
+  const list = document.getElementById(`a3-list-${fixId}`);
+  const items = Array.from(list.children);
+  items.forEach((item, i) => {
+    item.classList.add('locked');
+    item.draggable = false;
+    const actualRank = parseInt(item.getAttribute('data-rank'));
+    if (actualRank === i + 1) item.classList.add('correct-rank');
+    else item.classList.add('incorrect-rank');
+  });
+
+  document.getElementById(`a3-check-${fixId}`).disabled = true;
+
+  // Feedback
+  const fb = document.getElementById(`a3-feedback-${fixId}`);
+  const card = document.getElementById(`a3-card-${fixId}`);
+
+  const correctRanking = a3Scenarios.find(s => s.id === fixId).options
+    .sort((a, b) => a.rank - b.rank)
+    .map((o, i) => `${i + 1}. ${o.text}`)
+    .join('<br>');
+
+  if (points === 3) {
+    fb.className = 'feedback show correct';
+    fb.innerHTML = `<strong>+${points}/3 &mdash; Perfect ranking!</strong>You got the order exactly right.`;
+    card.classList.add('correct');
+  } else if (points >= 1) {
+    fb.className = 'feedback show partial';
+    fb.innerHTML = `<strong>+${points}/3 &mdash; Close!</strong>The ideal ranking is:<br>${correctRanking}`;
+    card.classList.add('partial');
+  } else {
+    fb.className = 'feedback show incorrect';
+    fb.innerHTML = `<strong>+${points}/3 &mdash; Not quite.</strong>The ideal ranking is:<br>${correctRanking}`;
+    card.classList.add('incorrect');
+  }
+
+  updateScores();
+}
+
+// ==================== SCORING & NAVIGATION ====================
+function getA1Total() { return Object.values(state.a1.scores).reduce((a, b) => a + b, 0); }
+function getA2Total() { return Object.values(state.a2.scores).reduce((a, b) => a + b, 0); }
+function getA3Total() { return Object.values(state.a3.scores).reduce((a, b) => a + b, 0); }
+function getTotal() { return getA1Total() + getA2Total() + getA3Total(); }
+
+function updateScores() {
+  const a1 = getA1Total(), a2 = getA2Total(), a3 = getA3Total();
+  const total = a1 + a2 + a3;
+
+  document.getElementById('tab1Score').textContent = `${a1} / 10`;
+  document.getElementById('tab2Score').textContent = `${a2} / 12`;
+  document.getElementById('tab3Score').textContent = `${a3} / 12`;
+
+  document.getElementById('progressScore').textContent = `${total} / 34 pts`;
+  document.getElementById('progressFill').style.width = `${(total / 34) * 100}%`;
+
+  document.getElementById('summaryA1').innerHTML = `${a1} <span>/ 10</span>`;
+  document.getElementById('summaryA2').innerHTML = `${a2} <span>/ 12</span>`;
+  document.getElementById('summaryA3').innerHTML = `${a3} <span>/ 12</span>`;
+  document.getElementById('totalScoreDisplay').innerHTML = `${total} <span>/ 34</span>`;
+
+  // Check tab completion
+  const a1Done = Object.keys(state.a1.checked).length === 5;
+  const a2Done = Object.keys(state.a2.checked).length === 4;
+  const a3Done = Object.keys(state.a3.checked).length === 4;
+
+  if (a1Done) document.querySelector('[data-tab="activity1"]').classList.add('completed');
+  if (a2Done) document.querySelector('[data-tab="activity2"]').classList.add('completed');
+  if (a3Done) document.querySelector('[data-tab="activity3"]').classList.add('completed');
+}
+
+function switchTab(tabId) {
+  document.querySelectorAll('.activity').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+
+  document.getElementById(tabId).classList.add('active');
+  document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function submitScore() {
+  if (state.submitted) return;
+  state.submitted = true;
+
+  const total = getTotal();
+  window.parent.postMessage({
+    type: "activityScore",
+    score: total,
+    maxScore: 34,
+    completedAt: new Date().toISOString()
+  }, "*");
+
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submittedMsg').classList.add('show');
+}
+
+// ==================== UTILS ====================
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ==================== INIT ====================
+renderActivity1();
+renderActivity2();
+renderActivity3();
+</script>
+
+</body>
+</html>

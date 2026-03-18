@@ -1,6 +1,6 @@
 // src/pages/StudentProgress.jsx
 import { useState, useEffect } from "react";
-import { collection, getDocs, getDocsFromServer, query, orderBy, doc, getDoc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, getDocsFromServer, query, orderBy, where, doc, getDoc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
@@ -78,35 +78,42 @@ export default function StudentProgress() {
         const lessonsList = lessonsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setLessons(lessonsList);
 
-        const usersSnap = await getDocs(collection(db, "users"));
+        // Fetch only enrollments for this course (filtered)
+        const enrollSnap = await getDocs(
+          query(collection(db, "enrollments"), where("courseId", "==", selectedCourse))
+        );
+        const enrollRawData = enrollSnap.docs.map((d) => d.data());
+
+        // Fetch only enrolled user docs in parallel (no full users collection scan)
+        const enrolledUids = [...new Set(enrollRawData.map((d) => d.uid).filter(Boolean))];
+        const userDocResults = await Promise.all(
+          enrolledUids.map((uid) => getDoc(doc(db, "users", uid)).catch(() => null))
+        );
         const usersMap = {};
-        usersSnap.forEach((d) => {
-          const data = d.data();
-          usersMap[d.id] = { uid: d.id, ...data };
-          if (data.email) usersMap[data.email.toLowerCase()] = { uid: d.id, ...data };
+        userDocResults.forEach((d, i) => {
+          if (d?.exists()) {
+            const data = d.data();
+            usersMap[enrolledUids[i]] = { uid: enrolledUids[i], ...data };
+            if (data.email) usersMap[data.email.toLowerCase()] = { uid: enrolledUids[i], ...data };
+          }
         });
 
-        const enrollSnap = await getDocs(collection(db, "enrollments"));
         const enrollMap = {};
         const enrolledStudents = [];
-        enrollSnap.forEach((d) => {
-          const data = d.data();
-          if (data.courseId === selectedCourse) {
-            // Test students visible but marked with badge
-            const key = data.uid || data.email;
-            enrollMap[key] = data;
-            const userMatch = data.uid ? usersMap[data.uid] : usersMap[data.email?.toLowerCase()];
-            enrolledStudents.push({
-              uid: userMatch?.uid || data.uid || data.email?.replace(/[.@]/g, "_"),
-              displayName: userMatch?.displayName || data.name || data.email || "Unknown",
-              email: data.email || userMatch?.email || "",
-              photoURL: userMatch?.photoURL || data.photoUrl || "",
-              section: data.section || "",
-              firstName: data.firstName || "",
-              lastName: data.lastName || "",
-              hasLoggedIn: !!userMatch,
-            });
-          }
+        enrollRawData.forEach((data) => {
+          const key = data.uid || data.email;
+          enrollMap[key] = data;
+          const userMatch = data.uid ? usersMap[data.uid] : usersMap[data.email?.toLowerCase()];
+          enrolledStudents.push({
+            uid: userMatch?.uid || data.uid || data.email?.replace(/[.@]/g, "_"),
+            displayName: userMatch?.displayName || data.name || data.email || "Unknown",
+            email: data.email || userMatch?.email || "",
+            photoURL: userMatch?.photoURL || data.photoUrl || "",
+            section: data.section || "",
+            firstName: data.firstName || "",
+            lastName: data.lastName || "",
+            hasLoggedIn: !!userMatch,
+          });
         });
         setEnrollments(enrollMap);
 
@@ -122,26 +129,30 @@ export default function StudentProgress() {
         });
         setStudents(dedupedStudents);
 
+        // One getDocs per student instead of one getDoc per (student × lesson)
         const progress = {};
-        const progressPromises = [];
-        for (const student of dedupedStudents) {
+        const progressPromises = dedupedStudents.map(async (student) => {
           progress[student.uid] = {};
-          if (!student.hasLoggedIn) continue;
-          for (const lesson of lessonsList) {
-            progressPromises.push(
-              getDoc(doc(db, "progress", student.uid, "courses", selectedCourse, "lessons", lesson.id))
-                .then((progDoc) => {
-                  if (progDoc.exists()) {
-                    const data = progDoc.data();
-                    progress[student.uid][lesson.id] = { ...data.answers, _completed: data.completed || false, _completedAt: data.completedAt || null };
-                  } else {
-                    progress[student.uid][lesson.id] = {};
-                  }
-                })
-                .catch(() => { progress[student.uid][lesson.id] = {}; })
+          if (!student.hasLoggedIn) return;
+          try {
+            const lessonSnap = await getDocs(
+              collection(db, "progress", student.uid, "courses", selectedCourse, "lessons")
             );
+            const lessonDocsById = {};
+            lessonSnap.forEach((d) => { lessonDocsById[d.id] = d; });
+            lessonsList.forEach((lesson) => {
+              const progDoc = lessonDocsById[lesson.id];
+              if (progDoc?.exists()) {
+                const data = progDoc.data();
+                progress[student.uid][lesson.id] = { ...data.answers, _completed: data.completed || false, _completedAt: data.completedAt || null };
+              } else {
+                progress[student.uid][lesson.id] = {};
+              }
+            });
+          } catch {
+            lessonsList.forEach((lesson) => { progress[student.uid][lesson.id] = {}; });
           }
-        }
+        });
         await Promise.all(progressPromises);
         setProgressData(progress);
 
@@ -1599,7 +1610,9 @@ export default function StudentProgress() {
         </p>
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><div className="spinner" /></div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
+            {[1,2,3,4].map((i) => <div key={i} className="skeleton" style={{ width: 130, height: 36, borderRadius: 8 }} />)}
+          </div>
         ) : (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
@@ -1615,7 +1628,14 @@ export default function StudentProgress() {
             </div>
 
             {dataLoading ? (
-              <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><div className="spinner" /></div>
+              <div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
+                  {[1,2,3,4].map((i) => <div key={i} className="skeleton" style={{ height: 82, borderRadius: 12 }} />)}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {[1,2,3,4,5,6].map((i) => <div key={i} className="skeleton skeleton-line" style={{ height: 52, borderRadius: 10 }} />)}
+                </div>
+              </div>
             ) : view === "student" ? (
               renderStudentDrilldown()
             ) : view === "lesson" ? (

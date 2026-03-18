@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sub Plans Generator — Perth Amboy HS</title>
+<style>
+:root {
+  --primary: #1a5276;
+  --primary-light: #2980b9;
+  --primary-bg: #eaf2f8;
+  --accent: #e74c3c;
+  --accent-light: #fadbd8;
+  --success: #27ae60;
+  --success-light: #d5f5e3;
+  --warning: #f39c12;
+  --warning-light: #fef5e7;
+  --text: #2c3e50;
+  --text-light: #7f8c8d;
+  --border: #d5dbdb;
+  --bg: #f8f9fa;
+  --white: #ffffff;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --radius: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  padding-bottom: 80px;
+}
+
+.header {
+  background: var(--primary);
+  color: var(--white);
+  padding: 20px;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+
+.header h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 4px; }
+.header p { font-size: 0.85rem; opacity: 0.85; }
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.section {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.section-header {
+  background: var(--primary-bg);
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-header h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.section-header .toggle-icon {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  transition: transform 0.2s;
+}
+
+.section-header.collapsed .toggle-icon { transform: rotate(-90deg); }
+
+.section-body { padding: 18px; }
+.section-body.hidden { display: none; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.form-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+.form-row.single { grid-template-columns: 1fr; }
+
+.form-group { display: flex; flex-direction: column; }
+.form-group label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-light);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  background: var(--white);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(41,128,185,0.1);
+}
+
+.form-group textarea { resize: vertical; min-height: 80px; }
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.checkbox-row label {
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  background: var(--border);
+  border-radius: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle-switch.active { background: var(--primary-light); }
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: var(--white);
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-switch.active::after { transform: translateX(22px); }
+
+.toggle-label { font-size: 0.92rem; font-weight: 500; }
+
+/* Period cards */
+.period-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.period-card-header {
+  background: var(--primary);
+  color: var(--white);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.period-card-header h3 { font-size: 0.95rem; font-weight: 600; }
+
+.period-card-body { padding: 14px; }
+.period-card-body.hidden { display: none; }
+
+.template-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.template-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--primary-light);
+  border-radius: 20px;
+  background: var(--white);
+  color: var(--primary);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.template-btn:hover {
+  background: var(--primary);
+  color: var(--white);
+}
+
+.materials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary { background: var(--primary); color: var(--white); }
+.btn-primary:hover { background: var(--primary-light); }
+
+.btn-danger { background: var(--accent); color: var(--white); }
+.btn-danger:hover { background: #c0392b; }
+
+.btn-success { background: var(--success); color: var(--white); }
+.btn-success:hover { background: #219a52; }
+
+.btn-warning { background: var(--warning); color: var(--white); }
+.btn-warning:hover { background: #d68910; }
+
+.btn-outline {
+  background: var(--white);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.btn-outline:hover { background: var(--primary-bg); }
+
+.btn-sm { padding: 6px 14px; font-size: 0.82rem; }
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/* Emergency button */
+.emergency-banner {
+  background: var(--accent-light);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.emergency-banner p {
+  font-size: 0.88rem;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.btn-emergency {
+  background: var(--accent);
+  color: var(--white);
+  padding: 14px 28px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-emergency:hover { background: #c0392b; transform: scale(1.02); }
+
+/* Saved plans */
+.saved-plan-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: var(--bg);
+}
+
+.saved-plan-info h4 { font-size: 0.92rem; font-weight: 600; }
+.saved-plan-info p { font-size: 0.8rem; color: var(--text-light); }
+
+.saved-plan-actions { display: flex; gap: 6px; }
+
+/* Print preview */
+#printPreview {
+  display: none;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 30px;
+  margin-bottom: 16px;
+}
+
+#printPreview.visible { display: block; }
+
+#printPreview h2 {
+  font-size: 1.3rem;
+  text-align: center;
+  margin-bottom: 4px;
+  color: var(--primary);
+}
+
+#printPreview .sub-header {
+  text-align: center;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--primary);
+}
+
+#printPreview .info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 20px;
+  margin-bottom: 20px;
+  font-size: 0.92rem;
+}
+
+#printPreview .info-grid .label {
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+#printPreview .period-block {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+#printPreview .period-block-header {
+  background: var(--primary);
+  color: var(--white);
+  padding: 8px 14px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+#printPreview .period-block-body {
+  padding: 12px 14px;
+  font-size: 0.9rem;
+}
+
+#printPreview .period-block-body p { margin-bottom: 6px; }
+#printPreview .period-block-body .field-label { font-weight: 600; color: var(--text-light); }
+
+#printPreview .general-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 2px solid var(--primary);
+}
+
+#printPreview .general-section h3 {
+  font-size: 1rem;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+#printPreview .general-section p,
+#printPreview .general-section div {
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--text);
+  color: var(--white);
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  z-index: 1000;
+  transition: transform 0.3s;
+  white-space: nowrap;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Floating action bar */
+.action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  z-index: 100;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+}
+
+/* Status indicator */
+.autosave-status {
+  font-size: 0.78rem;
+  color: var(--text-light);
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* Add/remove period */
+.add-period-row {
+  text-align: center;
+  padding: 10px;
+}
+
+@media (max-width: 600px) {
+  .form-row { grid-template-columns: 1fr; }
+  .form-row.triple { grid-template-columns: 1fr; }
+  .header h1 { font-size: 1.15rem; }
+  .container { padding: 10px; }
+  .action-bar { flex-wrap: wrap; gap: 6px; }
+  .action-bar .btn { flex: 1; min-width: 120px; justify-content: center; }
+  #printPreview .info-grid { grid-template-columns: 1fr; }
+  .materials-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* Print styles */
+@media print {
+  body { background: white; padding: 0; }
+  .header, .section, .emergency-banner, .action-bar, .toast,
+  .autosave-status, #savedPlansSection { display: none !important; }
+  #printPreview {
+    display: block !important;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+  }
+  #printPreview .period-block { break-inside: avoid; }
+  #printPreview .general-section { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Sub Plans Generator</h1>
+  <p>Perth Amboy High School</p>
+</div>
+
+<div class="container">
+
+  <!-- Emergency Sub Plan -->
+  <div class="emergency-banner">
+    <p>Need a plan right now? One click generates a complete, low-prep plan for all periods.</p>
+    <button class="btn-emergency" onclick="generateEmergencyPlan()">Emergency Sub Plan</button>
+  </div>
+
+  <!-- Teacher Info -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection(this)">
+      <h2>Teacher Information</h2>
+      <span class="toggle-icon">&#9660;</span>
+    </div>
+    <div class="section-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Teacher Name</label>
+          <input type="text" id="teacherName" value="Luke McCarthy" oninput="autoSave()">
+        </div>
+        <div class="form-group">
+          <label>School</label>
+          <input type="text" id="school" value="Perth Amboy High School" oninput="autoSave()">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Room Number</label>
+          <input type="text" id="roomNumber" placeholder="e.g., 204" oninput="autoSave()">
+        </div>
+        <div class="form-group">
+          <label>Date of Absence</label>
+          <input type="date" id="absenceDate" oninput="autoSave()">
+        </div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-switch" id="multiDayToggle" onclick="toggleMultiDay()"></div>
+        <span class="toggle-label">Multi-day absence</span>
+      </div>
+      <div class="form-row single" id="endDateRow" style="display: none;">
+        <div class="form-group">
+          <label>End Date</label>
+          <input type="date" id="absenceEndDate" oninput="autoSave()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule / Periods -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection(this)">
+      <h2>Schedule &amp; Plans by Period</h2>
+      <span class="toggle-icon">&#9660;</span>
+    </div>
+    <div class="section-body" id="periodsContainer">
+      <!-- Periods are generated by JS -->
+    </div>
+    <div class="add-period-row">
+      <button class="btn btn-outline btn-sm" onclick="addPeriod()">+ Add Period</button>
+      <button class="btn btn-outline btn-sm" onclick="removeLastPeriod()" style="margin-left:6px;">- Remove Last</button>
+    </div>
+  </div>
+
+  <!-- General Info -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection(this)">
+      <h2>General Information for Sub</h2>
+      <span class="toggle-icon">&#9660;</span>
+    </div>
+    <div class="section-body">
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Classroom Procedures</label>
+          <textarea id="procedures" rows="5" oninput="autoSave()">- Bathroom: Students may use the bathroom one at a time with a pass. Limit to 5 minutes.
+- Technology: Chromebooks are available in the cart. Students must return them before leaving.
+- Late students: Mark them late in the attendance system. Do not send them to the office unless disruptive.
+- Cell phones: Phones should be put away during class. If a student refuses, note their name.
+- Early finishers: Students may read silently or work on other assignments.</textarea>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Emergency Procedures</label>
+          <textarea id="emergency" rows="3" oninput="autoSave()">- Fire: Exit through the main door, turn right, exit the building via the nearest stairwell. Meet at the designated area.
+- Lockdown: Lock the door, turn off lights, students sit against the wall away from windows and doors.
+- Evacuation map is posted by the door.</textarea>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Helpful Students</label>
+          <textarea id="helpfulStudents" rows="3" placeholder="List students who can help the sub with procedures, tech, etc." oninput="autoSave()"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Nearby Teachers for Help</label>
+          <textarea id="nearbyTeachers" rows="3" placeholder="e.g., Ms. Smith (Room 206), Mr. Jones (Room 202)" oninput="autoSave()"></textarea>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Where to Find Materials</label>
+          <textarea id="materials" rows="3" placeholder="e.g., Worksheets are on my desk in a folder labeled 'Sub Plans'. Answer keys are in the top desk drawer." oninput="autoSave()"></textarea>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Additional Notes for the Sub</label>
+          <textarea id="additionalNotes" rows="3" placeholder="Anything else the sub should know..." oninput="autoSave()"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Saved Plans -->
+  <div class="section" id="savedPlansSection">
+    <div class="section-header" onclick="toggleSection(this)">
+      <h2>Saved Plans</h2>
+      <span class="toggle-icon">&#9660;</span>
+    </div>
+    <div class="section-body" id="savedPlansList">
+      <p style="color: var(--text-light); font-size: 0.88rem;">No saved plans yet.</p>
+    </div>
+  </div>
+
+  <!-- Print Preview -->
+  <div id="printPreview"></div>
+
+  <div class="autosave-status" id="autosaveStatus"></div>
+</div>
+
+<!-- Floating Action Bar -->
+<div class="action-bar">
+  <button class="btn btn-primary" onclick="generatePreview()">Preview Plan</button>
+  <button class="btn btn-success" onclick="printPlan()">Print</button>
+  <button class="btn btn-outline" onclick="copyAsText()">Copy Text</button>
+  <button class="btn btn-warning" onclick="savePlan()">Save Plan</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// === CONFIG ===
+const DEFAULT_COURSES = [
+  '11th Grade Physics',
+  '9th Grade AI Literacy',
+  'Upperclassmen AI Literacy',
+  '9th Grade Digital Literacy',
+  'Prep / Planning',
+  'Lunch',
+  'Other'
+];
+
+const DEFAULT_PERIODS = [
+  { period: 'Period 1', course: '9th Grade AI Literacy' },
+  { period: 'Period 2', course: '11th Grade Physics' },
+  { period: 'Period 3', course: '9th Grade AI Literacy' },
+  { period: 'Period 4', course: 'Lunch' },
+  { period: 'Period 5', course: 'Prep / Planning' },
+  { period: 'Period 6', course: '9th Grade AI Literacy' },
+  { period: 'Period 7', course: 'Upperclassmen AI Literacy' },
+  { period: 'Period 8', course: '9th Grade Digital Literacy' }
+];
+
+const TEMPLATES = {
+  independent: {
+    name: 'Independent Work',
+    activity: 'Students will work independently on the assignment provided. All instructions are on the worksheet/document. Students should work quietly and raise their hand if they have questions.',
+    materials: ['worksheets'],
+    special: 'Please circulate the room to ensure students stay on task. Collect completed work at the end of class.'
+  },
+  video: {
+    name: 'Video + Worksheet',
+    activity: 'Students will watch the video displayed on the board and complete the accompanying worksheet. Play the video from where it is already queued up on the computer.\n\nVideo Title: _________________\nVideo Length: _________________',
+    materials: ['worksheets', 'chromebooks'],
+    special: 'Make sure the volume is loud enough for the back of the room. Pause the video if students need time to write. Collect worksheets at the end of class.'
+  },
+  review: {
+    name: 'Review Day',
+    activity: 'Students will spend the period reviewing their notes and materials for an upcoming assessment. They may work individually or in small groups (max 3). They should use their notebooks, handouts, and any study guides provided.',
+    materials: ['none'],
+    special: 'Encourage students to actually study — not just socialize. Remind them they have an upcoming test/quiz.'
+  },
+  lab_report: {
+    name: 'Lab Report Writing',
+    activity: 'Students will work on their lab reports from the most recent lab activity. They should have their lab data and lab handout with them. Lab reports should follow the format posted on the wall / in Google Classroom.',
+    materials: ['chromebooks'],
+    special: 'Students may need to access Google Classroom for the lab template. No new lab activities — writing only.'
+  },
+  reading: {
+    name: 'Reading + Questions',
+    activity: 'Students will read the assigned section and answer the questions on the accompanying handout. Reading material and questions are provided.\n\nReading: _________________\nPages/Section: _________________',
+    materials: ['worksheets', 'textbook'],
+    special: 'Students should read silently first, then answer questions. Collect completed work at the end of class.'
+  },
+  free_review: {
+    name: 'Free Choice Review',
+    activity: 'Students may choose how they want to review the current unit material. Options include:\n- Reviewing notes\n- Re-doing practice problems\n- Creating flashcards\n- Working with a partner to quiz each other\n- Using approved review resources on their Chromebooks',
+    materials: ['chromebooks'],
+    special: 'Students must be actively reviewing — this is not free time. If students are off-task, redirect them to their notes or a specific assignment.'
+  }
+};
+
+const EMERGENCY_PLANS = {
+  '11th Grade Physics': {
+    activity: 'Students will complete the Physics Review worksheet left on the desk. If no worksheet is available, students should:\n1. Open their notebooks and review notes from the current unit\n2. Write a one-page summary of the key concepts they have learned so far\n3. Create 5 practice problems with solutions based on the current material',
+    materials: ['worksheets'],
+    special: 'Collect all work at the end of class. Students should work quietly and independently.'
+  },
+  '9th Grade AI Literacy': {
+    activity: 'Students will write a one-page reflection responding to the following prompt:\n\n"Describe one way that artificial intelligence is used in your daily life. How does it work? What are the benefits and potential concerns?"\n\nStudents should write in complete sentences and paragraphs. This should take the full period.',
+    materials: ['none'],
+    special: 'Write the prompt on the board. Students should use lined paper from their binders. Collect all reflections at the end of class.'
+  },
+  'Upperclassmen AI Literacy': {
+    activity: 'Students will write a one-page analysis responding to the following prompt:\n\n"Choose an industry (healthcare, education, transportation, etc.) and analyze how AI is transforming it. Discuss at least two specific applications, their benefits, and ethical considerations."\n\nThis should be a well-structured response with an introduction, body, and conclusion.',
+    materials: ['none'],
+    special: 'Write the prompt on the board. Students may use their Chromebooks for research if available. Collect all work at the end of class.'
+  },
+  '9th Grade Digital Literacy': {
+    activity: 'Students will complete a Digital Citizenship reflection:\n\n"Write about 3 rules you follow (or should follow) to stay safe and responsible online. For each rule, explain WHY it matters and give a real example."\n\nStudents should write in complete sentences. Minimum half a page.',
+    materials: ['none'],
+    special: 'Write the prompt on the board. Collect all work at the end of class.'
+  },
+  'Prep / Planning': {
+    activity: 'No students — prep period.',
+    materials: ['none'],
+    special: ''
+  },
+  'Lunch': {
+    activity: 'Lunch period — no coverage needed.',
+    materials: ['none'],
+    special: ''
+  },
+  'Other': {
+    activity: 'Students should work quietly on any current assignments or read silently.',
+    materials: ['none'],
+    special: 'Collect any completed work. Note any issues for the teacher.'
+  }
+};
+
+const MATERIAL_OPTIONS = ['worksheets', 'textbook', 'chromebooks', 'calculators', 'lab_equipment', 'none'];
+const MATERIAL_LABELS = {
+  worksheets: 'Worksheets/Handouts',
+  textbook: 'Textbook',
+  chromebooks: 'Chromebooks',
+  calculators: 'Calculators',
+  lab_equipment: 'Lab Equipment',
+  none: 'No materials needed'
+};
+
+// === STATE ===
+let periods = [];
+let multiDay = false;
+let autoSaveTimer = null;
+
+// === INIT ===
+function init() {
+  document.getElementById('absenceDate').value = todayStr();
+  loadDraft();
+  if (periods.length === 0) {
+    periods = DEFAULT_PERIODS.map(p => ({
+      period: p.period,
+      course: p.course,
+      activity: '',
+      materials: [],
+      special: '',
+      behavior: ''
+    }));
+  }
+  renderPeriods();
+  loadSavedPlansList();
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function formatDate(str) {
+  if (!str) return '';
+  const [y,m,d] = str.split('-');
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return months[parseInt(m)-1] + ' ' + parseInt(d) + ', ' + y;
+}
+
+// === SECTIONS ===
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  header.classList.toggle('collapsed');
+  body.classList.toggle('hidden');
+}
+
+function toggleMultiDay() {
+  multiDay = !multiDay;
+  const toggle = document.getElementById('multiDayToggle');
+  const row = document.getElementById('endDateRow');
+  toggle.classList.toggle('active', multiDay);
+  row.style.display = multiDay ? 'grid' : 'none';
+  autoSave();
+}
+
+// === PERIODS ===
+function renderPeriods() {
+  const container = document.getElementById('periodsContainer');
+  container.innerHTML = '';
+  periods.forEach((p, idx) => {
+    container.innerHTML += buildPeriodCard(p, idx);
+  });
+}
+
+function buildPeriodCard(p, idx) {
+  const courseOptions = DEFAULT_COURSES.map(c =>
+    `<option value="${c}" ${p.course === c ? 'selected' : ''}>${c}</option>`
+  ).join('');
+
+  const materialChecks = MATERIAL_OPTIONS.map(m =>
+    `<div class="checkbox-row">
+      <input type="checkbox" id="mat_${idx}_${m}" ${p.materials.includes(m) ? 'checked' : ''}
+        onchange="updateMaterial(${idx}, '${m}', this.checked)">
+      <label for="mat_${idx}_${m}">${MATERIAL_LABELS[m]}</label>
+    </div>`
+  ).join('');
+
+  const templateBtns = Object.keys(TEMPLATES).map(key =>
+    `<button class="template-btn" onclick="applyTemplate(${idx}, '${key}')">${TEMPLATES[key].name}</button>`
+  ).join('');
+
+  return `
+  <div class="period-card">
+    <div class="period-card-header" onclick="togglePeriodCard(this)">
+      <h3>${p.period} — ${p.course}</h3>
+      <span style="font-size:0.8rem;">&#9660;</span>
+    </div>
+    <div class="period-card-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Period Name</label>
+          <input type="text" value="${escapeAttr(p.period)}" onchange="periods[${idx}].period=this.value; updatePeriodHeader(${idx}); autoSave();">
+        </div>
+        <div class="form-group">
+          <label>Course</label>
+          <select onchange="periods[${idx}].course=this.value; updatePeriodHeader(${idx}); autoSave();">
+            ${courseOptions}
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:0.82rem; font-weight:600; color:var(--text-light); text-transform:uppercase; letter-spacing:0.3px;">Quick Templates</label>
+        <div class="template-buttons" style="margin-top:6px;">
+          ${templateBtns}
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Activity / Assignment Description</label>
+          <textarea id="activity_${idx}" rows="4" oninput="periods[${idx}].activity=this.value; autoSave();">${escapeHtml(p.activity)}</textarea>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>Materials Needed</label>
+        <div class="materials-grid">
+          ${materialChecks}
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Special Instructions</label>
+          <textarea id="special_${idx}" rows="2" oninput="periods[${idx}].special=this.value; autoSave();">${escapeHtml(p.special)}</textarea>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Student Behavior Notes (optional)</label>
+          <textarea id="behavior_${idx}" rows="2" placeholder="e.g., Seat 3 and Seat 7 should not sit together..." oninput="periods[${idx}].behavior=this.value; autoSave();">${escapeHtml(p.behavior)}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function togglePeriodCard(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('hidden');
+}
+
+function updatePeriodHeader(idx) {
+  const cards = document.querySelectorAll('.period-card');
+  if (cards[idx]) {
+    const h3 = cards[idx].querySelector('.period-card-header h3');
+    h3.textContent = periods[idx].period + ' — ' + periods[idx].course;
+  }
+}
+
+function updateMaterial(idx, mat, checked) {
+  if (checked) {
+    if (mat === 'none') {
+      periods[idx].materials = ['none'];
+    } else {
+      periods[idx].materials = periods[idx].materials.filter(m => m !== 'none');
+      if (!periods[idx].materials.includes(mat)) periods[idx].materials.push(mat);
+    }
+  } else {
+    periods[idx].materials = periods[idx].materials.filter(m => m !== mat);
+  }
+  renderPeriods();
+  autoSave();
+}
+
+function applyTemplate(idx, key) {
+  const t = TEMPLATES[key];
+  periods[idx].activity = t.activity;
+  periods[idx].materials = [...t.materials];
+  periods[idx].special = t.special;
+  renderPeriods();
+  autoSave();
+  showToast('Applied: ' + t.name);
+}
+
+function addPeriod() {
+  const num = periods.length + 1;
+  periods.push({
+    period: 'Period ' + num,
+    course: DEFAULT_COURSES[0],
+    activity: '',
+    materials: [],
+    special: '',
+    behavior: ''
+  });
+  renderPeriods();
+  autoSave();
+}
+
+function removeLastPeriod() {
+  if (periods.length <= 1) return;
+  periods.pop();
+  renderPeriods();
+  autoSave();
+}
+
+// === EMERGENCY PLAN ===
+function generateEmergencyPlan() {
+  document.getElementById('absenceDate').value = todayStr();
+  periods.forEach((p, idx) => {
+    const plan = EMERGENCY_PLANS[p.course] || EMERGENCY_PLANS['Other'];
+    periods[idx].activity = plan.activity;
+    periods[idx].materials = [...plan.materials];
+    periods[idx].special = plan.special;
+    periods[idx].behavior = '';
+  });
+  renderPeriods();
+  autoSave();
+  generatePreview();
+  showToast('Emergency plan generated');
+}
+
+// === PREVIEW / OUTPUT ===
+function gatherData() {
+  return {
+    teacherName: document.getElementById('teacherName').value,
+    school: document.getElementById('school').value,
+    roomNumber: document.getElementById('roomNumber').value,
+    absenceDate: document.getElementById('absenceDate').value,
+    multiDay: multiDay,
+    absenceEndDate: document.getElementById('absenceEndDate').value,
+    periods: periods,
+    procedures: document.getElementById('procedures').value,
+    emergency: document.getElementById('emergency').value,
+    helpfulStudents: document.getElementById('helpfulStudents').value,
+    nearbyTeachers: document.getElementById('nearbyTeachers').value,
+    materials: document.getElementById('materials').value,
+    additionalNotes: document.getElementById('additionalNotes').value
+  };
+}
+
+function generatePreview() {
+  const d = gatherData();
+  const dateStr = d.multiDay && d.absenceEndDate
+    ? formatDate(d.absenceDate) + ' through ' + formatDate(d.absenceEndDate)
+    : formatDate(d.absenceDate);
+
+  let periodsHtml = '';
+  d.periods.forEach(p => {
+    if (p.course === 'Lunch' && !p.activity.trim()) return;
+    if (p.course === 'Prep / Planning' && !p.activity.trim()) {
+      periodsHtml += `
+      <div class="period-block">
+        <div class="period-block-header">${escapeHtml(p.period)} — ${escapeHtml(p.course)}</div>
+        <div class="period-block-body"><p><em>No students — prep period.</em></p></div>
+      </div>`;
+      return;
+    }
+    const mats = p.materials.filter(m => m !== 'none').map(m => MATERIAL_LABELS[m]).join(', ') || 'None';
+    periodsHtml += `
+    <div class="period-block">
+      <div class="period-block-header">${escapeHtml(p.period)} — ${escapeHtml(p.course)}</div>
+      <div class="period-block-body">
+        <p><span class="field-label">Activity:</span></p>
+        <p style="white-space:pre-wrap;">${escapeHtml(p.activity || 'No activity specified.')}</p>
+        <p style="margin-top:8px;"><span class="field-label">Materials:</span> ${escapeHtml(mats)}</p>
+        ${p.special ? `<p style="margin-top:8px;"><span class="field-label">Special Instructions:</span></p><p style="white-space:pre-wrap;">${escapeHtml(p.special)}</p>` : ''}
+        ${p.behavior ? `<p style="margin-top:8px;"><span class="field-label">Behavior Notes:</span></p><p style="white-space:pre-wrap;">${escapeHtml(p.behavior)}</p>` : ''}
+      </div>
+    </div>`;
+  });
+
+  let generalHtml = '';
+  if (d.procedures) {
+    generalHtml += `<h3>Classroom Procedures</h3><div style="white-space:pre-wrap;">${escapeHtml(d.procedures)}</div>`;
+  }
+  if (d.emergency) {
+    generalHtml += `<h3 style="margin-top:14px;">Emergency Procedures</h3><div style="white-space:pre-wrap;">${escapeHtml(d.emergency)}</div>`;
+  }
+  if (d.helpfulStudents) {
+    generalHtml += `<h3 style="margin-top:14px;">Helpful Students</h3><div style="white-space:pre-wrap;">${escapeHtml(d.helpfulStudents)}</div>`;
+  }
+  if (d.nearbyTeachers) {
+    generalHtml += `<h3 style="margin-top:14px;">Nearby Teachers</h3><div style="white-space:pre-wrap;">${escapeHtml(d.nearbyTeachers)}</div>`;
+  }
+  if (d.materials) {
+    generalHtml += `<h3 style="margin-top:14px;">Where to Find Materials</h3><div style="white-space:pre-wrap;">${escapeHtml(d.materials)}</div>`;
+  }
+  if (d.additionalNotes) {
+    generalHtml += `<h3 style="margin-top:14px;">Additional Notes</h3><div style="white-space:pre-wrap;">${escapeHtml(d.additionalNotes)}</div>`;
+  }
+
+  const preview = document.getElementById('printPreview');
+  preview.innerHTML = `
+    <h2>Substitute Teacher Plans</h2>
+    <div class="sub-header">${escapeHtml(d.school)}</div>
+    <div class="info-grid">
+      <span class="label">Teacher:</span><span>${escapeHtml(d.teacherName)}</span>
+      <span class="label">Room:</span><span>${escapeHtml(d.roomNumber || 'N/A')}</span>
+      <span class="label">Date:</span><span>${dateStr || 'Not specified'}</span>
+    </div>
+    ${periodsHtml}
+    ${generalHtml ? `<div class="general-section">${generalHtml}</div>` : ''}
+  `;
+  preview.classList.add('visible');
+  preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showToast('Preview generated');
+}
+
+function printPlan() {
+  generatePreview();
+  setTimeout(() => window.print(), 300);
+}
+
+function copyAsText() {
+  const d = gatherData();
+  const dateStr = d.multiDay && d.absenceEndDate
+    ? formatDate(d.absenceDate) + ' through ' + formatDate(d.absenceEndDate)
+    : formatDate(d.absenceDate);
+
+  let text = 'SUBSTITUTE TEACHER PLANS\n';
+  text += d.school + '\n';
+  text += '='.repeat(40) + '\n\n';
+  text += 'Teacher: ' + d.teacherName + '\n';
+  text += 'Room: ' + (d.roomNumber || 'N/A') + '\n';
+  text += 'Date: ' + (dateStr || 'Not specified') + '\n';
+  text += '\n' + '='.repeat(40) + '\n';
+
+  d.periods.forEach(p => {
+    if (p.course === 'Lunch' && !p.activity.trim()) return;
+    text += '\n' + p.period + ' — ' + p.course + '\n';
+    text += '-'.repeat(30) + '\n';
+    if (p.course === 'Prep / Planning' && !p.activity.trim()) {
+      text += 'No students — prep period.\n';
+      return;
+    }
+    text += 'Activity:\n' + (p.activity || 'No activity specified.') + '\n\n';
+    const mats = p.materials.filter(m => m !== 'none').map(m => MATERIAL_LABELS[m]).join(', ') || 'None';
+    text += 'Materials: ' + mats + '\n';
+    if (p.special) text += '\nSpecial Instructions:\n' + p.special + '\n';
+    if (p.behavior) text += '\nBehavior Notes:\n' + p.behavior + '\n';
+    text += '\n';
+  });
+
+  text += '='.repeat(40) + '\n';
+  text += 'GENERAL INFORMATION\n';
+  text += '='.repeat(40) + '\n\n';
+  if (d.procedures) text += 'CLASSROOM PROCEDURES:\n' + d.procedures + '\n\n';
+  if (d.emergency) text += 'EMERGENCY PROCEDURES:\n' + d.emergency + '\n\n';
+  if (d.helpfulStudents) text += 'HELPFUL STUDENTS:\n' + d.helpfulStudents + '\n\n';
+  if (d.nearbyTeachers) text += 'NEARBY TEACHERS:\n' + d.nearbyTeachers + '\n\n';
+  if (d.materials) text += 'WHERE TO FIND MATERIALS:\n' + d.materials + '\n\n';
+  if (d.additionalNotes) text += 'ADDITIONAL NOTES:\n' + d.additionalNotes + '\n\n';
+
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Copied to clipboard');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Copied to clipboard');
+  });
+}
+
+// === SAVE / LOAD ===
+function autoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    const data = gatherData();
+    data.multiDay = multiDay;
+    localStorage.setItem('subplan_draft', JSON.stringify(data));
+    const status = document.getElementById('autosaveStatus');
+    status.textContent = 'Auto-saved at ' + new Date().toLocaleTimeString();
+  }, 800);
+}
+
+function loadDraft() {
+  const raw = localStorage.getItem('subplan_draft');
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    document.getElementById('teacherName').value = data.teacherName || 'Luke McCarthy';
+    document.getElementById('school').value = data.school || 'Perth Amboy High School';
+    document.getElementById('roomNumber').value = data.roomNumber || '';
+    document.getElementById('absenceDate').value = data.absenceDate || todayStr();
+    if (data.multiDay) {
+      multiDay = true;
+      document.getElementById('multiDayToggle').classList.add('active');
+      document.getElementById('endDateRow').style.display = 'grid';
+      document.getElementById('absenceEndDate').value = data.absenceEndDate || '';
+    }
+    if (data.periods && data.periods.length) {
+      periods = data.periods;
+    }
+    document.getElementById('procedures').value = data.procedures || document.getElementById('procedures').value;
+    document.getElementById('emergency').value = data.emergency || document.getElementById('emergency').value;
+    document.getElementById('helpfulStudents').value = data.helpfulStudents || '';
+    document.getElementById('nearbyTeachers').value = data.nearbyTeachers || '';
+    document.getElementById('materials').value = data.materials || '';
+    document.getElementById('additionalNotes').value = data.additionalNotes || '';
+  } catch(e) { /* ignore parse errors */ }
+}
+
+function savePlan() {
+  const data = gatherData();
+  const dateStr = data.absenceDate || todayStr();
+  const label = data.teacherName + ' — ' + formatDate(dateStr);
+  const key = 'subplan_' + Date.now();
+  const saved = {
+    label: label,
+    date: dateStr,
+    savedAt: new Date().toISOString(),
+    data: data
+  };
+  localStorage.setItem(key, JSON.stringify(saved));
+  loadSavedPlansList();
+  showToast('Plan saved: ' + label);
+}
+
+function loadSavedPlansList() {
+  const container = document.getElementById('savedPlansList');
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k.startsWith('subplan_') && k !== 'subplan_draft') keys.push(k);
+  }
+  if (keys.length === 0) {
+    container.innerHTML = '<p style="color: var(--text-light); font-size: 0.88rem;">No saved plans yet.</p>';
+    return;
+  }
+  // Sort by saved date desc
+  const plans = keys.map(k => {
+    try { return { key: k, ...JSON.parse(localStorage.getItem(k)) }; }
+    catch(e) { return null; }
+  }).filter(Boolean).sort((a,b) => new Date(b.savedAt) - new Date(a.savedAt));
+
+  container.innerHTML = plans.map(p => `
+    <div class="saved-plan-item">
+      <div class="saved-plan-info">
+        <h4>${escapeHtml(p.label)}</h4>
+        <p>Saved ${new Date(p.savedAt).toLocaleDateString()} at ${new Date(p.savedAt).toLocaleTimeString()}</p>
+      </div>
+      <div class="saved-plan-actions">
+        <button class="btn btn-outline btn-sm" onclick="loadPlan('${p.key}')">Load</button>
+        <button class="btn btn-sm" style="background:var(--accent);color:white;" onclick="deletePlan('${p.key}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function loadPlan(key) {
+  const raw = localStorage.getItem(key);
+  if (!raw) return;
+  try {
+    const saved = JSON.parse(raw);
+    const data = saved.data;
+    document.getElementById('teacherName').value = data.teacherName || '';
+    document.getElementById('school').value = data.school || '';
+    document.getElementById('roomNumber').value = data.roomNumber || '';
+    document.getElementById('absenceDate').value = data.absenceDate || todayStr();
+    if (data.multiDay) {
+      multiDay = true;
+      document.getElementById('multiDayToggle').classList.add('active');
+      document.getElementById('endDateRow').style.display = 'grid';
+      document.getElementById('absenceEndDate').value = data.absenceEndDate || '';
+    } else {
+      multiDay = false;
+      document.getElementById('multiDayToggle').classList.remove('active');
+      document.getElementById('endDateRow').style.display = 'none';
+    }
+    if (data.periods) periods = data.periods;
+    document.getElementById('procedures').value = data.procedures || '';
+    document.getElementById('emergency').value = data.emergency || '';
+    document.getElementById('helpfulStudents').value = data.helpfulStudents || '';
+    document.getElementById('nearbyTeachers').value = data.nearbyTeachers || '';
+    document.getElementById('materials').value = data.materials || '';
+    document.getElementById('additionalNotes').value = data.additionalNotes || '';
+    renderPeriods();
+    autoSave();
+    showToast('Plan loaded');
+  } catch(e) { showToast('Error loading plan'); }
+}
+
+function deletePlan(key) {
+  localStorage.removeItem(key);
+  loadSavedPlansList();
+  showToast('Plan deleted');
+}
+
+// === UTILITIES ===
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escapeAttr(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// === START ===
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

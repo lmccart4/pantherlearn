@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Contact Logger</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface-2: #242836;
+  --surface-3: #2e3345;
+  --text: #e8e9ed;
+  --text-muted: #8b8fa3;
+  --accent: #6c5ce7;
+  --accent-glow: rgba(108, 92, 231, 0.3);
+  --green: #00cec9;
+  --orange: #fdcb6e;
+  --red: #e17055;
+  --pink: #fd79a8;
+  --blue: #74b9ff;
+  --yellow: #ffeaa7;
+  --radius: 14px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--blue), var(--green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+
+header p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 4px;
+  border: 1px solid var(--surface-3);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover { color: var(--text); background: var(--surface-2); }
+.tab-btn.active { color: var(--text); background: var(--accent); box-shadow: 0 2px 12px var(--accent-glow); }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--surface-3);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  transition: all 0.2s;
+}
+
+.card h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.card h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Form */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group.full { grid-column: 1 / -1; }
+
+.form-group label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+input, select, textarea {
+  background: var(--surface-2);
+  border: 1px solid var(--surface-3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+textarea { resize: vertical; min-height: 60px; }
+
+select { cursor: pointer; }
+
+.autocomplete-wrapper {
+  position: relative;
+}
+
+.autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--surface-3);
+  border-radius: 8px;
+  max-height: 160px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+  box-shadow: var(--shadow);
+}
+
+.autocomplete-list.show { display: block; }
+
+.autocomplete-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+
+.autocomplete-item:hover, .autocomplete-item.highlighted {
+  background: var(--surface-3);
+}
+
+.autocomplete-item .sub {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+/* Checkbox row */
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.checkbox-row label {
+  font-size: 0.85rem;
+  color: var(--text);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 2px 12px var(--accent-glow);
+}
+
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px var(--accent-glow); }
+
+.btn-ghost {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--surface-3);
+}
+
+.btn-ghost:hover { color: var(--text); background: var(--surface-3); }
+
+.btn-danger {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid rgba(225, 112, 85, 0.3);
+}
+
+.btn-danger:hover { background: rgba(225, 112, 85, 0.1); }
+
+.btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+/* Tab panels */
+.tab-panel { display: none; animation: fadeIn 0.2s; }
+.tab-panel.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+  border: 1px solid var(--surface-3);
+}
+
+.stat-card .value {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.stat-card .label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.stat-card.accent .value { color: var(--accent); }
+.stat-card.green .value { color: var(--green); }
+.stat-card.orange .value { color: var(--orange); }
+.stat-card.red .value { color: var(--red); }
+.stat-card.blue .value { color: var(--blue); }
+.stat-card.pink .value { color: var(--pink); }
+
+/* Breakdown bar */
+.breakdown-bars { display: flex; flex-direction: column; gap: 8px; }
+
+.breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+}
+
+.breakdown-row .label { width: 90px; color: var(--text-muted); flex-shrink: 0; }
+
+.breakdown-row .bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--surface-3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.breakdown-row .bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.breakdown-row .count { width: 30px; text-align: right; color: var(--text-muted); font-size: 0.78rem; }
+
+/* Contact list */
+.contact-entry {
+  background: var(--surface-2);
+  border: 1px solid var(--surface-3);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.contact-entry:hover { border-color: var(--accent); }
+
+.contact-entry.overdue { border-left: 3px solid var(--red); }
+.contact-entry.upcoming { border-left: 3px solid var(--orange); }
+
+.contact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+
+.contact-student { font-weight: 600; font-size: 0.95rem; }
+.contact-parent { color: var(--text-muted); font-size: 0.82rem; }
+
+.contact-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.badge-academic { background: rgba(108,92,231,0.2); color: var(--accent); }
+.badge-behavioral { background: rgba(225,112,85,0.2); color: var(--red); }
+.badge-attendance { background: rgba(253,203,110,0.2); color: var(--orange); }
+.badge-positive { background: rgba(0,206,201,0.2); color: var(--green); }
+.badge-other { background: rgba(139,143,163,0.2); color: var(--text-muted); }
+
+.badge-phone { background: rgba(116,185,255,0.15); color: var(--blue); }
+.badge-email { background: rgba(108,92,231,0.15); color: var(--accent); }
+.badge-in-person { background: rgba(0,206,201,0.15); color: var(--green); }
+.badge-note-home { background: rgba(253,121,168,0.15); color: var(--pink); }
+
+.badge-followup { background: rgba(225,112,85,0.2); color: var(--red); font-weight: 700; }
+.badge-followup.done { background: rgba(0,206,201,0.2); color: var(--green); }
+
+.contact-notes { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+
+.contact-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.contact-date { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+
+/* Follow-up section */
+.followup-section { margin-bottom: 16px; }
+
+.followup-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.followup-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.followup-dot.red { background: var(--red); box-shadow: 0 0 8px rgba(225,112,85,0.5); }
+.followup-dot.orange { background: var(--orange); box-shadow: 0 0 8px rgba(253,203,110,0.5); }
+
+/* Filters */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-row input, .filter-row select {
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  flex: 1;
+  min-width: 120px;
+}
+
+/* Most contacted */
+.top-students { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+
+.top-student-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  padding: 6px 0;
+}
+
+.top-student-row .rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.top-student-row .name { flex: 1; }
+.top-student-row .count { color: var(--accent); font-weight: 600; }
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--green);
+  color: var(--bg);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 200;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .tabs { flex-wrap: wrap; }
+  .tab-btn { font-size: 0.78rem; padding: 8px 6px; }
+  header h1 { font-size: 1.5rem; }
+  .filter-row { flex-direction: column; }
+  .filter-row input, .filter-row select { min-width: unset; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Parent Contact Logger</h1>
+    <p>Perth Amboy High School</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="log">Log Contact</button>
+    <button class="tab-btn" data-tab="history">History</button>
+    <button class="tab-btn" data-tab="followups">Follow-ups</button>
+    <button class="tab-btn" data-tab="stats">Stats</button>
+  </div>
+
+  <!-- LOG TAB -->
+  <div class="tab-panel active" id="tab-log">
+    <div class="card">
+      <h2>New Contact</h2>
+      <form id="contact-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="f-date">Date</label>
+            <input type="date" id="f-date" tabindex="1">
+          </div>
+          <div class="form-group">
+            <label for="f-time">Time</label>
+            <input type="time" id="f-time" tabindex="2">
+          </div>
+          <div class="form-group autocomplete-wrapper">
+            <label for="f-student">Student Name</label>
+            <input type="text" id="f-student" placeholder="Start typing..." autocomplete="off" tabindex="3">
+            <div class="autocomplete-list" id="student-ac"></div>
+          </div>
+          <div class="form-group">
+            <label for="f-parent">Parent/Guardian Name</label>
+            <input type="text" id="f-parent" placeholder="Name" tabindex="4">
+          </div>
+          <div class="form-group">
+            <label for="f-method">Contact Method</label>
+            <select id="f-method" tabindex="5">
+              <option value="phone">Phone</option>
+              <option value="email">Email</option>
+              <option value="in-person">In Person</option>
+              <option value="note-home">Note Home</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="f-reason">Reason</label>
+            <select id="f-reason" tabindex="6">
+              <option value="academic">Academic</option>
+              <option value="behavioral">Behavioral</option>
+              <option value="attendance">Attendance</option>
+              <option value="positive">Positive</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label for="f-notes">Notes</label>
+            <textarea id="f-notes" placeholder="Brief summary..." tabindex="7"></textarea>
+          </div>
+          <div class="form-group">
+            <div class="checkbox-row">
+              <input type="checkbox" id="f-followup" tabindex="8">
+              <label for="f-followup">Follow-up needed</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="f-followup-date">Follow-up Date</label>
+            <input type="date" id="f-followup-date" tabindex="9" disabled>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary" tabindex="10">Save Contact</button>
+          <button type="button" class="btn btn-ghost" id="clear-form" tabindex="11">Clear</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Student Directory</h2>
+      <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:12px;">Saved students auto-populate when logging. Add new students below.</p>
+      <div class="form-grid" style="margin-bottom:12px;">
+        <div class="form-group">
+          <label for="d-student">Student Name</label>
+          <input type="text" id="d-student" placeholder="Student name">
+        </div>
+        <div class="form-group">
+          <label for="d-parent">Parent/Guardian Name</label>
+          <input type="text" id="d-parent" placeholder="Parent name">
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="add-directory">Add to Directory</button>
+      <div id="directory-list" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div class="tab-panel" id="tab-history">
+    <div class="card">
+      <h2>Contact History</h2>
+      <div class="filter-row">
+        <input type="text" id="filter-search" placeholder="Search student or parent...">
+        <select id="filter-reason">
+          <option value="">All Reasons</option>
+          <option value="academic">Academic</option>
+          <option value="behavioral">Behavioral</option>
+          <option value="attendance">Attendance</option>
+          <option value="positive">Positive</option>
+          <option value="other">Other</option>
+        </select>
+        <select id="filter-followup">
+          <option value="">All</option>
+          <option value="pending">Follow-up Pending</option>
+          <option value="done">Follow-up Done</option>
+          <option value="none">No Follow-up</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <input type="date" id="filter-from" style="flex:1;">
+        <span style="color:var(--text-muted);align-self:center;font-size:0.82rem;">to</span>
+        <input type="date" id="filter-to" style="flex:1;">
+        <button class="btn btn-ghost btn-sm" id="clear-filters">Clear Filters</button>
+      </div>
+      <div id="history-list"></div>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-ghost btn-sm" id="export-all">Export All as CSV</button>
+        <button class="btn btn-ghost btn-sm" id="export-filtered">Export Filtered as CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOLLOW-UPS TAB -->
+  <div class="tab-panel" id="tab-followups">
+    <div id="overdue-section" class="followup-section"></div>
+    <div id="upcoming-section" class="followup-section"></div>
+    <div id="completed-section" class="followup-section"></div>
+  </div>
+
+  <!-- STATS TAB -->
+  <div class="tab-panel" id="tab-stats">
+    <div class="card">
+      <h2>Overview</h2>
+      <div class="stats-grid" id="stats-overview"></div>
+    </div>
+    <div class="card">
+      <h2>Breakdown by Reason</h2>
+      <div class="breakdown-bars" id="stats-breakdown"></div>
+    </div>
+    <div class="card">
+      <h2>Most Contacted Students</h2>
+      <div class="top-students" id="stats-top"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// --- Data ---
+const STORAGE_KEY = 'pcl_contacts';
+const DIR_KEY = 'pcl_directory';
+
+function loadContacts() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+function saveContacts(c) { localStorage.setItem(STORAGE_KEY, JSON.stringify(c)); }
+function loadDirectory() { try { return JSON.parse(localStorage.getItem(DIR_KEY)) || []; } catch { return []; } }
+function saveDirectory(d) { localStorage.setItem(DIR_KEY, JSON.stringify(d)); }
+
+let contacts = loadContacts();
+let directory = loadDirectory();
+
+// --- Tabs ---
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'history') renderHistory();
+    if (btn.dataset.tab === 'followups') renderFollowups();
+    if (btn.dataset.tab === 'stats') renderStats();
+  });
+});
+
+// --- Toast ---
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// --- Form Init ---
+function initForm() {
+  const now = new Date();
+  document.getElementById('f-date').value = now.toISOString().slice(0, 10);
+  document.getElementById('f-time').value = now.toTimeString().slice(0, 5);
+}
+initForm();
+
+document.getElementById('f-followup').addEventListener('change', e => {
+  const fd = document.getElementById('f-followup-date');
+  fd.disabled = !e.target.checked;
+  if (e.target.checked && !fd.value) {
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    fd.value = d.toISOString().slice(0, 10);
+  }
+});
+
+document.getElementById('clear-form').addEventListener('click', () => {
+  document.getElementById('contact-form').reset();
+  initForm();
+  document.getElementById('f-followup-date').disabled = true;
+  editingId = null;
+});
+
+// --- Autocomplete ---
+let acHighlight = -1;
+const studentInput = document.getElementById('f-student');
+const parentInput = document.getElementById('f-parent');
+const acList = document.getElementById('student-ac');
+
+studentInput.addEventListener('input', () => {
+  const val = studentInput.value.toLowerCase().trim();
+  if (!val) { acList.classList.remove('show'); return; }
+  const matches = directory.filter(d => d.student.toLowerCase().includes(val));
+  if (!matches.length) { acList.classList.remove('show'); return; }
+  acHighlight = -1;
+  acList.innerHTML = matches.map((m, i) =>
+    `<div class="autocomplete-item" data-idx="${i}">${m.student}<br><span class="sub">${m.parent}</span></div>`
+  ).join('');
+  acList.classList.add('show');
+  acList.querySelectorAll('.autocomplete-item').forEach(item => {
+    item.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const idx = +item.dataset.idx;
+      studentInput.value = matches[idx].student;
+      parentInput.value = matches[idx].parent;
+      acList.classList.remove('show');
+      document.getElementById('f-method').focus();
+    });
+  });
+});
+
+studentInput.addEventListener('keydown', e => {
+  const items = acList.querySelectorAll('.autocomplete-item');
+  if (!acList.classList.contains('show') || !items.length) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); acHighlight = Math.min(acHighlight + 1, items.length - 1); updateAcHighlight(items); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); acHighlight = Math.max(acHighlight - 1, 0); updateAcHighlight(items); }
+  else if (e.key === 'Enter' && acHighlight >= 0) { e.preventDefault(); items[acHighlight].dispatchEvent(new MouseEvent('mousedown')); }
+  else if (e.key === 'Escape') { acList.classList.remove('show'); }
+});
+
+studentInput.addEventListener('blur', () => setTimeout(() => acList.classList.remove('show'), 150));
+
+function updateAcHighlight(items) {
+  items.forEach((it, i) => it.classList.toggle('highlighted', i === acHighlight));
+}
+
+// --- Submit ---
+let editingId = null;
+
+document.getElementById('contact-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const student = document.getElementById('f-student').value.trim();
+  const parent = document.getElementById('f-parent').value.trim();
+  if (!student) { toast('Student name required'); return; }
+
+  const entry = {
+    id: editingId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    date: document.getElementById('f-date').value,
+    time: document.getElementById('f-time').value,
+    student,
+    parent,
+    method: document.getElementById('f-method').value,
+    reason: document.getElementById('f-reason').value,
+    notes: document.getElementById('f-notes').value.trim(),
+    followup: document.getElementById('f-followup').checked,
+    followupDate: document.getElementById('f-followup').checked ? document.getElementById('f-followup-date').value : '',
+    followupDone: false
+  };
+
+  if (editingId) {
+    const idx = contacts.findIndex(c => c.id === editingId);
+    if (idx >= 0) { entry.followupDone = contacts[idx].followupDone; contacts[idx] = entry; }
+    editingId = null;
+  } else {
+    contacts.unshift(entry);
+  }
+
+  saveContacts(contacts);
+
+  // Auto-add to directory
+  if (student && parent) {
+    const exists = directory.find(d => d.student.toLowerCase() === student.toLowerCase());
+    if (!exists) {
+      directory.push({ student, parent });
+      saveDirectory(directory);
+      renderDirectory();
+    }
+  }
+
+  document.getElementById('contact-form').reset();
+  initForm();
+  document.getElementById('f-followup-date').disabled = true;
+  toast(editingId ? 'Contact updated' : 'Contact saved');
+  document.getElementById('f-student').focus();
+});
+
+// --- Directory ---
+function renderDirectory() {
+  const el = document.getElementById('directory-list');
+  if (!directory.length) { el.innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem;">No saved students yet.</p>'; return; }
+  el.innerHTML = directory.map((d, i) =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--surface-3);font-size:0.85rem;">
+      <span><strong>${d.student}</strong> <span style="color:var(--text-muted);">/ ${d.parent}</span></span>
+      <button class="btn btn-danger btn-sm" onclick="removeDir(${i})">Remove</button>
+    </div>`
+  ).join('');
+}
+
+window.removeDir = function(i) {
+  directory.splice(i, 1);
+  saveDirectory(directory);
+  renderDirectory();
+};
+
+document.getElementById('add-directory').addEventListener('click', () => {
+  const s = document.getElementById('d-student').value.trim();
+  const p = document.getElementById('d-parent').value.trim();
+  if (!s) return;
+  const exists = directory.find(d => d.student.toLowerCase() === s.toLowerCase());
+  if (exists) { toast('Student already in directory'); return; }
+  directory.push({ student: s, parent: p });
+  saveDirectory(directory);
+  renderDirectory();
+  document.getElementById('d-student').value = '';
+  document.getElementById('d-parent').value = '';
+  toast('Added to directory');
+});
+
+renderDirectory();
+
+// --- History ---
+function getFiltered() {
+  const search = document.getElementById('filter-search').value.toLowerCase().trim();
+  const reason = document.getElementById('filter-reason').value;
+  const followup = document.getElementById('filter-followup').value;
+  const from = document.getElementById('filter-from').value;
+  const to = document.getElementById('filter-to').value;
+
+  return contacts.filter(c => {
+    if (search && !c.student.toLowerCase().includes(search) && !c.parent.toLowerCase().includes(search)) return false;
+    if (reason && c.reason !== reason) return false;
+    if (followup === 'pending' && !(c.followup && !c.followupDone)) return false;
+    if (followup === 'done' && !(c.followup && c.followupDone)) return false;
+    if (followup === 'none' && c.followup) return false;
+    if (from && c.date < from) return false;
+    if (to && c.date > to) return false;
+    return true;
+  });
+}
+
+function renderHistory() {
+  const filtered = getFiltered();
+  const el = document.getElementById('history-list');
+  if (!filtered.length) { el.innerHTML = '<div class="empty">No contacts found</div>'; return; }
+
+  const today = new Date().toISOString().slice(0, 10);
+  el.innerHTML = filtered.map(c => {
+    let cls = '';
+    if (c.followup && !c.followupDone && c.followupDate < today) cls = 'overdue';
+    else if (c.followup && !c.followupDone) cls = 'upcoming';
+
+    const dt = new Date(c.date + 'T' + (c.time || '12:00'));
+    const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeStr = c.time ? dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+
+    return `<div class="contact-entry ${cls}">
+      <div class="contact-header">
+        <div>
+          <span class="contact-student">${esc(c.student)}</span>
+          ${c.parent ? `<span class="contact-parent"> / ${esc(c.parent)}</span>` : ''}
+        </div>
+        <span class="contact-date">${dateStr}${timeStr ? ' ' + timeStr : ''}</span>
+      </div>
+      <div class="contact-meta">
+        <span class="badge badge-${c.method}">${c.method}</span>
+        <span class="badge badge-${c.reason}">${c.reason}</span>
+        ${c.followup ? `<span class="badge badge-followup ${c.followupDone ? 'done' : ''}">${c.followupDone ? 'Done' : 'Follow-up' + (c.followupDate ? ' ' + c.followupDate : '')}</span>` : ''}
+      </div>
+      ${c.notes ? `<div class="contact-notes">${esc(c.notes)}</div>` : ''}
+      <div class="contact-actions">
+        ${c.followup && !c.followupDone ? `<button class="btn btn-ghost btn-sm" onclick="markDone('${c.id}')">Mark Done</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="editContact('${c.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteContact('${c.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+window.markDone = function(id) {
+  const c = contacts.find(x => x.id === id);
+  if (c) { c.followupDone = true; saveContacts(contacts); renderHistory(); renderFollowups(); toast('Follow-up marked done'); }
+};
+
+window.editContact = function(id) {
+  const c = contacts.find(x => x.id === id);
+  if (!c) return;
+  editingId = id;
+  document.getElementById('f-date').value = c.date;
+  document.getElementById('f-time').value = c.time;
+  document.getElementById('f-student').value = c.student;
+  document.getElementById('f-parent').value = c.parent;
+  document.getElementById('f-method').value = c.method;
+  document.getElementById('f-reason').value = c.reason;
+  document.getElementById('f-notes').value = c.notes;
+  document.getElementById('f-followup').checked = c.followup;
+  document.getElementById('f-followup-date').disabled = !c.followup;
+  document.getElementById('f-followup-date').value = c.followupDate || '';
+  // Switch to log tab
+  document.querySelector('[data-tab="log"]').click();
+  toast('Editing contact');
+};
+
+window.deleteContact = function(id) {
+  if (!confirm('Delete this contact?')) return;
+  contacts = contacts.filter(c => c.id !== id);
+  saveContacts(contacts);
+  renderHistory();
+  renderFollowups();
+  renderStats();
+  toast('Contact deleted');
+};
+
+['filter-search', 'filter-reason', 'filter-followup', 'filter-from', 'filter-to'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderHistory);
+  document.getElementById(id).addEventListener('change', renderHistory);
+});
+
+document.getElementById('clear-filters').addEventListener('click', () => {
+  document.getElementById('filter-search').value = '';
+  document.getElementById('filter-reason').value = '';
+  document.getElementById('filter-followup').value = '';
+  document.getElementById('filter-from').value = '';
+  document.getElementById('filter-to').value = '';
+  renderHistory();
+});
+
+// --- Export ---
+function toCSV(data) {
+  const headers = ['Date','Time','Student','Parent/Guardian','Method','Reason','Notes','Follow-up','Follow-up Date','Follow-up Done'];
+  const rows = data.map(c => [
+    c.date, c.time, c.student, c.parent, c.method, c.reason,
+    '"' + (c.notes || '').replace(/"/g, '""') + '"',
+    c.followup ? 'Yes' : 'No', c.followupDate || '', c.followupDone ? 'Yes' : 'No'
+  ]);
+  return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+}
+
+function copyCSV(csv) {
+  navigator.clipboard.writeText(csv).then(() => toast('CSV copied to clipboard')).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = csv;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('CSV copied to clipboard');
+  });
+}
+
+document.getElementById('export-all').addEventListener('click', () => copyCSV(toCSV(contacts)));
+document.getElementById('export-filtered').addEventListener('click', () => copyCSV(toCSV(getFiltered())));
+
+// --- Follow-ups ---
+function renderFollowups() {
+  const today = new Date().toISOString().slice(0, 10);
+  const withFollowup = contacts.filter(c => c.followup);
+  const overdue = withFollowup.filter(c => !c.followupDone && c.followupDate && c.followupDate < today);
+  const upcoming = withFollowup.filter(c => !c.followupDone && (!c.followupDate || c.followupDate >= today));
+  const completed = withFollowup.filter(c => c.followupDone);
+
+  function renderSection(id, title, items, dotClass) {
+    const el = document.getElementById(id);
+    if (!items.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="card">
+      <h3><span class="followup-dot ${dotClass}"></span>${title} (${items.length})</h3>
+      ${items.map(c => {
+        const dt = new Date(c.date + 'T12:00');
+        const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `<div class="contact-entry ${dotClass === 'red' ? 'overdue' : dotClass === 'orange' ? 'upcoming' : ''}">
+          <div class="contact-header">
+            <div><span class="contact-student">${esc(c.student)}</span><span class="contact-parent"> / ${esc(c.parent)}</span></div>
+            <span class="contact-date">${dateStr}${c.followupDate ? ' &rarr; ' + c.followupDate : ''}</span>
+          </div>
+          ${c.notes ? `<div class="contact-notes">${esc(c.notes)}</div>` : ''}
+          <div class="contact-actions">
+            ${!c.followupDone ? `<button class="btn btn-primary btn-sm" onclick="markDone('${c.id}')">Mark Done</button>` : ''}
+            <button class="btn btn-ghost btn-sm" onclick="editContact('${c.id}')">Edit</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  renderSection('overdue-section', 'Overdue', overdue, 'red');
+  renderSection('upcoming-section', 'Upcoming', upcoming, 'orange');
+  renderSection('completed-section', 'Completed', completed, '');
+
+  if (!withFollowup.length) {
+    document.getElementById('overdue-section').innerHTML = '<div class="card"><div class="empty">No follow-ups to track</div></div>';
+  }
+}
+
+// --- Stats ---
+function renderStats() {
+  const today = new Date();
+  const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
+  const monthAgo = new Date(today); monthAgo.setMonth(monthAgo.getMonth() - 1);
+  const weekStr = weekAgo.toISOString().slice(0, 10);
+  const monthStr = monthAgo.toISOString().slice(0, 10);
+  const todayStr = today.toISOString().slice(0, 10);
+
+  const thisWeek = contacts.filter(c => c.date >= weekStr);
+  const thisMonth = contacts.filter(c => c.date >= monthStr);
+  const pendingFollowups = contacts.filter(c => c.followup && !c.followupDone);
+  const overdueFollowups = contacts.filter(c => c.followup && !c.followupDone && c.followupDate && c.followupDate < todayStr);
+
+  document.getElementById('stats-overview').innerHTML = `
+    <div class="stat-card accent"><div class="value">${contacts.length}</div><div class="label">Total</div></div>
+    <div class="stat-card blue"><div class="value">${thisWeek.length}</div><div class="label">This Week</div></div>
+    <div class="stat-card green"><div class="value">${thisMonth.length}</div><div class="label">This Month</div></div>
+    <div class="stat-card orange"><div class="value">${pendingFollowups.length}</div><div class="label">Pending F/U</div></div>
+    <div class="stat-card red"><div class="value">${overdueFollowups.length}</div><div class="label">Overdue</div></div>
+  `;
+
+  // Breakdown by reason
+  const reasons = ['academic', 'behavioral', 'attendance', 'positive', 'other'];
+  const colors = { academic: 'var(--accent)', behavioral: 'var(--red)', attendance: 'var(--orange)', positive: 'var(--green)', other: 'var(--text-muted)' };
+  const max = Math.max(1, ...reasons.map(r => contacts.filter(c => c.reason === r).length));
+
+  document.getElementById('stats-breakdown').innerHTML = reasons.map(r => {
+    const count = contacts.filter(c => c.reason === r).length;
+    const pct = (count / max) * 100;
+    return `<div class="breakdown-row">
+      <span class="label">${r.charAt(0).toUpperCase() + r.slice(1)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${colors[r]}"></div></div>
+      <span class="count">${count}</span>
+    </div>`;
+  }).join('');
+
+  // Top students
+  const studentCounts = {};
+  contacts.forEach(c => { studentCounts[c.student] = (studentCounts[c.student] || 0) + 1; });
+  const sorted = Object.entries(studentCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  document.getElementById('stats-top').innerHTML = sorted.length
+    ? sorted.map(([name, count], i) =>
+        `<div class="top-student-row"><span class="rank">${i + 1}</span><span class="name">${esc(name)}</span><span class="count">${count}</span></div>`
+      ).join('')
+    : '<div class="empty">No contacts logged yet</div>';
+}
+
+// --- Keyboard shortcut ---
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'n') {
+    e.preventDefault();
+    document.querySelector('[data-tab="log"]').click();
+    document.getElementById('f-student').focus();
+  }
+});
+
+// Init
+renderHistory();
+</script>
+</body>
+</html>

@@ -65,6 +65,7 @@ const MAX_PHOTOS_PER_DAY = 4;
 function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
   const [images, setImages] = useState(() => normalizeDayImages(dayData));
   const [reflection, setReflection] = useState(dayData?.reflection || "");
+  const [uploadError, setUploadError] = useState(null);
   const imagesRef = useRef(images);
   const reflectionRef = useRef(reflection);
   imagesRef.current = images;
@@ -82,11 +83,12 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
   const { markDirty, saveNow, lastSaved, saving } = useAutoSave(performSave);
 
   const handleFileUpload = async (e) => {
+    setUploadError(null);
     const files = Array.from(e.target.files || []);
     for (const file of files) {
       if (!file.type.startsWith("image/")) continue;
       if (file.size > 5 * 1024 * 1024) {
-        alert("Image too large (max 5 MB). Please resize and try again.");
+        setUploadError("Image too large (max 5 MB). Please resize and try again.");
         continue;
       }
       const dataUrl = await new Promise(resolve => {
@@ -97,7 +99,7 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
       const compressed = await compressImage(dataUrl);
       setImages(prev => {
         if (prev.length >= MAX_PHOTOS_PER_DAY) {
-          alert(`Maximum ${MAX_PHOTOS_PER_DAY} photos per day.`);
+          setUploadError(`Maximum ${MAX_PHOTOS_PER_DAY} photos per day.`);
           return prev;
         }
         return [...prev, { dataUrl: compressed, name: file.name, uploadedAt: new Date().toISOString() }];
@@ -119,6 +121,13 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text3)", marginBottom: 12 }}>
         {DAY_FULL[day]}
       </div>
+
+      {/* Upload error */}
+      {uploadError && (
+        <div style={{ marginBottom: 10, padding: "8px 12px", borderRadius: 8, background: "rgba(239,68,68,0.12)", color: "#f87171", fontSize: 13 }}>
+          {uploadError}
+        </div>
+      )}
 
       {/* Photos */}
       {hasPhotos ? (
@@ -245,9 +254,11 @@ function StudentView({ courseId, course, user }) {
   };
 
   const [generating, setGenerating] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
 
   const handlePrintPDF = async () => {
     setGenerating(true);
+    setPdfError(null);
     try {
       const { default: jsPDF } = await import("jspdf");
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -328,7 +339,7 @@ function StudentView({ courseId, course, user }) {
       pdf.save(`Evidence_${weekKey}.pdf`);
     } catch (err) {
       console.error("PDF generation failed:", err);
-      alert("PDF generation failed. Please try again.");
+      setPdfError("PDF generation failed. Please try again.");
     } finally {
       setGenerating(false);
     }
@@ -356,6 +367,11 @@ function StudentView({ courseId, course, user }) {
         <button className="evidence-pdf-btn" onClick={handlePrintPDF} disabled={generating} style={{ marginTop: 8 }}>
           {generating ? "Generating..." : "Save Report (PDF)"}
         </button>
+        {pdfError && (
+          <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, background: "rgba(239,68,68,0.12)", color: "#f87171", fontSize: 13 }}>
+            {pdfError}
+          </div>
+        )}
       </div>
 
       {loading ? (

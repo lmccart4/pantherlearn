@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Behavior Tracking Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-2: #242836;
+    --surface-3: #2e3345;
+    --text: #e8e9ed;
+    --text-muted: #8b8fa3;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108, 92, 231, 0.3);
+    --green: #00cec9;
+    --orange: #fdcb6e;
+    --red: #e17055;
+    --pink: #fd79a8;
+    --blue: #74b9ff;
+    --yellow: #ffeaa7;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+  /* Header */
+  .header { text-align: center; padding: 32px 16px 24px; }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  .header p { color: var(--text-muted); font-size: 0.95rem; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); background: var(--surface-2); }
+  .tab.active { background: var(--accent); color: #fff; }
+
+  .tab-content { display: none; animation: fadeIn 0.3s; }
+  .tab-content.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .card h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text-muted);
+  }
+
+  /* Period selector (shared) */
+  .period-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .period-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--surface-3);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .period-btn:hover { border-color: var(--accent); color: var(--text); }
+  .period-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* Quick Log */
+  .student-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .student-btn {
+    padding: 12px 8px;
+    background: var(--surface-2);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .student-btn:hover { border-color: var(--accent); background: var(--surface-3); }
+  .student-btn.selected { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+  .behavior-section h3 { margin-top: 8px; }
+  .behavior-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .behavior-btn {
+    padding: 14px 10px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .behavior-btn.positive {
+    background: rgba(0, 206, 201, 0.15);
+    color: var(--green);
+    border-color: rgba(0, 206, 201, 0.3);
+  }
+  .behavior-btn.positive:hover, .behavior-btn.positive.selected {
+    background: var(--green);
+    color: #000;
+    border-color: var(--green);
+  }
+  .behavior-btn.negative {
+    background: rgba(225, 112, 85, 0.15);
+    color: var(--red);
+    border-color: rgba(225, 112, 85, 0.3);
+  }
+  .behavior-btn.negative:hover, .behavior-btn.negative.selected {
+    background: var(--red);
+    color: #fff;
+    border-color: var(--red);
+  }
+
+  .note-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .note-input {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .note-input:focus { border-color: var(--accent); }
+
+  .log-submit {
+    padding: 14px 32px;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .log-submit:hover { background: #5a4bd6; }
+  .log-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .log-status {
+    text-align: center;
+    padding: 8px;
+    color: var(--green);
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-height: 36px;
+  }
+
+  /* Dashboard */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-card .num {
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .stat-card .label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  .range-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+  .range-tab {
+    padding: 6px 14px;
+    border: none;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .range-tab:hover { color: var(--text); }
+  .range-tab.active { background: var(--accent); color: #fff; }
+
+  /* Bar chart */
+  .chart-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .chart-label {
+    width: 120px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .chart-bars {
+    flex: 1;
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    height: 24px;
+  }
+  .bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+    min-width: 0;
+  }
+  .bar.positive { background: var(--green); }
+  .bar.negative { background: var(--red); }
+  .chart-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    width: 60px;
+    flex-shrink: 0;
+  }
+
+  /* Highlights */
+  .highlights {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 600px) { .highlights { grid-template-columns: 1fr; } }
+  .highlight-card {
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .highlight-card h3 {
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+  }
+  .highlight-card .hl-green { color: var(--green); }
+  .highlight-card .hl-red { color: var(--red); }
+  .highlight-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--surface-3);
+  }
+  .highlight-item:last-child { border-bottom: none; }
+
+  /* Timeline */
+  .timeline-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .filter-select {
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.85rem;
+    outline: none;
+    cursor: pointer;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+
+  .timeline-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    margin-bottom: 6px;
+    align-items: center;
+    transition: background 0.2s;
+    font-size: 0.85rem;
+  }
+  .timeline-item:hover { background: var(--surface-3); }
+  .tl-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .tl-dot.positive { background: var(--green); }
+  .tl-dot.negative { background: var(--red); }
+  .tl-time { color: var(--text-muted); font-size: 0.75rem; flex-shrink: 0; width: 70px; }
+  .tl-content { flex: 1; }
+  .tl-student { font-weight: 700; }
+  .tl-behavior { color: var(--text-muted); }
+  .tl-note { color: var(--yellow); font-style: italic; font-size: 0.8rem; }
+  .tl-period { color: var(--blue); font-size: 0.75rem; flex-shrink: 0; }
+  .tl-delete {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .tl-delete:hover { color: var(--red); background: rgba(225,112,85,0.15); }
+
+  /* Alerts */
+  .alert-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(225, 112, 85, 0.1);
+    border: 1px solid rgba(225, 112, 85, 0.25);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+  }
+  .alert-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+  /* Roster */
+  .roster-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .roster-input {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+  }
+  .roster-input:focus { border-color: var(--accent); }
+  .add-btn, .action-btn {
+    padding: 10px 20px;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .add-btn:hover, .action-btn:hover { background: #5a4bd6; }
+  .action-btn.danger { background: var(--red); }
+  .action-btn.danger:hover { background: #c0392b; }
+  .action-btn.green { background: #059669; }
+  .action-btn.green:hover { background: #047857; }
+
+  .roster-list { list-style: none; }
+  .roster-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+  }
+  .remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .remove-btn:hover { color: var(--red); background: rgba(225,112,85,0.15); }
+
+  /* Settings */
+  .settings-section { margin-bottom: 20px; }
+  .settings-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .header h1 { font-size: 1.5rem; }
+    .student-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+    .behavior-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    .chart-label { width: 80px; font-size: 0.7rem; }
+    .note-row { flex-direction: column; }
+    .roster-form { flex-direction: column; }
+    .tabs { gap: 2px; }
+    .tab { padding: 8px 8px; font-size: 0.75rem; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Scrollable containers */
+  .scroll-y { max-height: 500px; overflow-y: auto; }
+  .scroll-y::-webkit-scrollbar { width: 6px; }
+  .scroll-y::-webkit-scrollbar-track { background: transparent; }
+  .scroll-y::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--green);
+    color: #000;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease;
+    z-index: 999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--red); color: #fff; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+  }
+  .modal h3 { margin-bottom: 12px; }
+  .modal p { margin-bottom: 16px; font-size: 0.9rem; color: var(--text-muted); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Behavior Tracking Dashboard</h1>
+    <p>Quick-log behaviors, track patterns, improve class dynamics</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('log')">Quick Log</button>
+    <button class="tab" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab" onclick="switchTab('timeline')">Timeline</button>
+    <button class="tab" onclick="switchTab('patterns')">Patterns</button>
+    <button class="tab" onclick="switchTab('roster')">Roster</button>
+    <button class="tab" onclick="switchTab('settings')">Settings</button>
+  </div>
+
+  <!-- QUICK LOG -->
+  <div id="tab-log" class="tab-content active">
+    <div class="card">
+      <h2>1. Select Period</h2>
+      <div class="period-bar" id="log-periods"></div>
+    </div>
+    <div class="card">
+      <h2>2. Select Student</h2>
+      <div class="student-grid" id="log-students"></div>
+      <div id="no-students-msg" class="empty-state" style="display:none;">No students in this period. Go to Roster to add some.</div>
+    </div>
+    <div class="card behavior-section">
+      <h2>3. Select Behavior</h2>
+      <h3 style="color:var(--green);">Positive</h3>
+      <div class="behavior-grid" id="positive-behaviors"></div>
+      <h3 style="color:var(--red);">Negative</h3>
+      <div class="behavior-grid" id="negative-behaviors"></div>
+    </div>
+    <div class="card">
+      <h2>4. Add Note (optional) &amp; Submit</h2>
+      <div class="note-row">
+        <input type="text" class="note-input" id="log-note" placeholder="Optional note...">
+      </div>
+      <button class="log-submit" id="submit-log" onclick="submitLog()" disabled>Log Behavior</button>
+      <div class="log-status" id="log-status"></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="tab-dashboard" class="tab-content">
+    <div class="card">
+      <div class="period-bar" id="dash-periods"></div>
+      <div class="range-tabs" id="dash-range">
+        <button class="range-tab active" onclick="setDashRange('today',this)">Today</button>
+        <button class="range-tab" onclick="setDashRange('week',this)">This Week</button>
+        <button class="range-tab" onclick="setDashRange('month',this)">This Month</button>
+        <button class="range-tab" onclick="setDashRange('all',this)">All Time</button>
+      </div>
+      <div class="stats-row" id="dash-stats"></div>
+    </div>
+    <div class="card">
+      <h2>Student Breakdown</h2>
+      <div id="dash-chart" class="scroll-y"></div>
+    </div>
+    <div class="highlights" id="dash-highlights"></div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div id="tab-timeline" class="tab-content">
+    <div class="card">
+      <div class="timeline-filters">
+        <select class="filter-select" id="tl-period" onchange="renderTimeline()">
+          <option value="all">All Periods</option>
+        </select>
+        <select class="filter-select" id="tl-type" onchange="renderTimeline()">
+          <option value="all">All Types</option>
+          <option value="positive">Positive</option>
+          <option value="negative">Negative</option>
+        </select>
+        <select class="filter-select" id="tl-student" onchange="renderTimeline()">
+          <option value="all">All Students</option>
+        </select>
+        <select class="filter-select" id="tl-range" onchange="renderTimeline()">
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="all" selected>All Time</option>
+        </select>
+      </div>
+    </div>
+    <div id="timeline-feed" class="scroll-y"></div>
+  </div>
+
+  <!-- PATTERNS -->
+  <div id="tab-patterns" class="tab-content">
+    <div class="card">
+      <h2>Alerts &amp; Patterns</h2>
+      <div class="period-bar" id="pattern-periods"></div>
+      <div id="pattern-alerts"></div>
+    </div>
+  </div>
+
+  <!-- ROSTER -->
+  <div id="tab-roster" class="tab-content">
+    <div class="card">
+      <h2>Manage Roster</h2>
+      <div class="period-bar" id="roster-periods"></div>
+      <div class="roster-form">
+        <input type="text" class="roster-input" id="roster-name" placeholder="Student name (or multiple names separated by commas)">
+        <button class="add-btn" onclick="addStudent()">Add</button>
+      </div>
+      <ul class="roster-list" id="roster-list"></ul>
+      <div id="roster-count" style="font-size:0.8rem;color:var(--text-muted);margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="tab-settings" class="tab-content">
+    <div class="card">
+      <h2>Export</h2>
+      <div class="settings-row">
+        <button class="action-btn green" onclick="exportCSV()">Export All Data (CSV)</button>
+        <button class="action-btn green" onclick="exportFilteredCSV()">Export Filtered (CSV)</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Reset Data</h2>
+      <div class="settings-row">
+        <button class="action-btn danger" onclick="confirmReset('today')">Clear Today</button>
+        <button class="action-btn danger" onclick="confirmReset('week')">Clear This Week</button>
+        <button class="action-btn danger" onclick="confirmReset('all')">Clear All Data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Confirm</h3>
+    <p id="modal-msg"></p>
+    <div class="modal-actions">
+      <button class="action-btn" style="background:var(--surface-3);" onclick="closeModal()">Cancel</button>
+      <button class="action-btn danger" id="modal-confirm" onclick="closeModal()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- Data ---
+const PERIODS = [
+  { id: 'p1', label: 'P1 - Physics' },
+  { id: 'p3', label: 'P3 - Digital Lit' },
+  { id: 'p4', label: 'P4 - AI Lit' },
+  { id: 'p5', label: 'P5 - AI Lit' },
+  { id: 'p7', label: 'P7 - AI Lit' },
+  { id: 'p9', label: 'P9 - AI Lit' }
+];
+
+const POSITIVE = ['On Task', 'Helping Others', 'Great Question', 'Participation', 'Leadership', 'Improvement'];
+const NEGATIVE = ['Off Task', 'Disruptive', 'Phone Out', 'Late', 'Unprepared', 'Disrespectful'];
+
+// State
+let state = {
+  rosters: {},    // { periodId: [name, ...] }
+  logs: [],       // [{ id, ts, period, student, behavior, type, note }]
+};
+
+let logSelection = { period: null, student: null, behavior: null, type: null };
+let dashPeriod = 'all';
+let dashRange = 'today';
+let rosterPeriod = PERIODS[0].id;
+let patternPeriod = 'all';
+
+// --- Persistence ---
+function save() {
+  localStorage.setItem('btd-data', JSON.stringify(state));
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('btd-data'));
+    if (d) {
+      state.rosters = d.rosters || {};
+      state.logs = d.logs || [];
+    }
+  } catch(e) {}
+}
+
+// --- Helpers ---
+function today() { const d = new Date(); return d.toISOString().slice(0,10); }
+function startOfWeek() {
+  const d = new Date(); d.setHours(0,0,0,0);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  return d.getTime();
+}
+function startOfMonth() {
+  const d = new Date(); d.setHours(0,0,0,0); d.setDate(1);
+  return d.getTime();
+}
+function startOfDay() {
+  const d = new Date(); d.setHours(0,0,0,0);
+  return d.getTime();
+}
+function filterByRange(logs, range) {
+  if (range === 'all') return logs;
+  let cutoff;
+  if (range === 'today') cutoff = startOfDay();
+  else if (range === 'week') cutoff = startOfWeek();
+  else if (range === 'month') cutoff = startOfMonth();
+  return logs.filter(l => l.ts >= cutoff);
+}
+function filterByPeriod(logs, period) {
+  if (period === 'all') return logs;
+  return logs.filter(l => l.period === period);
+}
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error' : '');
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  document.querySelectorAll('.tab')[['log','dashboard','timeline','patterns','roster','settings'].indexOf(id)].classList.add('active');
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'timeline') { populateTimelineFilters(); renderTimeline(); }
+  if (id === 'patterns') renderPatterns();
+  if (id === 'roster') renderRoster();
+}
+
+// --- Period bars ---
+function buildPeriodBar(containerId, current, onChange, includeAll) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  if (includeAll) {
+    const b = document.createElement('button');
+    b.className = 'period-btn' + (current === 'all' ? ' active' : '');
+    b.textContent = 'All';
+    b.onclick = () => onChange('all');
+    el.appendChild(b);
+  }
+  PERIODS.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'period-btn' + (current === p.id ? ' active' : '');
+    b.textContent = p.label;
+    b.onclick = () => onChange(p.id);
+    el.appendChild(b);
+  });
+}
+
+// --- QUICK LOG ---
+function initLog() {
+  buildPeriodBar('log-periods', logSelection.period, pid => {
+    logSelection.period = pid;
+    logSelection.student = null;
+    initLog();
+  }, false);
+  // Default to first period
+  if (!logSelection.period) { logSelection.period = PERIODS[0].id; initLog(); return; }
+
+  // Students
+  const sg = document.getElementById('log-students');
+  const nm = document.getElementById('no-students-msg');
+  sg.innerHTML = '';
+  const students = state.rosters[logSelection.period] || [];
+  if (students.length === 0) { nm.style.display = 'block'; }
+  else {
+    nm.style.display = 'none';
+    students.forEach(s => {
+      const b = document.createElement('button');
+      b.className = 'student-btn' + (logSelection.student === s ? ' selected' : '');
+      b.textContent = s;
+      b.onclick = () => { logSelection.student = s; initLog(); };
+      sg.appendChild(b);
+    });
+  }
+
+  // Behaviors
+  const pg = document.getElementById('positive-behaviors');
+  const ng = document.getElementById('negative-behaviors');
+  pg.innerHTML = ''; ng.innerHTML = '';
+  POSITIVE.forEach(beh => {
+    const b = document.createElement('button');
+    b.className = 'behavior-btn positive' + (logSelection.behavior === beh ? ' selected' : '');
+    b.textContent = beh;
+    b.onclick = () => { logSelection.behavior = beh; logSelection.type = 'positive'; initLog(); };
+    pg.appendChild(b);
+  });
+  NEGATIVE.forEach(beh => {
+    const b = document.createElement('button');
+    b.className = 'behavior-btn negative' + (logSelection.behavior === beh ? ' selected' : '');
+    b.textContent = beh;
+    b.onclick = () => { logSelection.behavior = beh; logSelection.type = 'negative'; initLog(); };
+    ng.appendChild(b);
+  });
+
+  // Submit state
+  const btn = document.getElementById('submit-log');
+  btn.disabled = !(logSelection.student && logSelection.behavior);
+  // Update period bar active states
+  document.querySelectorAll('#log-periods .period-btn').forEach((b, i) => {
+    b.classList.toggle('active', PERIODS[i].id === logSelection.period);
+  });
+}
+
+function submitLog() {
+  if (!logSelection.student || !logSelection.behavior) return;
+  state.logs.push({
+    id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+    ts: Date.now(),
+    period: logSelection.period,
+    student: logSelection.student,
+    behavior: logSelection.behavior,
+    type: logSelection.type,
+    note: document.getElementById('log-note').value.trim()
+  });
+  save();
+  showToast(logSelection.type === 'positive' ? '+ ' + logSelection.behavior : '- ' + logSelection.behavior);
+  // Reset behavior + note for fast re-logging
+  logSelection.behavior = null;
+  logSelection.type = null;
+  document.getElementById('log-note').value = '';
+  initLog();
+}
+
+// --- DASHBOARD ---
+function setDashRange(r, el) {
+  dashRange = r;
+  document.querySelectorAll('#dash-range .range-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderDashboard();
+}
+
+function renderDashboard() {
+  buildPeriodBar('dash-periods', dashPeriod, pid => { dashPeriod = pid; renderDashboard(); }, true);
+
+  let logs = filterByPeriod(state.logs, dashPeriod);
+  let filtered = filterByRange(logs, dashRange);
+
+  const pos = filtered.filter(l => l.type === 'positive').length;
+  const neg = filtered.filter(l => l.type === 'negative').length;
+  const total = filtered.length;
+  const uniqueStudents = new Set(filtered.map(l => l.student)).size;
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card"><div class="num" style="color:var(--text)">${total}</div><div class="label">Total Entries</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--green)">${pos}</div><div class="label">Positive</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--red)">${neg}</div><div class="label">Negative</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--blue)">${uniqueStudents}</div><div class="label">Students</div></div>
+  `;
+
+  // Chart: per student
+  const students = {};
+  filtered.forEach(l => {
+    if (!students[l.student]) students[l.student] = { pos: 0, neg: 0 };
+    if (l.type === 'positive') students[l.student].pos++;
+    else students[l.student].neg++;
+  });
+
+  const chart = document.getElementById('dash-chart');
+  const sorted = Object.entries(students).sort((a, b) => (b[1].pos + b[1].neg) - (a[1].pos + a[1].neg));
+  const maxVal = Math.max(1, ...sorted.map(([,v]) => Math.max(v.pos, v.neg)));
+
+  if (sorted.length === 0) {
+    chart.innerHTML = '<div class="empty-state">No data for this period/range.</div>';
+  } else {
+    chart.innerHTML = sorted.map(([name, v]) => {
+      const pw = (v.pos / maxVal * 100).toFixed(1);
+      const nw = (v.neg / maxVal * 100).toFixed(1);
+      return `<div class="chart-row">
+        <div class="chart-label">${name}</div>
+        <div class="chart-bars">
+          <div class="bar positive" style="width:${pw}%"></div>
+          <div class="bar negative" style="width:${nw}%"></div>
+        </div>
+        <div class="chart-count" style="color:var(--green)">+${v.pos}</div>
+        <div class="chart-count" style="color:var(--red)">-${v.neg}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Highlights
+  const hl = document.getElementById('dash-highlights');
+  const topPerformers = sorted
+    .map(([n, v]) => ({ name: n, score: v.pos - v.neg, pos: v.pos }))
+    .sort((a, b) => b.score - a.score || b.pos - a.pos)
+    .slice(0, 5);
+  const needsAttention = sorted
+    .map(([n, v]) => ({ name: n, neg: v.neg, score: v.pos - v.neg }))
+    .filter(s => s.neg > 0)
+    .sort((a, b) => a.score - b.score || b.neg - a.neg)
+    .slice(0, 5);
+
+  hl.innerHTML = `
+    <div class="highlight-card">
+      <h3 class="hl-green">Top Performers</h3>
+      ${topPerformers.length ? topPerformers.map(s => `<div class="highlight-item"><span>${s.name}</span><span style="color:var(--green)">+${s.pos} (net ${s.score >= 0 ? '+' : ''}${s.score})</span></div>`).join('') : '<div style="color:var(--text-muted);font-size:0.85rem;">No data</div>'}
+    </div>
+    <div class="highlight-card">
+      <h3 class="hl-red">Needs Attention</h3>
+      ${needsAttention.length ? needsAttention.map(s => `<div class="highlight-item"><span>${s.name}</span><span style="color:var(--red)">${s.neg} negative (net ${s.score >= 0 ? '+' : ''}${s.score})</span></div>`).join('') : '<div style="color:var(--text-muted);font-size:0.85rem;">No concerns</div>'}
+    </div>
+  `;
+}
+
+// --- TIMELINE ---
+function populateTimelineFilters() {
+  const pSel = document.getElementById('tl-period');
+  pSel.innerHTML = '<option value="all">All Periods</option>';
+  PERIODS.forEach(p => {
+    pSel.innerHTML += `<option value="${p.id}">${p.label}</option>`;
+  });
+  const sSel = document.getElementById('tl-student');
+  sSel.innerHTML = '<option value="all">All Students</option>';
+  const allStudents = new Set();
+  Object.values(state.rosters).forEach(arr => arr.forEach(n => allStudents.add(n)));
+  [...allStudents].sort().forEach(n => {
+    sSel.innerHTML += `<option value="${n}">${n}</option>`;
+  });
+}
+
+function renderTimeline() {
+  let logs = [...state.logs].reverse();
+  const pf = document.getElementById('tl-period').value;
+  const tf = document.getElementById('tl-type').value;
+  const sf = document.getElementById('tl-student').value;
+  const rf = document.getElementById('tl-range').value;
+
+  logs = filterByRange(logs, rf);
+  if (pf !== 'all') logs = logs.filter(l => l.period === pf);
+  if (tf !== 'all') logs = logs.filter(l => l.type === tf);
+  if (sf !== 'all') logs = logs.filter(l => l.student === sf);
+
+  const feed = document.getElementById('timeline-feed');
+  if (logs.length === 0) {
+    feed.innerHTML = '<div class="empty-state">No entries match these filters.</div>';
+    return;
+  }
+
+  const periodMap = {};
+  PERIODS.forEach(p => periodMap[p.id] = p.label);
+
+  feed.innerHTML = logs.map(l => {
+    const d = new Date(l.ts);
+    const time = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `<div class="timeline-item">
+      <div class="tl-dot ${l.type}"></div>
+      <div class="tl-time">${time}</div>
+      <div class="tl-content">
+        <span class="tl-student">${l.student}</span>
+        <span class="tl-behavior"> - ${l.behavior}</span>
+        ${l.note ? `<div class="tl-note">"${l.note}"</div>` : ''}
+      </div>
+      <div class="tl-period">${periodMap[l.period] || l.period}</div>
+      <button class="tl-delete" onclick="deleteLog('${l.id}')" title="Delete">x</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteLog(id) {
+  state.logs = state.logs.filter(l => l.id !== id);
+  save();
+  renderTimeline();
+  showToast('Entry removed');
+}
+
+// --- PATTERNS ---
+function renderPatterns() {
+  buildPeriodBar('pattern-periods', patternPeriod, pid => { patternPeriod = pid; renderPatterns(); }, true);
+
+  const container = document.getElementById('pattern-alerts');
+  const weekLogs = filterByRange(filterByPeriod(state.logs, patternPeriod), 'week');
+
+  // 3+ negatives in a week
+  const negCounts = {};
+  weekLogs.filter(l => l.type === 'negative').forEach(l => {
+    negCounts[l.student] = (negCounts[l.student] || 0) + 1;
+  });
+  const highNeg = Object.entries(negCounts).filter(([, c]) => c >= 3).sort((a, b) => b[1] - a[1]);
+
+  // Declining trend: compare this week pos-neg to last week
+  const lastWeekStart = startOfWeek() - 7 * 24 * 60 * 60 * 1000;
+  const lastWeekEnd = startOfWeek();
+  const lastWeekLogs = filterByPeriod(state.logs, patternPeriod).filter(l => l.ts >= lastWeekStart && l.ts < lastWeekEnd);
+
+  const thisWeekScores = {};
+  const lastWeekScores = {};
+  weekLogs.forEach(l => {
+    thisWeekScores[l.student] = (thisWeekScores[l.student] || 0) + (l.type === 'positive' ? 1 : -1);
+  });
+  lastWeekLogs.forEach(l => {
+    lastWeekScores[l.student] = (lastWeekScores[l.student] || 0) + (l.type === 'positive' ? 1 : -1);
+  });
+  const declining = [];
+  Object.keys(thisWeekScores).forEach(s => {
+    if (lastWeekScores[s] !== undefined && thisWeekScores[s] < lastWeekScores[s]) {
+      declining.push({ name: s, thisWeek: thisWeekScores[s], lastWeek: lastWeekScores[s] });
+    }
+  });
+
+  // Students with only negatives this week
+  const onlyNeg = [];
+  const studentTypes = {};
+  weekLogs.forEach(l => {
+    if (!studentTypes[l.student]) studentTypes[l.student] = new Set();
+    studentTypes[l.student].add(l.type);
+  });
+  Object.entries(studentTypes).forEach(([name, types]) => {
+    if (types.has('negative') && !types.has('positive') && (negCounts[name] || 0) >= 2) {
+      onlyNeg.push(name);
+    }
+  });
+
+  let html = '';
+
+  if (highNeg.length === 0 && declining.length === 0 && onlyNeg.length === 0) {
+    html = '<div class="empty-state">No patterns flagged this week. Looking good.</div>';
+  }
+
+  highNeg.forEach(([name, count]) => {
+    html += `<div class="alert-item"><div class="alert-icon">!</div><div><strong>${name}</strong> has ${count} negative entries this week.</div></div>`;
+  });
+
+  declining.forEach(s => {
+    html += `<div class="alert-item" style="border-color:rgba(253,203,110,0.3);background:rgba(253,203,110,0.08);">
+      <div class="alert-icon">~</div>
+      <div><strong>${s.name}</strong> declining trend: score went from ${s.lastWeek >= 0 ? '+' : ''}${s.lastWeek} last week to ${s.thisWeek >= 0 ? '+' : ''}${s.thisWeek} this week.</div>
+    </div>`;
+  });
+
+  onlyNeg.forEach(name => {
+    html += `<div class="alert-item"><div class="alert-icon">!</div><div><strong>${name}</strong> has only negative entries this week (no positives logged).</div></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// --- ROSTER ---
+function renderRoster() {
+  buildPeriodBar('roster-periods', rosterPeriod, pid => { rosterPeriod = pid; renderRoster(); }, false);
+  const list = document.getElementById('roster-list');
+  const students = state.rosters[rosterPeriod] || [];
+  list.innerHTML = students.map((s, i) => `<li class="roster-item"><span>${s}</span><button class="remove-btn" onclick="removeStudent(${i})">Remove</button></li>`).join('');
+  document.getElementById('roster-count').textContent = students.length + ' student' + (students.length !== 1 ? 's' : '') + ' in roster';
+}
+
+function addStudent() {
+  const input = document.getElementById('roster-name');
+  const names = input.value.split(',').map(n => n.trim()).filter(n => n);
+  if (names.length === 0) return;
+  if (!state.rosters[rosterPeriod]) state.rosters[rosterPeriod] = [];
+  let added = 0;
+  names.forEach(name => {
+    if (!state.rosters[rosterPeriod].includes(name)) {
+      state.rosters[rosterPeriod].push(name);
+      added++;
+    }
+  });
+  state.rosters[rosterPeriod].sort();
+  save();
+  input.value = '';
+  renderRoster();
+  if (added) showToast(added + ' student' + (added > 1 ? 's' : '') + ' added');
+}
+
+function removeStudent(idx) {
+  state.rosters[rosterPeriod].splice(idx, 1);
+  save();
+  renderRoster();
+  showToast('Student removed');
+}
+
+// --- EXPORT ---
+function exportCSV() {
+  if (state.logs.length === 0) { showToast('No data to export', true); return; }
+  const periodMap = {};
+  PERIODS.forEach(p => periodMap[p.id] = p.label);
+  let csv = 'Date,Time,Period,Student,Type,Behavior,Note\n';
+  state.logs.forEach(l => {
+    const d = new Date(l.ts);
+    const date = d.toLocaleDateString('en-US');
+    const time = d.toLocaleTimeString('en-US');
+    const note = (l.note || '').replace(/"/g, '""');
+    csv += `"${date}","${time}","${periodMap[l.period] || l.period}","${l.student}","${l.type}","${l.behavior}","${note}"\n`;
+  });
+  downloadCSV(csv, 'behavior-log-all.csv');
+}
+
+function exportFilteredCSV() {
+  // Use current timeline filters
+  let logs = [...state.logs];
+  const pf = document.getElementById('tl-period')?.value || 'all';
+  const tf = document.getElementById('tl-type')?.value || 'all';
+  const sf = document.getElementById('tl-student')?.value || 'all';
+  const rf = document.getElementById('tl-range')?.value || 'all';
+  logs = filterByRange(logs, rf);
+  if (pf !== 'all') logs = logs.filter(l => l.period === pf);
+  if (tf !== 'all') logs = logs.filter(l => l.type === tf);
+  if (sf !== 'all') logs = logs.filter(l => l.student === sf);
+
+  if (logs.length === 0) { showToast('No data matches current filters', true); return; }
+  const periodMap = {};
+  PERIODS.forEach(p => periodMap[p.id] = p.label);
+  let csv = 'Date,Time,Period,Student,Type,Behavior,Note\n';
+  logs.forEach(l => {
+    const d = new Date(l.ts);
+    const date = d.toLocaleDateString('en-US');
+    const time = d.toLocaleTimeString('en-US');
+    const note = (l.note || '').replace(/"/g, '""');
+    csv += `"${date}","${time}","${periodMap[l.period] || l.period}","${l.student}","${l.type}","${l.behavior}","${note}"\n`;
+  });
+  downloadCSV(csv, 'behavior-log-filtered.csv');
+}
+
+function downloadCSV(csv, filename) {
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('CSV downloaded');
+}
+
+// --- RESET ---
+function confirmReset(mode) {
+  const modal = document.getElementById('modal');
+  const msgs = {
+    today: "This will delete all behavior entries from today.",
+    week: "This will delete all behavior entries from this week.",
+    all: "This will delete ALL behavior entries and rosters. This cannot be undone."
+  };
+  document.getElementById('modal-title').textContent = 'Confirm Reset';
+  document.getElementById('modal-msg').textContent = msgs[mode];
+  document.getElementById('modal-confirm').onclick = () => { doReset(mode); closeModal(); };
+  modal.classList.add('active');
+}
+
+function doReset(mode) {
+  if (mode === 'today') {
+    state.logs = state.logs.filter(l => l.ts < startOfDay());
+  } else if (mode === 'week') {
+    state.logs = state.logs.filter(l => l.ts < startOfWeek());
+  } else {
+    state.logs = [];
+    state.rosters = {};
+  }
+  save();
+  showToast('Data cleared');
+  initLog();
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+
+// Close modal on overlay click
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Enter key for roster input
+document.getElementById('roster-name').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') addStudent();
+});
+
+// Enter key for note input submits log
+document.getElementById('log-note').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !document.getElementById('submit-log').disabled) submitLog();
+});
+
+// --- Init ---
+load();
+initLog();
+</script>
+</body>
+</html>

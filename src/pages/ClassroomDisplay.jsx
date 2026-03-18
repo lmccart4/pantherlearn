@@ -10,12 +10,24 @@ import { db } from "../lib/firebase";
 
 const CONNECT_DIST = 180;
 const PARTICLE_COUNT = 70;
-const PARTICLE_COLORS = [
-  { r: 232, g: 168, b: 56 },
-  { r: 62, g: 201, b: 176 },
-  { r: 232, g: 112, b: 90 },
-  { r: 245, g: 197, b: 99 },
-];
+
+// St. Patrick's Day: March 17 only
+const today = new Date();
+const IS_ST_PATRICKS_DAY = today.getMonth() === 2 && today.getDate() === 17;
+
+const PARTICLE_COLORS = IS_ST_PATRICKS_DAY
+  ? [
+      { r: 34,  g: 197, b: 94  }, // bright green
+      { r: 22,  g: 163, b: 74  }, // medium green
+      { r: 234, g: 179, b: 8   }, // gold
+      { r: 74,  g: 222, b: 128 }, // light green
+    ]
+  : [
+      { r: 232, g: 168, b: 56 },
+      { r: 62,  g: 201, b: 176 },
+      { r: 232, g: 112, b: 90 },
+      { r: 245, g: 197, b: 99 },
+    ];
 
 function createParticles(w, h) {
   const particles = [];
@@ -233,7 +245,7 @@ function injectStyles() {
 
     .cd-root {
       min-height: 100vh;
-      background: #0b1526;
+      background: ${IS_ST_PATRICKS_DAY ? "#061a0e" : "#0b1526"};
       color: #f4efe6;
       display: flex;
       flex-direction: column;
@@ -517,25 +529,30 @@ export default function ClassroomDisplay() {
   const [contentKey, setContentKey] = useState(0);
   const prevPeriodRef = useRef(period.period);
   const periodInfoRef = useRef(null);
+  const brandRef = useRef(null);
 
-  // Auto-scale the period info bar so it never wraps to 2 lines
-  useEffect(() => {
-    const el = periodInfoRef.current;
-    if (!el) return;
-    const fit = () => {
-      el.style.transform = "none";
-      requestAnimationFrame(() => {
-        if (el.scrollWidth > el.clientWidth) {
-          const scale = el.clientWidth / el.scrollWidth;
-          el.style.transform = `scaleX(${scale})`;
-        }
-      });
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(el);
-    return () => ro.disconnect();
-  });
+  // Auto-scale helper — keeps a flex row on one line
+  function useAutoScale(ref) {
+    useEffect(() => {
+      const el = ref.current;
+      if (!el) return;
+      const fit = () => {
+        el.style.transform = "none";
+        requestAnimationFrame(() => {
+          if (el.scrollWidth > el.clientWidth) {
+            el.style.transform = `scaleX(${el.clientWidth / el.scrollWidth})`;
+          }
+        });
+      };
+      fit();
+      const ro = new ResizeObserver(fit);
+      ro.observe(el);
+      return () => ro.disconnect();
+    });
+  }
+
+  useAutoScale(periodInfoRef);
+  useAutoScale(brandRef);
 
   useEffect(() => { injectStyles(); }, []);
 
@@ -599,7 +616,7 @@ export default function ClassroomDisplay() {
 
   const question = useMemo(() => generateQuestion(currentLesson), [currentLesson]);
   const isWeekend = [0, 6].includes(new Date().getDay());
-  const accent = period.accent || "#e8a838";
+  const accent = IS_ST_PATRICKS_DAY ? "#22c55e" : (period.accent || "#e8a838");
 
   const progressPct = useMemo(() => {
     if (period.status !== "active") return 0;
@@ -636,9 +653,11 @@ export default function ClassroomDisplay() {
 
       {/* ── Top bar ── */}
       <div className="cd-topbar">
-        <div className="cd-brand">
-          <span className="cd-logo">PANTHERLEARN</span>
+        <div className="cd-brand" ref={brandRef} style={{ transformOrigin: "left center", overflow: "hidden" }}>
           <span className="cd-teacher">{clock.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>
+          {IS_ST_PATRICKS_DAY && (
+            <span style={{ fontSize: "28px", marginLeft: "8px", lineHeight: 1 }} title="Happy St. Patrick's Day!">☘️</span>
+          )}
         </div>
         <div className="cd-clock">{formatTime(clock)}</div>
       </div>

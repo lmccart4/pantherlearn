@@ -27,6 +27,7 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
   const [grading, setGrading] = useState(false);
   const [savedGrade, setSavedGrade] = useState(item.writtenScore ?? null);
   const [pendingTier, setPendingTier] = useState(null);
+  const [gradeError, setGradeError] = useState(null);
   const { getStudentName, getStudentEmail, getStudentPhoto, getBlockPrompt, lessonMap, responses } = helpers;
 
   const wasAutoGraded = !!(item.autogradeOriginal || item.gradedBy === "autograde-agent");
@@ -120,7 +121,7 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
       }
     } catch (err) {
       console.error("Failed to save grade:", err);
-      alert("Failed to save grade. Please try again.");
+      setGradeError("Failed to save grade. Please try again.");
     }
     setGrading(false);
   };
@@ -132,7 +133,7 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {getStudentPhoto(item.studentId) ? (
-            <img src={getStudentPhoto(item.studentId)} alt="" style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid var(--border)" }} />
+            <img src={getStudentPhoto(item.studentId)} alt={getStudentName(item.studentId)} style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid var(--border)" }} />
           ) : (
             <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--text3)" }}>👤</div>
           )}
@@ -297,6 +298,12 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
           </span>
         )}
       </div>
+
+      {gradeError && (
+        <div style={{ marginBottom: 8, padding: "6px 12px", borderRadius: 6, background: "rgba(239,68,68,0.1)", color: "#f87171", fontSize: 12 }}>
+          {gradeError}
+        </div>
+      )}
 
       {/* Student review note */}
       {item.reviewRequested && item.reviewNote && (

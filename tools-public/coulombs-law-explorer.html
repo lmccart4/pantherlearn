@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coulomb's Law Explorer — PantherLearn Physics</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+  .header { background: linear-gradient(135deg, #1e40af, #7c3aed); padding: 20px; text-align: center; }
+  .header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+  .header p { font-size: 0.85rem; opacity: 0.85; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+  .canvas-container {
+    background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px;
+    border: 1px solid #334155; position: relative;
+  }
+  canvas { display: block; margin: 0 auto; border-radius: 8px; background: #0f172a; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 600px) { .controls { grid-template-columns: 1fr; } }
+
+  .charge-card {
+    background: #1e293b; border-radius: 12px; padding: 16px;
+    border: 2px solid #334155; transition: border-color 0.2s;
+  }
+  .charge-card.positive { border-color: #ef4444; }
+  .charge-card.negative { border-color: #3b82f6; }
+
+  .charge-card h3 { font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .charge-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; }
+  .charge-icon.pos { background: #ef4444; color: white; }
+  .charge-icon.neg { background: #3b82f6; color: white; }
+
+  .slider-group { margin-bottom: 12px; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
+  .slider-value { color: #f1f5f9; font-weight: 600; }
+
+  input[type="range"] {
+    width: 100%; height: 6px; -webkit-appearance: none; background: #334155;
+    border-radius: 3px; outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    background: #818cf8; cursor: pointer; border: 2px solid #c7d2fe;
+  }
+
+  .results {
+    background: #1e293b; border-radius: 12px; padding: 20px;
+    border: 1px solid #334155; margin-bottom: 20px;
+  }
+  .results h3 { font-size: 0.95rem; margin-bottom: 12px; color: #c4b5fd; }
+
+  .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .result-item {
+    background: #0f172a; border-radius: 8px; padding: 12px; text-align: center;
+  }
+  .result-item .label { font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; }
+  .result-item .value { font-size: 1.2rem; font-weight: 700; color: #f1f5f9; }
+  .result-item .unit { font-size: 0.7rem; color: #64748b; }
+
+  .force-arrow { color: #fbbf24; }
+  .attract { color: #34d399; }
+  .repel { color: #f87171; }
+
+  .proportional-box {
+    background: #1e293b; border-radius: 12px; padding: 20px;
+    border: 1px solid #334155; margin-bottom: 20px;
+  }
+  .proportional-box h3 { font-size: 0.95rem; margin-bottom: 12px; color: #86efac; }
+
+  .prop-scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .prop-item {
+    background: #0f172a; border-radius: 8px; padding: 12px; font-size: 0.8rem;
+  }
+  .prop-item .scenario { color: #94a3b8; margin-bottom: 4px; }
+  .prop-item .prediction { color: #fbbf24; font-weight: 600; font-size: 0.95rem; }
+
+  .formula-ref {
+    background: #1e293b; border-radius: 12px; padding: 16px;
+    border: 1px solid #334155; text-align: center; margin-bottom: 20px;
+  }
+  .formula { font-size: 1.3rem; font-weight: 700; color: #c4b5fd; letter-spacing: 1px; }
+  .formula-note { font-size: 0.75rem; color: #64748b; margin-top: 6px; }
+
+  .instructions {
+    background: #1e293b; border-radius: 12px; padding: 16px;
+    border: 1px solid #334155; font-size: 0.8rem; color: #94a3b8;
+  }
+  .instructions h4 { color: #e2e8f0; margin-bottom: 8px; font-size: 0.85rem; }
+  .instructions ul { padding-left: 18px; }
+  .instructions li { margin-bottom: 4px; }
+
+  .gravity-compare {
+    background: #1e293b; border-radius: 12px; padding: 20px;
+    border: 1px solid #334155; margin-bottom: 20px;
+  }
+  .gravity-compare h3 { font-size: 0.95rem; margin-bottom: 12px; color: #fbbf24; }
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .compare-table th, .compare-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #334155; }
+  .compare-table th { color: #94a3b8; font-weight: 600; }
+  .compare-table td { color: #e2e8f0; }
+  .compare-table tr:last-child td { border-bottom: none; }
+
+  .distance-display { text-align: center; margin: 8px 0; }
+  .distance-val { font-size: 1.1rem; font-weight: 600; color: #fbbf24; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Coulomb's Law Explorer</h1>
+  <p>Drag charges, adjust values, and see how electrostatic force changes in real time</p>
+</div>
+
+<div class="container">
+
+  <div class="formula-ref">
+    <div class="formula">F = k &middot; |q₁ &middot; q₂| / r²</div>
+    <div class="formula-note">k = 8.99 &times; 10⁹ N&middot;m²/C² &nbsp;|&nbsp; Charges in Coulombs &nbsp;|&nbsp; Distance in meters</div>
+  </div>
+
+  <div class="canvas-container">
+    <canvas id="sim" width="800" height="300"></canvas>
+    <div class="distance-display">
+      Distance: <span class="distance-val" id="dist-display">1.00 m</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="charge-card positive">
+      <h3><span class="charge-icon pos">+</span> Charge 1</h3>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Magnitude</span>
+          <span class="slider-value" id="q1-val">3.0 μC</span>
+        </div>
+        <input type="range" id="q1" min="0.5" max="10" step="0.5" value="3">
+      </div>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Sign</span>
+          <span class="slider-value" id="q1-sign-val">Positive (+)</span>
+        </div>
+        <input type="range" id="q1-sign" min="0" max="1" step="1" value="1">
+      </div>
+    </div>
+
+    <div class="charge-card negative">
+      <h3><span class="charge-icon neg">&minus;</span> Charge 2</h3>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Magnitude</span>
+          <span class="slider-value" id="q2-val">5.0 μC</span>
+        </div>
+        <input type="range" id="q2" min="0.5" max="10" step="0.5" value="5">
+      </div>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Sign</span>
+          <span class="slider-value" id="q2-sign-val">Negative (&minus;)</span>
+        </div>
+        <input type="range" id="q2-sign" min="0" max="1" step="1" value="0">
+      </div>
+    </div>
+  </div>
+
+  <div class="results">
+    <h3>Calculation Results</h3>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="label">Electrostatic Force</div>
+        <div class="value" id="force-val">—</div>
+        <div class="unit">Newtons</div>
+      </div>
+      <div class="result-item">
+        <div class="label">Interaction</div>
+        <div class="value" id="interaction-val">—</div>
+      </div>
+      <div class="result-item">
+        <div class="label">Force Direction</div>
+        <div class="value force-arrow" id="direction-val">—</div>
+      </div>
+      <div class="result-item">
+        <div class="label">vs. Gravity (proton-electron)</div>
+        <div class="value" id="ratio-val">—</div>
+        <div class="unit">times stronger</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="proportional-box">
+    <h3>Proportional Reasoning — What If...?</h3>
+    <div class="prop-scenarios">
+      <div class="prop-item">
+        <div class="scenario">Double q₁:</div>
+        <div class="prediction" id="prop-double-q1">—</div>
+      </div>
+      <div class="prop-item">
+        <div class="scenario">Triple the distance:</div>
+        <div class="prediction" id="prop-triple-r">—</div>
+      </div>
+      <div class="prop-item">
+        <div class="scenario">Halve the distance:</div>
+        <div class="prediction" id="prop-halve-r">—</div>
+      </div>
+      <div class="prop-item">
+        <div class="scenario">Double both charges:</div>
+        <div class="prediction" id="prop-double-both">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gravity-compare">
+    <h3>Coulomb's Law vs Newton's Gravity</h3>
+    <table class="compare-table">
+      <tr><th></th><th>Coulomb's Law</th><th>Newton's Gravity</th></tr>
+      <tr><td>Formula</td><td>F = kq₁q₂/r²</td><td>F = Gm₁m₂/r²</td></tr>
+      <tr><td>Constant</td><td>k = 8.99 &times; 10⁹</td><td>G = 6.67 &times; 10⁻¹¹</td></tr>
+      <tr><td>Depends on</td><td>Charge</td><td>Mass</td></tr>
+      <tr><td>Can repel?</td><td>Yes (like charges)</td><td>No (always attracts)</td></tr>
+      <tr><td>Relative strength</td><td>MUCH stronger</td><td>Very weak</td></tr>
+      <tr><td>Distance law</td><td>Inverse square</td><td>Inverse square</td></tr>
+    </table>
+  </div>
+
+  <div class="instructions">
+    <h4>How to Use</h4>
+    <ul>
+      <li><strong>Drag the charges</strong> on the canvas to change the distance between them</li>
+      <li>Use the <strong>sliders</strong> to adjust charge magnitudes and signs</li>
+      <li>Watch the force, direction, and proportional reasoning update in real time</li>
+      <li>The <strong>"What If"</strong> section shows how force would change with different values</li>
+      <li>Notice: force follows the <strong>inverse square law</strong> — same as gravity!</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById('sim');
+const ctx = canvas.getContext('2d');
+const k = 8.99e9;
+const G = 6.67e-11;
+
+// Charge positions (pixel coords)
+let c1x = 250, c2x = 550;
+const cy = 150;
+const chargeRadius = 24;
+let dragging = null;
+
+// Scale: 1 pixel = 0.005 meters (so 200px apart = 1 meter)
+const SCALE = 0.005;
+
+function getQ1() {
+  const mag = parseFloat(document.getElementById('q1').value) * 1e-6;
+  const sign = parseInt(document.getElementById('q1-sign').value);
+  return sign ? mag : -mag;
+}
+
+function getQ2() {
+  const mag = parseFloat(document.getElementById('q2').value) * 1e-6;
+  const sign = parseInt(document.getElementById('q2-sign').value);
+  return sign ? mag : -mag;
+}
+
+function getDistance() {
+  return Math.abs(c2x - c1x) * SCALE;
+}
+
+function calcForce(q1, q2, r) {
+  if (r < 0.01) r = 0.01;
+  return k * Math.abs(q1) * Math.abs(q2) / (r * r);
+}
+
+function formatSci(num) {
+  if (num === 0) return '0';
+  const exp = Math.floor(Math.log10(Math.abs(num)));
+  const coeff = num / Math.pow(10, exp);
+  if (exp === 0) return coeff.toFixed(2);
+  return coeff.toFixed(2) + ' × 10' + superscript(exp);
+}
+
+function superscript(n) {
+  const supers = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '-': '⁻' };
+  return String(n).split('').map(c => supers[c] || c).join('');
+}
+
+function update() {
+  const q1 = getQ1();
+  const q2 = getQ2();
+  const r = getDistance();
+  const F = calcForce(q1, q2, r);
+  const sameSign = (q1 > 0 && q2 > 0) || (q1 < 0 && q2 < 0);
+
+  // Update displays
+  document.getElementById('q1-val').textContent = parseFloat(document.getElementById('q1').value).toFixed(1) + ' μC';
+  document.getElementById('q2-val').textContent = parseFloat(document.getElementById('q2').value).toFixed(1) + ' μC';
+  document.getElementById('q1-sign-val').textContent = parseInt(document.getElementById('q1-sign').value) ? 'Positive (+)' : 'Negative (−)';
+  document.getElementById('q2-sign-val').textContent = parseInt(document.getElementById('q2-sign').value) ? 'Positive (+)' : 'Negative (−)';
+  document.getElementById('dist-display').textContent = r.toFixed(2) + ' m';
+  document.getElementById('force-val').textContent = formatSci(F);
+
+  const interEl = document.getElementById('interaction-val');
+  if (sameSign) {
+    interEl.textContent = 'Repulsive';
+    interEl.className = 'value repel';
+  } else {
+    interEl.textContent = 'Attractive';
+    interEl.className = 'value attract';
+  }
+
+  document.getElementById('direction-val').textContent = sameSign ? '← →' : '→ ←';
+
+  // Gravity comparison at hydrogen atom scale
+  const Fg = G * 1.67e-27 * 9.11e-31 / (5.3e-11 * 5.3e-11);
+  const Fe = k * 1.6e-19 * 1.6e-19 / (5.3e-11 * 5.3e-11);
+  document.getElementById('ratio-val').textContent = formatSci(Fe / Fg);
+
+  // Proportional reasoning
+  document.getElementById('prop-double-q1').textContent = formatSci(F * 2) + ' N (2×)';
+  document.getElementById('prop-triple-r').textContent = formatSci(F / 9) + ' N (1/9)';
+  document.getElementById('prop-halve-r').textContent = formatSci(F * 4) + ' N (4×)';
+  document.getElementById('prop-double-both').textContent = formatSci(F * 4) + ' N (4×)';
+
+  // Update charge card styles
+  const card1 = document.querySelectorAll('.charge-card')[0];
+  const card2 = document.querySelectorAll('.charge-card')[1];
+  const icon1 = document.querySelectorAll('.charge-icon')[0];
+  const icon2 = document.querySelectorAll('.charge-icon')[1];
+
+  if (q1 > 0) {
+    card1.className = 'charge-card positive';
+    icon1.className = 'charge-icon pos';
+    icon1.textContent = '+';
+  } else {
+    card1.className = 'charge-card negative';
+    icon1.className = 'charge-icon neg';
+    icon1.textContent = '−';
+  }
+  if (q2 > 0) {
+    card2.className = 'charge-card positive';
+    icon2.className = 'charge-icon pos';
+    icon2.textContent = '+';
+  } else {
+    card2.className = 'charge-card negative';
+    icon2.className = 'charge-icon neg';
+    icon2.textContent = '−';
+  }
+
+  draw(q1, q2, F, sameSign);
+}
+
+function draw(q1, q2, F, repel) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background grid
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < canvas.width; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+
+  // Distance line
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.moveTo(c1x, cy + 40);
+  ctx.lineTo(c2x, cy + 40);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Distance markers
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('r = ' + getDistance().toFixed(2) + ' m', (c1x + c2x) / 2, cy + 55);
+
+  // Force arrows
+  const arrowLen = Math.min(80, Math.max(20, Math.log10(F + 1) * 15));
+  ctx.strokeStyle = '#fbbf24';
+  ctx.fillStyle = '#fbbf24';
+  ctx.lineWidth = 3;
+
+  if (repel) {
+    // Arrows pointing away from each other
+    drawArrow(c1x - chargeRadius - 5, cy, c1x - chargeRadius - 5 - arrowLen, cy);
+    drawArrow(c2x + chargeRadius + 5, cy, c2x + chargeRadius + 5 + arrowLen, cy);
+  } else {
+    // Arrows pointing toward each other
+    drawArrow(c1x + chargeRadius + 5, cy, c1x + chargeRadius + 5 + arrowLen, cy);
+    drawArrow(c2x - chargeRadius - 5, cy, c2x - chargeRadius - 5 - arrowLen, cy);
+  }
+
+  // Charge 1
+  ctx.beginPath();
+  ctx.arc(c1x, cy, chargeRadius, 0, Math.PI * 2);
+  ctx.fillStyle = q1 > 0 ? '#ef4444' : '#3b82f6';
+  ctx.fill();
+  ctx.strokeStyle = q1 > 0 ? '#fca5a5' : '#93c5fd';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(q1 > 0 ? '+' : '−', c1x, cy);
+
+  // Charge 1 label
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('q₁', c1x, cy - chargeRadius - 10);
+
+  // Charge 2
+  ctx.beginPath();
+  ctx.arc(c2x, cy, chargeRadius, 0, Math.PI * 2);
+  ctx.fillStyle = q2 > 0 ? '#ef4444' : '#3b82f6';
+  ctx.fill();
+  ctx.strokeStyle = q2 > 0 ? '#fca5a5' : '#93c5fd';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(q2 > 0 ? '+' : '−', c2x, cy);
+
+  // Charge 2 label
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('q₂', c2x, cy - chargeRadius - 10);
+
+  // Field lines (simplified)
+  const numLines = 8;
+  ctx.globalAlpha = 0.15;
+  for (let i = 0; i < numLines; i++) {
+    const angle = (i / numLines) * Math.PI * 2;
+    const len = 60;
+    ctx.strokeStyle = q1 > 0 ? '#ef4444' : '#3b82f6';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(c1x + Math.cos(angle) * chargeRadius, cy + Math.sin(angle) * chargeRadius);
+    ctx.lineTo(c1x + Math.cos(angle) * (chargeRadius + len), cy + Math.sin(angle) * (chargeRadius + len));
+    ctx.stroke();
+
+    ctx.strokeStyle = q2 > 0 ? '#ef4444' : '#3b82f6';
+    ctx.beginPath();
+    ctx.moveTo(c2x + Math.cos(angle) * chargeRadius, cy + Math.sin(angle) * chargeRadius);
+    ctx.lineTo(c2x + Math.cos(angle) * (chargeRadius + len), cy + Math.sin(angle) * (chargeRadius + len));
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawArrow(fromX, fromY, toX, toY) {
+  const headLen = 10;
+  const angle = Math.atan2(toY - fromY, toX - fromX);
+  ctx.beginPath();
+  ctx.moveTo(fromX, fromY);
+  ctx.lineTo(toX, toY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(toX, toY);
+  ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
+  ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI / 6), toY - headLen * Math.sin(angle + Math.PI / 6));
+  ctx.closePath();
+  ctx.fill();
+}
+
+// Drag handling
+function getMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+}
+
+function hitTest(mx, my) {
+  const d1 = Math.hypot(mx - c1x, my - cy);
+  const d2 = Math.hypot(mx - c2x, my - cy);
+  if (d1 < chargeRadius + 10) return 1;
+  if (d2 < chargeRadius + 10) return 2;
+  return null;
+}
+
+canvas.addEventListener('mousedown', e => {
+  const pos = getMousePos(e);
+  dragging = hitTest(pos.x, pos.y);
+});
+canvas.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const pos = getMousePos(e);
+  const x = Math.max(chargeRadius + 5, Math.min(canvas.width - chargeRadius - 5, pos.x));
+  if (dragging === 1) {
+    c1x = Math.min(x, c2x - chargeRadius * 2 - 10);
+  } else {
+    c2x = Math.max(x, c1x + chargeRadius * 2 + 10);
+  }
+  update();
+});
+canvas.addEventListener('mouseup', () => { dragging = null; });
+canvas.addEventListener('mouseleave', () => { dragging = null; });
+
+// Touch support
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const pos = getMousePos(e);
+  dragging = hitTest(pos.x, pos.y);
+});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!dragging) return;
+  const pos = getMousePos(e);
+  const x = Math.max(chargeRadius + 5, Math.min(canvas.width - chargeRadius - 5, pos.x));
+  if (dragging === 1) {
+    c1x = Math.min(x, c2x - chargeRadius * 2 - 10);
+  } else {
+    c2x = Math.max(x, c1x + chargeRadius * 2 + 10);
+  }
+  update();
+});
+canvas.addEventListener('touchend', () => { dragging = null; });
+
+// Slider listeners
+document.querySelectorAll('input[type="range"]').forEach(el => {
+  el.addEventListener('input', update);
+});
+
+// Responsive canvas
+function resizeCanvas() {
+  const container = canvas.parentElement;
+  const w = Math.min(800, container.clientWidth - 40);
+  canvas.style.width = w + 'px';
+  canvas.style.height = (w * 300 / 800) + 'px';
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Initial
+update();
+</script>
+</body>
+</html>

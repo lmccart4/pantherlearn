@@ -1,11 +1,22 @@
 // src/pages/LoginPage.jsx
-import { signInWithGoogle } from "../lib/firebase";
+import { useEffect } from "react";
+import { signInWithGoogle, signInWithCredentials } from "../lib/firebase";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { authError } = useAuth();
+
+  // Agent auto-sign-in: ?agent=pixel&key=pixel-qa-agent-2026
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const agent = params.get("agent");
+    const key = params.get("key");
+    if (agent && key) {
+      signInWithCredentials(`${agent}@lachlan.internal`, key).catch(() => {});
+    }
+  }, []);
 
   const handleSignIn = async () => {
     try {

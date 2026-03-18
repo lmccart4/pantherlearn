@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PAPS Interactive Tools</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 40px 24px;
+    }
+    header {
+      max-width: 900px;
+      margin: 0 auto 48px;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #f59e0b;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    header p {
+      font-size: 15px;
+      color: #94a3b8;
+    }
+    .section {
+      max-width: 900px;
+      margin: 0 auto 40px;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 16px;
+      padding-left: 4px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: #1e2332;
+      border: 1px solid #2a3044;
+      border-radius: 10px;
+      padding: 18px 20px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s, background 0.15s;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .card:hover { border-color: #f59e0b; background: #232940; }
+    .card-icon {
+      font-size: 24px;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .card-body {}
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PAPS Interactive Tools</h1>
+    <p>Perth Amboy High School · Digital tools for class</p>
+  </header>
+
+  <div class="section">
+    <div class="section-title">AI Literacy</div>
+    <div class="grid">
+      <a class="card" href="ai-ethics-dilemma-cards.html">
+        <div class="card-icon">⚖️</div>
+        <div class="card-body">
+          <div class="card-title">AI Ethics Dilemma Cards</div>
+          <div class="card-desc">Explore real-world ethical dilemmas in AI development and deployment.</div>
+        </div>
+      </a>
+      <a class="card" href="bias-detection-activities.html">
+        <div class="card-icon">🔍</div>
+        <div class="card-body">
+          <div class="card-title">Bias Detection Activities</div>
+          <div class="card-desc">Identify and analyze bias in datasets and AI model outputs.</div>
+        </div>
+      </a>
+      <a class="card" href="decision-tree-builder.html">
+        <div class="card-icon">🌲</div>
+        <div class="card-body">
+          <div class="card-title">Decision Tree Builder</div>
+          <div class="card-desc">Build and visualize decision trees to understand how AI classifiers work.</div>
+        </div>
+      </a>
+      <a class="card" href="prompt-engineering-sandbox.html">
+        <div class="card-icon">🧪</div>
+        <div class="card-body">
+          <div class="card-title">Prompt Engineering Sandbox</div>
+          <div class="card-desc">Practice and refine prompting strategies with interactive examples.</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Digital Literacy</div>
+    <div class="grid">
+      <a class="card" href="digital-footprint-simulator.html">
+        <div class="card-icon">👣</div>
+        <div class="card-body">
+          <div class="card-title">Digital Footprint Simulator</div>
+          <div class="card-desc">See how your online activity creates a permanent digital trail.</div>
+        </div>
+      </a>
+      <a class="card" href="privacy-settings-walkthrough.html">
+        <div class="card-icon">🔒</div>
+        <div class="card-body">
+          <div class="card-title">Privacy Settings Walkthrough</div>
+          <div class="card-desc">Step-by-step guide to locking down your social media privacy.</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Physics</div>
+    <div class="grid">
+      <a class="card" href="coulombs-law-explorer.html">
+        <div class="card-icon">⚡</div>
+        <div class="card-body">
+          <div class="card-title">Coulomb's Law Explorer</div>
+          <div class="card-desc">Visualize electric force between charged particles interactively.</div>
+        </div>
+      </a>
+      <a class="card" href="interactive-equation-solvers.html">
+        <div class="card-icon">📐</div>
+        <div class="card-body">
+          <div class="card-title">Interactive Equation Solvers</div>
+          <div class="card-desc">Solve physics equations step-by-step with guided feedback.</div>
+        </div>
+      </a>
+      <a class="card" href="virtual-lab-simulations.html">
+        <div class="card-icon">🔬</div>
+        <div class="card-body">
+          <div class="card-title">Virtual Lab Simulations</div>
+          <div class="card-desc">Run physics experiments in a virtual lab environment.</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Teacher Tools</div>
+    <div class="grid">
+      <a class="card" href="behavior-tracking-dashboard.html">
+        <div class="card-icon">📊</div>
+        <div class="card-body">
+          <div class="card-title">Behavior Tracking Dashboard</div>
+          <div class="card-desc">Log and monitor student behavior patterns over time.</div>
+        </div>
+      </a>
+      <a class="card" href="parent-contact-logger.html">
+        <div class="card-icon">📞</div>
+        <div class="card-body">
+          <div class="card-title">Parent Contact Logger</div>
+          <div class="card-desc">Track parent communications with timestamps and notes.</div>
+        </div>
+      </a>
+      <a class="card" href="sub-plans-generator.html">
+        <div class="card-icon">📋</div>
+        <div class="card-body">
+          <div class="card-title">Sub Plans Generator</div>
+          <div class="card-desc">Quickly generate detailed substitute teacher plans.</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

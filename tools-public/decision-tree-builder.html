@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision Tree Builder</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-2: #242836;
+    --surface-3: #2e3345;
+    --text: #e8e9ed;
+    --text-muted: #8b8fa3;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108, 92, 231, 0.3);
+    --green: #00cec9;
+    --orange: #fdcb6e;
+    --red: #e17055;
+    --pink: #fd79a8;
+    --blue: #74b9ff;
+    --yellow: #ffeaa7;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { max-width: 1200px; margin: 0 auto; padding: 16px; }
+
+  .header {
+    text-align: center;
+    padding: 32px 16px 24px;
+  }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  .header p { color: var(--text-muted); font-size: 0.95rem; }
+
+  .instructions {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .instructions h3 {
+    font-size: 1rem;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  .instructions ol {
+    padding-left: 20px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  .instructions li { margin-bottom: 4px; }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+  .toolbar-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .toolbar-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--surface-3);
+    margin: 0 4px;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 8px 16px;
+    transition: all 0.2s;
+  }
+  button:active { transform: scale(0.96); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  .btn-primary:hover { background: #5a4bd4; }
+
+  .btn-secondary {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--surface-3);
+  }
+  .btn-secondary:hover { background: var(--surface-3); }
+
+  .btn-danger {
+    background: rgba(225, 112, 85, 0.15);
+    color: var(--red);
+    border: 1px solid rgba(225, 112, 85, 0.3);
+  }
+  .btn-danger:hover { background: rgba(225, 112, 85, 0.25); }
+
+  .btn-success {
+    background: rgba(0, 206, 201, 0.15);
+    color: var(--green);
+    border: 1px solid rgba(0, 206, 201, 0.3);
+  }
+  .btn-success:hover { background: rgba(0, 206, 201, 0.25); }
+
+  .btn-small {
+    padding: 4px 10px;
+    font-size: 0.78rem;
+  }
+
+  /* Template selector */
+  .template-selector {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .template-selector h3 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+    color: var(--orange);
+  }
+  .template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .template-card {
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .template-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .template-card h4 {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+  .template-card p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+  .template-card .emoji { font-size: 1.4rem; margin-bottom: 6px; }
+
+  /* Canvas */
+  .canvas-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 24px;
+  }
+  .canvas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--surface-3);
+  }
+  .canvas-header h3 { font-size: 0.95rem; }
+  .zoom-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+  }
+
+  #canvas {
+    width: 100%;
+    min-height: 500px;
+    position: relative;
+    overflow: auto;
+  }
+  #tree-container {
+    position: relative;
+    min-width: 100%;
+    min-height: 500px;
+    padding: 40px;
+    transform-origin: top left;
+  }
+
+  /* SVG lines */
+  #lines-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  #lines-svg line {
+    stroke: var(--surface-3);
+    stroke-width: 2;
+  }
+  #lines-svg text {
+    fill: var(--text-muted);
+    font-size: 12px;
+    font-family: inherit;
+  }
+
+  /* Nodes */
+  .tree-node {
+    position: absolute;
+    background: var(--surface-2);
+    border: 2px solid var(--surface-3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 160px;
+    max-width: 240px;
+    z-index: 1;
+    cursor: grab;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .tree-node:hover {
+    border-color: var(--accent);
+  }
+  .tree-node.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+  .tree-node.dragging {
+    cursor: grabbing;
+    opacity: 0.85;
+    z-index: 10;
+  }
+
+  .node-type {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .node-type.decision { color: var(--blue); }
+  .node-type.chance { color: var(--orange); }
+  .node-type.outcome { color: var(--green); }
+
+  .node-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    word-wrap: break-word;
+  }
+
+  .node-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .node-actions button {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  /* Node editor panel */
+  .editor-panel {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 24px;
+    display: none;
+  }
+  .editor-panel.active { display: block; }
+  .editor-panel h3 {
+    font-size: 1rem;
+    margin-bottom: 16px;
+    color: var(--accent);
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .form-group textarea { resize: vertical; min-height: 60px; }
+
+  /* Walkthrough mode */
+  .walkthrough {
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
+    display: none;
+  }
+  .walkthrough.active { display: block; }
+  .walkthrough h3 {
+    color: var(--accent);
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+  }
+  .walkthrough .current-question {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: var(--surface-2);
+    border-radius: 10px;
+  }
+  .walkthrough .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .walkthrough .choice-btn {
+    padding: 12px 20px;
+    text-align: left;
+    font-size: 0.95rem;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-3);
+    color: var(--text);
+  }
+  .walkthrough .choice-btn:hover {
+    border-color: var(--accent);
+    background: rgba(108, 92, 231, 0.1);
+  }
+  .walkthrough .outcome-display {
+    padding: 20px;
+    background: rgba(0, 206, 201, 0.1);
+    border: 1px solid rgba(0, 206, 201, 0.3);
+    border-radius: 10px;
+    margin-top: 12px;
+  }
+  .walkthrough .outcome-display h4 {
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  .walkthrough .path-trail {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--surface-3);
+  }
+  .path-trail .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .path-trail .step-arrow {
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  /* Stats */
+  .stats-bar {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    flex: 1;
+    min-width: 120px;
+  }
+  .stat-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+  }
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Export panel */
+  .export-panel {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 24px;
+    display: none;
+  }
+  .export-panel.active { display: block; }
+  .export-content {
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+    color: var(--text-muted);
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .header h1 { font-size: 1.5rem; }
+    .toolbar { flex-direction: column; }
+    .toolbar-group { width: 100%; }
+    .toolbar-group button { flex: 1; }
+    .template-grid { grid-template-columns: 1fr; }
+    .stats-bar { flex-direction: column; }
+    #tree-container { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Decision Tree Builder</h1>
+    <p>Build, visualize, and walk through decision trees</p>
+  </div>
+
+  <div class="instructions">
+    <h3>How to Use</h3>
+    <ol>
+      <li>Start with a template or build from scratch using the "New Root" button</li>
+      <li>Click a node to select it, then add child branches (Yes/No, options, outcomes)</li>
+      <li>Drag nodes to rearrange the layout</li>
+      <li>Use "Walk Through" to interactively follow the decision tree step by step</li>
+      <li>Export your tree as text to share or save</li>
+    </ol>
+  </div>
+
+  <div class="template-selector" id="templateSelector">
+    <h3>Start with a Template</h3>
+    <div class="template-grid">
+      <div class="template-card" onclick="loadTemplate('aiTool')">
+        <div class="emoji">🤖</div>
+        <h4>Should I Use AI?</h4>
+        <p>When to use AI tools for a school assignment</p>
+      </div>
+      <div class="template-card" onclick="loadTemplate('sourceCredible')">
+        <div class="emoji">📰</div>
+        <h4>Is This Source Credible?</h4>
+        <p>Evaluate an online source step by step</p>
+      </div>
+      <div class="template-card" onclick="loadTemplate('shareOnline')">
+        <div class="emoji">📱</div>
+        <h4>Should I Share This Online?</h4>
+        <p>Think before you post on social media</p>
+      </div>
+      <div class="template-card" onclick="loadTemplate('blank')">
+        <div class="emoji">✨</div>
+        <h4>Blank Canvas</h4>
+        <p>Build your own tree from scratch</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="statsBar" style="display:none;">
+    <div class="stat">
+      <div class="stat-value" id="statNodes">0</div>
+      <div class="stat-label">Nodes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="statDecisions">0</div>
+      <div class="stat-label">Decision Points</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="statOutcomes">0</div>
+      <div class="stat-label">Outcomes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="statDepth">0</div>
+      <div class="stat-label">Max Depth</div>
+    </div>
+  </div>
+
+  <div class="toolbar" id="toolbar" style="display:none;">
+    <div class="toolbar-group">
+      <button class="btn-primary" onclick="addChild('decision')">+ Decision</button>
+      <button class="btn-success" onclick="addChild('outcome')">+ Outcome</button>
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="toolbar-group">
+      <button class="btn-secondary" onclick="startWalkthrough()">▶ Walk Through</button>
+      <button class="btn-secondary" onclick="toggleExport()">📋 Export</button>
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="toolbar-group">
+      <button class="btn-secondary" onclick="autoLayout()">🔄 Auto Layout</button>
+      <button class="btn-danger btn-small" onclick="deleteSelected()">🗑 Delete</button>
+      <button class="btn-danger btn-small" onclick="resetTree()">↺ Reset</button>
+    </div>
+  </div>
+
+  <div class="editor-panel" id="editorPanel">
+    <h3>Edit Node</h3>
+    <div class="form-group">
+      <label>Label</label>
+      <input type="text" id="editLabel" oninput="updateSelectedNode()" placeholder="What's the question or outcome?">
+    </div>
+    <div class="form-group">
+      <label>Type</label>
+      <select id="editType" onchange="updateSelectedNode()">
+        <option value="decision">Decision Point</option>
+        <option value="outcome">Outcome</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Branch Label (on the line from parent)</label>
+      <input type="text" id="editBranch" oninput="updateSelectedNode()" placeholder="e.g., Yes, No, Maybe">
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <textarea id="editNotes" oninput="updateSelectedNode()" placeholder="Extra context or explanation"></textarea>
+    </div>
+  </div>
+
+  <div class="walkthrough" id="walkthrough">
+    <h3>🚶 Walking Through Your Decision Tree</h3>
+    <div id="walkthroughContent"></div>
+    <div class="path-trail" id="pathTrail"></div>
+    <div style="margin-top: 16px; display: flex; gap: 8px;">
+      <button class="btn-secondary" onclick="walkthroughBack()">← Back</button>
+      <button class="btn-secondary" onclick="walkthroughRestart()">↺ Restart</button>
+      <button class="btn-danger" onclick="stopWalkthrough()">✕ Exit</button>
+    </div>
+  </div>
+
+  <div class="export-panel" id="exportPanel">
+    <h3 style="margin-bottom: 12px;">Export Tree</h3>
+    <div class="export-content" id="exportContent"></div>
+    <div style="margin-top: 12px; display: flex; gap: 8px;">
+      <button class="btn-primary" onclick="copyExport()">📋 Copy to Clipboard</button>
+      <button class="btn-secondary" onclick="toggleExport()">Close</button>
+    </div>
+  </div>
+
+  <div class="canvas-wrapper" id="canvasWrapper" style="display:none;">
+    <div class="canvas-header">
+      <h3 id="canvasTitle">Decision Tree</h3>
+      <div class="zoom-controls">
+        <button class="btn-secondary" onclick="zoomOut()">−</button>
+        <span id="zoomLevel">100%</span>
+        <button class="btn-secondary" onclick="zoomIn()">+</button>
+      </div>
+    </div>
+    <div id="canvas">
+      <div id="tree-container">
+        <svg id="lines-svg"></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  let nodes = [];
+  let nextId = 1;
+  let selectedId = null;
+  let zoom = 1;
+  let dragState = null;
+
+  // Walkthrough state
+  let walkPath = [];
+  let walkCurrent = null;
+
+  const NODE_W = 180;
+  const NODE_H = 70;
+  const H_GAP = 40;
+  const V_GAP = 80;
+
+  function getNode(id) { return nodes.find(n => n.id === id); }
+  function getChildren(id) { return nodes.filter(n => n.parentId === id); }
+  function getDepth(id) {
+    let d = 0, n = getNode(id);
+    while (n && n.parentId) { d++; n = getNode(n.parentId); }
+    return d;
+  }
+  function maxDepth() {
+    if (!nodes.length) return 0;
+    return Math.max(...nodes.map(n => getDepth(n.id)));
+  }
+
+  function createNode(label, type, parentId, branchLabel) {
+    const node = {
+      id: nextId++,
+      label: label,
+      type: type, // 'decision' or 'outcome'
+      parentId: parentId,
+      branchLabel: branchLabel || '',
+      notes: '',
+      x: 0,
+      y: 0
+    };
+    nodes.push(node);
+    return node;
+  }
+
+  function autoLayout() {
+    if (!nodes.length) return;
+    const root = nodes.find(n => !n.parentId);
+    if (!root) return;
+    layoutSubtree(root.id);
+    render();
+  }
+
+  function layoutSubtree(nodeId) {
+    const node = getNode(nodeId);
+    const children = getChildren(nodeId);
+    const depth = getDepth(nodeId);
+    node.y = depth * (NODE_H + V_GAP);
+
+    if (children.length === 0) {
+      node._width = NODE_W;
+      return node._width;
+    }
+
+    let totalWidth = 0;
+    children.forEach((child, i) => {
+      const w = layoutSubtree(child.id);
+      totalWidth += w;
+      if (i < children.length - 1) totalWidth += H_GAP;
+    });
+
+    node._width = Math.max(totalWidth, NODE_W);
+
+    let startX = node.x - totalWidth / 2;
+    children.forEach(child => {
+      child.x = startX + child._width / 2;
+      startX += child._width + H_GAP;
+      layoutSubtree2(child.id, child.x);
+    });
+
+    return node._width;
+  }
+
+  function layoutSubtree2(nodeId, centerX) {
+    const node = getNode(nodeId);
+    const children = getChildren(nodeId);
+    const depth = getDepth(nodeId);
+    node.x = centerX;
+    node.y = depth * (NODE_H + V_GAP);
+
+    if (children.length === 0) return;
+
+    let totalWidth = 0;
+    children.forEach(c => { c._width = c._width || NODE_W; totalWidth += c._width; });
+    totalWidth += (children.length - 1) * H_GAP;
+
+    let startX = centerX - totalWidth / 2;
+    children.forEach(child => {
+      child.x = startX + child._width / 2;
+      startX += child._width + H_GAP;
+      layoutSubtree2(child.id, child.x);
+    });
+  }
+
+  function showCanvas() {
+    document.getElementById('canvasWrapper').style.display = 'block';
+    document.getElementById('toolbar').style.display = 'flex';
+    document.getElementById('statsBar').style.display = 'flex';
+  }
+
+  function render() {
+    const container = document.getElementById('tree-container');
+    const svg = document.getElementById('lines-svg');
+
+    // Remove old node elements
+    container.querySelectorAll('.tree-node').forEach(el => el.remove());
+
+    // Calculate bounds for container sizing
+    let minX = Infinity, maxX = -Infinity, maxY = 0;
+    nodes.forEach(n => {
+      minX = Math.min(minX, n.x - NODE_W/2);
+      maxX = Math.max(maxX, n.x + NODE_W/2);
+      maxY = Math.max(maxY, n.y + NODE_H);
+    });
+
+    const offsetX = Math.max(40, -minX + 40);
+    container.style.width = (maxX + offsetX + 80) + 'px';
+    container.style.height = (maxY + 120) + 'px';
+    container.style.transform = `scale(${zoom})`;
+
+    // Draw lines
+    let linesHtml = '';
+    nodes.forEach(n => {
+      if (n.parentId) {
+        const parent = getNode(n.parentId);
+        if (parent) {
+          const x1 = parent.x + offsetX;
+          const y1 = parent.y + NODE_H;
+          const x2 = n.x + offsetX;
+          const y2 = n.y;
+          linesHtml += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+          if (n.branchLabel) {
+            const mx = (x1 + x2) / 2;
+            const my = (y1 + y2) / 2 - 6;
+            linesHtml += `<text x="${mx}" y="${my}" text-anchor="middle">${escHtml(n.branchLabel)}</text>`;
+          }
+        }
+      }
+    });
+    svg.innerHTML = linesHtml;
+    svg.style.width = container.style.width;
+    svg.style.height = container.style.height;
+
+    // Draw nodes
+    nodes.forEach(n => {
+      const div = document.createElement('div');
+      div.className = 'tree-node' + (n.id === selectedId ? ' selected' : '');
+      div.style.left = (n.x - NODE_W/2 + offsetX) + 'px';
+      div.style.top = n.y + 'px';
+      div.style.width = NODE_W + 'px';
+      div.dataset.id = n.id;
+
+      const typeLabel = n.type === 'decision' ? 'DECISION' : 'OUTCOME';
+      div.innerHTML = `
+        <div class="node-type ${n.type}">${typeLabel}</div>
+        <div class="node-label">${escHtml(n.label)}</div>
+      `;
+
+      div.addEventListener('mousedown', (e) => startDrag(e, n.id));
+      div.addEventListener('touchstart', (e) => startDrag(e, n.id), {passive: false});
+      div.addEventListener('click', (e) => {
+        if (!dragState || !dragState.moved) selectNode(n.id);
+      });
+
+      container.appendChild(div);
+    });
+
+    updateStats();
+  }
+
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function startDrag(e, nodeId) {
+    e.preventDefault();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const node = getNode(nodeId);
+    dragState = {
+      nodeId,
+      startX: clientX,
+      startY: clientY,
+      origX: node.x,
+      origY: node.y,
+      moved: false
+    };
+
+    const el = document.querySelector(`.tree-node[data-id="${nodeId}"]`);
+    if (el) el.classList.add('dragging');
+
+    const onMove = (ev) => {
+      const cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      const cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
+      const dx = (cx - dragState.startX) / zoom;
+      const dy = (cy - dragState.startY) / zoom;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.moved = true;
+      node.x = dragState.origX + dx;
+      node.y = Math.max(0, dragState.origY + dy);
+      render();
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onUp);
+      const el2 = document.querySelector(`.tree-node[data-id="${nodeId}"]`);
+      if (el2) el2.classList.remove('dragging');
+      setTimeout(() => { dragState = null; }, 50);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchmove', onMove, {passive: false});
+    document.addEventListener('touchend', onUp);
+  }
+
+  function selectNode(id) {
+    selectedId = id;
+    const node = getNode(id);
+    const panel = document.getElementById('editorPanel');
+    if (node) {
+      panel.classList.add('active');
+      document.getElementById('editLabel').value = node.label;
+      document.getElementById('editType').value = node.type;
+      document.getElementById('editBranch').value = node.branchLabel || '';
+      document.getElementById('editNotes').value = node.notes || '';
+    }
+    render();
+  }
+
+  window.updateSelectedNode = function() {
+    if (!selectedId) return;
+    const node = getNode(selectedId);
+    if (!node) return;
+    node.label = document.getElementById('editLabel').value;
+    node.type = document.getElementById('editType').value;
+    node.branchLabel = document.getElementById('editBranch').value;
+    node.notes = document.getElementById('editNotes').value;
+    render();
+  };
+
+  window.addChild = function(type) {
+    if (!selectedId && nodes.length > 0) {
+      alert('Select a node first, then add a child.');
+      return;
+    }
+    const parentId = selectedId || null;
+    const label = type === 'decision' ? 'New Decision' : 'Outcome';
+    const branchLabel = parentId ? 'Option' : '';
+    const node = createNode(label, type, parentId, branchLabel);
+
+    if (parentId) {
+      const parent = getNode(parentId);
+      const siblings = getChildren(parentId);
+      const idx = siblings.length - 1;
+      node.x = parent.x + (idx - (siblings.length - 1) / 2) * (NODE_W + H_GAP);
+      node.y = parent.y + NODE_H + V_GAP;
+    } else {
+      node.x = 400;
+      node.y = 20;
+    }
+
+    showCanvas();
+    autoLayout();
+    selectNode(node.id);
+  };
+
+  window.deleteSelected = function() {
+    if (!selectedId) return;
+    // Delete node and all descendants
+    function collectDescendants(id) {
+      let ids = [id];
+      getChildren(id).forEach(c => { ids = ids.concat(collectDescendants(c.id)); });
+      return ids;
+    }
+    const toDelete = new Set(collectDescendants(selectedId));
+    nodes = nodes.filter(n => !toDelete.has(n.id));
+    selectedId = null;
+    document.getElementById('editorPanel').classList.remove('active');
+    if (nodes.length === 0) {
+      document.getElementById('canvasWrapper').style.display = 'none';
+      document.getElementById('toolbar').style.display = 'none';
+      document.getElementById('statsBar').style.display = 'none';
+      document.getElementById('templateSelector').style.display = 'block';
+    }
+    render();
+  };
+
+  window.resetTree = function() {
+    if (!confirm('Reset the entire tree? This cannot be undone.')) return;
+    nodes = [];
+    nextId = 1;
+    selectedId = null;
+    document.getElementById('editorPanel').classList.remove('active');
+    document.getElementById('canvasWrapper').style.display = 'none';
+    document.getElementById('toolbar').style.display = 'none';
+    document.getElementById('statsBar').style.display = 'none';
+    document.getElementById('templateSelector').style.display = 'block';
+    document.getElementById('walkthrough').classList.remove('active');
+    document.getElementById('exportPanel').classList.remove('active');
+  };
+
+  function updateStats() {
+    document.getElementById('statNodes').textContent = nodes.length;
+    document.getElementById('statDecisions').textContent = nodes.filter(n => n.type === 'decision').length;
+    document.getElementById('statOutcomes').textContent = nodes.filter(n => n.type === 'outcome').length;
+    document.getElementById('statDepth').textContent = nodes.length ? maxDepth() + 1 : 0;
+  }
+
+  window.zoomIn = function() {
+    zoom = Math.min(2, zoom + 0.1);
+    document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+    render();
+  };
+  window.zoomOut = function() {
+    zoom = Math.max(0.3, zoom - 0.1);
+    document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+    render();
+  };
+
+  // Walkthrough mode
+  window.startWalkthrough = function() {
+    const root = nodes.find(n => !n.parentId);
+    if (!root) { alert('No tree to walk through!'); return; }
+    walkPath = [];
+    walkCurrent = root.id;
+    document.getElementById('walkthrough').classList.add('active');
+    renderWalkthrough();
+  };
+
+  window.stopWalkthrough = function() {
+    document.getElementById('walkthrough').classList.remove('active');
+    walkPath = [];
+    walkCurrent = null;
+    // Deselect walkthrough highlighting
+    render();
+  };
+
+  window.walkthroughBack = function() {
+    if (walkPath.length > 0) {
+      walkCurrent = walkPath.pop();
+      renderWalkthrough();
+    }
+  };
+
+  window.walkthroughRestart = function() {
+    const root = nodes.find(n => !n.parentId);
+    if (root) {
+      walkPath = [];
+      walkCurrent = root.id;
+      renderWalkthrough();
+    }
+  };
+
+  function walkthroughChoose(childId) {
+    walkPath.push(walkCurrent);
+    walkCurrent = childId;
+    renderWalkthrough();
+  }
+
+  function renderWalkthrough() {
+    const node = getNode(walkCurrent);
+    const children = getChildren(walkCurrent);
+    const content = document.getElementById('walkthroughContent');
+    const trail = document.getElementById('pathTrail');
+
+    // Highlight current node on canvas
+    selectedId = walkCurrent;
+    render();
+
+    if (node.type === 'outcome' || children.length === 0) {
+      content.innerHTML = `
+        <div class="outcome-display">
+          <h4>🎯 Outcome Reached</h4>
+          <p style="font-size: 1.05rem;">${escHtml(node.label)}</p>
+          ${node.notes ? `<p style="margin-top: 8px; color: var(--text-muted); font-size: 0.9rem;">${escHtml(node.notes)}</p>` : ''}
+        </div>
+      `;
+    } else {
+      let choicesHtml = '<div class="choices">';
+      children.forEach(c => {
+        const lbl = c.branchLabel ? `${c.branchLabel}: ${c.label}` : c.label;
+        choicesHtml += `<button class="choice-btn" onclick="(${walkthroughChoose.toString()})(${c.id})">${escHtml(lbl)}</button>`;
+      });
+      choicesHtml += '</div>';
+
+      content.innerHTML = `
+        <div class="current-question">❓ ${escHtml(node.label)}</div>
+        ${node.notes ? `<p style="margin-bottom: 12px; color: var(--text-muted); font-size: 0.9rem;">${escHtml(node.notes)}</p>` : ''}
+        ${choicesHtml}
+      `;
+    }
+
+    // Path trail
+    const fullPath = [...walkPath, walkCurrent];
+    let trailHtml = '<p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Your path:</p>';
+    fullPath.forEach((id, i) => {
+      const n = getNode(id);
+      const arrow = i > 0 ? '<span class="step-arrow">→</span>' : '';
+      trailHtml += `<div class="step">${arrow}<span>${escHtml(n.branchLabel ? n.branchLabel + ': ' : '')}${escHtml(n.label)}</span></div>`;
+    });
+    trail.innerHTML = trailHtml;
+  }
+
+  // Export
+  window.toggleExport = function() {
+    const panel = document.getElementById('exportPanel');
+    if (panel.classList.contains('active')) {
+      panel.classList.remove('active');
+      return;
+    }
+    panel.classList.add('active');
+    const root = nodes.find(n => !n.parentId);
+    if (!root) {
+      document.getElementById('exportContent').textContent = 'No tree to export.';
+      return;
+    }
+    document.getElementById('exportContent').textContent = exportTree(root.id, 0);
+  };
+
+  function exportTree(nodeId, depth) {
+    const node = getNode(nodeId);
+    const indent = '  '.repeat(depth);
+    const prefix = node.branchLabel ? `[${node.branchLabel}] ` : '';
+    const typeTag = node.type === 'outcome' ? ' ✓' : '';
+    let line = `${indent}${prefix}${node.label}${typeTag}\n`;
+    if (node.notes) line += `${indent}  → ${node.notes}\n`;
+    getChildren(nodeId).forEach(c => { line += exportTree(c.id, depth + 1); });
+    return line;
+  }
+
+  window.copyExport = function() {
+    const text = document.getElementById('exportContent').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = event.target;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => { btn.textContent = '📋 Copy to Clipboard'; }, 1500);
+    });
+  };
+
+  // Templates
+  window.loadTemplate = function(name) {
+    nodes = [];
+    nextId = 1;
+    selectedId = null;
+
+    if (name === 'blank') {
+      createNode('Start Here', 'decision', null, '');
+      showCanvas();
+      autoLayout();
+      selectNode(1);
+      document.getElementById('templateSelector').style.display = 'none';
+      return;
+    }
+
+    const templates = {
+      aiTool: {
+        title: 'Should I Use AI for This Assignment?',
+        tree: [
+          { label: 'Should I use AI for this assignment?', type: 'decision', parent: null, branch: '' },
+          { label: 'Does the teacher allow AI use?', type: 'decision', parent: 1, branch: 'First ask' },
+          { label: 'Stop — AI is not allowed for this assignment', type: 'outcome', parent: 2, branch: 'No' },
+          { label: 'What kind of help do I need?', type: 'decision', parent: 2, branch: 'Yes' },
+          { label: 'Use AI to brainstorm, then write in your own words', type: 'outcome', parent: 4, branch: 'Ideas & brainstorming' },
+          { label: 'Will I learn the concept myself?', type: 'decision', parent: 4, branch: 'Explaining a concept' },
+          { label: 'Use AI as a tutor — ask it to explain, then try yourself', type: 'outcome', parent: 6, branch: 'Yes' },
+          { label: 'Be careful — you might miss the learning. Try first, then use AI to check.', type: 'outcome', parent: 6, branch: 'Not sure' },
+          { label: 'Don\'t submit AI-generated work as your own', type: 'outcome', parent: 4, branch: 'Writing it for me' },
+        ]
+      },
+      sourceCredible: {
+        title: 'Is This Source Credible?',
+        tree: [
+          { label: 'Is this source credible?', type: 'decision', parent: null, branch: '' },
+          { label: 'Who is the author?', type: 'decision', parent: 1, branch: 'Step 1: Source' },
+          { label: 'Be cautious — hard to verify claims without an author', type: 'outcome', parent: 2, branch: 'No author listed' },
+          { label: 'Is the domain trustworthy? (.edu, .gov, known outlet)', type: 'decision', parent: 2, branch: 'Named author' },
+          { label: 'Can you verify the claims in another source?', type: 'decision', parent: 4, branch: 'Yes' },
+          { label: 'Likely credible — cite it with confidence', type: 'outcome', parent: 5, branch: 'Yes' },
+          { label: 'Use with caution — note it may be unverified', type: 'outcome', parent: 5, branch: 'No' },
+          { label: 'Check for bias: is the site trying to sell something or push an agenda?', type: 'decision', parent: 4, branch: 'Unknown domain' },
+          { label: 'Not reliable — find a better source', type: 'outcome', parent: 8, branch: 'Yes, biased' },
+          { label: 'Cross-reference with another source before using', type: 'outcome', parent: 8, branch: 'Seems neutral' },
+        ]
+      },
+      shareOnline: {
+        title: 'Should I Share This Online?',
+        tree: [
+          { label: 'Should I share this online?', type: 'decision', parent: null, branch: '' },
+          { label: 'Would I be okay if my teacher or parent saw this?', type: 'decision', parent: 1, branch: 'First check' },
+          { label: 'Don\'t post it — protect your digital footprint', type: 'outcome', parent: 2, branch: 'No' },
+          { label: 'Does it involve another person?', type: 'decision', parent: 2, branch: 'Yes' },
+          { label: 'Did they give permission to be included?', type: 'decision', parent: 4, branch: 'Yes' },
+          { label: 'Don\'t share — respect their privacy', type: 'outcome', parent: 5, branch: 'No' },
+          { label: 'Could this be misinterpreted or taken out of context?', type: 'decision', parent: 5, branch: 'Yes' },
+          { label: 'Rethink or add context before sharing', type: 'outcome', parent: 7, branch: 'Yes' },
+          { label: 'Safe to share — go ahead!', type: 'outcome', parent: 7, branch: 'No' },
+          { label: 'Is it kind, true, and necessary?', type: 'decision', parent: 4, branch: 'No' },
+          { label: 'Go ahead and share!', type: 'outcome', parent: 10, branch: 'Yes' },
+          { label: 'Think twice — is it worth posting?', type: 'outcome', parent: 10, branch: 'Not all three' },
+        ]
+      }
+    };
+
+    const tmpl = templates[name];
+    if (!tmpl) return;
+
+    document.getElementById('canvasTitle').textContent = tmpl.title;
+
+    tmpl.tree.forEach(item => {
+      createNode(item.label, item.type, item.parent, item.branch);
+    });
+
+    showCanvas();
+    autoLayout();
+    document.getElementById('templateSelector').style.display = 'none';
+  };
+
+  window.autoLayout = autoLayout;
+})();
+</script>
+</body>
+</html>
