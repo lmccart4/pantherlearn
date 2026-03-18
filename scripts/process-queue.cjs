@@ -271,16 +271,17 @@ async function main() {
   if (dryRun) console.log("🔍 DRY RUN — no changes will be made\n");
   else console.log("🔧 Processing assignment queue...\n");
 
-  // Step 1: Seed approved items
-  const approved = await db.collection("assignmentQueue")
-    .where("status", "==", "approved")
+  // Step 1: Seed drafted + approved items (no approval gate — lessons seed invisible by default)
+  const toSeed = await db.collection("assignmentQueue")
+    .where("status", "in", ["drafted", "approved"])
     .get();
 
-  if (approved.empty) {
-    console.log("📝 No approved items to seed.");
+  if (toSeed.empty) {
+    console.log("📝 No items to seed.");
   } else {
-    console.log(`📝 ${approved.size} approved item(s) to seed:\n`);
-    for (const doc of approved.docs) {
+    console.log(`📝 ${toSeed.size} item(s) to seed:\n`);
+    for (const doc of toSeed.docs) {
+      if (doc.id.startsWith("_")) continue;
       const data = doc.data();
       console.log(`🌱 Seeding: "${data.title}" [${data.course}]`);
       await seedLesson(data, doc.ref);
