@@ -171,7 +171,7 @@ const newEntry   = `{ key: "${nextKey}", range: "${nextRange}" }`;
 const updatedIdx = indexHtml.replace(
   /const weeks = \[([\s\S]*?)\];/,
   (_, inner) => {
-    const trimmed   = inner.trimEnd();
+    const trimmed   = inner.trimEnd().replace(/,$/, '');
     const separator = trimmed.trim().length > 0 ? ',\n            ' : '\n            ';
     return `const weeks = [${trimmed}${separator}${newEntry}\n        ];`;
   }

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="420" style="background:#f5f0e8; font-family: 'Comic Sans MS', cursive, sans-serif; border-radius:10px;">
+  <!-- Busy background pattern -->
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e0d8c8" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="620" height="420" fill="url(#grid)"/>
+
+  <!-- Title (vague, in Comic Sans territory) -->
+  <text x="310" y="36" text-anchor="middle" fill="#1a1a1a" font-size="20" font-weight="bold">Q3 Survey Results</text>
+
+  <!-- 3D shadow layer -->
+  <ellipse cx="318" cy="233" rx="175" ry="130" fill="rgba(0,0,0,0.25)"/>
+
+  <!-- Pie slices (exploded, elliptical for fake 3D) -->
+  <path d="M 316.7,205.1 L 316.7,75.1 A 175,130 0 0,1 479.5,157.2 Z" fill="#ff2ddb" stroke="#0a0a0a" stroke-width="2" opacity="0.9"/>
+  <path d="M 321.9,216.5 L 484.6,168.6 A 175,130 0 0,1 463.5,292.9 Z" fill="#39ff14" stroke="#0a0a0a" stroke-width="2" opacity="0.9"/>
+  <path d="M 316.1,225.3 L 457.7,301.7 A 175,130 0 0,1 338.0,354.3 Z" fill="#00c8ff" stroke="#0a0a0a" stroke-width="2" opacity="0.9"/>
+  <path d="M 307.4,226.7 L 329.3,355.7 A 175,130 0 0,1 213.6,336.5 Z" fill="#ff6a00" stroke="#0a0a0a" stroke-width="2" opacity="0.9"/>
+  <path d="M 300.8,222.6 L 207.0,332.4 A 175,130 0 0,1 138.0,270.5 Z" fill="#a855f7" stroke="#0a0a0a" stroke-width="2" opacity="0.9"/>
+  <path d="M 298.1,216.1 L 135.3,264.0 A 175,130 0 0,1 126.2,191.8 Z" fill="#ffe600" stroke="#0a0a0a" stroke-width="2" opacity="0.9"/>
+  <path d="M 299.1,209.9 L 127.2,185.5 A 175,130 0 0,1 164.3,127.0 Z" fill="#00e5cc" stroke="#0a0a0a" stroke-width="2" opacity="0.9"/>
+  <path d="M 302.6,205.5 L 167.8,122.7 A 175,130 0 0,1 228.1,87.9 Z" fill="#ff2222" stroke="#0a0a0a" stroke-width="2" opacity="0.9"/>
+  <path d="M 306.3,203.6 L 231.8,86.0 A 175,130 0 0,1 273.5,75.9 Z" fill="#8b4513" stroke="#0a0a0a" stroke-width="2" opacity="0.9"/>
+  <path d="M 308.9,203.1 L 276.1,75.4 A 175,130 0 0,1 308.9,73.1 Z" fill="#ffffff" stroke="#0a0a0a" stroke-width="2" opacity="0.9"/>
+
+  <!-- No legend. No labels. No percentages. No context. -->
+  <!-- Decorative flourishes that add noise -->
+  <text x="30" y="400" fill="#999" font-size="9" font-style="italic">Source: Internal</text>
+  <text x="590" y="400" text-anchor="end" fill="#999" font-size="9">© Q3 2024</text>
+
+  <!-- WordArt-style 3D label (terrible) -->
+  <text x="312" y="372" text-anchor="middle" fill="rgba(0,0,0,0.3)" font-size="12" font-weight="bold">Created with ChartMaster Pro 2003</text>
+  <text x="310" y="370" text-anchor="middle" fill="#666" font-size="12" font-weight="bold">Created with ChartMaster Pro 2003</text>
+</svg>
