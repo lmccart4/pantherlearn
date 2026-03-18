@@ -1,5 +1,5 @@
 // seed-electromagnetism.js
-// Creates "Electromagnetism — Current Creates Magnetism" lesson (Magnetism Unit, Lesson 2)
+// Creates "Electromagnetism — Current Creates Magnetism" lesson (Magnetism Unit, Lesson 3)
 // Run: node scripts/seed-electromagnetism.js
 
 import { initializeApp } from "firebase-admin/app";
@@ -12,7 +12,7 @@ const lesson = {
   title: "Electromagnetism — Current Creates Magnetism",
   course: "Physics",
   unit: "Magnetism",
-  order: 2,
+  order: 3,
   visible: false,
   blocks: [
 

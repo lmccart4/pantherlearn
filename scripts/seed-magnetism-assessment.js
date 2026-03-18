@@ -1,5 +1,5 @@
 // seed-magnetism-assessment.js
-// Creates "Magnetism Assessment" lesson (Magnetism Unit, Lesson 4)
+// Creates "Magnetism Assessment" lesson (Magnetism Unit, Lesson 8)
 // Run: node scripts/seed-magnetism-assessment.js
 
 import { initializeApp } from "firebase-admin/app";
@@ -12,7 +12,7 @@ const lesson = {
   title: "Magnetism Assessment",
   course: "Physics",
   unit: "Magnetism",
-  order: 4,
+  order: 8,
   visible: false,
   blocks: [
 
