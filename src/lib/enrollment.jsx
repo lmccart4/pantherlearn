@@ -4,7 +4,7 @@
 
 import { db } from "./firebase";
 import {
-  collection, doc, getDoc, getDocs, setDoc, updateDoc,
+  collection, doc, getDoc, getDocFromServer, getDocs, getDocsFromServer, setDoc, updateDoc,
   query, where, serverTimestamp, writeBatch, arrayUnion, arrayRemove
 } from "firebase/firestore";
 
@@ -189,7 +189,9 @@ export async function getEnrollment(studentUid, courseId, studentEmail) {
 
 export async function getStudentEnrolledCourseIds(studentUid) {
   const userRef = doc(db, "users", studentUid);
-  const userDoc = await getDoc(userRef);
+  // Bypass IndexedDB cache — enrollment data must be fresh from the server.
+  // Stale cache is the #1 cause of "can't see my course" bugs on school Chromebooks.
+  const userDoc = await getDocFromServer(userRef).catch(() => getDoc(userRef));
 
   // Start with whatever is in the user doc
   const ids = new Set();
@@ -206,19 +208,22 @@ export async function getStudentEnrolledCourseIds(studentUid) {
   const email = userDoc.exists() ? userDoc.data().email?.toLowerCase() : null;
   const enrollIds = new Set();
 
+  // Use getDocsFromServer to bypass cache, fall back to getDocs if offline
+  const serverQuery = async (q) => getDocsFromServer(q).catch(() => getDocs(q));
+
   try {
-    const byUid = await getDocs(query(collection(db, "enrollments"), where("uid", "==", studentUid)));
+    const byUid = await serverQuery(query(collection(db, "enrollments"), where("uid", "==", studentUid)));
     byUid.forEach((d) => { if (d.data().courseId) enrollIds.add(d.data().courseId); });
   } catch (e) { /* ignore */ }
 
   try {
-    const byStudentUid = await getDocs(query(collection(db, "enrollments"), where("studentUid", "==", studentUid)));
+    const byStudentUid = await serverQuery(query(collection(db, "enrollments"), where("studentUid", "==", studentUid)));
     byStudentUid.forEach((d) => { if (d.data().courseId) enrollIds.add(d.data().courseId); });
   } catch (e) { /* ignore */ }
 
   if (email) {
     try {
-      const byEmail = await getDocs(query(collection(db, "enrollments"), where("email", "==", email)));
+      const byEmail = await serverQuery(query(collection(db, "enrollments"), where("email", "==", email)));
       byEmail.forEach((d) => { if (d.data().courseId) enrollIds.add(d.data().courseId); });
     } catch (e) { /* ignore */ }
   }

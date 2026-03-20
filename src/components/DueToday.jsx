@@ -1,8 +1,22 @@
 // src/components/DueToday.jsx
 // Shows lessons due today, tomorrow, or overdue in a compact dashboard widget.
 import { Link } from "react-router-dom";
+import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 export default function DueToday({ lessonMap, allCourses, completedLessons = new Set() }) {
+  const uiStrings = useTranslatedTexts([
+    "All caught up!",                  // 0
+    "completed — nice work!",          // 1
+    "Nothing due today or tomorrow",   // 2
+    "Due Soon",                        // 3
+    "Overdue",                         // 4
+    "Today",                           // 5
+    "Tomorrow",                        // 6
+    "more",                            // 7
+    "lesson",                          // 8
+    "lessons",                         // 9
+  ]);
+  const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
   if (!lessonMap || Object.keys(lessonMap).length === 0) return null;
 
   const now = new Date();
@@ -54,13 +68,13 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
         display: "flex", alignItems: "center", gap: 12,
         minHeight: 80,
       }}>
-        <span style={{ fontSize: 24 }}>✅</span>
+        <span style={{ fontSize: 24 }} aria-hidden="true">✅</span>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--green)" }}>All caught up!</div>
-          <div style={{ fontSize: 12, color: "var(--text3)" }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--green)" }} data-translatable>{ui(0, "All caught up!")}</div>
+          <div style={{ fontSize: 12, color: "var(--text3)" }} data-translatable>
             {allDone
-              ? `${totalDueCount} lesson${totalDueCount !== 1 ? "s" : ""} completed — nice work!`
-              : "Nothing due today or tomorrow"}
+              ? `${totalDueCount} ${totalDueCount !== 1 ? ui(9, "lessons") : ui(8, "lesson")} ${ui(1, "completed — nice work!")}`
+              : ui(2, "Nothing due today or tomorrow")}
           </div>
         </div>
       </div>
@@ -74,7 +88,7 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
       minHeight: 80,
     }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text3)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        📋 Due Soon
+        <span aria-hidden="true">📋</span> <span data-translatable>{ui(3, "Due Soon")}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {items.slice(0, 4).map((item) => (
@@ -105,14 +119,14 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
                 fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
                 color: item.isPastDue ? "var(--red)" : item.isToday ? "var(--amber)" : "var(--text3)",
               }}>
-                {item.isPastDue ? "⚠️ Overdue" : item.isToday ? "📌 Today" : "Tomorrow"}
+                <span data-translatable>{item.isPastDue ? `⚠️ ${ui(4, "Overdue")}` : item.isToday ? `📌 ${ui(5, "Today")}` : ui(6, "Tomorrow")}</span>
               </div>
             </div>
           </Link>
         ))}
         {items.length > 4 && (
           <div style={{ fontSize: 11, color: "var(--text3)", textAlign: "center", paddingTop: 4 }}>
-            +{items.length - 4} more
+            <span data-translatable>+{items.length - 4} {ui(7, "more")}</span>
           </div>
         )}
       </div>

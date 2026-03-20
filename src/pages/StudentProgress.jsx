@@ -1,6 +1,7 @@
 // src/pages/StudentProgress.jsx
-import { useState, useEffect } from "react";
-import { collection, getDocs, getDocsFromServer, query, orderBy, where, doc, getDoc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
+import { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
+import { collection, getDocs, getDocsFromServer, query, orderBy, where, doc, getDoc, setDoc, deleteDoc, updateDoc, deleteField } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
@@ -51,6 +52,23 @@ export default function StudentProgress() {
   const [resettingXP, setResettingXP] = useState(false);
   const [xpConfig, setXpConfig] = useState(null);
   const [activityData, setActivityData] = useState({}); // { uid: { activityId: { activityScore, activityLabel, ... } } }
+  const [unitFilter, setUnitFilter] = useState("all");
+
+  // Only show visible lessons; group by unit for filtering
+  const visibleLessons = useMemo(() => lessons.filter(l => l.visible !== false), [lessons]);
+  const unitList = useMemo(() => {
+    const seen = new Set();
+    const units = [];
+    visibleLessons.forEach(l => {
+      const u = l.unit || "";
+      if (!seen.has(u)) { seen.add(u); units.push(u); }
+    });
+    return units;
+  }, [visibleLessons]);
+  const filteredLessons = useMemo(() =>
+    unitFilter === "all" ? visibleLessons : visibleLessons.filter(l => (l.unit || "") === unitFilter),
+    [visibleLessons, unitFilter]
+  );
 
   // Fetch courses on mount
   useEffect(() => {
@@ -144,7 +162,7 @@ export default function StudentProgress() {
               const progDoc = lessonDocsById[lesson.id];
               if (progDoc?.exists()) {
                 const data = progDoc.data();
-                progress[student.uid][lesson.id] = { ...data.answers, _completed: data.completed || false, _completedAt: data.completedAt || null };
+                progress[student.uid][lesson.id] = { ...data.answers, _completed: data.completed || false, _completedAt: data.completedAt || null, _exempt: !!data.exempt };
               } else {
                 progress[student.uid][lesson.id] = {};
               }
@@ -264,17 +282,18 @@ export default function StudentProgress() {
       }
     });
 
-    // Scored embeds: dynamically weighted — embeds = 50% of grade in mixed lessons
+    // Scored embeds: use explicit weight if set, otherwise dynamic 50/50 split
     const hasAnyProgress = Object.keys(answers).some((k) => !k.startsWith("_"));
     const nonEmbedPts = mc.length + sa.length + ((studentCompleted && reflection) ? 1 : 0);
-    const embedPtsEach = (embeds.length > 0 && nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1;
     const embedItems = [];
     embeds.forEach((q) => {
+      // If block has an explicit weight, use it; otherwise default to dynamic 50/50
+      const pts = q.weight != null ? q.weight : ((nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1);
       const a = answers[q.id];
       if (a?.submitted && a.writtenScore != null) {
-        embedItems.push({ type: "embed", prompt: q.caption || "Activity", points: a.writtenScore * embedPtsEach, max: embedPtsEach, score: a.score, maxScore: a.maxScore });
+        embedItems.push({ type: "embed", prompt: q.caption || "Activity", points: a.writtenScore * pts, max: pts, score: a.score, maxScore: a.maxScore });
       } else if (hasAnyProgress || isPastDue) {
-        embedItems.push({ type: "embed", prompt: q.caption || "Activity", points: 0, max: embedPtsEach, missing: true });
+        embedItems.push({ type: "embed", prompt: q.caption || "Activity", points: 0, max: pts, missing: true });
       }
     });
 
@@ -335,7 +354,9 @@ export default function StudentProgress() {
     const lessonBreakdowns = [];
     const activityBreakdowns = [];
 
-    lessons.forEach((lesson) => {
+    visibleLessons.forEach((lesson) => {
+      // Skip exempt lessons entirely
+      if (progressData[studentUid]?.[lesson.id]?._exempt) return;
       const result = getStudentLessonGrade(studentUid, lesson.id);
       if (result) {
         lessonBreakdowns.push({ lessonId: lesson.id, title: lesson.title, category: lesson.gradeCategory || DEFAULT_CATEGORY, ...result });
@@ -350,6 +371,8 @@ export default function StudentProgress() {
     const activityPercentages = [];
     const studentActivities = activityData[studentUid] || {};
     Object.entries(studentActivities).forEach(([actId, data]) => {
+      // Skip exempt activities
+      if (data.exempt) return;
       if (data.activityScore !== null && data.activityScore !== undefined) {
         const pct = Math.round(data.activityScore * 100);
         activityPercentages.push({ percentage: pct });
@@ -867,16 +890,25 @@ export default function StudentProgress() {
         </div>
       );
     } else {
+      const isExempt = progressData[gradePopup.studentUid]?.[gradePopup.lessonId]?._exempt;
       const result = getStudentLessonGrade(gradePopup.studentUid, gradePopup.lessonId);
-      if (!result) return null;
+      if (!result && !isExempt) return null;
       const lesson = lessons.find((l) => l.id === gradePopup.lessonId);
       title = lesson?.title || "Grade Breakdown";
       breakdown = (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {isExempt && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, background: "rgba(139,92,246,0.1)", marginBottom: 4 }}>
+              <span style={{ fontSize: 16 }}>🚫</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#8b5cf6" }}>This assignment is exempt</span>
+            </div>
+          )}
+          {result && (
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
             <span>Total</span>
             <span style={{ color: gradeColor(result.grade) }}>{result.earned} / {result.possible} pts = {result.grade}%</span>
-          </div>
+          </div>)}
+          {result && <>
           <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
 
           {result.mcItems.length > 0 && (
@@ -1058,6 +1090,32 @@ export default function StudentProgress() {
               </div>
             </>
           )}
+          </>}
+
+          {/* Exempt toggle */}
+          {(() => {
+            const isExempt = progressData[gradePopup.studentUid]?.[gradePopup.lessonId]?._exempt;
+            return (
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+                <button
+                  onClick={() => handleToggleExempt(gradePopup.studentUid, gradePopup.lessonId, isExempt)}
+                  style={{
+                    width: "100%", padding: "8px 16px", borderRadius: 8, border: "none",
+                    fontWeight: 700, fontSize: 12, cursor: "pointer",
+                    background: isExempt ? "var(--surface2)" : "rgba(245,166,35,0.15)",
+                    color: isExempt ? "var(--text2)" : "var(--amber)",
+                  }}
+                >
+                  {isExempt ? "Remove Exempt" : "Mark as Exempt"}
+                </button>
+                {isExempt && (
+                  <div style={{ fontSize: 11, color: "#8b5cf6", textAlign: "center", marginTop: 4, fontStyle: "italic" }}>
+                    This assignment is excluded from grade calculations
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       );
     }
@@ -1103,20 +1161,70 @@ export default function StudentProgress() {
       zIndex: 1000,
     };
 
-    return (
+    return createPortal(
       <div style={popupStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>{title}</div>
           <button onClick={() => setGradePopup(null)} style={{ background: "none", border: "none", color: "var(--text3)", cursor: "pointer", fontSize: 16, padding: 0 }}>✕</button>
         </div>
         {breakdown}
-      </div>
+      </div>,
+      document.body
     );
+  };
+
+  // --- Exempt toggle handler ---
+  const handleToggleExempt = async (studentUid, lessonId, currentlyExempt) => {
+    try {
+      const progressRef = doc(db, "progress", studentUid, "courses", selectedCourse, "lessons", lessonId);
+      if (currentlyExempt) {
+        // Remove exempt — use updateDoc with deleteField
+        await updateDoc(progressRef, { exempt: deleteField() });
+      } else {
+        await updateDoc(progressRef, { exempt: true, exemptAt: new Date(), exemptBy: "teacher" });
+      }
+      // Update local state
+      setProgressData((prev) => ({
+        ...prev,
+        [studentUid]: {
+          ...prev[studentUid],
+          [lessonId]: {
+            ...prev[studentUid]?.[lessonId],
+            _exempt: !currentlyExempt,
+          },
+        },
+      }));
+    } catch (err) {
+      console.error("Failed to toggle exempt:", err);
+      alert("Failed to save exempt status. Check console for details.");
+    }
   };
 
   // --- Clickable grade cell ---
   const GradeCell = ({ studentUid, lessonId, style }) => {
+    const isExempt = lessonId && progressData[studentUid]?.[lessonId]?._exempt;
     const result = lessonId ? getStudentLessonGrade(studentUid, lessonId) : getStudentOverall(studentUid);
+    if (isExempt) {
+      return (
+        <span
+          onClick={(e) => handleGradeClick(e, studentUid, lessonId)}
+          style={{
+            ...style,
+            cursor: "pointer",
+            fontSize: 11,
+            fontWeight: 700,
+            padding: "2px 8px",
+            borderRadius: 6,
+            background: "rgba(139,92,246,0.15)",
+            color: "#8b5cf6",
+            textDecoration: "none",
+          }}
+          title="Exempt — click for details"
+        >
+          EX
+        </span>
+      );
+    }
     return (
       <span
         onClick={(e) => { if (result) handleGradeClick(e, studentUid, lessonId); }}
@@ -1239,9 +1347,18 @@ export default function StudentProgress() {
           </div>
         )}
 
-        <h3 className="section-heading" style={{ marginBottom: 12 }}>Lesson Grades</h3>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <h3 className="section-heading" style={{ marginBottom: 0 }}>Lesson Grades</h3>
+          {unitList.length > 1 && (
+            <select value={unitFilter} onChange={e => setUnitFilter(e.target.value)}
+              style={{ background: "var(--surface)", color: "var(--text1)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>
+              <option value="all">All Units</option>
+              {unitList.map(u => <option key={u} value={u}>{u || "Uncategorized"}</option>)}
+            </select>
+          )}
+        </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {lessons.map((lesson) => {
+          {filteredLessons.map((lesson) => {
             const result = getStudentLessonGrade(s.uid, lesson.id);
             const answers = progressData[s.uid]?.[lesson.id] || {};
             const mc = getMCQuestions(lesson);
@@ -1620,7 +1737,7 @@ export default function StudentProgress() {
                 {courses.map((c) => (
                   <button key={c.id}
                     className={`top-nav-link ${selectedCourse === c.id ? "active" : ""}`}
-                    onClick={() => { setSelectedCourse(c.id); setView("overview"); setSelectedStudent(null); setSelectedLesson(null); }}>
+                    onClick={() => { setSelectedCourse(c.id); setView("overview"); setSelectedStudent(null); setSelectedLesson(null); setUnitFilter("all"); }}>
                     {c.icon} {c.title}
                   </button>
                 ))}
@@ -1668,9 +1785,21 @@ export default function StudentProgress() {
                   })()}
                 </div>
 
-                <h3 className="section-heading" style={{ marginBottom: 12 }}>📚 Lessons</h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                  <h3 className="section-heading" style={{ marginBottom: 0 }}>Lessons</h3>
+                  {unitList.length > 1 && (
+                    <select value={unitFilter} onChange={e => setUnitFilter(e.target.value)}
+                      style={{ background: "var(--surface)", color: "var(--text1)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>
+                      <option value="all">All Units ({visibleLessons.length})</option>
+                      {unitList.map(u => {
+                        const count = visibleLessons.filter(l => (l.unit || "") === u).length;
+                        return <option key={u} value={u}>{u || "Uncategorized"} ({count})</option>;
+                      })}
+                    </select>
+                  )}
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10, marginBottom: 28 }}>
-                  {lessons.map((lesson) => {
+                  {filteredLessons.map((lesson) => {
                     let totalAttempted = 0, gradeSum = 0;
                     filteredStudents.forEach((s) => {
                       const r = getStudentLessonGrade(s.uid, lesson.id);
@@ -1713,7 +1842,7 @@ export default function StudentProgress() {
                         <tr style={{ background: "var(--surface)", borderBottom: "2px solid var(--border)" }}>
                           <th style={{ textAlign: "left", padding: "10px 16px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Student</th>
                           <th style={{ textAlign: "center", padding: "10px 8px", fontWeight: 600, color: "var(--text2)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Overall</th>
-                          {lessons.map((l) => (
+                          {filteredLessons.map((l) => (
                             <th key={l.id} style={{
                               textAlign: "center", padding: "10px 8px", fontWeight: 600, color: "var(--text3)", fontSize: 10,
                               textTransform: "uppercase", letterSpacing: "0.04em", maxWidth: 70, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
@@ -1759,7 +1888,7 @@ export default function StudentProgress() {
                                   color: overall ? gradeColor(overall.grade) : "var(--text3)",
                                 }} />
                               </td>
-                              {lessons.map((l) => {
+                              {filteredLessons.map((l) => {
                                 const r = getStudentLessonGrade(s.uid, l.id);
                                 return (
                                   <td key={l.id} style={{ textAlign: "center", padding: "10px 8px" }}>

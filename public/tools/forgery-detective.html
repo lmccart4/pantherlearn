@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Forgery Detective</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Sans:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e17;
+  --surface: #141926;
+  --surface2: #1c2235;
+  --manila: #c8a86e;
+  --manila-dim: rgba(200,168,110,0.12);
+  --manila-glow: rgba(200,168,110,0.3);
+  --red: #c0392b;
+  --red-bright: #e74c3c;
+  --green: #27ae60;
+  --green-bright: #2ecc71;
+  --text: #e8e4dc;
+  --text2: #9a9484;
+  --text3: #5c5647;
+  --border: #2a2f3e;
+  --font-display: 'Special Elite', cursive;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-impact: 'Bebas Neue', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");background-size:256px}
+.screen{display:none;position:relative;z-index:1;min-height:100vh}
+.screen.active{display:flex;flex-direction:column}
+
+/* TITLE */
+.title-screen{align-items:center;justify-content:center;text-align:center;padding:40px 24px;gap:24px}
+.badge{width:120px;height:120px;border-radius:50%;border:3px solid var(--manila);display:flex;align-items:center;justify-content:center;font-size:56px;background:radial-gradient(circle at 30% 30%,#2a2520,#0a0e17);box-shadow:0 0 40px var(--manila-glow),inset 0 0 20px rgba(0,0,0,0.5);animation:badgePulse 3s ease-in-out infinite}
+@keyframes badgePulse{0%,100%{box-shadow:0 0 40px var(--manila-glow),inset 0 0 20px rgba(0,0,0,0.5)}50%{box-shadow:0 0 60px var(--manila-glow),0 0 80px rgba(200,168,110,0.1),inset 0 0 20px rgba(0,0,0,0.5)}}
+.title-screen h1{font-family:var(--font-display);font-size:clamp(32px,7vw,56px);color:var(--manila);text-shadow:0 0 30px var(--manila-glow);letter-spacing:2px;line-height:1.1}
+.title-screen .subtitle{font-size:clamp(14px,3vw,18px);color:var(--text2);max-width:480px;line-height:1.6;font-style:italic}
+.start-btn{font-family:var(--font-impact);font-size:28px;letter-spacing:3px;padding:16px 48px;border:2px solid var(--manila);background:transparent;color:var(--manila);cursor:pointer;text-transform:uppercase;transition:all 0.3s}
+.start-btn:hover{background:var(--manila);color:var(--bg);box-shadow:0 0 30px var(--manila-glow)}
+
+/* BRIEFING */
+.briefing-screen{align-items:center;justify-content:center;padding:40px 24px;text-align:center;gap:20px}
+.case-number{font-family:var(--font-impact);font-size:18px;letter-spacing:4px;color:var(--manila);text-transform:uppercase}
+.briefing-title{font-family:var(--font-display);font-size:clamp(22px,4.5vw,34px);color:var(--text);max-width:600px;line-height:1.3}
+.briefing-detail{font-size:15px;color:var(--text2);max-width:500px;line-height:1.6;border-left:3px solid var(--manila);padding-left:16px;text-align:left}
+.briefing-tip{font-family:var(--font-display);font-size:14px;color:var(--manila);padding:12px 20px;border:1px dashed var(--manila);max-width:400px}
+.proceed-btn{font-family:var(--font-body);font-weight:600;font-size:16px;padding:14px 36px;border:none;background:var(--manila);color:var(--bg);cursor:pointer;border-radius:4px;transition:all 0.2s}
+.proceed-btn:hover{transform:translateY(-2px);box-shadow:0 4px 20px var(--manila-glow)}
+
+/* INVESTIGATION */
+.investigation-screen{padding:12px;gap:10px}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap;gap:8px}
+.case-label{font-family:var(--font-display);font-size:13px;color:var(--manila);flex:1;min-width:120px}
+.timer{font-family:var(--font-impact);font-size:28px;letter-spacing:2px;color:var(--text);min-width:60px;text-align:center}
+.timer.warning{color:var(--manila)}
+.timer.critical{color:var(--red-bright);animation:timerPulse .5s ease-in-out infinite}
+@keyframes timerPulse{50%{opacity:.5}}
+.score-display{font-family:var(--font-body);font-weight:600;font-size:14px;color:var(--text2)}
+.streak-badge{font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(200,168,110,0.2);color:var(--manila)}
+
+.gallery{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;min-height:0}
+@media(max-width:700px){.gallery{grid-template-columns:1fr;max-height:none}}
+
+.artwork-frame{background:var(--surface);border:2px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:all .2s;position:relative;display:flex;flex-direction:column}
+.artwork-frame:hover{border-color:var(--manila);box-shadow:0 0 20px var(--manila-dim)}
+.artwork-frame.selected-real{border-color:var(--green);box-shadow:0 0 20px rgba(39,174,96,0.3)}
+.artwork-frame.selected-forgery{border-color:var(--red);box-shadow:0 0 20px rgba(192,57,43,0.3)}
+.artwork-img-wrap{position:relative;overflow:hidden;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#0a0a0a}
+.artwork-img{width:100%;height:100%;object-fit:contain;display:block}
+.artwork-label{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.artwork-letter{font-family:var(--font-impact);font-size:24px;color:var(--manila);letter-spacing:2px}
+.verdict-btns{display:flex;gap:6px}
+.verdict-btn{font-family:var(--font-body);font-weight:600;font-size:12px;padding:6px 14px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;border-radius:4px;transition:all .15s;text-transform:uppercase;letter-spacing:1px}
+.verdict-btn:hover{border-color:var(--text2);color:var(--text)}
+.verdict-btn.btn-real:hover,.verdict-btn.btn-real.active{border-color:var(--green);color:var(--green);background:rgba(39,174,96,0.1)}
+.verdict-btn.btn-forgery:hover,.verdict-btn.btn-forgery.active{border-color:var(--red);color:var(--red);background:rgba(192,57,43,0.1)}
+
+.tools-bar{display:flex;gap:8px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap;align-items:center}
+.tools-label{font-family:var(--font-display);font-size:12px;color:var(--text3);margin-right:6px}
+.tool-btn{font-family:var(--font-body);font-weight:500;font-size:12px;padding:7px 12px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;border-radius:6px;transition:all .15s;display:flex;align-items:center;gap:5px}
+.tool-btn:hover{border-color:var(--manila);color:var(--manila)}
+.tool-btn.used{opacity:.4;border-color:var(--text3);color:var(--text3);cursor:default}
+.tool-btn .cost{font-size:10px;opacity:.6}
+.submit-verdict{margin-left:auto;font-family:var(--font-impact);font-size:16px;letter-spacing:2px;padding:7px 24px;border:2px solid var(--manila);background:transparent;color:var(--manila);cursor:pointer;transition:all .2s}
+.submit-verdict:hover{background:var(--manila);color:var(--bg)}
+.submit-verdict:disabled{opacity:.3;cursor:not-allowed}
+.submit-verdict:disabled:hover{background:transparent;color:var(--manila)}
+
+/* Tool overlays */
+.tool-overlay{position:absolute;inset:0;pointer-events:none;z-index:5;display:none;animation:overlayIn .3s ease-out}
+.tool-overlay.active{display:block}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+.highlight-circle{position:absolute;border:3px solid var(--red-bright);border-radius:50%;animation:pulseCircle 1.5s ease-in-out infinite}
+@keyframes pulseCircle{50%{transform:scale(1.08);opacity:.6}}
+.hint-box{position:absolute;bottom:8px;left:8px;right:8px;padding:8px 12px;background:rgba(10,14,23,0.94);border:1px solid var(--manila);border-radius:6px;font-size:12px;color:var(--manila);font-family:var(--font-display);backdrop-filter:blur(4px);line-height:1.4}
+.zoom-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.6)}
+.zoom-circle{position:absolute;width:140px;height:140px;border-radius:50%;border:3px solid var(--manila);box-shadow:0 0 0 2000px rgba(0,0,0,0.5);background:transparent}
+.texture-lines{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 12px,rgba(200,168,110,0.12) 12px,rgba(200,168,110,0.12) 13px),repeating-linear-gradient(90deg,transparent,transparent 12px,rgba(200,168,110,0.12) 12px,rgba(200,168,110,0.12) 13px)}
+
+/* REVEAL */
+.reveal-screen{align-items:center;justify-content:center;padding:40px 24px;gap:24px;text-align:center}
+.stamp-container{position:relative;width:280px;height:130px}
+.stamp{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-impact);font-size:60px;letter-spacing:6px;border:6px solid;border-radius:8px;transform:rotate(-12deg) scale(2);opacity:0}
+.stamp.correct{border-color:var(--green);color:var(--green)}
+.stamp.wrong{border-color:var(--red);color:var(--red)}
+.stamp.slam{animation:stampSlam .4s cubic-bezier(.2,0,0,1.6) forwards}
+@keyframes stampSlam{0%{transform:rotate(-12deg) scale(2.5);opacity:0}60%{transform:rotate(-12deg) scale(.95);opacity:1}100%{transform:rotate(-12deg) scale(1);opacity:1}}
+.stamp-ink{position:absolute;inset:-20px;opacity:0;border-radius:50%}
+.stamp-ink.splash{animation:inkSplash .6s ease-out forwards .15s}
+@keyframes inkSplash{0%{transform:scale(.3);opacity:.6}100%{transform:scale(1.8);opacity:0}}
+.reveal-points{font-family:var(--font-impact);font-size:44px;letter-spacing:3px;animation:revealUp .5s ease-out .5s both}
+@keyframes revealUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.reveal-points.correct{color:var(--green)}.reveal-points.wrong{color:var(--red)}
+.reveal-explanation{max-width:520px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;text-align:left;line-height:1.6;font-size:14px;color:var(--text2);animation:revealUp .5s ease-out .7s both}
+.reveal-explanation strong{color:var(--manila)}
+.reveal-images{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:600px;width:100%;animation:revealUp .5s ease-out .6s both}
+.reveal-img-card{border-radius:8px;overflow:hidden;border:2px solid var(--border);position:relative}
+.reveal-img-card img{width:100%;display:block}
+.reveal-img-label{position:absolute;bottom:0;left:0;right:0;padding:6px 10px;font-family:var(--font-impact);font-size:16px;letter-spacing:2px;text-align:center}
+.reveal-img-label.genuine{background:rgba(39,174,96,0.85);color:#fff}
+.reveal-img-label.forgery{background:rgba(192,57,43,0.85);color:#fff}
+.next-btn{font-family:var(--font-impact);font-size:20px;letter-spacing:3px;padding:12px 36px;border:2px solid var(--manila);background:transparent;color:var(--manila);cursor:pointer;transition:all .2s;animation:revealUp .5s ease-out .9s both}
+.next-btn:hover{background:var(--manila);color:var(--bg)}
+
+/* REPORT */
+.report-screen{align-items:center;padding:40px 24px;gap:24px}
+.report-card{width:100%;max-width:500px;background:var(--surface);border:2px solid var(--manila);border-radius:12px;overflow:hidden}
+.report-header{padding:24px;text-align:center;background:linear-gradient(135deg,var(--surface2),var(--surface));border-bottom:1px solid var(--border)}
+.report-header h2{font-family:var(--font-display);font-size:28px;color:var(--manila)}
+.report-rank{font-family:var(--font-impact);font-size:56px;letter-spacing:4px;margin:16px 0 8px;color:var(--text)}
+.report-rank-sub{font-size:14px;color:var(--text2)}
+.report-body{padding:20px 24px}
+.report-stat{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);font-size:15px}
+.report-stat:last-child{border-bottom:none}
+.report-stat-label{color:var(--text2)}
+.report-stat-value{font-weight:700;color:var(--text);font-family:var(--font-impact);font-size:20px;letter-spacing:1px}
+.report-footer{padding:20px 24px;border-top:1px solid var(--border);text-align:center}
+.report-message{font-family:var(--font-display);font-size:15px;color:var(--text2);line-height:1.5}
+.replay-btn{margin-top:20px;font-family:var(--font-impact);font-size:22px;letter-spacing:3px;padding:14px 40px;border:2px solid var(--manila);background:transparent;color:var(--manila);cursor:pointer;transition:all .2s}
+.replay-btn:hover{background:var(--manila);color:var(--bg)}
+
+@media(prefers-reduced-motion:reduce){.badge,.timer.critical,.highlight-circle{animation:none}.stamp.slam{animation:none;opacity:1;transform:rotate(-12deg) scale(1)}}
+@media(max-width:700px){.tools-bar{gap:6px}.tool-btn{font-size:11px;padding:6px 10px}.submit-verdict{font-size:14px;padding:6px 16px;width:100%}}
+</style>
+</head>
+<body>
+
+<div class="screen title-screen active" id="title-screen">
+  <div class="badge">🔍</div>
+  <h1>Forgery Detective</h1>
+  <p class="subtitle">The museum has been infiltrated by AI-generated forgeries. Only you can identify the fakes before they're sold to collectors worldwide.</p>
+  <button class="start-btn" onclick="startGame()">Begin Investigation</button>
+</div>
+
+<div class="screen briefing-screen" id="briefing-screen">
+  <div class="case-number" id="case-number"></div>
+  <h2 class="briefing-title" id="briefing-title"></h2>
+  <div class="briefing-detail" id="briefing-detail"></div>
+  <div class="briefing-tip" id="briefing-tip"></div>
+  <button class="proceed-btn" onclick="startRound()">Investigate</button>
+</div>
+
+<div class="screen investigation-screen" id="investigation-screen">
+  <div class="top-bar">
+    <div class="case-label" id="inv-case-label"></div>
+    <div class="timer" id="timer" style="display:none">0:30</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="score-display" id="score-display">Score: 0</div>
+      <div class="streak-badge" id="streak-badge" style="display:none"></div>
+    </div>
+  </div>
+  <div class="gallery" id="gallery"></div>
+  <div class="tools-bar">
+    <span class="tools-label">Detective Tools:</span>
+    <button class="tool-btn" data-tool="zoom" onclick="useTool('zoom')">🔍 Zoom <span class="cost">-10</span></button>
+    <button class="tool-btn" data-tool="texture" onclick="useTool('texture')">🎨 Texture <span class="cost">-10</span></button>
+    <button class="tool-btn" data-tool="detail" onclick="useTool('detail')">✋ Detail <span class="cost">-10</span></button>
+    <button class="tool-btn" data-tool="history" onclick="useTool('history')">📜 History <span class="cost">-10</span></button>
+    <button class="submit-verdict" id="submit-btn" onclick="submitVerdict()" disabled>Lock In Verdict</button>
+  </div>
+</div>
+
+<div class="screen reveal-screen" id="reveal-screen">
+  <div class="stamp-container">
+    <div class="stamp-ink" id="stamp-ink"></div>
+    <div class="stamp" id="stamp-text"></div>
+  </div>
+  <div class="reveal-points" id="reveal-points"></div>
+  <div class="reveal-images" id="reveal-images"></div>
+  <div class="reveal-explanation" id="reveal-explanation"></div>
+  <button class="next-btn" id="next-btn" onclick="nextRound()">Next Case</button>
+</div>
+
+<div class="screen report-screen" id="report-screen">
+  <div class="report-card">
+    <div class="report-header">
+      <h2>Case Closed</h2>
+      <div class="report-rank" id="report-rank"></div>
+      <div class="report-rank-sub" id="report-rank-sub"></div>
+    </div>
+    <div class="report-body" id="report-body"></div>
+    <div class="report-footer">
+      <div class="report-message" id="report-message"></div>
+      <button class="replay-btn" onclick="startGame()">New Investigation</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const IMG = '/images/forgery-detective/';
+
+const CASES = [
+  {
+    title: "Lady with an Ermine",
+    artist: "Leonardo da Vinci",
+    period: "Renaissance, c. 1490",
+    briefing: "A portrait of Cecilia Gallerani holding an ermine. Da Vinci was a master of anatomy — every finger, every joint, painted from careful observation. AI image generators notoriously struggle with hands.",
+    tip: "Count the fingers. Look at the hand anatomy carefully.",
+    timeLimit: 30,
+    realImg: IMG + 'round1-real.jpg',
+    forgeryImg: IMG + 'round1-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>distorted hand anatomy</strong> — look at the fingers on the raised hand. AI image generators frequently add, merge, or bend fingers in impossible ways. Da Vinci studied anatomy through cadaver dissection — his hands are always anatomically perfect.",
+    toolHints: {
+      zoom: "Focus on both hands — compare the finger count and joint positions between the two paintings.",
+      texture: "Da Vinci used sfumato — ultra-soft blending with no visible brushstrokes. The AI version has subtly different surface texture.",
+      detail: "The raised hand in the forgery has anatomical issues — merged or extra fingers that wouldn't exist on a real hand.",
+      history: "Da Vinci dissected 30+ cadavers to study anatomy. His notebook sketches of hands are among the most accurate in art history."
+    }
+  },
+  {
+    title: "The Art of Painting",
+    artist: "Johannes Vermeer",
+    period: "Dutch Golden Age, c. 1666",
+    briefing: "Vermeer's masterwork showing an artist in his studio with a large map on the wall. Real 17th-century paintings contain carefully rendered text — map labels, book titles, inscriptions. AI treats text as visual pattern, producing garbled nonsense.",
+    tip: "Read the text on the map. Can you make out real words?",
+    timeLimit: 28,
+    realImg: IMG + 'round2-real.jpg',
+    forgeryImg: IMG + 'round2-forgery.png',
+    forgeryIndex: 0,
+    explanation: "The AI forgery has <strong>garbled, nonsensical text</strong> on the map. AI models generate text as visual shapes rather than language — the letters look plausible at a glance but spell nothing. Vermeer's original has readable Latin and Dutch text throughout.",
+    toolHints: {
+      zoom: "Look closely at any text visible on the map — are the letters forming real words?",
+      texture: "Vermeer's brushwork has characteristic pearly light and visible canvas texture. The AI version may look too smooth.",
+      detail: "The text on the map is garbled — nonsense letters that look word-like but spell nothing. Classic AI text generation failure.",
+      history: "Vermeer was meticulous about details. The map in the original is a real cartographic map of the Netherlands, with accurate labeling."
+    }
+  },
+  {
+    title: "Impression, Sunrise",
+    artist: "Claude Monet",
+    period: "Impressionism, 1872",
+    briefing: "The painting that named the Impressionist movement — a misty harbor at sunrise. Water reflections follow physical laws: they mirror objects directly above, matching position and angle. AI often generates 'decorative' reflections that don't match reality.",
+    tip: "Compare each boat and structure to its reflection in the water.",
+    timeLimit: 28,
+    realImg: IMG + 'round3-real.jpg',
+    forgeryImg: IMG + 'round3-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>incorrect water reflections</strong> — boats and structures don't match their mirror images in the water. AI treats reflections as atmospheric decoration rather than physics. In the real Monet, every reflection corresponds precisely to the object above it.",
+    toolHints: {
+      zoom: "Compare the position of boats above the waterline to their reflections below.",
+      texture: "Monet's brushstrokes are loose but intentional — each stroke captures light. The AI may have unnaturally uniform strokes.",
+      detail: "The reflections don't geometrically match the objects above — shifted positions, wrong angles. Reflections must be physics-accurate.",
+      history: "This painting was exhibited in 1874. A critic used 'Impression' as an insult — Monet and friends embraced it as their movement's name."
+    }
+  },
+  {
+    title: "Still Life with Gilt Cup",
+    artist: "Willem Claesz Heda",
+    period: "Dutch Golden Age, 1635",
+    briefing: "A vanitas still life with metalwork, glassware, and a pocket watch. Dutch painters rendered every detail with obsessive accuracy. AI stumbles with sequential data — clock faces often show impossible numbers or scrambled sequences.",
+    tip: "Look at every number on every timepiece. Do they follow the right sequence?",
+    timeLimit: 25,
+    realImg: IMG + 'round4-real.jpg',
+    forgeryImg: IMG + 'round4-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>impossible clock/watch faces</strong> — numbers in wrong sequence, missing numerals, or digits that don't belong (like '13' on a 12-hour clock). AI generates clock faces as visual patterns without understanding sequential numbering.",
+    toolHints: {
+      zoom: "Find the timepiece and read each numeral on its face.",
+      texture: "Dutch masters rendered metal with incredible precision — each reflection is specific. AI metal textures tend to be generically shiny.",
+      detail: "The watch face has scrambled or impossible numbers. AI treats numerals as decorative marks, not a meaningful sequence.",
+      history: "Vanitas paintings symbolize mortality. Every object is loaded with meaning — the watch represents time's passage. Accuracy was paramount."
+    }
+  },
+  {
+    title: "The Starry Night",
+    artist: "Vincent van Gogh",
+    period: "Post-Impressionism, 1889",
+    briefing: "Painted from Van Gogh's asylum window in Saint-Rémy. The swirling sky, the cypress tree, the sleeping village — all arranged with deliberate compositional balance, NOT symmetry. Nature and art are never perfectly symmetrical. AI often defaults to mirror-image compositions.",
+    tip: "Compare the left half to the right half. Is it too perfectly mirrored?",
+    timeLimit: 25,
+    realImg: IMG + 'round5-real.jpg',
+    forgeryImg: IMG + 'round5-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery is <strong>unnaturally symmetrical</strong> — the left and right halves mirror each other. Van Gogh's original has the cypress tree on the left, the village below right, the moon upper right — deliberate asymmetric composition. Perfect symmetry is a machine's idea of beauty, not a human's.",
+    toolHints: {
+      zoom: "Compare specific elements on the left to the right — do they repeat in mirror positions?",
+      texture: "Van Gogh's impasto brushwork is thick and directional. Each stroke has unique character. AI may produce too-uniform texture.",
+      detail: "The composition mirrors left-to-right — identical swirls, matching elements on both sides. No human painter would do this.",
+      history: "Van Gogh painted this during a mental health crisis at Saint-Paul-de-Mausole asylum. The emotional asymmetry IS the painting."
+    }
+  },
+  {
+    title: "The Sleeping Gypsy",
+    artist: "Henri Rousseau",
+    period: "Naive Art, 1897",
+    briefing: "A dreamlike scene: a sleeping figure in the desert, a lion standing over them under a full moon. When AI generates animals partially occluded by other objects, it loses track of anatomy — adding extra limbs, ears, or eyes.",
+    tip: "Count the lion's legs, ears, and eyes. Animals have specific anatomy.",
+    timeLimit: 22,
+    realImg: IMG + 'round6-real.jpg',
+    forgeryImg: IMG + 'round6-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>anatomical errors on the lion</strong> — extra ears, wrong number of visible legs, or distorted proportions. When AI generates animals near other objects, it loses track of which body parts are hidden vs. visible. Rousseau, despite his 'naive' style, was precise about animal anatomy.",
+    toolHints: {
+      zoom: "Count the lion's ears (should be 2), eyes (should be 2), and visible legs (should be 4 or fewer depending on angle).",
+      texture: "Rousseau's style is flat and detailed — every blade of grass is individually painted. AI may blur or repeat texture patterns.",
+      detail: "The lion has anatomical impossibilities — extra body parts that AI added because it couldn't track the animal's form.",
+      history: "Rousseau never visited a desert or saw a wild lion. He painted from imagination and zoo visits — but always with careful anatomy."
+    }
+  },
+  {
+    title: "The Courtyard of a House in Delft",
+    artist: "Pieter de Hooch",
+    period: "Dutch Golden Age, 1658",
+    briefing: "De Hooch was a master of architectural perspective — every brick, archway, and floor tile follows precise vanishing points. AI generates 'approximately right' architecture that falls apart under scrutiny: walls that don't connect, perspective that shifts mid-scene.",
+    tip: "Follow the architectural lines. Do walls connect logically? Does perspective stay consistent?",
+    timeLimit: 22,
+    realImg: IMG + 'round7-real.jpg',
+    forgeryImg: IMG + 'round7-forgery.png',
+    forgeryIndex: 0,
+    explanation: "The AI forgery has <strong>broken architectural perspective</strong> — walls that don't connect, bricks that shift pattern mid-wall, passageways that lead to impossible spaces. De Hooch calculated his perspective geometrically. AI generates 'approximately correct' architecture that crumbles on close inspection.",
+    toolHints: {
+      zoom: "Trace the lines where walls meet the floor and ceiling. Do they converge to consistent vanishing points?",
+      texture: "Real brickwork has natural variation in color and alignment. AI brickwork often has uncanny regularity or sudden pattern shifts.",
+      detail: "The architecture has perspective inconsistencies — elements that couldn't physically exist in the same space.",
+      history: "De Hooch used geometric perspective grids, visible in x-rays of his paintings. Every angle is mathematically calculated."
+    }
+  },
+  {
+    title: "The Fighting Temeraire",
+    artist: "J.M.W. Turner",
+    period: "Romanticism, 1839",
+    briefing: "Turner's most beloved painting — a ghost-like warship towed to the breakers at sunset. Turner was the master of atmosphere: colors bleed into each other, edges dissolve, light diffuses through mist. AI-generated 'painterly' images often have unnaturally sharp, crisp edges where real paint would bleed.",
+    tip: "Look at where colors meet. Do they blend softly, or stop with a hard digital edge?",
+    timeLimit: 20,
+    realImg: IMG + 'round8-real.jpg',
+    forgeryImg: IMG + 'round8-forgery.png',
+    forgeryIndex: 0,
+    explanation: "The AI forgery has <strong>unnaturally sharp edges</strong> — colors stop abruptly where Turner's real painting has soft, atmospheric transitions. Turner dissolved forms into light and mist. AI can imitate the palette but not the physics of wet pigment bleeding across canvas.",
+    toolHints: {
+      zoom: "Look at the boundary between the sky and the ship — does the edge dissolve softly or stop with a hard line?",
+      texture: "Turner built up layers of translucent paint. His surfaces glow from within. AI surfaces tend to be opaquely flat.",
+      detail: "Color transitions are too sharp and defined — like a digital cutout rather than atmospheric blending of wet paint on canvas.",
+      history: "Turner reportedly said 'The sun is God' on his deathbed. His late paintings dissolve solid forms into pure light and color."
+    }
+  },
+  // ═══ ROUND 9-24: EXPANDED POOL ═══
+  {
+    title: "The Night Watch",
+    artist: "Rembrandt van Rijn",
+    period: "Dutch Golden Age, 1642",
+    briefing: "Rembrandt's most ambitious group portrait — a militia company stepping into action. With over a dozen figures, there are many hands holding weapons, gesturing, and pointing. AI struggles with hand anatomy, especially in crowded scenes.",
+    tip: "Count fingers on every visible hand. Militia members hold muskets and pikes — their grips should look natural.",
+    timeLimit: 28,
+    realImg: IMG + 'round9-real.jpg',
+    forgeryImg: IMG + 'round9-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>multiple hands with wrong finger counts</strong> — some with 4, others with 6 fingers. In crowded compositions, AI loses track of anatomy for peripheral figures. Rembrandt painted every hand from life.",
+    toolHints: { zoom: "Check hands gripping weapons — count each finger.", texture: "Rembrandt's impasto is thick and dimensional. AI may flatten the texture.", detail: "Several hands have wrong finger counts — 4 or 6 instead of 5.", history: "This painting was so large (3.6m × 4.4m) it was later cut down to fit a smaller wall. Every figure paid to be included — accuracy was mandatory." }
+  },
+  {
+    title: "The Ambassadors",
+    artist: "Hans Holbein the Younger",
+    period: "Northern Renaissance, 1533",
+    briefing: "Two French ambassadors surrounded by instruments of science, music, and religion. Holbein painted every inscription, book title, and instrument marking with meticulous accuracy. AI generates text-like marks that spell nothing.",
+    tip: "Read the text on the books, globe, and instruments. Real words or gibberish?",
+    timeLimit: 25,
+    realImg: IMG + 'round10-real.jpg',
+    forgeryImg: IMG + 'round10-forgery.png',
+    forgeryIndex: 0,
+    explanation: "The AI forgery has <strong>garbled text on all written surfaces</strong> — books, instruments, and the globe show plausible-looking letters that spell nothing. Holbein's originals contain readable Latin, French, and German text, all historically accurate.",
+    toolHints: { zoom: "Read the text on the open book and globe — real words or nonsense?", texture: "Holbein's surface is impossibly smooth — he hid all brushstrokes. AI texture may be too rough.", detail: "All text is gibberish — letters that look like words but aren't. AI treats text as visual pattern.", history: "The painting contains a hidden anamorphic skull — viewable only from a sharp angle. Holbein embedded mathematical precision everywhere." }
+  },
+  {
+    title: "The Arnolfini Portrait",
+    artist: "Jan van Eyck",
+    period: "Early Netherlandish, 1434",
+    briefing: "A wedding portrait with an extraordinary convex mirror on the back wall that reflects the entire room — including the painter himself. Reflections require understanding 3D space. AI generates 'decorative' reflections that don't match the actual scene.",
+    tip: "Look at the convex mirror. Does the reflection match what should be in front of it?",
+    timeLimit: 25,
+    realImg: IMG + 'round11-real.jpg',
+    forgeryImg: IMG + 'round11-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery's <strong>mirror reflection shows the wrong scene</strong> — different figures, furniture, or a room that doesn't match. Van Eyck's original mirror accurately reflects the room in reverse, even showing two figures in the doorway (possibly the artist). AI can't reason about what a mirror should show.",
+    toolHints: { zoom: "Study the convex mirror on the back wall — does the reflection match the room?", texture: "Van Eyck pioneered oil painting technique. His surfaces have unmatched luminosity.", detail: "The mirror shows a different scene than what's actually in the room. AI can't compute accurate reflections.", history: "Van Eyck signed 'Jan van Eyck was here, 1434' above the mirror — possibly the first 'selfie' in art history." }
+  },
+  {
+    title: "The Birth of Venus",
+    artist: "Sandro Botticelli",
+    period: "Italian Renaissance, c. 1485",
+    briefing: "Venus emerging from the sea on a giant shell. Botticelli's figures have a distinctive idealized beauty — but always with human imperfection. AI-generated faces often fall into the 'uncanny valley' — too perfect, too smooth, subtly wrong.",
+    tip: "Look at Venus's face closely. Does it look painted by a human, or generated by a machine?",
+    timeLimit: 22,
+    realImg: IMG + 'round12-real.jpg',
+    forgeryImg: IMG + 'round12-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>uncanny valley facial features</strong> — eyes that don't quite match, skin that's too smooth and plastic-looking, subtle asymmetry that feels algorithmic rather than artistic. Botticelli's Venus is idealized but warmly human.",
+    toolHints: { zoom: "Compare the two Venus faces — which one feels 'alive' vs 'generated'?", texture: "Botticelli used tempera on canvas — a matte, chalky finish. AI may produce a glossier surface.", detail: "Facial asymmetry in the forgery is algorithmic, not artistic — eyes at different heights, plastic-smooth skin.", history: "Botticelli was inspired by the Medici Venus sculpture. His model was likely Simonetta Vespucci, called 'the most beautiful woman in Florence.'" }
+  },
+  {
+    title: "Young Hare",
+    artist: "Albrecht Dürer",
+    period: "Northern Renaissance, 1502",
+    briefing: "One of the most detailed animal studies ever created — Dürer rendered every individual whisker, every hair, every claw. AI generates animals with pattern repetition and occasional anatomical extras — extra ears, toes, or whiskers that merge.",
+    tip: "Count the hare's ears, eyes, and toes. Check if the fur pattern repeats unnaturally.",
+    timeLimit: 22,
+    realImg: IMG + 'round13-real.jpg',
+    forgeryImg: IMG + 'round13-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>anatomical extras on the hare</strong> — an extra ear, additional toes, or fur that repeats in an unnaturally tiled pattern. Dürer observed a real hare for hours, rendering each hair individually. AI generates a 'hare-like pattern' without understanding the underlying anatomy.",
+    toolHints: { zoom: "Count ears (should be 2), eyes (2), and look at the paws for extra toes.", texture: "Dürer's fur is individually rendered — no two hairs alike. AI fur may tile or repeat.", detail: "Extra ears or toes visible. AI adds body parts when it can't track the animal's structure.", history: "Dürer captured the window reflection in the hare's eye. This level of observation was revolutionary for 1502." }
+  },
+  {
+    title: "The Calling of Saint Matthew",
+    artist: "Caravaggio",
+    period: "Baroque, 1600",
+    briefing: "A beam of divine light cuts through a dark room where tax collectors sit at a table. Caravaggio invented modern dramatic lighting — every shadow is cast by a single, consistent light source. AI frequently generates shadows from multiple conflicting light directions.",
+    tip: "Trace every shadow. They should all point away from the single light source.",
+    timeLimit: 22,
+    realImg: IMG + 'round14-real.jpg',
+    forgeryImg: IMG + 'round14-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>physically impossible shadows</strong> — shadows pointing in different directions as if lit by multiple conflicting sources. Caravaggio's single-source lighting creates consistent shadow direction throughout. AI doesn't understand light physics.",
+    toolHints: { zoom: "Trace the shadow under each figure and object — do they all point the same direction?", texture: "Caravaggio painted wet-on-wet with urgent brushwork. AI may produce too-clean surfaces.", detail: "Shadows point in contradicting directions — physically impossible with a single light source.", history: "Caravaggio used real people as models and a dark cellar as his studio. He literally staged the lighting for each painting." }
+  },
+  {
+    title: "Girl with a Pearl Earring",
+    artist: "Johannes Vermeer",
+    period: "Dutch Golden Age, c. 1665",
+    briefing: "The 'Mona Lisa of the North' — a girl turning toward the viewer, her turban and pearl catching the light. Vermeer understood how fabric drapes in 3D space. AI generates fabric folds that look plausible at a glance but are physically impossible.",
+    tip: "Study how the turban wraps around the head. Do the folds make physical sense?",
+    timeLimit: 22,
+    realImg: IMG + 'round15-real.jpg',
+    forgeryImg: IMG + 'round15-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>physically impossible fabric folds</strong> on the turban — cloth that passes through itself, wraps in contradictory directions, or couldn't exist in 3D. The pearl may also lack proper light reflection. Vermeer studied how light interacts with fabric obsessively.",
+    toolHints: { zoom: "Follow the turban fabric — does each fold connect logically to the next?", texture: "Vermeer's paint surface has a pearl-like luminosity. AI may miss this glow.", detail: "The turban has impossible folds — fabric going through itself. AI doesn't understand 3D cloth physics.", history: "The pearl is likely glass — real pearls that size didn't exist. Vermeer painted the illusion of one perfect highlight on its surface." }
+  },
+  {
+    title: "Garden of Earthly Delights",
+    artist: "Hieronymus Bosch",
+    period: "Early Netherlandish, c. 1500",
+    briefing: "Bosch's surreal triptych is deliberately fantastical — but internally consistent. Every bizarre creature has a logic to its construction. AI-generated surrealism lacks this internal consistency, with objects at wildly random scales.",
+    tip: "Even in surreal art, objects maintain relative scale logic. Do sizes make consistent sense?",
+    timeLimit: 22,
+    realImg: IMG + 'round16-real.jpg',
+    forgeryImg: IMG + 'round16-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>wildly inconsistent scale</strong> — objects randomly shift size with no internal logic. Bosch's original is surreal but consistent: within each group, sizes relate to each other meaningfully. AI generates 'random weird stuff' without Bosch's careful compositional rules.",
+    toolHints: { zoom: "Compare the relative sizes of figures and objects — is there consistent scale logic?", texture: "Bosch's technique is incredibly precise — tiny figures painted with single-hair brushes.", detail: "Object sizes are random — no consistent scale relationship between elements in the same scene.", history: "Bosch created his own bestiary of imagined creatures, each with symbolic meaning. Scholars are still debating what they all mean." }
+  },
+  {
+    title: "The Great Wave off Kanagawa",
+    artist: "Katsushika Hokusai",
+    period: "Edo Period, c. 1831",
+    briefing: "The most reproduced artwork in history — a towering wave with claw-like foam fingers reaching over fishing boats, Mount Fuji calm in the distance. Every foam curl in the original is unique. AI tends to copy-paste the same pattern across natural forms.",
+    tip: "Look at the wave's foam curls. Are they each unique, or do they repeat like a tiled pattern?",
+    timeLimit: 20,
+    realImg: IMG + 'round17-real.jpg',
+    forgeryImg: IMG + 'round17-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>unnaturally repetitive foam patterns</strong> — the same curl shape tiled across the wave. Hokusai carved each foam claw individually. AI generates 'wave foam texture' and repeats it, because it doesn't understand that natural chaos never repeats.",
+    toolHints: { zoom: "Compare individual foam curls — are they unique or copy-pasted?", texture: "Woodblock prints have flat color areas with precise edges. AI may add unwanted gradients.", detail: "The foam pattern tiles unnaturally — same shapes repeating across the wave.", history: "Hokusai made this print at age 70. He said 'At 110, every dot and stroke will be alive.' He never stopped pushing." }
+  },
+  {
+    title: "The Creation of Adam",
+    artist: "Michelangelo",
+    period: "High Renaissance, 1512",
+    briefing: "The most famous hands in art history — God and Adam reaching toward each other on the Sistine Chapel ceiling. Michelangelo was the greatest anatomist in art. AI notoriously fails at hands, and this painting IS hands.",
+    tip: "Both hands are the entire focal point. Study every finger, every joint, every tendon.",
+    timeLimit: 20,
+    realImg: IMG + 'round18-real.jpg',
+    forgeryImg: IMG + 'round18-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>wrong hand anatomy on the most famous hands ever painted</strong> — extra fingers, impossible bends, merged joints. Michelangelo dissected cadavers to understand every tendon. The original hands are anatomically perfect down to the visible veins.",
+    toolHints: { zoom: "Study both hands — count fingers, check joint angles, look at how they reach.", texture: "Fresco paint soaks into wet plaster — the surface is matte and chalky, not glossy.", detail: "The reaching hands have anatomical impossibilities — extra or merged fingers.", history: "Michelangelo painted the ceiling lying on his back on scaffolding for 4 years. He considered himself a sculptor, not a painter." }
+  },
+  {
+    title: "Bal du moulin de la Galette",
+    artist: "Pierre-Auguste Renoir",
+    period: "Impressionism, 1876",
+    briefing: "A Parisian outdoor dance under dappled sunlight. Renoir's genius is in varied, spontaneous brushwork — every stroke captures a different quality of light. AI-generated 'impressionist' brushwork is often suspiciously uniform.",
+    tip: "Look at the brushstrokes themselves. Are they varied and spontaneous, or mechanical and repetitive?",
+    timeLimit: 20,
+    realImg: IMG + 'round19-real.jpg',
+    forgeryImg: IMG + 'round19-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>unnaturally uniform brushwork</strong> — all strokes the same size and direction, with dappled light that repeats too perfectly. Renoir's strokes vary constantly in size, direction, and pressure. Mechanical uniformity is the opposite of Impressionism's spontaneity.",
+    toolHints: { zoom: "Compare individual brushstrokes — are they varied or all the same?", texture: "Renoir's strokes change size with every mark. AI produces consistent, mechanical strokes.", detail: "The brushwork is suspiciously uniform — same stroke size and direction throughout.", history: "Renoir painted this on-site at the Moulin de la Galette dance hall. The changing sunlight meant he had to work fast — every stroke captures a fleeting moment." }
+  },
+  {
+    title: "The Grand Canal, Venice",
+    artist: "Canaletto",
+    period: "Venetian School, 1730s",
+    briefing: "Canaletto's vedute (view paintings) are architectural portraits — every palazzo, column, and arch in precise one-point perspective. AI generates 'approximately right' architecture that breaks down under geometric scrutiny.",
+    tip: "Follow the perspective lines of the buildings. Do they converge to a single vanishing point?",
+    timeLimit: 20,
+    realImg: IMG + 'round20-real.jpg',
+    forgeryImg: IMG + 'round20-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>broken architectural perspective</strong> — buildings with inconsistent vanishing points, walls tilting wrong, windows at impossible angles. Canaletto used a camera obscura for geometric precision. AI approximates architecture without understanding geometry.",
+    toolHints: { zoom: "Trace lines along rooftops and window rows — do they converge consistently?", texture: "Canaletto's brick and stone textures vary naturally. AI may tile patterns.", detail: "Vanishing points are inconsistent — different buildings point to different horizons.", history: "Canaletto used a camera obscura (ancestor of the camera) to project scenes onto canvas for tracing. His perspectives are mathematically exact." }
+  },
+  {
+    title: "The Kiss",
+    artist: "Gustav Klimt",
+    period: "Art Nouveau / Vienna Secession, 1907-08",
+    briefing: "Two lovers embrace in gold-leaf robes covered in geometric and spiral patterns. Klimt's composition is deliberately asymmetric — the male figure kneels differently than the female, their robes have different patterns, the flowers cluster unevenly. AI defaults to symmetry.",
+    tip: "Compare left and right sides. Does the composition mirror, or is it intentionally unbalanced?",
+    timeLimit: 20,
+    realImg: IMG + 'round21-real.jpg',
+    forgeryImg: IMG + 'round21-forgery.png',
+    forgeryIndex: 0,
+    explanation: "The AI forgery is <strong>too symmetrical</strong> — matching patterns, mirrored body positions, balanced flower distribution. Klimt deliberately used asymmetry: the man's robe has rectangles, the woman's has circles. The lean, the embrace, the cliff edge — all intentionally unbalanced for emotional tension.",
+    toolHints: { zoom: "Compare the robe patterns — does each figure have distinct geometric motifs?", texture: "Klimt used real gold leaf. The surface should have metallic luster variation.", detail: "The composition mirrors left-to-right. Klimt's original has deliberate asymmetry between the two figures.", history: "Klimt's 'golden phase' paintings used real gold and silver leaf. The Kiss is on permanent display in Vienna's Belvedere." }
+  },
+  {
+    title: "Self-Portrait in a Straw Hat",
+    artist: "Elisabeth Louise Vigée Le Brun",
+    period: "Rococo, c. 1782",
+    briefing: "Le Brun was Marie Antoinette's favorite portraitist — she captured skin, fabric, and expression with extraordinary naturalism. AI-generated portraits often have uncanny valley faces — too perfect, with subtle algorithmic asymmetry.",
+    tip: "Study the face closely. Does it feel warmly human, or coldly generated?",
+    timeLimit: 20,
+    realImg: IMG + 'round22-real.jpg',
+    forgeryImg: IMG + 'round22-forgery.png',
+    forgeryIndex: 0,
+    explanation: "The AI forgery has <strong>uncanny valley facial qualities</strong> — skin that's too uniformly smooth, eyes that reflect light inconsistently, and feathers that merge into each other impossibly. Le Brun's portraits have the warmth of a real human face, with natural skin variation and correct optical reflections.",
+    toolHints: { zoom: "Compare the eyes — do they reflect light the same way? Is the skin texture natural?", texture: "Le Brun's surfaces have visible brushwork that gives warmth. AI may be too smooth.", detail: "The face has algorithmic uncanny valley — too-perfect skin, inconsistent eye reflections.", history: "Le Brun was one of the few women admitted to the French Royal Academy. She painted Marie Antoinette 30+ times." }
+  },
+  {
+    title: "Nighthawks",
+    artist: "Edward Hopper",
+    period: "American Realism, 1942",
+    briefing: "A late-night diner with fluorescent light spilling onto an empty street. Hopper calculated every shadow with geometric precision — the strong interior light creates consistent, physically accurate shadows. AI mixes up shadow directions.",
+    tip: "The interior light is the only source. Every shadow should point away from it consistently.",
+    timeLimit: 20,
+    realImg: IMG + 'round23-real.jpg',
+    forgeryImg: IMG + 'round23-forgery.png',
+    forgeryIndex: 0,
+    explanation: "The AI forgery has <strong>physically contradicting shadows</strong> — some objects cast shadows in opposite directions despite a single light source. Hopper was meticulous about light geometry. AI doesn't track light physics, so shadows become decorative rather than accurate.",
+    toolHints: { zoom: "Trace shadows from the light source — do they all radiate outward consistently?", texture: "Hopper's surfaces are smooth and precise. AI may add unwanted texture variation.", detail: "Shadows point in contradicting directions — some left, some right, despite one light source.", history: "Hopper said the painting was inspired by 'a restaurant on Greenwich Avenue.' There's no door visible — the figures are trapped in light." }
+  },
+  {
+    title: "The Milkmaid",
+    artist: "Johannes Vermeer",
+    period: "Dutch Golden Age, c. 1658",
+    briefing: "A kitchen maid carefully pouring milk from a jug. Vermeer rendered her hands with anatomical perfection and the stream of milk with physically accurate fluid dynamics. AI struggles with both — wrong hand anatomy and liquid that defies gravity.",
+    tip: "Study the hands AND the stream of milk. Both should follow real-world physics.",
+    timeLimit: 20,
+    realImg: IMG + 'round24-real.jpg',
+    forgeryImg: IMG + 'round24-forgery.png',
+    forgeryIndex: 1,
+    explanation: "The AI forgery has <strong>wrong hand anatomy and impossible milk physics</strong> — extra fingers and a stream of milk that splits, curves sideways, or defies gravity. Vermeer studied optics and physics. His pouring milk is a masterclass in fluid dynamics rendered in oil paint.",
+    toolHints: { zoom: "Count fingers on both hands, and trace the milk stream — does it follow gravity?", texture: "Vermeer's bread has individual crust textures. AI may produce generic bread-shapes.", detail: "Extra fingers visible, and the milk stream defies physics — splitting or curving impossibly.", history: "Vermeer likely used a camera obscura — the slightly out-of-focus bread and the light bloom on the milk suggest optical aids." }
+  },
+];
+
+const ROUNDS_PER_GAME = 8;
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+let activeCases = [];
+let state = { round:0, score:0, streak:0, bestStreak:0, correct:0, verdicts:{}, toolsUsed:new Set(), toolPenalty:0, timerInterval:null, timeLeft:0, scoreSent:false };
+
+// Audio
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function ensureAudio(){ if(!audioCtx) audioCtx = new AudioCtx(); }
+function playSound(type){
+  ensureAudio();
+  const now = audioCtx.currentTime, osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  if(type==='stamp'){osc.type='square';osc.frequency.setValueAtTime(80,now);osc.frequency.exponentialRampToValueAtTime(40,now+.15);gain.gain.setValueAtTime(.3,now);gain.gain.exponentialRampToValueAtTime(.01,now+.2);osc.start(now);osc.stop(now+.2)}
+  else if(type==='correct'){osc.type='sine';osc.frequency.setValueAtTime(523,now);osc.frequency.setValueAtTime(659,now+.1);osc.frequency.setValueAtTime(784,now+.2);gain.gain.setValueAtTime(.15,now);gain.gain.exponentialRampToValueAtTime(.01,now+.4);osc.start(now);osc.stop(now+.4)}
+  else if(type==='wrong'){osc.type='sawtooth';osc.frequency.setValueAtTime(200,now);osc.frequency.exponentialRampToValueAtTime(100,now+.3);gain.gain.setValueAtTime(.15,now);gain.gain.exponentialRampToValueAtTime(.01,now+.35);osc.start(now);osc.stop(now+.35)}
+  else if(type==='tick'){osc.type='sine';osc.frequency.setValueAtTime(1200,now);gain.gain.setValueAtTime(.05,now);gain.gain.exponentialRampToValueAtTime(.01,now+.05);osc.start(now);osc.stop(now+.05)}
+  else if(type==='tool'){osc.type='triangle';osc.frequency.setValueAtTime(800,now);osc.frequency.exponentialRampToValueAtTime(400,now+.1);gain.gain.setValueAtTime(.1,now);gain.gain.exponentialRampToValueAtTime(.01,now+.15);osc.start(now);osc.stop(now+.15)}
+}
+
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+function startGame(){
+  activeCases = shuffleArray(CASES).slice(0, ROUNDS_PER_GAME);
+  state = { round:0, score:0, streak:0, bestStreak:0, correct:0, verdicts:{}, toolsUsed:new Set(), toolPenalty:0, timerInterval:null, timeLeft:0, scoreSent:false };
+  showBriefing();
+}
+
+function showBriefing(){
+  const c = activeCases[state.round];
+  document.getElementById('case-number').textContent = `Case #${state.round+1} of ${ROUNDS_PER_GAME}`;
+  document.getElementById('briefing-title').textContent = `"${c.title}" \u2014 ${c.artist}`;
+  document.getElementById('briefing-detail').innerHTML = `<strong>${c.period}</strong><br><br>${c.briefing}`;
+  document.getElementById('briefing-tip').textContent = `\uD83D\uDCA1 ${c.tip}`;
+  showScreen('briefing-screen');
+}
+
+function startRound(){
+  const c = activeCases[state.round];
+  state.verdicts = {}; state.toolsUsed = new Set(); state.toolPenalty = 0; state.timeLeft = c.timeLimit;
+  document.getElementById('inv-case-label').textContent = `Case #${state.round+1}: "${c.title}"`;
+  document.getElementById('score-display').textContent = `Score: ${state.score}`;
+  updateStreak(); updateTimer();
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('used'));
+  document.getElementById('submit-btn').disabled = true;
+
+  // Randomize which side the forgery appears on
+  const forgeryOnRight = Math.random() > 0.5;
+  const gallery = document.getElementById('gallery');
+  gallery.innerHTML = '';
+
+  const order = forgeryOnRight ? ['real','forgery'] : ['forgery','real'];
+  const labels = ['A','B'];
+
+  order.forEach((type, i) => {
+    const frame = document.createElement('div');
+    frame.className = 'artwork-frame';
+    frame.dataset.index = i;
+    frame.dataset.type = type;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'artwork-img-wrap';
+    const img = document.createElement('img');
+    img.className = 'artwork-img';
+    img.src = type === 'real' ? c.realImg : c.forgeryImg;
+    img.alt = `Painting ${labels[i]}`;
+    img.draggable = false;
+    wrap.appendChild(img);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'tool-overlay';
+    overlay.id = `overlay-${i}`;
+    wrap.appendChild(overlay);
+    frame.appendChild(wrap);
+
+    const label = document.createElement('div');
+    label.className = 'artwork-label';
+    label.innerHTML = `<div class="artwork-letter">Painting ${labels[i]}</div>
+      <div class="verdict-btns">
+        <button class="verdict-btn btn-real" onclick="setVerdict(${i},'real',event)">Real</button>
+        <button class="verdict-btn btn-forgery" onclick="setVerdict(${i},'forgery',event)">Forgery</button>
+      </div>`;
+    frame.appendChild(label);
+    gallery.appendChild(frame);
+  });
+
+  showScreen('investigation-screen');
+  // No timer — students take as long as they need
+}
+
+function updateTimer(){
+  const el=document.getElementById('timer');
+  el.textContent=`${Math.floor(state.timeLeft/60)}:${(state.timeLeft%60).toString().padStart(2,'0')}`;
+  el.className='timer'+(state.timeLeft<=5?' critical':state.timeLeft<=10?' warning':'');
+}
+function updateStreak(){
+  const b=document.getElementById('streak-badge');
+  if(state.streak>1){b.style.display='inline';b.textContent=`${state.streak}x streak`}else{b.style.display='none'}
+}
+
+function setVerdict(index, verdict, event){
+  event.stopPropagation();
+  state.verdicts[index] = verdict;
+  const other = index===0?1:0;
+  state.verdicts[other] = verdict==='real'?'forgery':'real';
+
+  document.querySelectorAll('.artwork-frame').forEach(f=>{
+    const v = state.verdicts[f.dataset.index];
+    f.classList.remove('selected-real','selected-forgery');
+    f.querySelectorAll('.verdict-btn').forEach(b=>b.classList.remove('active'));
+    if(v){
+      f.classList.add(v==='real'?'selected-real':'selected-forgery');
+      f.querySelector(`.btn-${v}`).classList.add('active');
+    }
+  });
+  document.getElementById('submit-btn').disabled = false;
+}
+
+function useTool(tool){
+  if(state.toolsUsed.has(tool))return;
+  state.toolsUsed.add(tool);
+  state.toolPenalty+=10;
+  playSound('tool');
+  document.querySelector(`[data-tool="${tool}"]`).classList.add('used');
+  const c=activeCases[state.round];
+
+  [0,1].forEach(i=>{
+    const overlay=document.getElementById(`overlay-${i}`);
+    overlay.innerHTML='';
+    overlay.classList.add('active');
+    const isForgery = document.querySelector(`.artwork-frame[data-index="${i}"]`).dataset.type === 'forgery';
+
+    if(tool==='zoom'){
+      const zc=document.createElement('div');
+      zc.className='zoom-circle';
+      zc.style.cssText='left:calc(50% - 70px);top:calc(40% - 70px)';
+      overlay.appendChild(zc);
+    } else if(tool==='texture'){
+      const tl=document.createElement('div');
+      tl.className='texture-lines';
+      overlay.appendChild(tl);
+    } else if(tool==='detail' && isForgery){
+      const hc=document.createElement('div');
+      hc.className='highlight-circle';
+      hc.style.cssText='width:100px;height:100px;left:calc(50% - 50px);top:calc(35% - 50px)';
+      overlay.appendChild(hc);
+    }
+
+    const hint=document.createElement('div');
+    hint.className='hint-box';
+    hint.textContent=c.toolHints[tool];
+    overlay.appendChild(hint);
+  });
+
+  setTimeout(()=>{[0,1].forEach(i=>{const o=document.getElementById(`overlay-${i}`);if(o){o.classList.remove('active');o.innerHTML=''}})},8000);
+}
+
+function autoSubmit(){
+  if(Object.keys(state.verdicts).length===0) state.verdicts={0:'real',1:'real'};
+  submitVerdict();
+}
+
+function submitVerdict(){
+  clearInterval(state.timerInterval);
+  const c=activeCases[state.round];
+
+  // Find which frame the player marked as forgery
+  const playerForgeryIdx = Object.entries(state.verdicts).find(([k,v])=>v==='forgery');
+  const pickedIdx = playerForgeryIdx ? parseInt(playerForgeryIdx[0]) : -1;
+  const pickedFrame = document.querySelector(`.artwork-frame[data-index="${pickedIdx}"]`);
+  const isCorrect = pickedFrame && pickedFrame.dataset.type === 'forgery';
+
+  let points = 0;
+  if(isCorrect){
+    points=100;
+    state.streak++;
+    if(state.streak>1) points=Math.round(points*(1+(state.streak-1)*0.15));
+    if(state.streak>state.bestStreak) state.bestStreak=state.streak;
+    state.correct++;
+  } else { state.streak=0; }
+  points=Math.max(0,points-state.toolPenalty);
+  state.score+=points;
+
+  // Stamp
+  const stamp=document.getElementById('stamp-text');
+  const ink=document.getElementById('stamp-ink');
+  stamp.className=`stamp ${isCorrect?'correct':'wrong'}`;
+  stamp.textContent=isCorrect?'CORRECT':'WRONG';
+  ink.className='stamp-ink';
+  ink.style.background=`radial-gradient(circle,${isCorrect?'rgba(39,174,96,0.3)':'rgba(192,57,43,0.3)'},transparent 70%)`;
+  requestAnimationFrame(()=>{
+    stamp.classList.add('slam');
+    ink.classList.add('splash');
+    playSound(isCorrect?'correct':'wrong');
+    setTimeout(()=>playSound('stamp'),100);
+  });
+
+  document.getElementById('reveal-points').className=`reveal-points ${isCorrect?'correct':'wrong'}`;
+  document.getElementById('reveal-points').textContent=isCorrect?`+${points} POINTS`:'0 POINTS';
+
+  // Show both images labeled
+  const revImgs = document.getElementById('reveal-images');
+  revImgs.innerHTML = `
+    <div class="reveal-img-card"><img src="${c.realImg}" alt="Real painting"><div class="reveal-img-label genuine">GENUINE</div></div>
+    <div class="reveal-img-card"><img src="${c.forgeryImg}" alt="AI Forgery"><div class="reveal-img-label forgery">AI FORGERY</div></div>
+  `;
+
+  document.getElementById('reveal-explanation').innerHTML=c.explanation;
+  document.getElementById('next-btn').textContent=state.round<ROUNDS_PER_GAME-1?'Next Case':'View Report';
+  showScreen('reveal-screen');
+}
+
+function nextRound(){
+  state.round++;
+  state.round>=ROUNDS_PER_GAME?showReport():showBriefing();
+}
+
+function showReport(){
+  const pct=Math.round((state.correct/ROUNDS_PER_GAME)*100);
+  let rank,rankSub,message;
+  if(pct===100){rank='MASTER';rankSub='Master Detective';message='Flawless investigation. The museum is safe thanks to you, Detective.'}
+  else if(pct>=88){rank='EXPERT';rankSub='Expert Investigator';message='Outstanding work. Only the most sophisticated forgeries slipped past you.'}
+  else if(pct>=75){rank='SENIOR';rankSub='Senior Detective';message='Solid detective work. You have a keen eye for AI artifacts.'}
+  else if(pct>=63){rank='DETECTIVE';rankSub='Detective';message='Good instincts, but some forgeries fooled you. Keep training that eye.'}
+  else if(pct>=50){rank='JUNIOR';rankSub='Junior Detective';message='You caught half the forgeries. Study the AI tells \u2014 hands, text, reflections, symmetry.'}
+  else{rank='ROOKIE';rankSub='Rookie';message='The forgers got the better of you this time. Review the case files and try again.'}
+
+  document.getElementById('report-rank').textContent=rank;
+  document.getElementById('report-rank-sub').textContent=rankSub;
+  document.getElementById('report-message').textContent=message;
+  document.getElementById('report-body').innerHTML=`
+    <div class="report-stat"><span class="report-stat-label">Cases Solved</span><span class="report-stat-value">${state.correct} / ${ROUNDS_PER_GAME}</span></div>
+    <div class="report-stat"><span class="report-stat-label">Accuracy</span><span class="report-stat-value">${pct}%</span></div>
+    <div class="report-stat"><span class="report-stat-label">Final Score</span><span class="report-stat-value">${state.score}</span></div>
+    <div class="report-stat"><span class="report-stat-label">Best Streak</span><span class="report-stat-value">${state.bestStreak}x</span></div>
+    <div class="report-stat"><span class="report-stat-label">Tools Used</span><span class="report-stat-value">${state.toolPenalty/10}</span></div>`;
+  showScreen('report-screen');
+
+  if(!state.scoreSent){
+    state.scoreSent=true;
+    window.parent.postMessage({type:'activityScore',score:state.correct,maxScore:ROUNDS_PER_GAME},'*');
+  }
+}
+
+const params=new URLSearchParams(window.location.search);
+const devMode=params.has('unlock')||params.get('testStudent')==='true';
+</script>
+</body>
+</html>

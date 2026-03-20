@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 import { getStudentEnrolledCourseIds } from "../lib/enrollment";
 import { getLevelInfo, getStudentGamification } from "../lib/gamification";
 import { getWeightedOverall, CATEGORY_WEIGHTS, CATEGORY_LABELS, CATEGORY_COLORS, DEFAULT_CATEGORY } from "../lib/gradeCalc";
+import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 const WRITTEN_LABELS = {
   0: { label: "Missing", color: "var(--text3)" },
@@ -26,6 +27,37 @@ export default function MyGrades() {
   const [gamification, setGamification] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+
+  // UI translations for student-facing labels
+  const uiStrings = useTranslatedTexts([
+    "My Grades",                 // 0
+    "Track your progress and grades across your courses.", // 1
+    "Overall Grade",             // 2
+    "Lessons Done",              // 3
+    "Reflections",               // 4
+    "Total XP",                  // 5
+    "No Courses Yet",            // 6
+    "Join a course to see your grades here.", // 7
+    "Grade available after due date", // 8
+    "MC correct",                // 9
+    "written graded",            // 10
+    "pending",                   // 11
+    "Reflected",                 // 12
+    "Skipped",                   // 13
+    "No reflection",             // 14
+    "Pending",                   // 15
+    "No items",                  // 16
+    "Activities & Evidence",     // 17
+    "Pending review",            // 18
+    "Graded",                    // 19
+    "General",                   // 20
+    "activity scores",           // 21
+    "activity score",            // 22
+    "Grade available after due date", // 23 (duplicate for data-translatable)
+    "Not submitted",             // 24
+    "Not started",               // 25
+  ]);
+  const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
 
   // Fetch enrolled courses
   useEffect(() => {
@@ -71,6 +103,7 @@ export default function MyGrades() {
               progress[lesson.id] = {
                 answers: progDoc.exists() ? (progDoc.data().answers || {}) : {},
                 completed: progDoc.exists() ? !!progDoc.data().completed : false,
+                exempt: progDoc.exists() ? !!progDoc.data().exempt : false,
               };
             })
             .catch(() => { progress[lesson.id] = { answers: {}, completed: false }; })
@@ -149,10 +182,15 @@ export default function MyGrades() {
     const embeds = getEmbedBlocks(lesson);
     const hasReflection = lessonHasReflection(lessonId);
 
-    // Embed weighting: embeds = 50% of grade in mixed lessons, 100% in embed-only
+    // Embed weighting: use explicit weight if set, otherwise dynamic 50/50 split
     const nonEmbedPts = mc.length + sa.length + (hasReflection ? 1 : 0);
-    const embedPtsEach = (embeds.length > 0 && nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1;
-    let totalPoints = nonEmbedPts + embeds.length * embedPtsEach;
+    let totalEmbedPts = 0;
+    const embedWeights = embeds.map((q) => {
+      const w = q.weight != null ? q.weight : ((nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1);
+      totalEmbedPts += w;
+      return w;
+    });
+    let totalPoints = nonEmbedPts + totalEmbedPts;
     if (totalPoints === 0) return null;
 
     let earnedPoints = 0;
@@ -170,11 +208,11 @@ export default function MyGrades() {
       }
     });
 
-    // Scored embeds: dynamically weighted
-    embeds.forEach((q) => {
+    // Scored embeds: use per-block weight
+    embeds.forEach((q, i) => {
       const a = answers[q.id];
       if (a?.writtenScore != null) {
-        earnedPoints += a.writtenScore * embedPtsEach;
+        earnedPoints += a.writtenScore * embedWeights[i];
       }
     });
 
@@ -187,7 +225,7 @@ export default function MyGrades() {
     return {
       earnedPoints,
       totalPoints,
-      embedPtsEach,
+      embedWeights,
       grade: Math.round((earnedPoints / totalPoints) * 100),
       mc, sa, embeds, hasReflection,
     };
@@ -197,6 +235,7 @@ export default function MyGrades() {
     const lessonGrades = [];
     lessons.forEach((lesson) => {
       if (!isDueDatePassed(lesson)) return; // don't include unreleased grades
+      if (progressData[lesson.id]?.exempt) return; // skip exempt lessons
       const result = getLessonGrade(lesson.id);
       if (result) {
         lessonGrades.push({
@@ -207,6 +246,7 @@ export default function MyGrades() {
     });
     const activityGrades = [];
     Object.entries(activityData).forEach(([actId, data]) => {
+      if (data.exempt) return; // skip exempt activities
       if (data.activityScore !== null && data.activityScore !== undefined) {
         activityGrades.push({ percentage: Math.round(data.activityScore * 100) });
       }
@@ -254,9 +294,9 @@ export default function MyGrades() {
   if (courses.length === 0) {
     return (
       <div className="page-wrapper empty-state" style={{ paddingTop: 120 }}>
-        <div className="empty-state-icon">📊</div>
-        <h2 className="empty-state-title">No Courses Yet</h2>
-        <p className="empty-state-text">Join a course to see your grades here.</p>
+        <div className="empty-state-icon"><span aria-hidden="true">📊</span></div>
+        <h2 className="empty-state-title" data-translatable>{ui(6, "No Courses Yet")}</h2>
+        <p className="empty-state-text" data-translatable>{ui(7, "Join a course to see your grades here.")}</p>
       </div>
     );
   }
@@ -271,7 +311,7 @@ export default function MyGrades() {
   let currentUnit = null;
   let currentGroup = null;
   for (const lesson of lessons) {
-    const unit = lesson.unit || "General";
+    const unit = lesson.unit || ui(20, "General");
     if (unit !== currentUnit) {
       currentUnit = unit;
       currentGroup = { unit, lessons: [] };
@@ -285,8 +325,8 @@ export default function MyGrades() {
 
         {/* Header */}
         <div className="page-header">
-          <h1 className="page-title">📊 My Grades</h1>
-          <p className="page-subtitle">Track your progress and grades across your courses.</p>
+          <h1 className="page-title" data-translatable><span aria-hidden="true">📊</span> {ui(0, "My Grades")}</h1>
+          <p className="page-subtitle" data-translatable>{ui(1, "Track your progress and grades across your courses.")}</p>
         </div>
 
         {/* Course tabs */}
@@ -320,33 +360,33 @@ export default function MyGrades() {
             {/* Stats cards */}
             <div className="mg-stats">
               <div className="card mg-stat">
-                <div className="mg-stat-icon">📊</div>
+                <div className="mg-stat-icon"><span aria-hidden="true">📊</span></div>
                 <div className="mg-stat-value" style={{ color: overall ? gradeColor(overall.overall) : "var(--text3)" }}>
                   {overall ? `${overall.overall}%` : "—"}
                 </div>
-                <div className="mg-stat-label">Overall Grade</div>
+                <div className="mg-stat-label" data-translatable>{ui(2, "Overall Grade")}</div>
               </div>
               <div className="card mg-stat">
-                <div className="mg-stat-icon">✅</div>
+                <div className="mg-stat-icon"><span aria-hidden="true">✅</span></div>
                 <div className="mg-stat-value" style={{ color: "var(--cyan)" }}>
                   {completedCount}/{lessons.length}
                 </div>
-                <div className="mg-stat-label">Lessons Done</div>
+                <div className="mg-stat-label" data-translatable>{ui(3, "Lessons Done")}</div>
               </div>
               <div className="card mg-stat">
-                <div className="mg-stat-icon">💭</div>
+                <div className="mg-stat-icon"><span aria-hidden="true">💭</span></div>
                 <div className="mg-stat-value" style={{ color: reflectionCount > 0 ? "var(--green)" : "var(--text3)" }}>
                   {reflectionCount}/{completedCount || 0}
                 </div>
-                <div className="mg-stat-label">Reflections</div>
+                <div className="mg-stat-label" data-translatable>{ui(4, "Reflections")}</div>
               </div>
               {level && (
                 <div className="card mg-stat">
-                  <div className="mg-stat-icon">⚡</div>
+                  <div className="mg-stat-icon"><span aria-hidden="true">⚡</span></div>
                   <div className="mg-stat-value" style={{ color: "var(--amber)" }}>
                     {gamification?.totalXP || 0}
                   </div>
-                  <div className="mg-stat-label">Total XP</div>
+                  <div className="mg-stat-label" data-translatable>{ui(5, "Total XP")}</div>
                 </div>
               )}
             </div>
@@ -378,7 +418,7 @@ export default function MyGrades() {
             {/* Lesson breakdown by unit */}
             {unitGroups.map((group) => (
               <div key={group.unit} className="mg-unit-group">
-                <h3 className="mg-unit-title">{group.unit}</h3>
+                <h3 className="mg-unit-title" data-translatable>{group.unit}</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {group.lessons.map((lesson) => {
                     const result = getLessonGrade(lesson.id);
@@ -394,6 +434,9 @@ export default function MyGrades() {
                     const saGraded = sa.filter((q) => answers[q.id]?.writtenScore !== undefined && answers[q.id]?.writtenScore !== null).length;
                     const saSubmitted = sa.filter((q) => answers[q.id]?.submitted).length;
                     const embedsCompleted = embeds.filter((q) => answers[q.id]?.submitted).length;
+
+                    // Check if this lesson is exempt
+                    const isExempt = prog.exempt;
 
                     return (
                       <div key={lesson.id} className="card mg-lesson-card">
@@ -411,24 +454,26 @@ export default function MyGrades() {
                               </span>
                             </div>
                             <div className="mg-lesson-meta">
-                              {!isDueDatePassed(lesson) ? (
-                                <span style={{ color: "var(--text3)" }}>Grade available after due date</span>
+                              {isExempt ? (
+                                <span style={{ color: "#8b5cf6", fontWeight: 600 }}>Excluded from grade calculations</span>
+                              ) : !isDueDatePassed(lesson) ? (
+                                <span style={{ color: "var(--text3)" }} data-translatable>{ui(8, "Grade available after due date")}</span>
                               ) : (
                                 <>
                                   {mc.length > 0 && (
-                                    <span>{mcCorrect}/{mc.length} MC correct</span>
+                                    <span data-translatable>{mcCorrect}/{mc.length} {ui(9, "MC correct")}</span>
                                   )}
                                   {sa.length > 0 && (
-                                    <span>
-                                      {saGraded}/{sa.length} written graded
+                                    <span data-translatable>
+                                      {saGraded}/{sa.length} {ui(10, "written graded")}
                                       {saSubmitted > saGraded && (
-                                        <span style={{ color: "var(--amber)" }}> · {saSubmitted - saGraded} pending</span>
+                                        <span style={{ color: "var(--amber)" }}> · {saSubmitted - saGraded} {ui(11, "pending")}</span>
                                       )}
                                     </span>
                                   )}
                                   {embeds.length > 0 && (
-                                    <span>
-                                      {embedsCompleted}/{embeds.length} activity{embeds.length > 1 ? " scores" : " score"}
+                                    <span data-translatable>
+                                      {embedsCompleted}/{embeds.length} {embeds.length > 1 ? ui(21, "activity scores") : ui(22, "activity score")}
                                       {embedsCompleted > 0 && (() => {
                                         const a = answers[embeds[0].id];
                                         return a?.score != null ? ` (${a.score}/${a.maxScore})` : "";
@@ -436,12 +481,12 @@ export default function MyGrades() {
                                     </span>
                                   )}
                                   {reflection && (
-                                    <span style={{ color: reflection.valid ? "var(--green)" : "var(--red)" }}>
-                                      {reflection.valid ? "💭 Reflected" : "💭 Skipped"}
+                                    <span style={{ color: reflection.valid ? "var(--green)" : "var(--red)" }} data-translatable>
+                                      {reflection.valid ? `💭 ${ui(12, "Reflected")}` : `💭 ${ui(13, "Skipped")}`}
                                     </span>
                                   )}
                                   {prog.completed && !reflection && (
-                                    <span>💭 No reflection</span>
+                                    <span data-translatable>💭 {ui(14, "No reflection")}</span>
                                   )}
                                 </>
                               )}
@@ -449,16 +494,21 @@ export default function MyGrades() {
                           </div>
 
                           <div className="mg-grade">
-                            {!isDueDatePassed(lesson) ? (
-                              <div style={{ fontSize: 13, color: "var(--text3)", fontStyle: "italic" }}>Pending</div>
+                            {isExempt ? (
+                              <div style={{
+                                fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 8,
+                                background: "rgba(139,92,246,0.15)", color: "#8b5cf6",
+                              }}>Exempt</div>
+                            ) : !isDueDatePassed(lesson) ? (
+                              <div style={{ fontSize: 13, color: "var(--text3)", fontStyle: "italic" }} data-translatable>{ui(15, "Pending")}</div>
                             ) : result ? (
                               <div className="mg-grade-value" style={{ color: gradeColor(result.grade) }}>
                                 {result.grade}%
                               </div>
                             ) : (
-                              <div style={{ fontSize: 13, color: "var(--text3)", fontStyle: "italic" }}>No items</div>
+                              <div style={{ fontSize: 13, color: "var(--text3)", fontStyle: "italic" }} data-translatable>{ui(16, "No items")}</div>
                             )}
-                            {isDueDatePassed(lesson) && result && (
+                            {!isExempt && isDueDatePassed(lesson) && result && (
                               <div className="mg-grade-detail">
                                 {Math.round(result.earnedPoints * 10) / 10}/{result.totalPoints} pts
                               </div>
@@ -466,8 +516,8 @@ export default function MyGrades() {
                           </div>
                         </div>
 
-                        {/* Detail breakdown for lessons with content */}
-                        {result && (mc.length > 0 || sa.length > 0 || embeds.length > 0) && (
+                        {/* Detail breakdown for lessons with content — hide for exempt */}
+                        {!isExempt && result && (mc.length > 0 || sa.length > 0 || embeds.length > 0) && (
                           <div className="mg-breakdown">
                             <div className="mg-indicators">
                               {/* MC dots */}
@@ -600,7 +650,7 @@ export default function MyGrades() {
             {/* Activities & Evidence grades */}
             {Object.keys(activityData).length > 0 && (
               <div className="mg-unit-group">
-                <h3 className="mg-unit-title">Activities & Evidence</h3>
+                <h3 className="mg-unit-title" data-translatable>{ui(17, "Activities & Evidence")}</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {Object.entries(activityData)
                     .sort((a, b) => (a[1].activityTitle || a[0]).localeCompare(b[1].activityTitle || b[0]))
@@ -622,7 +672,7 @@ export default function MyGrades() {
                                     {data.activityLabel || tierInfo?.label || "Graded"}
                                   </span>
                                 ) : (
-                                  <span style={{ color: "var(--amber)" }}>Pending review</span>
+                                  <span style={{ color: "var(--amber)" }} data-translatable>{ui(18, "Pending review")}</span>
                                 )}
                               </div>
                             </div>
@@ -632,7 +682,7 @@ export default function MyGrades() {
                                   {gradePercent}%
                                 </div>
                               ) : (
-                                <div style={{ fontSize: 13, color: "var(--amber)", fontStyle: "italic" }}>Pending</div>
+                                <div style={{ fontSize: 13, color: "var(--amber)", fontStyle: "italic" }} data-translatable>{ui(15, "Pending")}</div>
                               )}
                             </div>
                           </div>

@@ -14,6 +14,8 @@ export default function LoginPage() {
     const agent = params.get("agent");
     const key = params.get("key");
     if (agent && key) {
+      // Strip credentials from URL to prevent leaking via browser history / referrer headers
+      window.history.replaceState({}, "", window.location.pathname);
       signInWithCredentials(`${agent}@lachlan.internal`, key).catch(() => {});
     }
   }, []);
@@ -34,6 +36,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-hero">
         <div className="login-glow" />
+        <img src="/images/pl-logo.png" alt="PantherLearn" className="login-logo" />
         <h1 className="login-title">PantherLearn</h1>
         <p className="login-subtitle">Your AI-powered learning platform</p>
       </div>

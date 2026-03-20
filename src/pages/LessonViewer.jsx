@@ -264,6 +264,7 @@ export default function LessonViewer() {
       }
       if (block.type === "question") {
         extraProps.studentData = studentData;
+        extraProps.allStudentData = studentData; // Explicit pass for linked questions (Finding #5)
         extraProps.onAnswer = handleAnswer;
         extraProps.onRequestReview = handleRequestReview;
         extraProps.courseId = courseId;
@@ -298,6 +299,12 @@ export default function LessonViewer() {
       if (block.type === "guess_who") {
         extraProps.courseId = courseId;
         extraProps.lessonId = lessonId;
+      }
+      if (block.type === "connect_four") {
+        extraProps.courseId = courseId;
+        extraProps.lessonId = lessonId;
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
       }
       if (block.type === "chatbot_workshop") {
         extraProps.courseId = courseId;

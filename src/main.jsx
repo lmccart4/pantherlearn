@@ -5,6 +5,16 @@ import "./index.css";
 import "./blocks.css";
 import "./preview.css";
 
+// Auto-reload if a stale JS chunk fails to load after a deploy
+window.addEventListener('vite:preloadError', () => {
+  // Only auto-reload once per session to avoid infinite loops
+  const reloadKey = 'vite_chunk_reload'
+  if (!sessionStorage.getItem(reloadKey)) {
+    sessionStorage.setItem(reloadKey, '1')
+    window.location.reload()
+  }
+})
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <App />

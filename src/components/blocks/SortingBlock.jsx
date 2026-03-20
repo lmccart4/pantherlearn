@@ -134,7 +134,15 @@ export default function SortingBlock({ block, studentData = {}, onAnswer }) {
     const newScore = { correct, total };
     setScore(newScore);
     setChecked(true);
-    persist({ deck, leftPile, rightPile, checked: true, score: newScore });
+    // Persist with writtenScore (0-1 normalized) and submitted flag so the
+    // Classroom sync can read a standardized score (Finding #9)
+    const writtenScore = total > 0 ? correct / total : 0;
+    persist({
+      deck, leftPile, rightPile, checked: true, score: newScore,
+      writtenScore,
+      submitted: true,
+      completedAt: new Date().toISOString(),
+    });
   };
 
   // Reset

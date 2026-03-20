@@ -37,6 +37,7 @@ const SpaceRescueBlock = lazy(() => import("./SpaceRescueBlock"));
 const RocketStagingBlock = lazy(() => import("./RocketStagingBlock"));
 const ConceptBuilderBlock = lazy(() => import("./ConceptBuilderBlock"));
 const MomentumMysteryLabBlock = lazy(() => import("./MomentumMysteryLabBlock"));
+const ConnectFourBlock = lazy(() => import("./ConnectFourBlock"));
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -75,12 +76,18 @@ const BLOCK_MAP = {
   concept_builder: ConceptBuilderBlock,
   media_upload: EvidenceUploadBlock,  // alias — media_upload blocks use the same upload UI
   momentum_mystery_lab: MomentumMysteryLabBlock,
+  connect_four: ConnectFourBlock,
   score_tally: ScoreTallyBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {
   const Component = BLOCK_MAP[block.type];
-  if (!Component) return null;
+  if (!Component) {
+    if (import.meta.env.DEV) {
+      console.warn(`[BlockRenderer] Unknown block type: "${block.type}" (block id: ${block.id})`);
+    }
+    return null;
+  }
 
   if (block.type === "divider") {
     return <DividerBlock />;

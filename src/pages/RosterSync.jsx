@@ -57,18 +57,13 @@ export default function RosterSync() {
   useEffect(() => {
     if (!selectedCourse) return;
     const fetchExisting = async () => {
-      const snap = await getDocs(collection(db, "enrollments"));
-      let count = 0;
+      const snap = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", selectedCourse)));
       const students = [];
       snap.forEach((d) => {
-        const data = d.data();
-        if (data.courseId === selectedCourse) {
-          count++;
-          students.push({ docId: d.id, ...data });
-        }
+        students.push({ docId: d.id, ...d.data() });
       });
       students.sort((a, b) => (a.name || a.email || "").localeCompare(b.name || b.email || ""));
-      setExistingCount(count);
+      setExistingCount(students.length);
       setEnrolledStudents(students);
     };
     fetchExisting();
@@ -200,11 +195,11 @@ export default function RosterSync() {
       // Try to update enrolledCourses on user docs — but don't let this block the sync
       // Students without accounts yet will get linked at login via useAuth
       try {
-        const enrolledUsersSnap = await getDocs(collection(db, "enrollments"));
+        const enrolledUsersSnap = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", selectedCourse)));
         const uidsToUpdate = new Set();
         enrolledUsersSnap.forEach((d) => {
           const data = d.data();
-          if (data.courseId === selectedCourse && data.uid) {
+          if (data.uid) {
             uidsToUpdate.add(data.uid);
           }
         });
@@ -229,11 +224,8 @@ export default function RosterSync() {
       }
 
       await new Promise((r) => setTimeout(r, 1000));
-      const verifySnap = await getDocs(collection(db, "enrollments"));
-      let savedCount = 0;
-      verifySnap.forEach((d) => {
-        if (d.data().courseId === selectedCourse) savedCount++;
-      });
+      const verifySnap = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", selectedCourse)));
+      const savedCount = verifySnap.size;
 
       setSyncResult({
         students: totalStudents,
@@ -320,11 +312,10 @@ export default function RosterSync() {
     try {
       // Delete ALL enrollment docs for this student in this course
       // (there may be duplicates from CSV + enroll code with different doc IDs)
-      const allEnrollSnap = await getDocs(collection(db, "enrollments"));
+      const courseEnrollSnap = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", selectedCourse)));
       const toDelete = [];
-      allEnrollSnap.forEach((d) => {
+      courseEnrollSnap.forEach((d) => {
         const data = d.data();
-        if (data.courseId !== selectedCourse) return;
         const matchesUid = student.uid && (data.uid === student.uid || data.studentUid === student.uid);
         const matchesEmail = student.email && data.email?.toLowerCase() === student.email.toLowerCase();
         if (matchesUid || matchesEmail) toDelete.push(d.id);
@@ -378,11 +369,10 @@ export default function RosterSync() {
       });
 
       // Find ALL enrollment docs matching any of these students for this course
-      const allEnrollSnap = await getDocs(collection(db, "enrollments"));
+      const courseEnrollSnap = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", selectedCourse)));
       const batch = writeBatch(db);
-      allEnrollSnap.forEach((d) => {
+      courseEnrollSnap.forEach((d) => {
         const data = d.data();
-        if (data.courseId !== selectedCourse) return;
         const matchesUid = data.uid && uidsInSection.has(data.uid) || data.studentUid && uidsInSection.has(data.studentUid);
         const matchesEmail = data.email && emailsInSection.has(data.email.toLowerCase());
         if (matchesUid || matchesEmail) batch.delete(d.ref);

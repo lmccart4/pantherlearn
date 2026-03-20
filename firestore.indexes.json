@@ -9,6 +9,14 @@
       ]
     },
     {
+      "collectionGroup": "connectFourGames",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "blockId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "botProjects",
       "queryScope": "COLLECTION",
       "fields": [

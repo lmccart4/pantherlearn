@@ -16,11 +16,15 @@ export default function JoinCourse({ user, onEnrolled, onClose, role = "student"
 
   // Translate UI strings
   const uiStrings = useTranslatedTexts([
-    "Join a Course",                         // 0
-    "Enter the enroll code from your teacher", // 1
-    "Cancel",                                // 2
-    "Joining...",                             // 3
-    "Join Course",                           // 4
+    "Join a Course",                             // 0
+    "Enter the enroll code from your teacher",   // 1
+    "Cancel",                                    // 2
+    "Joining...",                                // 3
+    "Join Course",                               // 4
+    "Join as Co-Teacher",                        // 5
+    "Enter the enroll code to co-teach a course", // 6
+    "Joined as co-teacher!",                     // 7
+    "Enrolled in",                               // 8
   ]);
   const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
 
@@ -36,10 +40,10 @@ export default function JoinCourse({ user, onEnrolled, onClose, role = "student"
       let course;
       if (isTeacherJoin) {
         course = await enrollAsCoTeacher(user.uid, code.trim());
-        setSuccess(`Joined "${course.title}" as co-teacher!`);
+        setSuccess(`${ui(7, "Joined as co-teacher!")} "${course.title}"`);
       } else {
         course = await enrollWithCode(user.uid, user.email, code.trim());
-        setSuccess(`Enrolled in ${course.title}!`);
+        setSuccess(`${ui(8, "Enrolled in")} ${course.title}!`);
       }
       setTimeout(() => {
         onEnrolled?.(course);
@@ -58,11 +62,11 @@ export default function JoinCourse({ user, onEnrolled, onClose, role = "student"
         <div style={styles.header}>
           <span style={{ fontSize: 28 }}>{isTeacherJoin ? "👥" : "🔑"}</span>
           <h2 style={styles.title} data-translatable>
-            {isTeacherJoin ? "Join as Co-Teacher" : ui(0, "Join a Course")}
+            {isTeacherJoin ? ui(5, "Join as Co-Teacher") : ui(0, "Join a Course")}
           </h2>
           <p style={styles.subtitle} data-translatable>
             {isTeacherJoin
-              ? "Enter the enroll code to co-teach a course"
+              ? ui(6, "Enter the enroll code to co-teach a course")
               : ui(1, "Enter the enroll code from your teacher")}
           </p>
         </div>
@@ -118,7 +122,7 @@ export default function JoinCourse({ user, onEnrolled, onClose, role = "student"
               {loading
                 ? ui(3, "Joining...")
                 : isTeacherJoin
-                  ? "Join as Co-Teacher"
+                  ? ui(5, "Join as Co-Teacher")
                   : ui(4, "Join Course")}
             </button>
           </div>

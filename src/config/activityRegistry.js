@@ -139,7 +139,7 @@ export const ACTIVITIES = [
     userIdField: "uid",
     timestampField: "completedAt",
     completionCheck: (sub) => sub.submitted === true,
-    scoreCalculator: () => 75, // Flat score — completion-based activity
+    scoreCalculator: () => 100, // Completion-based activity — full credit for finishing
     component: lazy(() => import("../components/grading/activities/AITrainingSimReview")),
     url: "https://ai-training-sim-paps.firebaseapp.com",
     course: null,

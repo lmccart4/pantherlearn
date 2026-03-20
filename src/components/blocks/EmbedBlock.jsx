@@ -2,6 +2,44 @@
 import { useEffect } from "react";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 
+// Allowlist of origins permitted to send scores and request auth tokens.
+// Covers all Firebase-hosted PAPS activities (both .web.app and .firebaseapp.com).
+const ALLOWED_EMBED_ORIGINS = [
+  "https://prompt-duel-paps.web.app",
+  "https://prompt-duel-paps.firebaseapp.com",
+  "https://recipebot-curation.web.app",
+  "https://recipebot-curation.firebaseapp.com",
+  "https://ai-ethics-courtroom-paps.web.app",
+  "https://ai-ethics-courtroom-paps.firebaseapp.com",
+  "https://data-labeling-lab-paps.web.app",
+  "https://data-labeling-lab-paps.firebaseapp.com",
+  "https://ai-training-sim-paps.web.app",
+  "https://ai-training-sim-paps.firebaseapp.com",
+  "https://embedding-explorer-paps.web.app",
+  "https://embedding-explorer-paps.firebaseapp.com",
+  "https://neural-network-lab-paps.web.app",
+  "https://neural-network-lab-paps.firebaseapp.com",
+  "https://battleship-energy-paps.web.app",
+  "https://battleship-energy-paps.firebaseapp.com",
+  "https://battleship-ai-paps.web.app",
+  "https://battleship-ai-paps.firebaseapp.com",
+  "https://paps-tools.web.app",
+  "https://paps-tools.firebaseapp.com",
+  "https://paps-newsletter.web.app",
+  "https://paps-newsletter.firebaseapp.com",
+];
+
+// Also allow any *.web.app or *.firebaseapp.com origin (all PAPS projects)
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  if (ALLOWED_EMBED_ORIGINS.includes(origin)) return true;
+  // Allow any Firebase-hosted app (covers future deploys without code changes)
+  if (/^https:\/\/[a-z0-9-]+\.(web\.app|firebaseapp\.com)$/.test(origin)) return true;
+  // Allow localhost for development
+  if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return true;
+  return false;
+}
+
 export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, studentData, isTestStudent, dueDate }) {
   const translatedCaption = useTranslatedText(block.caption);
   const height = block.height || 400;
@@ -13,12 +51,18 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
       const msg = event.data;
       if (!msg) return;
 
+      // Validate origin — reject messages from unknown origins
+      if (!isAllowedOrigin(event.origin)) {
+        return;
+      }
+
       // Handle auth token requests from embedded activities
       if (msg.type === "requestAuthToken") {
         if (user?.getIdToken) {
           try {
             const token = await user.getIdToken();
-            event.source?.postMessage({ type: "authToken", token }, "*");
+            // Send token only to the requesting embed's origin (not wildcard)
+            event.source?.postMessage({ type: "authToken", token }, event.origin);
           } catch (err) {
             console.warn("[EmbedBlock] Failed to get auth token:", err);
           }
@@ -31,11 +75,14 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
       if (msg.score == null || !onAnswer) return;
 
       const maxScore = msg.maxScore || 100;
+      // Guard against invalid maxScore (Finding #14)
+      if (maxScore <= 0) return;
       const newWrittenScore = Math.min(msg.score / maxScore, 1);
 
       // Only save if this score is higher than the existing one
+      // Use strict < so same-score resubmissions can update metadata (Finding #12)
       const existing = studentData?.[block.id];
-      if (existing?.writtenScore != null && newWrittenScore <= existing.writtenScore) return;
+      if (existing?.writtenScore != null && newWrittenScore < existing.writtenScore) return;
 
       onAnswer(block.id, {
         score: msg.score,

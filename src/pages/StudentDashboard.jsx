@@ -1,7 +1,7 @@
 // src/pages/StudentDashboard.jsx
 import { useAuth } from "../hooks/useAuth";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { collection, getDocs, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { getLevelInfo, getStudentGamification, getXPConfig, retroactiveBadgeXP } from "../lib/gamification";
@@ -31,6 +31,7 @@ export default function StudentDashboard() {
   const [lessonMap, setLessonMap] = useState({});
   const [activeMultiplier, setActiveMultiplier] = useState(null);
   const [completedLessons, setCompletedLessons] = useState(new Set());
+  const lessonMapRef = useRef({});
 
   const firstName = nickname || user?.displayName?.split(" ")[0] || "there";
 
@@ -61,6 +62,12 @@ export default function StudentDashboard() {
     }, (err) => console.error("Course listener error:", err));
     return () => unsub();
   }, []);
+
+  // Stable course ID string — only changes when the list of visible course IDs changes
+  const courseIdKey = useMemo(
+    () => allCourses.map((c) => c.id).join(","),
+    [allCourses]
+  );
 
   // Enrollment + one-shot data (gamification, avatar, multiplier) + real-time lessons/progress
   useEffect(() => {
@@ -96,6 +103,7 @@ export default function StudentDashboard() {
                   if (data.visible === false) return;
                   next[ld.id] = { ...data, courseId: course.id };
                 });
+                lessonMapRef.current = next;
                 return next;
               });
             },
@@ -110,58 +118,50 @@ export default function StudentDashboard() {
             collection(db, "progress", user.uid, "courses", course.id, "lessons"),
             (snap) => {
               const progressByLesson = {};
-              const completedSet = new Set();
               snap.forEach((d) => {
                 progressByLesson[d.id] = d.data();
-                if (d.data().completed) completedSet.add(d.id);
               });
 
               setCompletedLessons((prev) => {
                 const next = new Set(prev);
-                // Clear lessons for this course, then add back
                 snap.forEach((d) => {
                   if (d.data().completed) next.add(d.id); else next.delete(d.id);
                 });
                 return next;
               });
 
-              setCourseProgress((prev) => {
-                // Recalculate progress for this course using current lessonMap
-                setLessonMap((currentLessonMap) => {
-                  const courseLessons = Object.entries(currentLessonMap)
-                    .filter(([_, l]) => l.courseId === course.id)
-                    .map(([id, l]) => ({ id, ...l }));
+              // Read lessonMap from ref instead of nesting inside setLessonMap
+              const currentLessonMap = lessonMapRef.current;
+              const courseLessons = Object.entries(currentLessonMap)
+                .filter(([_, l]) => l.courseId === course.id)
+                .map(([id, l]) => ({ id, ...l }));
 
-                  let totalQuestions = 0, answeredQuestions = 0, correctQuestions = 0;
-                  for (const lesson of courseLessons) {
-                    const questions = (lesson.blocks || []).filter((b) => b.type === "question");
-                    totalQuestions += questions.length;
-                    const progData = progressByLesson[lesson.id];
-                    if (progData) {
-                      const answers = progData.answers || {};
-                      questions.forEach((qBlock) => {
-                        if (answers[qBlock.id]?.submitted) {
-                          answeredQuestions++;
-                          if (answers[qBlock.id]?.correct) correctQuestions++;
-                        }
-                      });
+              let totalQuestions = 0, answeredQuestions = 0, correctQuestions = 0;
+              for (const lesson of courseLessons) {
+                const questions = (lesson.blocks || []).filter((b) => b.type === "question");
+                totalQuestions += questions.length;
+                const progData = progressByLesson[lesson.id];
+                if (progData) {
+                  const answers = progData.answers || {};
+                  questions.forEach((qBlock) => {
+                    if (answers[qBlock.id]?.submitted) {
+                      answeredQuestions++;
+                      if (answers[qBlock.id]?.correct) correctQuestions++;
                     }
-                  }
-                  setCourseProgress((p) => ({
-                    ...p,
-                    [course.id]: {
-                      totalLessons: courseLessons.length,
-                      totalQuestions,
-                      answeredQuestions,
-                      correctQuestions,
-                      accuracy: answeredQuestions > 0 ? Math.round((correctQuestions / answeredQuestions) * 100) : null,
-                      completion: totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0,
-                    },
-                  }));
-                  return currentLessonMap; // don't mutate
-                });
-                return prev;
-              });
+                  });
+                }
+              }
+              setCourseProgress((p) => ({
+                ...p,
+                [course.id]: {
+                  totalLessons: courseLessons.length,
+                  totalQuestions,
+                  answeredQuestions,
+                  correctQuestions,
+                  accuracy: answeredQuestions > 0 ? Math.round((correctQuestions / answeredQuestions) * 100) : null,
+                  completion: totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0,
+                },
+              }));
             },
             (err) => console.warn("Progress listener error:", err)
           );
@@ -206,7 +206,7 @@ export default function StudentDashboard() {
     };
     fetchData();
     return () => { cancelled = true; unsubs.forEach((u) => u()); };
-  }, [user, allCourses]);
+  }, [user, courseIdKey]);
 
   const handleEnrolled = (course) => {
     setEnrolledIds((prev) => new Set([...(prev || []), course.id]));

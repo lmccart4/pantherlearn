@@ -9,6 +9,26 @@ function escapeHTML(text) {
     .replace(/'/g, "&#039;");
 }
 
+function sanitizeHref(url) {
+  // Only allow safe protocols — reject javascript:, data:, vbscript:, etc.
+  const trimmed = url.trim().toLowerCase();
+  if (trimmed.startsWith("http:") || trimmed.startsWith("https:") || trimmed.startsWith("mailto:")) {
+    return url;
+  }
+  // Relative URLs (no protocol) are allowed
+  if (!trimmed.includes(":")) return url;
+  return "#";
+}
+
+function inlineMarkdown(text) {
+  return escapeHTML(text)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/\[(.+?)\]\((.+?)\)/g, (_, label, url) =>
+      `<a href="${sanitizeHref(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`
+    );
+}
+
 export function renderMarkdown(text) {
   if (!text) return "";
   // Split into lines to detect markdown tables
@@ -34,30 +54,19 @@ export function renderMarkdown(text) {
         i++;
       }
 
-      const formatCell = (c) =>
-        escapeHTML(c)
-          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-          .replace(/\*(.+?)\*/g, "<em>$1</em>")
-          .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-
       let table = '<table class="md-table"><thead><tr>';
-      headers.forEach((h) => { table += `<th>${formatCell(h)}</th>`; });
+      headers.forEach((h) => { table += `<th>${inlineMarkdown(h)}</th>`; });
       table += "</tr></thead><tbody>";
       rows.forEach((row) => {
         table += "<tr>";
-        row.forEach((cell) => { table += `<td>${formatCell(cell)}</td>`; });
+        row.forEach((cell) => { table += `<td>${inlineMarkdown(cell)}</td>`; });
         table += "</tr>";
       });
       table += "</tbody></table>";
       out.push(table);
     } else {
       // Normal line — apply inline markdown
-      out.push(
-        escapeHTML(lines[i])
-          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-          .replace(/\*(.+?)\*/g, "<em>$1</em>")
-          .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
-      );
+      out.push(inlineMarkdown(lines[i]));
       i++;
     }
   }

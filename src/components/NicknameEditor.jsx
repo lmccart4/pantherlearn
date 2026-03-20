@@ -6,12 +6,22 @@ import { useState } from "react";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
+import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 export default function NicknameEditor({ currentNickname, onSave }) {
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(currentNickname || "");
   const [saving, setSaving] = useState(false);
+
+  const uiStrings = useTranslatedTexts([
+    "Enter nickname...",        // 0
+    "Save",                     // 1
+    "Cancel editing nickname",  // 2
+    "Set a nickname",           // 3
+    "Nickname",                 // 4
+  ]);
+  const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
 
   async function handleSave() {
     const trimmed = value.trim();
@@ -39,8 +49,8 @@ export default function NicknameEditor({ currentNickname, onSave }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Enter nickname..."
-          aria-label="Nickname"
+          placeholder={ui(0, "Enter nickname...")}
+          aria-label={ui(4, "Nickname")}
           maxLength={20}
           autoFocus
           style={{
@@ -58,11 +68,11 @@ export default function NicknameEditor({ currentNickname, onSave }) {
             fontWeight: 600, cursor: "pointer",
           }}
         >
-          {saving ? "..." : "Save"}
+          <span data-translatable>{saving ? "..." : ui(1, "Save")}</span>
         </button>
         <button
           onClick={() => { setEditing(false); setValue(currentNickname || ""); }}
-          aria-label="Cancel editing nickname"
+          aria-label={ui(2, "Cancel editing nickname")}
           style={{
             padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)",
             background: "transparent", color: "var(--text3)", fontSize: 12, cursor: "pointer",
@@ -83,7 +93,7 @@ export default function NicknameEditor({ currentNickname, onSave }) {
         textDecoration: "underline", textDecorationStyle: "dotted",
       }}
     >
-      {currentNickname ? `✏️ Nickname: ${currentNickname}` : "✏️ Set a nickname"}
+      <span data-translatable>{currentNickname ? `✏️ ${ui(4, "Nickname")}: ${currentNickname}` : `✏️ ${ui(3, "Set a nickname")}`}</span>
     </button>
   );
 }

@@ -29,11 +29,13 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
 
   // Translate UI labels
   const uiStrings = useTranslatedTexts([
-    "Questions",      // 0
-    "Accuracy",       // 1
-    "AI Chats",       // 2
-    "messages sent",  // 3
-    "Sections",       // 4
+    "Questions",          // 0
+    "Accuracy",           // 1
+    "AI Chats",           // 2
+    "messages sent",      // 3
+    "Sections",           // 4
+    "Time Spent",         // 5
+    "Max level reached!", // 6
   ]);
   const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
 
@@ -118,7 +120,7 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
             </>
           ) : (
             <div style={{ fontSize: 10, color: "var(--text3)", textAlign: "center", marginTop: 2 }}>
-              Max level reached!
+              {ui(6, "Max level reached!")}
             </div>
           )}
         </div>
@@ -172,7 +174,7 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
       {/* Engagement Time */}
       {engagementSeconds > 0 && (
         <div className="sidebar-section">
-          <div className="sidebar-label">⏱ Time Spent</div>
+          <div className="sidebar-label" data-translatable><span aria-hidden="true">⏱</span> {ui(5, "Time Spent")}</div>
           <div style={{ textAlign: "center" }}>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--text2)" }}>
               {formatEngagementTime(engagementSeconds)}

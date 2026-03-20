@@ -777,7 +777,7 @@ export default function LessonEditor() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [collapsedUnits, setCollapsedUnits] = useState({});
+  const [collapsedUnits, setCollapsedUnits] = useState(null); // null = not yet initialized
   const [showJsonImport, setShowJsonImport] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -1132,27 +1132,54 @@ export default function LessonEditor() {
     }
   };
 
+  // Initialize all units as collapsed on first load
+  useEffect(() => {
+    if (collapsedUnits !== null || groupedLessons.length === 0) return;
+    const initial = {};
+    groupedLessons.forEach((g) => { if (g.unit.trim()) initial[g.unit] = true; });
+    setCollapsedUnits(initial);
+  }, [groupedLessons, collapsedUnits]);
+
   // Toggle unit collapse
   const toggleUnit = (unit) => {
-    setCollapsedUnits((prev) => ({ ...prev, [unit]: !prev[unit] }));
+    setCollapsedUnits((prev) => ({ ...prev || {}, [unit]: !(prev || {})[unit] }));
   };
 
-  // FIX #37: Group lessons by unit for sidebar display (memoized)
+  // Group lessons by unit, sort within each unit by dueDate (if set) then order
   const groupedLessons = useMemo(() => {
     const q = lessonSearch.toLowerCase().trim();
     const filtered = q ? lessons.filter((l) => l.title?.toLowerCase().includes(q)) : lessons;
-    const groups = [];
-    let currentUnit = null;
-    let currentGroup = null;
+
+    // Group by unit
+    const unitMap = {};
     for (const lesson of filtered) {
       const unit = lesson.unit || "";
-      if (unit !== currentUnit) {
-        currentUnit = unit;
-        currentGroup = { unit, lessons: [] };
-        groups.push(currentGroup);
-      }
-      currentGroup.lessons.push(lesson);
+      if (!unitMap[unit]) unitMap[unit] = [];
+      unitMap[unit].push(lesson);
     }
+
+    // Sort within each unit: lessons with dueDates sorted by dueDate, then by order
+    const groups = Object.entries(unitMap).map(([unit, unitLessons]) => {
+      unitLessons.sort((a, b) => {
+        // Both have due dates — sort by date
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+        // One has a due date, it comes first
+        if (a.dueDate && !b.dueDate) return -1;
+        if (!a.dueDate && b.dueDate) return 1;
+        // Neither has due date — sort by order
+        return (a.order || 0) - (b.order || 0);
+      });
+      return { unit, lessons: unitLessons };
+    });
+
+    // Sort groups: units with due-dated lessons first (by earliest date), then alphabetical
+    groups.sort((a, b) => {
+      const aFirst = a.lessons.find((l) => l.dueDate)?.dueDate || "zzzz";
+      const bFirst = b.lessons.find((l) => l.dueDate)?.dueDate || "zzzz";
+      if (aFirst !== bFirst) return aFirst.localeCompare(bFirst);
+      return a.unit.localeCompare(b.unit);
+    });
+
     return groups;
   }, [lessons, lessonSearch]);
 
@@ -1212,7 +1239,7 @@ export default function LessonEditor() {
               >
                 {groupedLessons.map((group) => {
                   const hasUnit = group.unit.trim() !== "";
-                  const isCollapsed = hasUnit && collapsedUnits[group.unit];
+                  const isCollapsed = hasUnit && (collapsedUnits || {})[group.unit];
 
                   return (
                     <div key={group.unit || "__no_unit__"} className="sidebar-unit-group">

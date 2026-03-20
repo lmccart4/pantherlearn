@@ -165,7 +165,7 @@ async function syncCourse(courseId, classroomCourseId) {
       const data = await loadFromAllSections(uid, "lessons", (merged, d) => {
         if (!merged[d.id]) {
           const dd = d.data();
-          merged[d.id] = { ...dd.answers, _completed: !!dd.completed };
+          merged[d.id] = { ...dd.answers, _completed: !!dd.completed, _exempt: !!dd.exempt };
         }
       });
       return { uid, data };
@@ -201,19 +201,42 @@ async function syncCourse(courseId, classroomCourseId) {
   progressResults.forEach((r) => { if (r.status === "fulfilled") progress[r.value.uid] = r.value.data; });
   activityResults.forEach((r) => { if (r.status === "fulfilled") activities[r.value.uid] = r.value.data; });
 
+  // Build exempt map: { lessonId: Set<uid> }
+  const exemptMap = {};
+  for (const uid of studentUids) {
+    for (const [lessonId, data] of Object.entries(progress[uid] || {})) {
+      if (data._exempt) {
+        if (!exemptMap[lessonId]) exemptMap[lessonId] = new Set();
+        exemptMap[lessonId].add(uid);
+      }
+    }
+  }
+
   // 4. Compute lesson grades: { lessonId: { uid: grade } }
   const getMC = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "multiple_choice");
   const getSA = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "short_answer");
+  const getRanking = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "ranking");
+  const getLinked = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "linked");
   const getEmbeds = (lesson) => (lesson.blocks || []).filter((b) => b.type === "embed" && b.scored);
+  const getSorting = (lesson) => (lesson.blocks || []).filter((b) => b.type === "sorting");
+  const getConceptBuilder = (lesson) => (lesson.blocks || []).filter((b) => b.type === "concept_builder");
 
   const lessonGrades = {};
   for (const lesson of lessons) {
     const mc = getMC(lesson);
     const sa = getSA(lesson);
+    const ranking = getRanking(lesson);
+    const linked = getLinked(lesson);
     const embeds = getEmbeds(lesson);
-    if (mc.length === 0 && sa.length === 0 && embeds.length === 0) continue;
+    const sorting = getSorting(lesson);
+    const conceptBuilder = getConceptBuilder(lesson);
+    const allGraded = [...mc, ...sa, ...ranking, ...linked, ...embeds, ...sorting, ...conceptBuilder];
+    if (allGraded.length === 0) continue;
 
     for (const uid of studentUids) {
+      // Skip exempt students — they'll be marked as excused on Classroom
+      if (exemptMap[lesson.id]?.has(uid)) continue;
+
       const answers = progress[uid]?.[lesson.id] || {};
       const completed = answers._completed || false;
       const reflection = reflections[uid]?.[lesson.id];
@@ -221,7 +244,7 @@ async function syncCourse(courseId, classroomCourseId) {
       // Safety: if student completed the lesson but none of their answer IDs match
       // current block IDs, the lesson was rebuilt with new IDs. Skip to avoid false 0s.
       if (completed && Object.keys(answers).filter(k => k !== '_completed').length > 0) {
-        const questionIds = new Set([...mc, ...sa, ...embeds].map(q => q.id));
+        const questionIds = new Set(allGraded.map(q => q.id));
         const answerIds = Object.keys(answers).filter(k => k !== '_completed');
         const matched = answerIds.filter(id => questionIds.has(id)).length;
         if (matched === 0) {
@@ -243,14 +266,47 @@ async function syncCourse(courseId, classroomCourseId) {
         if (a.writtenScore != null) earned += a.writtenScore;
       });
 
-      // Scored embeds: dynamically weighted — embeds = 50% of grade in mixed lessons
-      const nonEmbedPts = mc.length + sa.length + ((completed && reflection) ? 1 : 0);
-      const embedPtsEach = (embeds.length > 0 && nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1;
+      // Ranking: uses partialScore (0-1 scale, already normalized)
+      ranking.forEach((q) => {
+        const a = answers[q.id];
+        if (!a?.submitted) return;
+        possible++;
+        if (a.partialScore != null) earned += a.partialScore;
+      });
+
+      // Linked: follows same path as SA (uses writtenScore when graded)
+      linked.forEach((q) => {
+        const a = answers[q.id];
+        if (!a?.submitted) return;
+        possible++;
+        if (a.writtenScore != null) earned += a.writtenScore;
+      });
+
+      // Sorting: uses writtenScore (0-1 normalized) if available
+      sorting.forEach((q) => {
+        const a = answers[q.id];
+        if (!a?.submitted) return;
+        possible++;
+        if (a.writtenScore != null) earned += a.writtenScore;
+        else if (a.score?.correct != null && a.score?.total > 0) earned += a.score.correct / a.score.total;
+      });
+
+      // Concept builder: completion-based (1 point if submitted)
+      conceptBuilder.forEach((q) => {
+        const a = answers[q.id];
+        if (!a?.submitted) return;
+        possible++;
+        earned += 1; // Full credit for completion
+      });
+
+      // Scored embeds: use explicit weight if set, otherwise dynamic 50/50 split
+      const nonEmbedPts = mc.length + sa.length + ranking.length + linked.length + sorting.length + conceptBuilder.length + ((completed && reflection) ? 1 : 0);
       embeds.forEach((q) => {
+        const pts = q.weight != null ? q.weight : ((nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1);
         const a = answers[q.id];
         if (!a?.submitted) return; // student hasn't done it — don't penalize
-        possible += embedPtsEach;
-        if (a.writtenScore != null) earned += a.writtenScore * embedPtsEach;
+        possible += pts;
+        if (a.writtenScore != null) earned += a.writtenScore * pts;
       });
 
       if (completed && reflection) { possible++; if (reflection.valid) earned++; }
@@ -298,7 +354,7 @@ async function syncCourse(courseId, classroomCourseId) {
   };
 
   // Helper: push grades for one assignment
-  const pushAssignment = async (title, gradesByUid, dueDate) => {
+  const pushAssignment = async (title, gradesByUid, dueDate, exemptUids) => {
     const isNew = !titleToCW[title];
     let cwId;
     try { cwId = await getOrCreate(title, dueDate); }
@@ -310,6 +366,29 @@ async function syncCourse(courseId, classroomCourseId) {
 
     let pushed = 0, unchanged = 0;
     const changes = []; // { name, oldGrade, newGrade }
+
+    // Mark exempt students as excused on Google Classroom
+    if (exemptUids && exemptUids.size > 0) {
+      for (const uid of exemptUids) {
+        const gcId = uidToGcId[uid];
+        if (!gcId) continue;
+        const sub = userToSub[gcId];
+        if (!sub) continue;
+        // Skip if already excused
+        if (sub.state === "RETURNED" && sub.assignedGrade == null) continue;
+        try {
+          await gcFetch(`/courses/${classroomCourseId}/courseWork/${cwId}/studentSubmissions/${sub.id}?updateMask=excused`, {
+            method: "PATCH", body: JSON.stringify({ excused: true }),
+          });
+          const studentName = uidToName[uid] || gcIdToName[gcId] || uid.slice(0, 8);
+          console.log(`  ${title}: ${studentName} marked excused`);
+        } catch (err) {
+          // excused flag may not be supported on all assignment types — log and continue
+          console.log(`  ${title}: excused failed for ${uid}: ${err.message.split("\n")[0]}`);
+        }
+      }
+    }
+
     for (const [uid, grade] of Object.entries(gradesByUid)) {
       const gcId = uidToGcId[uid];
       if (!gcId) continue;
@@ -355,35 +434,65 @@ async function syncCourse(courseId, classroomCourseId) {
   const lessonMap = {};
   lessons.forEach((l) => { lessonMap[l.id] = l; });
 
-  const mergedByTitle = {}; // { title: { uid: grade, _dueDate: ... } }
-  const mergeFn = (title, gradesByUid, dueDate) => {
-    if (!mergedByTitle[title]) mergedByTitle[title] = { _dueDate: dueDate };
-    const bucket = mergedByTitle[title];
+  // Use composite key (lessonId) to avoid title collisions (Finding #11).
+  // Multiple lessons with the same title get separate Classroom assignments
+  // by appending a disambiguator when duplicates are detected.
+  const mergedByKey = {}; // { key: { _title, _dueDate, uid: grade } }
+  const titleCounts = {}; // track title usage to detect duplicates
+
+  // Count title occurrences first to detect collisions
+  for (const [lessonId, grades] of Object.entries(lessonGrades)) {
+    const lesson = lessonMap[lessonId];
+    const title = lesson?.title || lessonId;
+    titleCounts[title] = (titleCounts[title] || 0) + 1;
+  }
+
+  // Warn about title collisions
+  for (const [title, count] of Object.entries(titleCounts)) {
+    if (count > 1) {
+      console.log(`  ⚠️  Title collision: "${title}" used by ${count} lessons — disambiguating with unit prefix`);
+    }
+  }
+
+  const mergedExempt = {}; // { key: Set<uid> }
+  const mergeFn = (key, title, gradesByUid, dueDate, exemptUids) => {
+    if (!mergedByKey[key]) mergedByKey[key] = { _title: title, _dueDate: dueDate };
+    const bucket = mergedByKey[key];
     if (dueDate && !bucket._dueDate) bucket._dueDate = dueDate;
     for (const [uid, grade] of Object.entries(gradesByUid)) {
       if (bucket[uid] == null || grade > bucket[uid]) bucket[uid] = grade;
     }
+    if (exemptUids && exemptUids.size > 0) {
+      if (!mergedExempt[key]) mergedExempt[key] = new Set();
+      for (const uid of exemptUids) mergedExempt[key].add(uid);
+    }
   };
 
-  // Add lesson grades
+  // Add lesson grades — use lessonId as key, disambiguate title if needed
   for (const [lessonId, grades] of Object.entries(lessonGrades)) {
     const lesson = lessonMap[lessonId];
-    const title = lesson?.title || lessonId;
+    let title = lesson?.title || lessonId;
     const dueDate = lesson?.dueDate || null;
-    mergeFn(title, grades, dueDate);
+    // Disambiguate duplicate titles by prepending unit name
+    if (titleCounts[title] > 1 && lesson?.unit) {
+      title = `${lesson.unit}: ${title}`;
+    }
+    mergeFn(lessonId, title, grades, dueDate, exemptMap[lessonId]);
   }
 
-  // Add activity grades
+  // Add activity grades — use actId as key
   for (const [actId, grades] of Object.entries(activityGrades)) {
-    mergeFn(allActivities[actId], grades, null);
+    mergeFn(`activity_${actId}`, allActivities[actId], grades, null);
   }
 
-  // 8. Push merged grades (one push per unique title)
-  for (const [title, bucket] of Object.entries(mergedByTitle)) {
+  // 8. Push merged grades (one push per unique key)
+  for (const [key, bucket] of Object.entries(mergedByKey)) {
+    const title = bucket._title;
     const dueDate = bucket._dueDate;
     const grades = { ...bucket };
+    delete grades._title;
     delete grades._dueDate;
-    await pushAssignment(title, grades, dueDate);
+    await pushAssignment(title, grades, dueDate, mergedExempt[key]);
   }
 
   // 9. Save snapshot

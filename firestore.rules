@@ -80,6 +80,11 @@ service cloud.firestore {
         allow create: if hasCourseAccess(courseId);
         allow update: if hasCourseAccess(courseId);
       }
+      match /connectFourGames/{gameId} {
+        allow read: if hasCourseAccess(courseId);
+        allow create: if hasCourseAccess(courseId);
+        allow update: if hasCourseAccess(courseId);
+      }
       match /gamification/{uid} {
         allow read: if hasCourseAccess(courseId);
         allow write: if isOwner(uid) || isCourseTeacher(courseId);
@@ -257,6 +262,59 @@ service cloud.firestore {
     // Agent Inbox — Mission Control chat with agents
     match /agentInbox/{agentName}/messages/{messageId} {
       allow read, write: if isTeacher();
+    }
+
+    // ═══ PantherTrack — Behavior Tracking ═══
+    // Self-contained rules — does not depend on users collection
+    match /pantherTrack/classes/list/{classId} {
+      // Any authenticated paps.net user can read classes (to find theirs)
+      allow read: if isLoggedIn();
+      // Only teachers can create/update/delete classes they own
+      allow create: if isLoggedIn();
+      allow update, delete: if isLoggedIn()
+        && resource.data.teacherUid == request.auth.uid;
+
+      // Students subcollection
+      match /students/{studentId} {
+        allow read: if isLoggedIn();
+        allow write: if isLoggedIn();
+      }
+
+      // Events subcollection
+      match /events/{eventId} {
+        allow read: if isLoggedIn();
+        allow create: if isLoggedIn();
+        allow update, delete: if isLoggedIn();
+      }
+
+      // Deputies subcollection
+      match /deputies/{dateKey} {
+        allow read: if isLoggedIn();
+        allow write: if isLoggedIn();
+      }
+
+      // Rewards subcollection
+      match /rewards/{rewardId} {
+        allow read: if isLoggedIn();
+        allow write: if isLoggedIn();
+      }
+
+      // Redemptions subcollection
+      match /redemptions/{redemptionId} {
+        allow read: if isLoggedIn();
+        allow create: if isLoggedIn();
+        allow update, delete: if isLoggedIn();
+      }
+
+      // Notes subcollection (teacher-only in app, rules allow any auth for simplicity)
+      match /notes/{noteId} {
+        allow read, write: if isLoggedIn();
+      }
+    }
+
+    // Deputy history
+    match /pantherTrack/deputyHistory/{classId} {
+      allow read, write: if isLoggedIn();
     }
 
     // Agent Context — workflow summaries written by agents, read by Mission Control

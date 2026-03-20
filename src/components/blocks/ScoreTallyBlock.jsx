@@ -38,13 +38,14 @@ export default function ScoreTallyBlock({ block, studentData }) {
 
   const pct = Math.round((correct / total) * 100);
   let tier, color;
-  if (correct >= 16) {
+  // Use percentage-based tiers so they work for any total (Finding #10)
+  if (pct >= 80) {
     tier = "Incredible eye! You're a natural.";
     color = "#22c55e";
-  } else if (correct >= 11) {
+  } else if (pct >= 55) {
     tier = "Solid skills — you're catching most of them.";
     color = "#3b82f6";
-  } else if (correct >= 6) {
+  } else if (pct >= 30) {
     tier = "Getting there — you're learning the patterns.";
     color = "#f59e0b";
   } else {

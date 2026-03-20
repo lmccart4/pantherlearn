@@ -12,6 +12,7 @@ import { useAuth } from "../hooks/useAuth";
 import { getCourseEnrollments } from "../lib/enrollment";
 import { resolveDisplayName } from "../lib/displayName";
 import useAutoSave from "../hooks/useAutoSave.jsx";
+import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 import {
   DAYS, DAY_LABELS, DAY_FULL,
   getISOWeekKey, getWeekMonday, getWeekRange,
@@ -71,6 +72,19 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
   imagesRef.current = images;
   reflectionRef.current = reflection;
 
+  const uiStrings = useTranslatedTexts([
+    "Image too large (max 5 MB). Please resize and try again.", // 0
+    "Add Photo",                                                // 1
+    "Tap to add today's photo",                                 // 2
+    "No photos uploaded",                                       // 3
+    "Daily Reflection",                                         // 4
+    "What did you learn today?",                                // 5
+    "Upload a photo to unlock your daily reflection",           // 6
+    "No reflection written",                                    // 7
+    "Saving...",                                                // 8
+  ]);
+  const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
+
   useEffect(() => {
     setImages(normalizeDayImages(dayData));
     setReflection(dayData?.reflection || "");
@@ -88,7 +102,7 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
     for (const file of files) {
       if (!file.type.startsWith("image/")) continue;
       if (file.size > 5 * 1024 * 1024) {
-        setUploadError("Image too large (max 5 MB). Please resize and try again.");
+        setUploadError(ui(0, "Image too large (max 5 MB). Please resize and try again."));
         continue;
       }
       const dataUrl = await new Promise(resolve => {
@@ -148,7 +162,7 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
           {isEditable && images.length < MAX_PHOTOS_PER_DAY && (
             <label className="evidence-upload-zone" style={{ minHeight: 140, marginBottom: 0 }}>
               <CameraIcon />
-              <span>Add Photo</span>
+              <span data-translatable>{ui(1, "Add Photo")}</span>
               <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} multiple />
             </label>
           )}
@@ -156,19 +170,19 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
       ) : isEditable ? (
         <label className="evidence-upload-zone" style={{ marginBottom: 14 }}>
           <CameraIcon />
-          <span>Tap to add today's photo</span>
+          <span data-translatable>{ui(2, "Tap to add today's photo")}</span>
           <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} multiple />
         </label>
       ) : (
         <div className="empty-state" style={{ marginBottom: 14 }}>
-          <div className="empty-state-text">No photos uploaded</div>
+          <div className="empty-state-text" data-translatable>{ui(3, "No photos uploaded")}</div>
         </div>
       )}
 
       {/* Reflection */}
       <div style={{ marginTop: 4 }}>
         <label style={{ fontSize: 12, color: "var(--text3)", fontWeight: 600, display: "block", marginBottom: 4 }}>
-          Daily Reflection
+          <span data-translatable>{ui(4, "Daily Reflection")}</span>
         </label>
         {isEditable ? (
           hasPhotos ? (
@@ -178,19 +192,19 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
               value={reflection}
               onChange={(e) => { setReflection(e.target.value); markDirty(); }}
               onBlur={saveNow}
-              placeholder={prompt || "What did you learn today?"}
+              placeholder={prompt || ui(5, "What did you learn today?")}
             />
           ) : (
             <div className="evidence-reflection-locked">
               <textarea className="sa-input" rows={3} disabled placeholder="" />
               <div className="evidence-reflection-locked-overlay">
-                Upload a photo to unlock your daily reflection
+                <span data-translatable>{ui(6, "Upload a photo to unlock your daily reflection")}</span>
               </div>
             </div>
           )
         ) : (
           <p style={{ fontSize: 14, color: "var(--text2)", whiteSpace: "pre-wrap", minHeight: 20 }}>
-            {reflection || <span style={{ color: "var(--text3)", fontStyle: "italic" }}>No reflection written</span>}
+            {reflection || <span style={{ color: "var(--text3)", fontStyle: "italic" }} data-translatable>{ui(7, "No reflection written")}</span>}
           </p>
         )}
       </div>
@@ -198,7 +212,7 @@ function DayPanel({ day, dayData, isEditable, prompt, onSave }) {
       {/* Save status */}
       {isEditable && (lastSaved || saving) && (
         <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 8 }}>
-          {saving ? "Saving..." : `Saved ${lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
+          {saving ? ui(8, "Saving...") : `Saved ${lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
         </div>
       )}
     </div>
@@ -214,6 +228,14 @@ function StudentView({ courseId, course, user }) {
   const [weekData, setWeekData] = useState(null);
   const [loading, setLoading] = useState(true);
   const isCurrentWeek = weekKey === currentWeekKey;
+
+  const uiStrings = useTranslatedTexts([
+    "Generating...",                                // 0
+    "Save Report (PDF)",                            // 1
+    "PDF generation failed. Please try again.",     // 2
+    "Legacy format (read-only)",                    // 3
+  ]);
+  const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
   const range = getWeekRange(weekKey);
   const config = course.evidenceConfig || {};
   const prompt = config.prompt || "What did you learn today?";
@@ -339,7 +361,7 @@ function StudentView({ courseId, course, user }) {
       pdf.save(`Evidence_${weekKey}.pdf`);
     } catch (err) {
       console.error("PDF generation failed:", err);
-      setPdfError("PDF generation failed. Please try again.");
+      setPdfError(ui(2, "PDF generation failed. Please try again."));
     } finally {
       setGenerating(false);
     }
@@ -365,7 +387,7 @@ function StudentView({ courseId, course, user }) {
           {prompt}
         </div>
         <button className="evidence-pdf-btn" onClick={handlePrintPDF} disabled={generating} style={{ marginTop: 8 }}>
-          {generating ? "Generating..." : "Save Report (PDF)"}
+          <span data-translatable>{generating ? ui(0, "Generating...") : ui(1, "Save Report (PDF)")}</span>
         </button>
         {pdfError && (
           <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, background: "rgba(239,68,68,0.12)", color: "#f87171", fontSize: 13 }}>
@@ -382,7 +404,7 @@ function StudentView({ courseId, course, user }) {
       ) : legacy ? (
         // Legacy format — read-only display
         <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontSize: 13, color: "var(--text3)", fontWeight: 600, marginBottom: 12 }}>Legacy format (read-only)</div>
+          <div style={{ fontSize: 13, color: "var(--text3)", fontWeight: 600, marginBottom: 12 }} data-translatable>{ui(3, "Legacy format (read-only)")}</div>
           {weekData.images?.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
               {weekData.images.map((img, i) => (
@@ -614,6 +636,15 @@ export default function WeeklyEvidence() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const uiStrings = useTranslatedTexts([
+    "Course not found",                       // 0
+    "Evidence log not enabled for this course", // 1
+    "Back to course",                         // 2
+    "Weekly Evidence Log",                    // 3
+    "Back to",                                // 4
+  ]);
+  const ui = (i, fallback) => uiStrings?.[i] ?? fallback;
+
   useEffect(() => {
     getDoc(doc(db, "courses", courseId))
       .then(d => { if (d.exists()) setCourse({ id: d.id, ...d.data() }); })
@@ -634,22 +665,22 @@ export default function WeeklyEvidence() {
 
   if (!course) return (
     <main id="main-content" className="page-wrapper" style={{ textAlign: "center", paddingTop: 120 }}>
-      <h2>Course not found</h2>
+      <h2 data-translatable>{ui(0, "Course not found")}</h2>
     </main>
   );
 
   if (!course.evidenceConfig?.enabled && !isTeacher) return (
     <main id="main-content" className="page-wrapper" style={{ textAlign: "center", paddingTop: 120 }}>
-      <h2>Evidence log not enabled for this course</h2>
-      <Link to={`/course/${courseId}`} style={{ color: "var(--amber)", fontSize: 14 }}>← Back to course</Link>
+      <h2 data-translatable>{ui(1, "Evidence log not enabled for this course")}</h2>
+      <Link to={`/course/${courseId}`} style={{ color: "var(--amber)", fontSize: 14 }} data-translatable>← {ui(2, "Back to course")}</Link>
     </main>
   );
 
   return (
     <main id="main-content" className="page-wrapper">
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
-        <Link to={`/course/${courseId}`} style={{ fontSize: 13, color: "var(--text3)", marginBottom: 16, display: "block" }}>
-          ← Back to {course.title || "Course"}
+        <Link to={`/course/${courseId}`} style={{ fontSize: 13, color: "var(--text3)", marginBottom: 16, display: "block" }} data-translatable>
+          ← {ui(4, "Back to")} {course.title || "Course"}
         </Link>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
@@ -658,7 +689,7 @@ export default function WeeklyEvidence() {
             background: "var(--amber-dim)", display: "flex", alignItems: "center", justifyContent: "center",
           }}>📸</div>
           <div>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700 }}>Weekly Evidence Log</h1>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700 }} data-translatable>{ui(3, "Weekly Evidence Log")}</h1>
             <p style={{ color: "var(--text2)", fontSize: 14 }}>{course.title}</p>
           </div>
         </div>

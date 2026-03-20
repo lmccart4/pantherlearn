@@ -105,7 +105,7 @@ function AppRoutes() {
             muted
             playsInline
             preload="none"
-            fetchpriority="high"
+            fetchpriority="low"
             aria-hidden="true"
           >
             <source src="/bg-atmosphere.mp4" type="video/mp4" />
