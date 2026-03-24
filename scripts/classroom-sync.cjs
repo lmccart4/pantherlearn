@@ -212,17 +212,26 @@ async function syncCourse(courseId, classroomCourseId) {
     }
   }
 
+  // Manually excluded lessons/activities — these are never synced to Classroom
+  const EXCLUDED_LESSONS = new Set([
+    'battleship-energy',  // Legacy duplicate — replaced by Energy Connect Four
+  ]);
+  const EXCLUDED_ACTIVITIES = new Set([
+    'battleship-energy',  // Legacy duplicate
+  ]);
+
   // 4. Compute lesson grades: { lessonId: { uid: grade } }
   const getMC = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "multiple_choice");
   const getSA = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "short_answer");
   const getRanking = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "ranking");
   const getLinked = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "linked");
-  const getEmbeds = (lesson) => (lesson.blocks || []).filter((b) => b.type === "embed" && b.scored);
+  const getEmbeds = (lesson) => (lesson.blocks || []).filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
   const getSorting = (lesson) => (lesson.blocks || []).filter((b) => b.type === "sorting");
   const getConceptBuilder = (lesson) => (lesson.blocks || []).filter((b) => b.type === "concept_builder");
 
   const lessonGrades = {};
   for (const lesson of lessons) {
+    if (EXCLUDED_LESSONS.has(lesson.id)) continue;
     const mc = getMC(lesson);
     const sa = getSA(lesson);
     const ranking = getRanking(lesson);
@@ -324,6 +333,9 @@ async function syncCourse(courseId, classroomCourseId) {
     const acts = activities[uid] || {};
     for (const [actId, data] of Object.entries(acts)) {
       if (data.activityScore == null) continue;
+      if (EXCLUDED_ACTIVITIES.has(actId)) continue;
+      const actTitle = (data.activityTitle || actId).toLowerCase();
+      if (actTitle.includes('battleship') && actTitle.includes('energy')) continue;
       if (!allActivities[actId]) allActivities[actId] = data.activityTitle || actId;
       if (!activityGrades[actId]) activityGrades[actId] = {};
       activityGrades[actId][uid] = Math.round(data.activityScore * 100);
