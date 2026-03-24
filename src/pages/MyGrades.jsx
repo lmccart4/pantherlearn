@@ -165,7 +165,7 @@ export default function MyGrades() {
     (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "short_answer");
 
   const getEmbedBlocks = (lesson) =>
-    (lesson.blocks || []).filter((b) => b.type === "embed" && b.scored);
+    (lesson.blocks || []).filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
 
   // Does this lesson have a reflection? (only if lesson has been completed by this student)
   const lessonHasReflection = (lessonId) => {

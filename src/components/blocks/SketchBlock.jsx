@@ -6,6 +6,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
+import { renderMarkdown } from "../../lib/utils";
 
 const COLORS = [
   "#000000", "#ffffff", "#ef4444", "#f59e0b",
@@ -268,7 +269,8 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
   // Auto-save
   const performSave = useCallback(() => {
     if (onAnswer) {
-      onAnswer(block.id, { strokes: strokesRef.current, savedAt: new Date().toISOString() });
+      const hasStrokes = strokesRef.current && strokesRef.current.length > 0;
+      onAnswer(block.id, { strokes: strokesRef.current, submitted: hasStrokes, writtenScore: hasStrokes ? 1 : 0, savedAt: new Date().toISOString() });
     }
   }, [onAnswer, block.id]);
   const { markDirty } = useAutoSave(performSave, { delay: 2000 });
@@ -608,7 +610,7 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
             </div>
           )}
           {block.instructions && (
-            <div className="sketch-instructions">{block.instructions}</div>
+            <div className="sketch-instructions" dangerouslySetInnerHTML={{ __html: renderMarkdown(block.instructions) }} />
           )}
         </div>
       )}

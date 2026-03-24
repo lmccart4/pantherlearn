@@ -103,11 +103,14 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
 
   const performSave = useCallback(() => {
     if (!onAnswer) return;
+    const hasData = initialRef.current.some(b => b.value !== 0) || deltaRef.current.some(b => b.value !== 0) || finalRef.current.some(b => b.value !== 0);
     onAnswer(block.id, {
       initialBars: initialRef.current,
       deltaBars: deltaRef.current,
       finalBars: finalRef.current,
       deltaLabel,
+      submitted: hasData,
+      writtenScore: hasData ? 1 : 0,
       savedAt: new Date().toISOString(),
     });
   }, [block.id, deltaLabel, onAnswer]);

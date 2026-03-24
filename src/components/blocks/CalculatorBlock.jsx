@@ -1,6 +1,7 @@
 // src/components/blocks/CalculatorBlock.jsx
 import { useState, useEffect, useCallback } from "react";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
+import { renderMarkdown } from "../../lib/utils";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase.jsx";
 import { useAuth } from "../../hooks/useAuth.jsx";
@@ -72,21 +73,23 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
     markDirty();
   };
 
-  // Safe math parser — no eval/Function(), only supports +, -, *, /, parentheses
+  // Safe math parser — supports +, -, *, /, ^, parentheses, and Math functions
+  const SAFE_FUNCTIONS = { sqrt: Math.sqrt, abs: Math.abs, pow: Math.pow, round: Math.round, floor: Math.floor, ceil: Math.ceil, sin: Math.sin, cos: Math.cos, tan: Math.tan, log: Math.log, PI: Math.PI };
   const evaluate = (formula, vals) => {
-    let expr = formula;
+    // Replace "Math.fn" with just "fn" for simpler parsing
+    let expr = formula.replace(/Math\./g, "");
     for (const [name, val] of Object.entries(vals)) {
       const num = parseFloat(val);
       if (isNaN(num)) return null;
       expr = expr.replace(new RegExp(`\\b${name}\\b`, "g"), `(${num})`);
     }
 
-    // Tokenize: numbers, operators, parentheses
+    // Tokenize: numbers, operators, parentheses, function names, commas
     const tokens = [];
     let i = 0;
     while (i < expr.length) {
       if (/\s/.test(expr[i])) { i++; continue; }
-      if ("+-*/()".includes(expr[i])) { tokens.push(expr[i]); i++; continue; }
+      if ("+-*/()^,".includes(expr[i])) { tokens.push(expr[i]); i++; continue; }
       if (/[\d.]/.test(expr[i])) {
         let num = "";
         while (i < expr.length && /[\d.]/.test(expr[i])) num += expr[i++];
@@ -95,10 +98,16 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
         tokens.push(parsed);
         continue;
       }
+      if (/[a-zA-Z_]/.test(expr[i])) {
+        let name = "";
+        while (i < expr.length && /[a-zA-Z_]/.test(expr[i])) name += expr[i++];
+        if (name in SAFE_FUNCTIONS) { tokens.push({ fn: name }); continue; }
+        return null; // unknown identifier
+      }
       return null; // unexpected character
     }
 
-    // Recursive descent: expr -> term ((+|-) term)*
+    // Recursive descent parser
     let pos = 0;
     const peek = () => tokens[pos];
     const next = () => tokens[pos++];
@@ -128,17 +137,44 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
     }
 
     function parseUnary() {
-      if (peek() === "-") { next(); const val = parsePrimary(); return val === null ? null : -val; }
-      if (peek() === "+") { next(); return parsePrimary(); }
-      return parsePrimary();
+      if (peek() === "-") { next(); const val = parsePower(); return val === null ? null : -val; }
+      if (peek() === "+") { next(); return parsePower(); }
+      return parsePower();
+    }
+
+    function parsePower() {
+      let val = parsePrimary();
+      if (val === null) return null;
+      if (peek() === "^") { next(); const exp = parseUnary(); if (exp === null) return null; val = Math.pow(val, exp); }
+      return val;
     }
 
     function parsePrimary() {
-      if (peek() === "(") {
+      // Function call: fn(arg) or fn(arg1, arg2)
+      if (peek() && typeof peek() === "object" && peek().fn) {
+        const fnName = next().fn;
+        const fn = SAFE_FUNCTIONS[fnName];
+        if (typeof fn === "number") return fn; // Constants like PI
+        if (peek() !== "(") return null;
         next(); // consume (
+        const arg1 = parseExpr();
+        if (arg1 === null) return null;
+        if (peek() === ",") {
+          next(); // consume ,
+          const arg2 = parseExpr();
+          if (arg2 === null || peek() !== ")") return null;
+          next(); // consume )
+          return fn(arg1, arg2);
+        }
+        if (peek() !== ")") return null;
+        next(); // consume )
+        return fn(arg1);
+      }
+      if (peek() === "(") {
+        next();
         const val = parseExpr();
         if (val === null || peek() !== ")") return null;
-        next(); // consume )
+        next();
         return val;
       }
       if (typeof peek() === "number") return next();
@@ -221,7 +257,7 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
             marginBottom: 16,
             lineHeight: 1.5,
           }}>
-            {block.description}
+            <span dangerouslySetInnerHTML={{ __html: renderMarkdown(block.description) }} />
           </p>
         )}
 

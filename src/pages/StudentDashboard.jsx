@@ -125,7 +125,7 @@ export default function StudentDashboard() {
               setCompletedLessons((prev) => {
                 const next = new Set(prev);
                 snap.forEach((d) => {
-                  if (d.data().completed) next.add(d.id); else next.delete(d.id);
+                  if (d.data().completed || d.data().exempt) next.add(d.id); else next.delete(d.id);
                 });
                 return next;
               });

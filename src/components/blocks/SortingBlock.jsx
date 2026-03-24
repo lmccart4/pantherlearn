@@ -3,6 +3,7 @@
 // After all items are sorted, a "Check Answers" button reveals correct/incorrect with XP-style feedback.
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { renderMarkdown } from "../../lib/utils";
 
 export default function SortingBlock({ block, studentData = {}, onAnswer }) {
   const {
@@ -174,7 +175,7 @@ export default function SortingBlock({ block, studentData = {}, onAnswer }) {
         <h3 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, margin: 0 }}>{title}</h3>
       </div>
       {instructions && (
-        <p style={{ color: "var(--text2)", fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>{instructions}</p>
+        <p style={{ color: "var(--text2)", fontSize: 14, marginBottom: 16, lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: renderMarkdown(instructions) }} />
       )}
 
       {/* Progress bar */}
@@ -209,7 +210,7 @@ export default function SortingBlock({ block, studentData = {}, onAnswer }) {
               color: item.correct === "left" ? "var(--green)" : "var(--red)",
               border: `1px solid ${item.correct === "left" ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
             }}>
-              {item.correct === "left" ? "✓" : "✗"} {item.text}
+              {item.correct === "left" ? "✓" : "✗"} <span dangerouslySetInnerHTML={{ __html: renderMarkdown(item.text) }} />
             </div>
           ))}
         </div>
@@ -275,7 +276,7 @@ export default function SortingBlock({ block, studentData = {}, onAnswer }) {
                   border: "2px solid var(--green)", transform: "rotate(12deg)",
                 }}>→ {rightLabel}</div>
               )}
-              {currentCard.text}
+              <span dangerouslySetInnerHTML={{ __html: renderMarkdown(currentCard.text) }} />
             </div>
           ) : allSorted && !checked ? (
             <div style={{ textAlign: "center" }}>
@@ -329,7 +330,7 @@ export default function SortingBlock({ block, studentData = {}, onAnswer }) {
               color: item.correct === "right" ? "var(--green)" : "var(--red)",
               border: `1px solid ${item.correct === "right" ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
             }}>
-              {item.correct === "right" ? "✓" : "✗"} {item.text}
+              {item.correct === "right" ? "✓" : "✗"} <span dangerouslySetInnerHTML={{ __html: renderMarkdown(item.text) }} />
             </div>
           ))}
         </div>

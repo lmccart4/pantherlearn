@@ -1,150 +1,326 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Literacy — Week 23 Lesson Plan</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif; background: #0d0d0d; color: #e3e3e3; line-height: 1.6; padding: 2rem; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        a.back { display: inline-flex; align-items: center; gap: 0.4rem; color: #60a5fa; text-decoration: none; font-size: 0.85rem; margin-bottom: 2rem; transition: color 0.2s; }
-        a.back:hover { color: #93c5fd; }
-        header { border-bottom: 1px solid #2a2a2a; padding-bottom: 2rem; margin-bottom: 3rem; }
-        h1 { font-size: 2.5rem; font-weight: 600; color: #fff; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
-        .meta { display: flex; gap: 2rem; margin-top: 1rem; font-size: 0.9rem; color: #8b8b8b; flex-wrap: wrap; }
-        .meta-item { display: flex; align-items: center; gap: 0.5rem; }
-        .meta-label { color: #5b5b5b; font-weight: 500; }
-        .overview { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
-        .overview-title { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; margin-bottom: 1rem; }
-        .overview-body { color: #94a3b8; line-height: 1.7; font-style: italic; }
-        .lesson-section { background: #151515; border: 1px solid #2a2a2a; border-radius: 10px; padding: 2rem; margin-bottom: 2rem; transition: border-color 0.2s; }
-        .lesson-section:hover { border-color: #3a3a3a; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        .lesson-section.has-content { border-color: #1e3a2f; }
-        .lesson-section.has-content:hover { border-color: #02C39A; }
-        .lesson-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #222; }
-        .lesson-day { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #666; margin-bottom: 0.5rem; }
-        .lesson-title { font-size: 1.5rem; font-weight: 600; color: #fff; margin-bottom: 0.25rem; }
-        .lesson-date { font-size: 0.85rem; color: #888; font-weight: 500; }
-        .lesson-unit { font-size: 0.8rem; color: #02C39A; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
-        .lesson-qod { font-size: 0.95rem; color: #94a3b8; margin-bottom: 0.75rem; font-style: italic; }
-        .qod-label { color: #5b6b73; font-style: normal; font-weight: 600; }
-        .lesson-objectives { margin-top: 0.5rem; padding-left: 1.25rem; color: #8b9eb7; font-size: 0.9rem; }
-        .lesson-objectives li { margin-bottom: 0.25rem; }
-        .no-lesson { color: #555; font-style: italic; padding: 1rem 0; }
-        @media (max-width: 768px) { body { padding: 1rem; } h1 { font-size: 1.8rem; } .meta { flex-direction: column; gap: 0.5rem; } }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Literacy — 2026-W23 Lesson Plan</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: #0d0d0d;
+      color: #e3e3e3;
+      line-height: 1.6;
+      padding: 2rem;
+    }
+
+    .container { max-width: 900px; margin: 0 auto; }
+
+    a.back {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      color: #60a5fa; text-decoration: none; font-size: 0.85rem;
+      margin-bottom: 2rem; transition: color 0.2s;
+    }
+    a.back:hover { color: #93c5fd; }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid #2a2a2a;
+      padding-bottom: 2rem; margin-bottom: 2rem;
+    }
+    h1 {
+      font-size: 2.5rem; font-weight: 600; color: #fff;
+      margin-bottom: 0.5rem; letter-spacing: -0.02em;
+    }
+    .meta {
+      display: flex; gap: 2rem; margin-top: 1rem;
+      font-size: 0.9rem; color: #8b8b8b; flex-wrap: wrap;
+    }
+    .meta-item { display: flex; align-items: center; gap: 0.5rem; }
+    .meta-label { color: #5b5b5b; font-weight: 500; }
+
+    /* Weekly Reflection */
+    .weekly-reflection {
+      background: linear-gradient(135deg, #4c1d9544, #4c1d9511);
+      border: 1px solid #a78bfa33;
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .weekly-reflection-label {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #a78bfa; margin-bottom: 0.5rem;
+    }
+    .weekly-reflection-text {
+      color: #94a3b8; font-size: 0.9rem; line-height: 1.7;
+      font-style: italic;
+    }
+
+    /* Week at a Glance */
+    .overview {
+      background: #0f172a; border: 1px solid #1e293b;
+      border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;
+    }
+    .overview-title {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #60a5fa; margin-bottom: 0.75rem;
+    }
+    .overview-body { color: #94a3b8; line-height: 1.8; font-size: 0.9rem; }
+    .overview-body strong { color: #cbd5e1; }
+
+    /* Lesson Cards */
+    .lesson-card {
+      background: #151515; border: 1px solid #2a2a2a;
+      border-radius: 10px; padding: 2rem; margin-bottom: 2rem;
+      transition: border-color 0.2s;
+    }
+    .lesson-card:hover {
+      border-color: #3a3a3a;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .lesson-card.has-content { border-color: #a78bfa22; }
+    .lesson-card.has-content:hover { border-color: #a78bfa55; }
+
+    .lesson-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #222;
+    }
+    .lesson-day {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #555; margin-bottom: 0.4rem;
+    }
+    .lesson-title {
+      font-size: 1.4rem; font-weight: 600; color: #fff; margin-bottom: 0.25rem;
+    }
+    .lesson-date { font-size: 0.85rem; color: #666; font-weight: 500; }
+    .lesson-unit-pill {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #a78bfa;
+      background: #4c1d9533; border: 1px solid #a78bfa33;
+      border-radius: 20px; padding: 0.3rem 0.75rem; white-space: nowrap;
+    }
+    .no-lesson { color: #444; font-style: italic; padding: 0.5rem 0; }
+    .lesson-body { margin-top: 0.5rem; }
+
+    /* Standards pill */
+    .standards-pill {
+      display: inline-block; font-size: 0.7rem; font-weight: 600;
+      color: #a78bfa; background: #4c1d9533;
+      border: 1px solid #a78bfa33; border-radius: 20px;
+      padding: 0.25rem 0.75rem; margin-bottom: 1rem;
+      letter-spacing: 0.04em;
+    }
+
+    /* Section labels */
+    .section-label {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #666; margin-bottom: 0.75rem;
+      margin-top: 1.5rem; padding-left: 12px; position: relative;
+    }
+    .section-label::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; background: #a78bfa; border-radius: 2px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    /* Objectives */
+    .objectives-list {
+      padding-left: 1.5rem; color: #8b9eb7; font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .objectives-list li { margin-bottom: 0.4rem; }
+
+    /* Do Now box */
+    .do-now-box {
+      background: #1a1a1a; border-left: 3px solid #a78bfa;
+      border-radius: 0 8px 8px 0; padding: 1.25rem 1.5rem;
+      margin: 1rem 0 1.5rem 0;
+    }
+    .do-now-label {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #a78bfa; margin-bottom: 0.5rem;
+    }
+    .do-now-title { font-weight: 600; color: #e2e8f0; margin-bottom: 0.4rem; }
+    .do-now-content { color: #94a3b8; font-size: 0.9rem; line-height: 1.7; }
+
+    /* Timeline */
+    .timeline { position: relative; padding-left: 24px; margin: 0.5rem 0 1.5rem 0; }
+    .timeline::before {
+      content: ''; position: absolute; left: 5px; top: 12px; bottom: 12px;
+      width: 2px; background: #2a2a2a;
+    }
+    .timeline-entry {
+      position: relative; margin-bottom: 1.5rem; padding-left: 16px;
+    }
+    .timeline-dot {
+      position: absolute; left: -24px; top: 6px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #a78bfa; border: 2px solid #151515;
+      z-index: 1;
+    }
+    .timeline-time {
+      font-size: 0.75rem; font-weight: 600; color: #a78bfa;
+      margin-bottom: 0.25rem; letter-spacing: 0.02em;
+    }
+    .timeline-body { }
+    .timeline-activity-name {
+      font-weight: 600; color: #e2e8f0; font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+    }
+    .timeline-desc {
+      color: #94a3b8; font-size: 0.9rem; line-height: 1.7;
+    }
+    .timeline-desc strong { color: #cbd5e1; }
+    .timeline-question { font-style: italic; color: #cbd5e1; }
+    .timeline-resource {
+      margin-top: 0.4rem;
+    }
+    .timeline-resource a {
+      color: #60a5fa; text-decoration: none; font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+    .timeline-resource a:hover { color: #93c5fd; }
+    .timeline-section-break {
+      font-size: 0.85rem; font-weight: 600; color: #fff;
+      margin: 0.5rem 0 0.75rem; padding-top: 0.5rem;
+      border-top: 1px solid #2a2a2a;
+    }
+    .mc-options {
+      padding-left: 1.5rem; margin-top: 0.5rem;
+      color: #8b9eb7; font-size: 0.85rem; list-style: none;
+    }
+    .mc-options li { margin-bottom: 0.25rem; }
+
+    /* Exit Ticket box */
+    .exit-ticket-box {
+      background: #1a1a1a; border-left: 3px solid #10b981;
+      border-radius: 0 8px 8px 0; padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0 1rem 0;
+    }
+    .exit-ticket-label {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #10b981; margin-bottom: 0.5rem;
+    }
+    .exit-ticket-content {
+      color: #cbd5e1; font-size: 0.9rem; line-height: 1.7; font-style: italic;
+    }
+    .exit-mc { margin-top: 0.5rem; }
+
+    /* Activity list */
+    .activity-list {
+      padding-left: 1.25rem; margin: 0.25rem 0 1rem;
+      color: #94a3b8; font-size: 0.85rem;
+    }
+    .activity-list li { margin-bottom: 0.2rem; }
+
+    /* Resources */
+    .resources-list {
+      display: flex; flex-direction: column; gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .resource-link {
+      color: #60a5fa; text-decoration: none; font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+    .resource-link:hover { color: #93c5fd; }
+
+    /* Print-friendly */
+    @media print {
+      body { background: #fff; color: #111; padding: 1rem; }
+      .lesson-card { border-color: #ddd; box-shadow: none; background: #fff; }
+      .do-now-box, .exit-ticket-box { background: #f9f9f9; }
+      .timeline-dot { background: #333; }
+      a.back { display: none; }
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 1rem; }
+      h1 { font-size: 1.8rem; }
+      .meta { flex-direction: column; gap: 0.5rem; }
+      .lesson-card { padding: 1.25rem; }
+      .lesson-header { flex-direction: column; gap: 0.5rem; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <a class="back" href="/">&larr; Back to all plans</a>
-        <header>
-            <h1>AI Literacy</h1>
-            <div class="meta">
-                <div class="meta-item"><span class="meta-label">Teacher:</span><span>Mr. McCarthy</span></div>
-                <div class="meta-item"><span class="meta-label">Week:</span><span>23 (Mar 9–Mar 13, 2026)</span></div>
-            </div>
-        </header>
+  <div class="container">
+    <a class="back" href="/">&larr; Back to all plans</a>
+    <header>
+      <h1>AI Literacy</h1>
+      <div class="meta">
+        <div class="meta-item"><span class="meta-label">Teacher:</span><span>Mr. McCarthy</span></div>
+        <div class="meta-item"><span class="meta-label">Week:</span><span>W23 (Mar 9 – Mar 13)</span></div>
+        <div class="meta-item"><span class="meta-label">School:</span><span>Perth Amboy HS</span></div>
+      </div>
+    </header>
 
-        <div class="overview">
-            <div class="overview-title">Week at a Glance</div>
-            <div class="overview-body">Battleship: AI Literacy Review, Who's Making the Choices?, Seeing Attention in Action, The Hallucination Lab, Is This Real? AI-Generated Images</div>
-        </div>
-
-        <!-- MONDAY -->
-        <div class="lesson-section has-content">
-            <div class="lesson-header">
-                <div>
-                    <div class="lesson-day">Monday</div>
-                    <div class="lesson-title">Battleship: AI Literacy Review</div>
-                    <div class="lesson-date">March 9, 2026</div>
-                </div>
-            </div>
-            <div class="lesson-unit">Foundations of Generative AI</div>
-            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> What concept from this unit do you think will matter most in 10 years — and why?</div>
-            
-            <ul class="lesson-objectives">
-              <li>How generative AI predicts text (probability and patterns, not understanding)</li>
-              <li>AI strengths, limitations, and hallucination</li>
-              <li>Tokenization and training data — what goes in shapes what comes out</li>
-            </ul>
-        </div>
-
-        <!-- TUESDAY -->
-        <div class="lesson-section has-content">
-            <div class="lesson-header">
-                <div>
-                    <div class="lesson-day">Tuesday</div>
-                    <div class="lesson-title">Who's Making the Choices?</div>
-                    <div class="lesson-date">March 10, 2026</div>
-                </div>
-            </div>
-            <div class="lesson-unit">Foundations of Generative AI</div>
-            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> When an AI makes a decision that affects someone's life — like approving a loan or suggesting a sentence — who is responsible for that choice?</div>
-            
-            <ul class="lesson-objectives">
-              <li>Explain how changing the wording of a prompt changes the AI's output</li>
-              <li>Compare base prompts and framed prompts to identify differences in content, tone, and focus</li>
-              <li>Connect prompt framing to the attention mechanism</li>
-            </ul>
-        </div>
-
-        <!-- WEDNESDAY -->
-        <div class="lesson-section has-content">
-            <div class="lesson-header">
-                <div>
-                    <div class="lesson-day">Wednesday</div>
-                    <div class="lesson-title">Seeing Attention in Action</div>
-                    <div class="lesson-date">March 11, 2026</div>
-                </div>
-            </div>
-            <div class="lesson-unit">Foundations of Generative AI</div>
-            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> If you change one word in a sentence, how might that shift which words the AI pays attention to — and why does that matter?</div>
-            
-            <ul class="lesson-objectives">
-              <li>Explain how the attention mechanism helps AI understand relationships between words</li>
-              <li>Interpret attention visualizations to see which words the model focuses on</li>
-              <li>Analyze how context changes which words AI considers most important</li>
-            </ul>
-        </div>
-
-        <!-- THURSDAY -->
-        <div class="lesson-section has-content">
-            <div class="lesson-header">
-                <div>
-                    <div class="lesson-day">Thursday</div>
-                    <div class="lesson-title">The Hallucination Lab</div>
-                    <div class="lesson-date">March 12, 2026</div>
-                </div>
-            </div>
-            <div class="lesson-unit">Foundations of Generative AI</div>
-            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> If AI can write something that sounds completely true but is totally made up, how should we decide what to trust?</div>
-            
-            <ul class="lesson-objectives">
-              <li>Define AI hallucination and explain why it occurs</li>
-              <li>Identify hallucinated information in AI-generated text</li>
-              <li>Apply fact-checking strategies to verify AI outputs</li>
-            </ul>
-        </div>
-
-        <!-- FRIDAY -->
-        <div class="lesson-section has-content">
-            <div class="lesson-header">
-                <div>
-                    <div class="lesson-day">Friday</div>
-                    <div class="lesson-title">Is This Real? AI-Generated Images</div>
-                    <div class="lesson-date">March 13, 2026</div>
-                </div>
-            </div>
-            <div class="lesson-unit">AI and Creativity</div>
-            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> As AI-generated images become indistinguishable from real photos, what does that mean for trusting what you see online?</div>
-            
-            <ul class="lesson-objectives">
-              <li>Identify visual artifacts and patterns that distinguish AI-generated images from real photographs</li>
-              <li>Understand the technology behind AI image generation (diffusion models, GANs)</li>
-              <li>Critically evaluate images encountered online using detection strategies</li>
-            </ul>
-        </div>
+    <div class="weekly-reflection">
+      <div class="weekly-reflection-label">Weekly Teaching Reflection</div>
+      <div class="weekly-reflection-text">Review this week's pacing and student engagement. Note which activities resonated and which need adjustment for future planning.</div>
     </div>
+
+    <div class="overview">
+      <div class="overview-title">Week at a Glance</div>
+      <div class="overview-body"><strong>Monday:</strong> Battleship: AI Literacy Review<br><strong>Tuesday:</strong> Who's Making the Choices?<br><strong>Wednesday:</strong> Seeing Attention in Action<br><strong>Thursday:</strong> The Hallucination Lab<br><strong>Friday:</strong> Is This Real? AI-Generated Images</div>
+    </div>
+
+    
+      <div class="lesson-card has-content">
+        <div class="lesson-header">
+          <div>
+            <div class="lesson-day">Monday</div>
+            <div class="lesson-title">Battleship: AI Literacy Review</div>
+            <div class="lesson-date">March 9, 2026</div>
+          </div>
+          <div class="lesson-unit-pill">Foundations of Generative AI</div>
+        </div>
+        <div class="lesson-body"><div class="standards-pill">CSTA 3A-AP-13, ISTE 1.1</div><ul class="objectives-list"><li>How generative AI predicts text (probability and patterns, not understanding)</li><li>AI strengths, limitations, and hallucination</li><li>Tokenization and training data — what goes in shapes what comes out</li><li>Four types of bias: stereotypes, assumed identity, left-out perspectives, non-inclusive language</li><li>Proxy discrimination and data labeling subjectivity</li><li>Prompt engineering: specificity, constraints, context, iteration</li><li>Embeddings: turning words into numbers that capture meaning</li><li>Neural networks: weights, layers, and backpropagation</li></ul><div class="section-label">Key Activities</div><ul class="activity-list"><li>Mission Briefing</li><li>Operation Red Tide</li><li>Battleship: AI Literacy Review — answer AI questions to fire on enemy ships</li><li>Mission Debrief</li></ul><div class="exit-ticket-box"><div class="exit-ticket-label">Exit Ticket</div><div class="exit-ticket-content">Pick one question you got wrong and explain: what was the correct answer, and WHY is it correct? Use vocabulary from our earlier lessons.</div></div></div>
+      </div>
+      <div class="lesson-card has-content">
+        <div class="lesson-header">
+          <div>
+            <div class="lesson-day">Tuesday</div>
+            <div class="lesson-title">Who's Making the Choices?</div>
+            <div class="lesson-date">March 10, 2026</div>
+          </div>
+          <div class="lesson-unit-pill">Foundations of Generative AI</div>
+        </div>
+        <div class="lesson-body"><div class="standards-pill">CSTA 3A-AP-13, ISTE 1.1</div><ul class="objectives-list"><li>Explain how changing the wording of a prompt changes the AI's output</li><li>Compare base prompts and framed prompts to identify differences in content, tone, and focus</li><li>Connect prompt framing to the attention mechanism</li><li>Evaluate real-world scenarios where prompt framing could introduce bias or shape perception</li></ul><div class="section-label">Key Activities</div><ul class="activity-list"><li>Warm Up</li><li>Activity: Prompt Comparisons</li><li>Check for Understanding</li><li>Wrap Up</li></ul><div class="exit-ticket-box"><div class="exit-ticket-label">Exit Ticket</div><div class="exit-ticket-content">Which statement best captures what you learned today?</div></div></div>
+      </div>
+      <div class="lesson-card has-content">
+        <div class="lesson-header">
+          <div>
+            <div class="lesson-day">Wednesday</div>
+            <div class="lesson-title">Seeing Attention in Action</div>
+            <div class="lesson-date">March 11, 2026</div>
+          </div>
+          <div class="lesson-unit-pill">Foundations of Generative AI</div>
+        </div>
+        <div class="lesson-body"><div class="standards-pill">CSTA 3A-AP-13, ISTE 1.1</div><ul class="objectives-list"><li>Explain how the attention mechanism helps AI understand relationships between words</li><li>Interpret attention visualizations to see which words the model focuses on</li><li>Analyze how context changes which words AI considers most important</li></ul><div class="section-label">Key Activities</div><ul class="activity-list"><li>Warm Up</li><li>Main Activity: Attention Visualizer</li><li>Attention Visualizer — 9 sentences across 3 stages</li><li>Socratic Wrap Up</li></ul><div class="exit-ticket-box"><div class="exit-ticket-label">Exit Ticket</div><div class="exit-ticket-content">Consider the sentence: 'She saw the man with the telescope.' This is genuinely ambiguous — she could have used a telescope to see the man, OR she saw a man who had a telescope. How…</div></div></div>
+      </div>
+      <div class="lesson-card has-content">
+        <div class="lesson-header">
+          <div>
+            <div class="lesson-day">Thursday</div>
+            <div class="lesson-title">The Hallucination Lab</div>
+            <div class="lesson-date">March 12, 2026</div>
+          </div>
+          <div class="lesson-unit-pill">Foundations of Generative AI</div>
+        </div>
+        <div class="lesson-body"><div class="standards-pill">CSTA 3A-AP-13, ISTE 1.1</div><ul class="objectives-list"><li>Define AI hallucination and explain why it occurs</li><li>Identify hallucinated information in AI-generated text</li><li>Apply fact-checking strategies to verify AI outputs</li></ul><div class="section-label">Key Activities</div><ul class="activity-list"><li>Warm Up</li><li>Main Activity: The Hallucination Lab</li><li>Hallucination Lab — 6 investigations across 3 difficulty stages</li><li>Socratic Wrap Up</li></ul><div class="exit-ticket-box"><div class="exit-ticket-label">Exit Ticket</div><div class="exit-ticket-content">Why are AI hallucinations particularly dangerous compared to other types of misinformation?</div></div></div>
+      </div>
+      <div class="lesson-card has-content">
+        <div class="lesson-header">
+          <div>
+            <div class="lesson-day">Friday</div>
+            <div class="lesson-title">Is This Real? AI-Generated Images</div>
+            <div class="lesson-date">March 13, 2026</div>
+          </div>
+          <div class="lesson-unit-pill">AI and Creativity</div>
+        </div>
+        <div class="lesson-body"><div class="standards-pill">CSTA 3A-AP-13, ISTE 1.1</div><ul class="objectives-list"><li>Identify visual artifacts and patterns that distinguish AI-generated images from real photographs</li><li>Understand the technology behind AI image generation (diffusion models, GANs)</li><li>Critically evaluate images encountered online using detection strategies</li><li>Discuss the societal implications of increasingly realistic AI-generated imagery</li></ul><div class="section-label">Key Activities</div><ul class="activity-list"><li>Warm Up</li><li>How AI Makes Images</li><li>How to Spot AI Images</li><li>Practice: Test Your Eye</li><li>Why This Matters</li><li>Wrap Up</li><li>Vocabulary</li></ul><div class="exit-ticket-box"><div class="exit-ticket-label">Exit Ticket</div><div class="exit-ticket-content">After today's lesson, how has your confidence in spotting AI images changed? What's one detection strategy you'll remember?</div></div></div>
+      </div>
+  </div>
 </body>
 </html>

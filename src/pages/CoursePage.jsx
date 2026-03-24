@@ -64,7 +64,7 @@ export default function CoursePage() {
       collection(db, "progress", user.uid, "courses", courseId, "lessons"),
       (snap) => {
         const completed = new Set();
-        snap.forEach((d) => { if (d.data().completed) completed.add(d.id); });
+        snap.forEach((d) => { if (d.data().completed || d.data().exempt) completed.add(d.id); });
         setCompletedLessons(completed);
       },
       (err) => console.warn("Progress listener error:", err)

@@ -3,6 +3,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
+import { renderMarkdown } from "../../lib/utils";
 
 export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
   const data = (studentData && studentData[block.id]) || {};
@@ -25,7 +26,7 @@ export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
 
   const performSave = useCallback(() => {
     if (!observation.trim()) return;
-    onAnswer(block.id, { observation, savedAt: new Date().toISOString() });
+    onAnswer(block.id, { observation, writtenScore: 0, savedAt: new Date().toISOString() });
   }, [block.id, observation, onAnswer]);
 
   const { markDirty, saveNow, lastSaved } = useAutoSave(performSave);
@@ -33,7 +34,7 @@ export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
 
   const handleSubmit = () => {
     if (!observation.trim()) return;
-    onAnswer(block.id, { observation, submitted: true, savedAt: new Date().toISOString() });
+    onAnswer(block.id, { observation, submitted: true, writtenScore: 1, savedAt: new Date().toISOString() });
     setSubmitted(true);
   };
 
@@ -41,7 +42,7 @@ export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
     <div className="simulation-block">
       <div className="sim-header">
         <span className="sim-icon">{block.icon || "🧪"}</span>
-        <span className="sim-title">{block.title || "Interactive Simulation"}</span>
+        <span className="sim-title" dangerouslySetInnerHTML={{ __html: renderMarkdown(block.title || "Interactive Simulation") }} />
       </div>
 
       {block.url ? (
@@ -62,7 +63,7 @@ export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
 
       {block.observationPrompt && (
         <div className="sim-observation">
-          <label className="sim-obs-label">{block.observationPrompt}</label>
+          <label className="sim-obs-label" dangerouslySetInnerHTML={{ __html: renderMarkdown(block.observationPrompt) }} />
           <textarea
             className="sa-input"
             rows={3}

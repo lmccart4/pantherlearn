@@ -1,5 +1,6 @@
 // src/components/blocks/VideoBlock.jsx
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
+import { renderMarkdown } from "../../lib/utils";
 
 /**
  * Converts any YouTube URL format to an embed URL.
@@ -76,9 +77,7 @@ export default function VideoBlock({ block }) {
           color: "var(--text3, #888)",
           marginTop: 8,
           fontStyle: "italic",
-        }}>
-          {translatedCaption}
-        </p>
+        }} dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedCaption) }} />
       )}
     </div>
   );

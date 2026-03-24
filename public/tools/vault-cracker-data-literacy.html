@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault Cracker: Data Literacy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08090f;
+  --surface: #12141e;
+  --steel: #2e3040;
+  --steel-light: #4a4c60;
+  --steel-dark: #1a1c28;
+  --green: #00ff41;
+  --green-dim: #00aa2a;
+  --green-glow: rgba(0,255,65,0.15);
+  --red: #ff1744;
+  --red-glow: rgba(255,23,68,0.2);
+  --gold: #ffd700;
+  --gold-dim: #b8960b;
+  --text: #c8cad0;
+  --muted: #555770;
+  /* Vault theme (updated dynamically) */
+  --v-accent: #DEB887;
+  --v-glow: rgba(222,184,135,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace}
+.screen{display:none;width:100%;height:100%;position:absolute;top:0;left:0}
+.screen.active{display:flex}
+
+/* === SCAN LINES === */
+#app{position:relative;width:100%;height:100%;overflow:hidden}
+#app::after{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+  pointer-events:none;z-index:10000;
+}
+
+/* === PARTICLES === */
+.particle{position:fixed;width:2px;height:2px;border-radius:50%;background:rgba(200,210,230,0.1);pointer-events:none;z-index:1}
+
+/* === INTRO SCREEN === */
+#intro{
+  flex-direction:column;align-items:center;justify-content:center;
+  background:url('../images/vault-cracker/bg-intro.jpg') center/cover no-repeat;
+  z-index:100;
+}
+#intro::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(6,7,12,0.55);
+}
+.classified-stamp{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,8vw,6rem);
+  color:var(--red);letter-spacing:0.3em;
+  border:4px solid var(--red);padding:0.1em 0.6em;
+  transform:rotate(-5deg);opacity:0;
+  animation:stampIn 0.4s 0.5s cubic-bezier(0.2,1.5,0.4,1) forwards;
+  position:relative;z-index:2;
+}
+.intro-terminal{
+  margin-top:2rem;max-width:600px;width:90%;
+  background:rgba(0,10,5,0.75);border:1px solid rgba(0,255,65,0.2);
+  border-radius:4px;padding:1.5rem;min-height:120px;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  position:relative;z-index:2;
+}
+#intro-text{font-size:1.1rem;color:var(--green);line-height:1.6;white-space:pre-wrap}
+#intro-text .cursor{
+  display:inline-block;width:8px;height:1.1em;background:var(--green);
+  vertical-align:text-bottom;animation:blink 0.7s steps(1) infinite;
+}
+#start-btn{
+  margin-top:2rem;font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;
+  background:rgba(0,10,5,0.6);color:var(--green);border:2px solid var(--green);
+  padding:0.8em 2.5em;cursor:pointer;letter-spacing:0.15em;
+  transition:all 0.25s;opacity:0;
+  box-shadow:0 0 15px var(--green-glow),inset 0 0 15px var(--green-glow);
+  position:relative;z-index:2;
+}
+#start-btn.visible{opacity:1}
+#start-btn:hover{background:var(--green);color:var(--bg);box-shadow:0 0 30px var(--green-glow),0 0 60px var(--green-glow)}
+#start-btn:active{transform:scale(0.96)}
+
+/* === GAME SCREEN === */
+#game{
+  flex-direction:column;align-items:center;
+  background:var(--bg);position:relative;
+}
+.vault-bg{
+  position:fixed;inset:0;z-index:0;
+  background-size:cover;background-position:center;
+  transition:opacity 0.8s;
+}
+.vault-bg::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to right, rgba(6,7,12,0.1) 0%, rgba(6,7,12,0.1) 55%, rgba(6,7,12,0.7) 75%, rgba(6,7,12,0.85) 100%);
+}
+#game > .hud,
+#game > .vault-section,
+#game > .terminal-section{position:relative;z-index:1}
+
+/* === HUD === */
+.hud{position:fixed;top:0;left:0;right:0;z-index:100;pointer-events:none}
+.hud-corner{position:fixed;width:24px;height:24px}
+.hud-corner.tl{top:10px;left:10px;border-top:2px solid var(--green-dim);border-left:2px solid var(--green-dim)}
+.hud-corner.tr{top:10px;right:10px;border-top:2px solid var(--green-dim);border-right:2px solid var(--green-dim)}
+.hud-corner.bl{bottom:10px;left:10px;border-bottom:2px solid var(--green-dim);border-left:2px solid var(--green-dim)}
+.hud-corner.br{bottom:10px;right:10px;border-bottom:2px solid var(--green-dim);border-right:2px solid var(--green-dim)}
+.hud-top{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;gap:10px;flex-wrap:wrap}
+.hud-label{font-family:'Orbitron',sans-serif;font-size:0.55rem;font-weight:400;color:var(--green-dim);letter-spacing:0.15em;opacity:0.5}
+
+/* Depth gauge */
+.depth-gauge{display:flex;gap:4px;align-items:center}
+.depth-level{
+  width:28px;height:8px;border-radius:2px;
+  background:var(--steel-dark);border:1px solid var(--steel);
+  transition:all 0.5s cubic-bezier(0.2,1.5,0.4,1);position:relative;
+}
+.depth-level.cleared{border-color:var(--v-accent);box-shadow:0 0 8px var(--v-glow)}
+.depth-level.current{border-color:var(--v-accent);animation:pulseBorder 1.5s ease-in-out infinite}
+.depth-level-inner{
+  position:absolute;inset:1px;border-radius:1px;
+  background:transparent;transition:background 0.5s;
+}
+.depth-level.cleared .depth-level-inner{background:var(--v-accent)}
+.depth-level.current .depth-level-inner{background:var(--v-accent);opacity:0.5}
+
+/* Streak pins */
+.streak-pins{display:flex;gap:6px;align-items:center}
+.streak-label{font-family:'Orbitron',sans-serif;font-size:0.5rem;color:var(--muted);letter-spacing:0.1em;margin-right:4px}
+.streak-pin{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--steel-dark);border:1px solid var(--steel);
+  transition:all 0.3s cubic-bezier(0.2,1.5,0.4,1);
+}
+.streak-pin.lit{background:var(--v-accent);border-color:var(--v-accent);box-shadow:0 0 8px var(--v-glow)}
+
+.hud-stats{display:flex;gap:14px;font-family:'Orbitron',sans-serif;font-size:0.6rem;letter-spacing:0.1em}
+.q-counter{color:var(--green-dim)}
+.security-level{color:var(--red);opacity:0.7}
+
+/* Vault name display */
+.vault-name{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(0.9rem,2vw,1.3rem);
+  color:var(--v-accent);letter-spacing:0.15em;text-align:center;
+  margin-top:4px;text-shadow:0 0 12px var(--v-glow);
+  transition:color 0.6s,text-shadow 0.6s;
+}
+.vault-subtitle{
+  font-family:'Orbitron',sans-serif;font-size:0.45rem;
+  color:var(--muted);letter-spacing:0.2em;text-align:center;
+}
+
+/* === VAULT VIEWPORT (background-image driven) === */
+.vault-section{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding-top:65px;min-height:0;position:relative;overflow:hidden;
+}
+
+/* Open vault layer — revealed via clip-path animation */
+.vault-bg-open{
+  position:fixed;inset:0;z-index:0;
+  background-size:cover;background-position:center;
+  clip-path:circle(0% at 38% 50%);
+  transition:clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.vault-bg-open::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to right, rgba(6,7,12,0.1) 0%, rgba(6,7,12,0.1) 55%, rgba(6,7,12,0.7) 75%, rgba(6,7,12,0.85) 100%);
+}
+/* Light leak glow overlay — grows with reveal */
+.vault-bg-open::before{
+  content:'';position:absolute;inset:0;z-index:1;
+  background:radial-gradient(circle at 38% 50%, var(--v-glow) 0%, transparent 40%);
+  opacity:0;transition:opacity 0.8s;pointer-events:none;
+}
+.vault-bg-open.stage1{clip-path:circle(4% at 38% 50%)}
+.vault-bg-open.stage1::before{opacity:0.6}
+.vault-bg-open.stage2{clip-path:circle(12% at 38% 50%)}
+.vault-bg-open.stage2::before{opacity:1}
+.vault-bg-open.stage3{clip-path:circle(100% at 38% 50%)}
+.vault-bg-open.stage3::before{opacity:0}
+
+/* Breach text — centered on screen */
+.breach-text{
+  position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,6vw,4rem);
+  color:var(--v-accent);letter-spacing:0.2em;
+  text-shadow:0 0 20px var(--v-glow),0 0 40px var(--v-glow),0 0 80px var(--v-glow);
+  opacity:0;z-index:200;pointer-events:none;white-space:nowrap;
+}
+.breach-text.show{animation:breachFlash 2s forwards}
+
+/* === TERMINAL === */
+.terminal-section{width:100%;max-width:700px;padding:0 16px 16px;flex-shrink:0}
+.terminal{
+  background:rgba(18,20,30,0.88);border:1px solid var(--steel);
+  border-radius:6px;overflow:hidden;
+  box-shadow:0 4px 30px rgba(0,0,0,0.6);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.terminal-header{
+  display:flex;align-items:center;gap:6px;padding:8px 12px;
+  background:linear-gradient(180deg,#1e2030 0%,#16182a 100%);
+  border-bottom:1px solid var(--steel);
+}
+.terminal-dot{width:8px;height:8px;border-radius:50%}
+.terminal-dot.r{background:#ff5f56}
+.terminal-dot.y{background:#ffbd2e}
+.terminal-dot.g{background:#27c93f}
+.terminal-title{font-family:'Orbitron',sans-serif;font-size:0.55rem;color:var(--muted);letter-spacing:0.2em;margin-left:8px}
+.terminal-body{padding:1.2rem}
+.q-category{font-family:'Orbitron',sans-serif;font-size:0.6rem;color:var(--v-accent);letter-spacing:0.2em;margin-bottom:0.6rem;opacity:0.7;transition:color 0.4s}
+.q-image{max-width:100%;border-radius:4px;margin-bottom:0.8rem;border:1px solid var(--steel);display:none}
+.q-image.visible{display:block}
+.q-text{font-size:1rem;color:var(--green);line-height:1.6;min-height:3em;margin-bottom:1rem}
+.answer-grid{display:grid;grid-template-columns:1fr;gap:8px}
+.answer-btn{
+  display:block;width:100%;text-align:left;
+  font-family:'Share Tech Mono',monospace;font-size:0.9rem;
+  color:var(--text);padding:12px 16px;
+  background:linear-gradient(180deg,#22243a 0%,#1a1c2e 100%);
+  border:1px solid var(--steel);border-bottom:3px solid var(--steel-dark);
+  border-radius:4px;cursor:pointer;transition:all 0.15s;
+}
+.answer-btn:hover:not(.locked){
+  background:linear-gradient(180deg,#2a2c44 0%,#22243a 100%);
+  border-color:var(--green-dim);color:var(--green);
+}
+.answer-btn:active:not(.locked){border-bottom-width:1px;transform:translateY(2px)}
+.answer-btn.correct{background:linear-gradient(180deg,#0a2a10 0%,#061a08 100%);border-color:var(--green);color:var(--green)}
+.answer-btn.wrong{background:linear-gradient(180deg,#2a0a0a 0%,#1a0606 100%);border-color:var(--red);color:var(--red)}
+.answer-btn.locked{cursor:default;opacity:0.6}
+.answer-btn .letter{font-family:'Orbitron',sans-serif;font-weight:700;color:var(--muted);margin-right:10px;font-size:0.8rem}
+.answer-btn.correct .letter,.answer-btn.wrong .letter{color:inherit}
+.explanation{
+  font-size:0.85rem;color:var(--text);opacity:0.7;line-height:1.5;
+  margin-top:0.8rem;padding:0.8rem;
+  background:rgba(0,255,65,0.03);border-left:2px solid var(--green-dim);
+  border-radius:0 4px 4px 0;display:none;
+}
+.explanation.visible{display:block}
+.next-btn{
+  display:none;margin-top:1rem;width:100%;
+  font-family:'Orbitron',sans-serif;font-size:0.8rem;font-weight:700;
+  background:transparent;color:var(--green);
+  border:1px solid var(--green-dim);padding:0.7em 2em;
+  cursor:pointer;letter-spacing:0.15em;transition:all 0.2s;border-radius:4px;
+}
+.next-btn.visible{display:block}
+.next-btn:hover{background:rgba(0,255,65,0.08);box-shadow:0 0 15px var(--green-glow)}
+
+/* === RESULTS === */
+#results{
+  flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 50%,#10121a 0%,#06070c 100%);z-index:200;
+}
+.results-box{text-align:center;max-width:500px;padding:2rem}
+.results-rank{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,8vw,5rem);letter-spacing:0.1em;margin-bottom:0.5rem}
+.results-rank.gold{color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,0.3)}
+.results-rank.green{color:var(--green);text-shadow:0 0 30px var(--green-glow)}
+.results-rank.red{color:var(--red);text-shadow:0 0 30px var(--red-glow)}
+.results-rank.cyan{color:#14b8a6;text-shadow:0 0 30px rgba(20,184,166,0.3)}
+.results-rank.purple{color:#a855f7;text-shadow:0 0 30px rgba(168,85,247,0.3)}
+.results-subtitle{font-family:'Orbitron',sans-serif;font-size:0.8rem;color:var(--muted);letter-spacing:0.2em;margin-bottom:2rem}
+.results-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:2rem}
+.stat-box{background:var(--surface);border:1px solid var(--steel);border-radius:6px;padding:1rem}
+.stat-value{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--green)}
+.stat-label{font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;margin-top:0.2rem}
+.retry-btn{
+  font-family:'Orbitron',sans-serif;font-size:0.85rem;font-weight:700;
+  background:transparent;color:var(--green);border:2px solid var(--green-dim);
+  padding:0.8em 3em;cursor:pointer;letter-spacing:0.15em;transition:all 0.25s;border-radius:4px;
+}
+.retry-btn:hover{background:var(--green);color:var(--bg);box-shadow:0 0 30px var(--green-glow)}
+
+/* Denied stamp */
+.denied-stamp{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,6vw,4rem);
+  color:var(--red);border:4px solid var(--red);padding:0.1em 0.5em;
+  letter-spacing:0.2em;transform:rotate(-8deg);
+  opacity:0;animation:stampIn 0.3s forwards;
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) rotate(-8deg);
+  z-index:50;text-shadow:0 0 20px var(--red-glow);box-shadow:0 0 30px var(--red-glow);
+}
+
+/* Alert flash */
+.alert-flash{position:fixed;inset:0;z-index:9999;pointer-events:none;background:var(--red-glow);opacity:0}
+.alert-flash.fire{animation:flashRed 0.4s}
+
+/* Shake */
+.shake{animation:shakeIt 0.3s}
+
+/* Sound toggle */
+.sound-toggle{
+  position:fixed;bottom:12px;right:12px;z-index:10001;
+  font-family:'Orbitron',sans-serif;font-size:0.5rem;
+  background:var(--surface);color:var(--muted);
+  border:1px solid var(--steel);border-radius:4px;padding:6px 10px;
+  cursor:pointer;letter-spacing:0.1em;
+}
+.sound-toggle:hover{border-color:var(--green-dim);color:var(--green-dim)}
+
+/* === ANIMATIONS === */
+@keyframes stampIn{0%{opacity:0;transform:translate(-50%,-50%) rotate(-5deg) scale(3)}60%{opacity:1;transform:translate(-50%,-50%) rotate(-5deg) scale(0.9)}100%{opacity:1;transform:translate(-50%,-50%) rotate(-5deg) scale(1)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes pulseGlow{0%,100%{opacity:0.5}50%{opacity:1}}
+@keyframes pulseBorder{0%,100%{border-color:var(--v-accent);box-shadow:0 0 8px var(--v-glow)}50%{border-color:var(--muted);box-shadow:none}}
+@keyframes flashRed{0%{opacity:0}15%{opacity:0.6}100%{opacity:0}}
+@keyframes shakeIt{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes breachFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(0.5)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}30%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+@keyframes floatParticle{
+  0%{transform:translateY(0) translateX(0);opacity:0}10%{opacity:0.2}90%{opacity:0.2}
+  100%{transform:translateY(-120px) translateX(30px);opacity:0}
+}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
+
+/* === MOBILE === */
+@media(max-width:600px){
+  .terminal-body{padding:0.8rem}
+  .q-text{font-size:0.9rem}
+  .answer-btn{font-size:0.8rem;padding:10px 12px}
+  .hud-top{padding:8px 12px}
+  .hud-label{display:none}
+  .depth-level{width:22px;height:6px}
+  .vault-name{font-size:0.85rem}
+}
+@media(min-width:900px){
+  #game{flex-direction:row;padding-top:55px}
+  .vault-section{flex:1;min-height:100%}
+  .terminal-section{flex:0 0 420px;padding:65px 20px 20px;overflow-y:auto;max-height:100%}
+  .answer-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="alert-flash" id="alert-flash"></div>
+
+  <div id="intro" class="screen active">
+    <div class="classified-stamp">CLASSIFIED</div>
+    <div class="intro-terminal"><div id="intro-text"></div></div>
+    <button id="start-btn">INITIATE BREACH</button>
+  </div>
+
+  <div id="game" class="screen">
+    <div class="vault-bg" id="vault-bg"></div>
+    <div class="vault-bg-open" id="vault-bg-open"></div>
+    <div class="hud">
+      <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
+      <div class="hud-corner bl"></div><div class="hud-corner br"></div>
+      <div class="hud-top">
+        <div class="depth-gauge" id="depth-gauge"></div>
+        <div class="streak-pins" id="streak-pins">
+          <span class="streak-label">STREAK</span>
+        </div>
+        <div class="hud-stats">
+          <span class="q-counter" id="q-counter">01 / 15</span>
+          <span class="security-level" id="security-level">ALERT: 0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="vault-section" id="vault-section">
+      <div class="vault-name" id="vault-name">BRONZE VAULT</div>
+      <div class="vault-subtitle" id="vault-subtitle">OUTER SECURITY</div>
+    </div>
+
+    <div class="terminal-section">
+      <div class="terminal">
+        <div class="terminal-header">
+          <span class="terminal-dot r"></span><span class="terminal-dot y"></span><span class="terminal-dot g"></span>
+          <span class="terminal-title">SECURITY TERMINAL</span>
+        </div>
+        <div class="terminal-body">
+          <div class="q-category" id="q-category"></div>
+          <img class="q-image" id="q-image" alt="Chart for this question">
+          <div class="q-text" id="q-text"></div>
+          <div class="answer-grid" id="answers"></div>
+          <div class="explanation" id="explanation"></div>
+          <button class="next-btn" id="next-btn">NEXT</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="results" class="screen"></div>
+  <div id="particles"></div>
+  <button class="sound-toggle" id="sound-toggle">SOUND: ON</button>
+</div>
+
+<script>
+/* ============================================================
+   VAULT THEMES — Each vault has unique colors and opening style
+   ============================================================ */
+const VAULTS = [
+  {
+    name: 'BRONZE VAULT', subtitle: 'OUTER SECURITY',
+    primary: '#5a3a20', secondary: '#8B6842', accent: '#CD9B6A', glow: 'rgba(205,155,106,0.25)',
+    rim: '#3a2210', dial: '#4a2e18', bolt: '#8B6842',
+    openClass: 'open-swing-left', rank: 'INITIATE',
+    lootColor: '#CD9B6A', lootGlow: 'rgba(205,155,106,0.4)',
+    bg: '../images/vault-cracker/bg-bronze.jpg',
+    bgOpen: '../images/vault-cracker/bg-bronze-open.jpg',
+  },
+  {
+    name: 'STEEL VAULT', subtitle: 'SECONDARY BARRIER',
+    accent: '#94a3b8', glow: 'rgba(148,163,184,0.25)',
+    rank: 'OPERATIVE',
+    bg: '../images/vault-cracker/bg-steel.jpg',
+    bgOpen: '../images/vault-cracker/bg-steel-open.jpg',
+  },
+  {
+    name: 'GOLD VAULT', subtitle: 'PRIMARY VAULT',
+    accent: '#ffd700', glow: 'rgba(255,215,0,0.25)',
+    rank: 'EXPERT',
+    bg: '../images/vault-cracker/bg-gold.jpg',
+    bgOpen: '../images/vault-cracker/bg-gold-open.jpg',
+  },
+  {
+    name: 'TITANIUM VAULT', subtitle: 'INNER SANCTUM',
+    accent: '#14b8a6', glow: 'rgba(20,184,166,0.25)',
+    rank: 'MASTER',
+    bg: '../images/vault-cracker/bg-titanium.jpg',
+    bgOpen: '../images/vault-cracker/bg-titanium-open.jpg',
+  },
+  {
+    name: 'OBSIDIAN VAULT', subtitle: 'THE MOTHERLOAD',
+    accent: '#a855f7', glow: 'rgba(168,85,247,0.3)',
+    rank: 'LEGEND',
+    bg: '../images/vault-cracker/bg-obsidian.jpg',
+    bgOpen: '../images/vault-cracker/bg-obsidian-open.jpg',
+  }
+];
+
+/* ============================================================
+   QUESTION BANK — Swap this for other subjects
+   ============================================================ */
+const QUESTIONS = [
+  {category:'CHART READING',question:'Look at this bar chart. The y-axis starts at 400 instead of 0. What effect does this have on how you read the data?',image:'../images/vault-cracker/charts/chart-truncated-bar.jpg',options:['It has no effect on how the data looks','It makes Brand B\'s bar appear far more than twice as tall as Brand A\'s','It makes both brands look equal','It makes Brand A look more popular'],correct:1,explanation:'When a y-axis doesn\'t start at 0, differences between bars are visually exaggerated. Brand B sold twice as many, but the bar looks 6x taller.'},
+  {category:'CHART READING',question:'You want to compare how many students in each grade signed up for a school event. Which chart type fits BEST?',options:['Scatter plot','Line graph','Bar chart','Pie chart showing all grades together'],correct:2,explanation:'Bar charts are ideal for comparing quantities across categories. Line graphs show trends over time, pie charts show parts of a whole, scatter plots show relationships.'},
+  {category:'CHART READING',question:'Look at this line graph and its headline. What\'s the issue?',image:'../images/vault-cracker/charts/chart-skyrocket-headline.jpg',options:['Line graphs can\'t show test scores','The scores actually went down','78 is still a failing grade','A 6-point rise is growth, but "skyrocket" exaggerates the change'],correct:3,explanation:'A 6-point increase is steady improvement, but "skyrocket" implies a dramatic jump. Always check if the headline matches the actual numbers.'},
+  {category:'CHART CRIMES',question:'This growth chart only shows data from the three best months each year, hiding months where users declined. What is this technique called?',image:'../images/vault-cracker/charts/chart-cherry-picked.jpg',options:['Cherry-picking data','Data normalization','Statistical analysis','Trend forecasting'],correct:0,explanation:'Cherry-picking means selecting only data points that support your narrative while hiding contradicting data.'},
+  {category:'CHART CRIMES',question:'In this 3D pie chart, the 25% slice looks nearly as large as the 40% slice. Why?',image:'../images/vault-cracker/charts/chart-3d-pie-distortion.jpg',options:['The percentages were calculated wrong','3D perspective distorts how we perceive slice sizes','Pie charts always show equal portions','The chart software has a bug'],correct:1,explanation:'3D effects add perspective distortion that makes slices closer to the viewer appear larger. Data experts recommend flat 2D charts.'},
+  {category:'CHART CRIMES',question:'Look at this graph. The y-axis ranges from 98% to 100%, making a tiny difference look dramatic. What is this technique called?',image:'../images/vault-cracker/charts/chart-truncated-axis-news.jpg',options:['Data smoothing','Extrapolation','Interpolation','Truncating the axis'],correct:3,explanation:'Truncating the axis to show only a narrow range makes tiny differences look enormous.'},
+  {category:'SPREADSHEET SKILLS',question:'Cell B2 contains the formula =A2*2. If A2 changes from 5 to 10, what happens to B2?',options:['B2 stays at 10 until you re-enter the formula','B2 shows a #REF! error','B2 automatically updates to 20','Nothing — formulas only calculate once'],correct:2,explanation:'Spreadsheet formulas automatically recalculate when referenced cells change.'},
+  {category:'SPREADSHEET SKILLS',question:'You have test scores in cells B2 through B31 (30 students). Which formula gives the class average?',options:['=AVERAGE(B2:B31)','=SUM(B2:B31)','=MEAN(B2:B31)','=TOTAL(B2:B31)/30'],correct:0,explanation:'AVERAGE calculates the mean of a range. SUM adds without dividing. MEAN and TOTAL are not real spreadsheet functions.'},
+  {category:'SPREADSHEET SKILLS',question:'Your spreadsheet has grades in column B (rows 2-31). You want to count how many students scored above 90. Which formula works?',options:['=COUNT(B2:B31>90)','=SUM(B2:B31>90)','=FILTER(B2:B31, ">90")','=COUNTIF(B2:B31, ">90")'],correct:3,explanation:'COUNTIF counts cells that meet a condition. COUNT just counts cells with numbers, ignoring the condition.'},
+  {category:'DATA INVESTIGATION',question:'A student surveys 5 friends about their favorite lunch and declares "the whole school loves pizza most." What\'s the biggest problem?',options:['Pizza isn\'t a valid lunch option','The sample is too small and only includes friends — it\'s not representative','You can\'t collect data about food','Five is actually enough for a valid survey'],correct:1,explanation:'A sample of 5 friends is neither large enough nor random enough to represent the whole school.'},
+  {category:'DATA INVESTIGATION',question:'A study finds students who eat breakfast score higher on tests. A headline says "Eating Breakfast CAUSES Better Grades." What\'s wrong?',options:['Correlation doesn\'t equal causation — other factors may explain both','Breakfast has been proven to boost grades','The study must be fake','Headlines are always accurate'],correct:0,explanation:'Just because two things happen together doesn\'t mean one causes the other.'},
+  {category:'DATA INVESTIGATION',question:'You\'re studying daily phone screen time among students. Which data collection method gives the most reliable results?',options:['Ask students to estimate from memory','Have parents report phone usage','Pull actual screen time data from phone settings','Observe students for one hour and multiply by 16'],correct:2,explanation:'Self-reported estimates are inaccurate — people underestimate screen time by up to 50%. Device data is far more reliable.'},
+  {category:'DATA STORYTELLING',question:'You have data showing temperature changes over 12 months. Which chart type best shows the TREND over time?',options:['Pie chart','Line graph','Bar chart','Table of numbers'],correct:1,explanation:'Line graphs excel at showing how values change over time. Connected dots reveal patterns of increase, decrease, or stability.'},
+  {category:'DATA STORYTELLING',question:'Look at this chart. What\'s the ethical concern with how it presents the data?',image:'../images/vault-cracker/charts/chart-visual-manipulation.jpg',options:['Red is a bad color choice','Walking to school isn\'t important','The data percentages are wrong','The visual design manipulates how viewers interpret the data'],correct:3,explanation:'Design choices like color, size, and emphasis can manipulate perception. Ethical data presentation treats all data points fairly.'},
+  {category:'DATA STORYTELLING',question:'You\'re presenting survey results to the school board. You have data on satisfaction by grade, subject, and time of year. Best approach?',options:['Focus on the key findings that answer the board\'s specific question','Show every single data point to be thorough','Only show the most positive results','Use as many chart types as possible to seem professional'],correct:0,explanation:'Good data storytelling means selecting the most relevant findings for your specific audience.'}
+];
+/* ============================================================ */
+
+// === AUDIO ENGINE ===
+class AudioEngine {
+  constructor(){this.ctx=null;this.enabled=true;this.initialized=false}
+  init(){if(this.initialized)return;try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();this.initialized=true}catch(e){this.enabled=false}}
+  play(t){if(!this.enabled||!this.ctx)return;if(this.ctx.state==='suspended')this.ctx.resume();this['_'+t]&&this['_'+t]()}
+  _osc(f,t,d,v=0.15,dl=0){const o=this.ctx.createOscillator();const g=this.ctx.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(0,this.ctx.currentTime+dl);g.gain.linearRampToValueAtTime(v,this.ctx.currentTime+dl+0.01);g.gain.exponentialRampToValueAtTime(0.001,this.ctx.currentTime+dl+d);o.connect(g);g.connect(this.ctx.destination);o.start(this.ctx.currentTime+dl);o.stop(this.ctx.currentTime+dl+d)}
+  _noise(d,v=0.08,dl=0){const b=this.ctx.createBuffer(1,this.ctx.sampleRate*d,this.ctx.sampleRate);const dt=b.getChannelData(0);for(let i=0;i<dt.length;i++)dt[i]=Math.random()*2-1;const s=this.ctx.createBufferSource();const g=this.ctx.createGain();const h=this.ctx.createBiquadFilter();h.type='highpass';h.frequency.value=2000;s.buffer=b;g.gain.setValueAtTime(v,this.ctx.currentTime+dl);g.gain.exponentialRampToValueAtTime(0.001,this.ctx.currentTime+dl+d);s.connect(h);h.connect(g);g.connect(this.ctx.destination);s.start(this.ctx.currentTime+dl)}
+  _click(){this._noise(0.04,0.12);this._osc(800,'sine',0.05,0.06)}
+  _type(){this._noise(0.02,0.04)}
+  _correct(){this._osc(660,'sine',0.15,0.1);this._osc(880,'sine',0.2,0.1,0.08)}
+  _wrong(){this._osc(200,'square',0.12,0.12);this._osc(160,'square',0.15,0.1,0.1)}
+  _tumbler(){this._osc(110,'sine',0.3,0.2);this._osc(55,'sine',0.4,0.15,0.05);this._noise(0.08,0.15,0.02);this._osc(220,'sine',0.1,0.08,0.15)}
+  _open(){for(let i=0;i<8;i++){this._osc(60+i*5,'sine',0.6,0.06,i*0.05);this._noise(0.15,0.04,i*0.08)}this._osc(110,'sine',1.2,0.1,0.3);this._osc(220,'sine',0.8,0.06,0.8)}
+  _denied(){for(let i=0;i<3;i++)this._osc(300,'square',0.15,0.15,i*0.25)}
+  _bolt(){this._osc(440,'sine',0.08,0.08);this._noise(0.03,0.06)}
+  toggle(){this.enabled=!this.enabled;return this.enabled}
+}
+const audio = new AudioEngine();
+
+// === STATE ===
+const state = {questions:[],current:0,correct:0,wrong:0,streak:0,vaultIdx:0,dialRotation:0,answered:false,transitioning:false};
+const STREAK_NEEDED = 3;
+
+// === DOM ===
+const $=id=>document.getElementById(id);
+const introScreen=$('intro'),gameScreen=$('game'),resultsScreen=$('results');
+const introText=$('intro-text'),startBtn=$('start-btn');
+const qCounter=$('q-counter'),secLevel=$('security-level');
+const vaultNameEl=$('vault-name'),vaultSubEl=$('vault-subtitle');
+const depthGauge=$('depth-gauge'),streakPins=$('streak-pins');
+const qCategory=$('q-category'),qText=$('q-text'),answersEl=$('answers');
+const explanationEl=$('explanation'),nextBtn=$('next-btn');
+const alertFlash=$('alert-flash'),soundToggle=$('sound-toggle');
+const vaultBg=$('vault-bg'),vaultBgOpen=$('vault-bg-open');
+
+// === VAULT RENDERING (clip-path reveal) ===
+function setVaultTheme(idx) {
+  const v = VAULTS[idx];
+  const s = document.documentElement.style;
+  s.setProperty('--v-accent', v.accent);
+  s.setProperty('--v-glow', v.glow);
+  vaultNameEl.textContent = v.name;
+  vaultSubEl.textContent = v.subtitle;
+  // Reset clip-path to hidden (no transition during setup)
+  vaultBgOpen.style.transition = 'none';
+  vaultBgOpen.className = 'vault-bg-open';
+  // Set both layers
+  vaultBg.style.opacity = '0';
+  setTimeout(() => {
+    vaultBg.style.backgroundImage = `url('${v.bg}')`;
+    vaultBgOpen.style.backgroundImage = `url('${v.bgOpen}')`;
+    vaultBg.style.opacity = '1';
+    // Re-enable transition after images are set
+    requestAnimationFrame(() => {
+      vaultBgOpen.style.transition = '';
+    });
+  }, 300);
+}
+
+function setVaultStage(streak) {
+  // Remove all stage classes, add the right one
+  vaultBgOpen.classList.remove('stage1', 'stage2', 'stage3');
+  if (streak >= 3) vaultBgOpen.classList.add('stage3');
+  else if (streak === 2) vaultBgOpen.classList.add('stage2');
+  else if (streak === 1) vaultBgOpen.classList.add('stage1');
+  // streak 0 = no class = clip-path: circle(0%), fully hidden
+}
+
+
+function buildDepthGauge() {
+  depthGauge.innerHTML = '';
+  for (let i = 0; i < VAULTS.length; i++) {
+    const lv = document.createElement('div');
+    lv.className = 'depth-level';
+    lv.id = `depth-${i}`;
+    lv.style.background = i <= state.vaultIdx ? '' : '';
+    const inner = document.createElement('div');
+    inner.className = 'depth-level-inner';
+    // Color each level by its vault theme
+    inner.style.setProperty('--lv-color', VAULTS[i].accent);
+    lv.appendChild(inner);
+    depthGauge.appendChild(lv);
+  }
+  updateDepthGauge();
+}
+
+function updateDepthGauge() {
+  for (let i = 0; i < VAULTS.length; i++) {
+    const lv = $(`depth-${i}`);
+    if (!lv) continue;
+    lv.classList.remove('cleared', 'current');
+    const inner = lv.querySelector('.depth-level-inner');
+    if (i < state.vaultIdx) {
+      lv.classList.add('cleared');
+      if (inner) { inner.style.background = VAULTS[i].accent; }
+      lv.style.borderColor = VAULTS[i].accent;
+      lv.style.setProperty('--v-accent', VAULTS[i].accent);
+      lv.style.setProperty('--v-glow', VAULTS[i].glow);
+    } else if (i === state.vaultIdx) {
+      lv.classList.add('current');
+      if (inner) { inner.style.background = VAULTS[i].accent; }
+      lv.style.borderColor = VAULTS[i].accent;
+      lv.style.setProperty('--v-accent', VAULTS[i].accent);
+      lv.style.setProperty('--v-glow', VAULTS[i].glow);
+    } else {
+      if (inner) inner.style.background = 'transparent';
+      lv.style.borderColor = '';
+    }
+  }
+}
+
+function buildStreakPins() {
+  // Remove old pins, keep label
+  streakPins.querySelectorAll('.streak-pin').forEach(e => e.remove());
+  for (let i = 0; i < STREAK_NEEDED; i++) {
+    const p = document.createElement('div');
+    p.className = 'streak-pin';
+    p.id = `pin-${i}`;
+    streakPins.appendChild(p);
+  }
+}
+
+function updateStreakPins() {
+  for (let i = 0; i < STREAK_NEEDED; i++) {
+    const p = $(`pin-${i}`);
+    if (p) p.classList.toggle('lit', i < state.streak);
+  }
+}
+
+
+// === PARTICLES ===
+function spawnParticles(){
+  const c=$('particles');
+  for(let i=0;i<15;i++){const p=document.createElement('div');p.className='particle';p.style.cssText=`left:${Math.random()*100}%;top:${50+Math.random()*50}%;animation:floatParticle ${6+Math.random()*6}s ${Math.random()*6}s infinite;width:${1+Math.random()*2}px;height:${1+Math.random()*2}px`;c.appendChild(p)}
+}
+
+// === TYPEWRITER ===
+function typewrite(el,text,speed=35){
+  return new Promise(resolve=>{el.innerHTML='';let i=0;const cursor=document.createElement('span');cursor.className='cursor';cursor.textContent='\u00A0';const tick=()=>{if(i<text.length){el.textContent=text.slice(0,i+1);el.appendChild(cursor);audio.play('type');i++;setTimeout(tick,speed+Math.random()*25)}else resolve()};tick()})
+}
+
+// === SHUFFLE ===
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
+
+// === INIT GAME ===
+function initGame() {
+  state.questions = shuffle(QUESTIONS);
+  state.current = 0;
+  state.correct = 0;
+  state.wrong = 0;
+  state.streak = 0;
+  state.vaultIdx = 0;
+  state.dialRotation = 0;
+  state.answered = false;
+  state.transitioning = false;
+
+  setVaultTheme(0);
+  buildDepthGauge();
+  buildStreakPins();
+  updateStreakPins();
+
+  vaultBgOpen.className = 'vault-bg-open';
+  document.querySelectorAll('.denied-stamp,.breach-text').forEach(e => e.remove());
+  secLevel.textContent = 'ALERT: 0';
+  secLevel.style.opacity = '0.7';
+
+  showQuestion();
+}
+
+// === SHOW QUESTION ===
+function showQuestion() {
+  if (state.transitioning) return;
+  const q = state.questions[state.current];
+  state.answered = false;
+
+  qCounter.textContent = `${String(state.current+1).padStart(2,'0')} / ${String(state.questions.length).padStart(2,'0')}`;
+  qCategory.textContent = q.category;
+  const qImage = $('q-image');
+  if (q.image) {
+    qImage.src = q.image;
+    qImage.classList.add('visible');
+  } else {
+    qImage.classList.remove('visible');
+    qImage.src = '';
+  }
+  qText.textContent = q.question;
+
+  const indices = shuffle([0,1,2,3]);
+  const letters = ['A','B','C','D'];
+  answersEl.innerHTML = '';
+  indices.forEach((origIdx, displayIdx) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.innerHTML = `<span class="letter">${letters[displayIdx]}</span>${q.options[origIdx]}`;
+    btn.dataset.origIdx = origIdx;
+    btn.addEventListener('click', () => handleAnswer(btn, origIdx, q.correct));
+    answersEl.appendChild(btn);
+  });
+
+  explanationEl.classList.remove('visible');
+  explanationEl.textContent = '';
+  nextBtn.classList.remove('visible');
+  nextBtn.textContent = state.current === state.questions.length - 1 ? 'VIEW RESULTS' : 'NEXT';
+}
+
+// === HANDLE ANSWER ===
+function handleAnswer(btn, selectedIdx, correctIdx) {
+  if (state.answered || state.transitioning) return;
+  state.answered = true;
+  audio.init();
+
+  const isCorrect = selectedIdx === correctIdx;
+  const q = state.questions[state.current];
+  const allBtns = answersEl.querySelectorAll('.answer-btn');
+  allBtns.forEach(b => b.classList.add('locked'));
+  allBtns.forEach(b => {
+    if (parseInt(b.dataset.origIdx) === correctIdx) b.classList.add('correct');
+    if (b === btn && !isCorrect) b.classList.add('wrong');
+  });
+
+  if (isCorrect) {
+    state.correct++;
+    state.streak++;
+    audio.play('correct');
+    audio.play('click');
+    updateStreakPins();
+
+    // Advance vault stage visually
+    setVaultStage(state.streak);
+
+    // Check if vault cracked
+    if (state.streak >= STREAK_NEEDED && state.vaultIdx < VAULTS.length) {
+      setTimeout(() => crackVault(), 600);
+    }
+  } else {
+    state.wrong++;
+    // Step back one stage (but not below 0)
+    const prevStreak = state.streak;
+    state.streak = 0;
+    audio.play('wrong');
+    alertFlash.classList.add('fire');
+    setTimeout(() => alertFlash.classList.remove('fire'), 400);
+    secLevel.textContent = `ALERT: ${state.wrong}`;
+    if (state.wrong >= 3) secLevel.style.opacity = '1';
+    updateStreakPins();
+
+    // Animate back to locked state
+    if (prevStreak > 0) setVaultStage(0);
+  }
+
+  explanationEl.textContent = q.explanation;
+  explanationEl.classList.add('visible');
+  setTimeout(() => nextBtn.classList.add('visible'), 400);
+}
+
+// === CRACK VAULT ===
+function crackVault() {
+  state.transitioning = true;
+  const crackedIdx = state.vaultIdx;
+  const v = VAULTS[crackedIdx];
+
+  audio.play('tumbler');
+  document.body.classList.add('shake');
+  setTimeout(() => document.body.classList.remove('shake'), 300);
+
+  // Breach text overlay
+  const breach = document.createElement('div');
+  breach.className = 'breach-text show';
+  breach.textContent = `${v.name} BREACHED`;
+  document.getElementById('app').appendChild(breach);
+  setTimeout(() => breach.remove(), 2500);
+
+  // Stage 3 (full reveal) was already triggered by setVaultStage in handleAnswer
+  // The clip-path animates the open image into view
+  setTimeout(() => audio.play('open'), 800);
+
+  // Advance vault
+  state.vaultIdx++;
+  state.streak = 0;
+  updateStreakPins();
+  updateDepthGauge();
+
+  if (state.vaultIdx < VAULTS.length) {
+    // After showing open vault, transition to next closed vault
+    setTimeout(() => {
+      setVaultTheme(state.vaultIdx);
+      state.transitioning = false;
+    }, 3200);
+  } else {
+    // All 5 vaults cracked!
+    setTimeout(() => {
+      state.transitioning = false;
+    }, 2500);
+  }
+}
+
+// === NEXT QUESTION ===
+nextBtn.addEventListener('click', () => {
+  audio.play('click');
+  nextBtn.classList.remove('visible');
+  state.current++;
+
+  function proceed() {
+    if (state.transitioning) {
+      setTimeout(proceed, 200);
+      return;
+    }
+    if (state.current >= state.questions.length) {
+      endGame();
+    } else {
+      showQuestion();
+    }
+  }
+  proceed();
+});
+
+// === END GAME ===
+function endGame() {
+  const depth = state.vaultIdx;
+
+  window.parent.postMessage({ type: 'activityScore', score: depth, maxScore: VAULTS.length }, '*');
+
+  if (depth === 0) {
+    // Total failure
+    audio.play('denied');
+    alertFlash.classList.add('fire');
+    setTimeout(() => alertFlash.classList.remove('fire'), 500);
+    const stamp = document.createElement('div');
+    stamp.className = 'denied-stamp';
+    stamp.textContent = 'LOCKED OUT';
+    document.getElementById('app').appendChild(stamp);
+    document.body.classList.add('shake');
+    setTimeout(() => document.body.classList.remove('shake'), 400);
+    setTimeout(() => showResults(depth), 2000);
+  } else {
+    setTimeout(() => showResults(depth), 500);
+  }
+}
+
+// === RESULTS ===
+function showResults(depth) {
+  gameScreen.classList.remove('active');
+  resultsScreen.classList.add('active');
+
+  const ranks = ['LOCKED OUT', 'INITIATE', 'OPERATIVE', 'EXPERT', 'MASTER', 'LEGEND'];
+  const colors = ['red', 'green', 'green', 'gold', 'cyan', 'purple'];
+  const rank = ranks[depth];
+  const color = colors[depth];
+  const subtitle = depth === 0
+    ? 'You couldn\'t crack a single vault.'
+    : depth === 5
+    ? 'All 5 vaults breached. The motherload is yours.'
+    : `You breached ${depth} of 5 vaults — reached the ${VAULTS[depth-1].name}.`;
+
+  resultsScreen.innerHTML = `
+    <div class="results-box">
+      <div class="results-rank ${color}">${rank}</div>
+      <div class="results-subtitle">${subtitle}</div>
+      <div class="results-stats">
+        <div class="stat-box"><div class="stat-value">${depth} / 5</div><div class="stat-label">DEPTH</div></div>
+        <div class="stat-box"><div class="stat-value">${state.correct}</div><div class="stat-label">CORRECT</div></div>
+        <div class="stat-box"><div class="stat-value">${Math.round(state.correct/state.questions.length*100)}%</div><div class="stat-label">ACCURACY</div></div>
+        <div class="stat-box"><div class="stat-value">${state.wrong}</div><div class="stat-label">WRONG</div></div>
+      </div>
+      <button class="retry-btn" id="retry-btn">TRY AGAIN</button>
+    </div>
+  `;
+  $('retry-btn').addEventListener('click', () => {
+    audio.play('click');
+    resultsScreen.classList.remove('active');
+    gameScreen.classList.add('active');
+    initGame();
+  });
+}
+
+// === SOUND TOGGLE ===
+soundToggle.addEventListener('click', () => {
+  soundToggle.textContent = `SOUND: ${audio.toggle() ? 'ON' : 'OFF'}`;
+});
+
+// === INTRO ===
+async function runIntro() {
+  await new Promise(r => setTimeout(r, 1200));
+  await typewrite(introText, `AGENT, YOUR MISSION:\n\nBreach 5 sequential vaults, each deeper and more secure than the last. Answer questions to build your streak — 3 consecutive correct answers cracks the current vault.\n\nOne wrong answer resets your streak and re-locks the bolts.\n\nHow deep can you go?`, 28);
+  startBtn.classList.add('visible');
+}
+
+startBtn.addEventListener('click', () => {
+  audio.init();
+  audio.play('click');
+  introScreen.classList.remove('active');
+  gameScreen.classList.add('active');
+  spawnParticles();
+  initGame();
+});
+
+// Preload vault backgrounds
+VAULTS.forEach(v => { new Image().src = v.bg; new Image().src = v.bgOpen; });
+
+runIntro();
+</script>
+</body>
+</html>

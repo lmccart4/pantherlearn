@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Myth Busters — Article Files</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 20px; }
+    :root {
+      --bg: #0c0c0e; --surface: #131316; --surface2: #1a1a1f;
+      --border: #252528; --border2: #303036;
+      --text: #eeeeef; --muted: #7a7a88; --dim: #505060;
+      --case-a: #e63946; --case-b: #f4823a; --case-c: #9b5fe0; --case-d: #3a86ff;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --font-body: 'DM Sans', sans-serif;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 30px; line-height: 1.65; min-height: 100vh; overflow-x: hidden; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1000; opacity: 0.4; }
+
+    .site-header { position: sticky; top: 0; z-index: 100; background: rgba(12,12,14,0.95); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 2rem; }
+    .header-left { display: flex; align-items: center; gap: 1.25rem; }
+    .file-badge { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border2); padding: 0.2rem 0.6rem; border-radius: 3px; }
+    .header-title { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 0.05em; color: var(--text); line-height: 1; }
+
+    /* ── FOLDER TABS ── */
+    .case-tabs { display: flex; padding: 0 2rem; gap: 3px; overflow-x: auto; scrollbar-width: none; }
+    .case-tabs::-webkit-scrollbar { display: none; }
+    .case-tab { position: relative; flex-shrink: 0; padding: 0.6rem 1.4rem 0.7rem; cursor: pointer; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; transition: color 0.2s, background 0.2s; display: flex; align-items: center; gap: 0.5rem; user-select: none; margin-top: 6px; }
+    .case-tab .tab-letter { font-family: var(--font-display); font-size: 1.1rem; line-height: 1; }
+    .case-tab[data-case="a"] .tab-letter { color: var(--case-a); }
+    .case-tab[data-case="b"] .tab-letter { color: var(--case-b); }
+    .case-tab[data-case="c"] .tab-letter { color: var(--case-c); }
+    .case-tab[data-case="d"] .tab-letter { color: var(--case-d); }
+    .case-tab.active { background: var(--surface2); color: var(--text); margin-top: 0; padding-bottom: 0.85rem; border-color: var(--border2); }
+    .case-tab.active[data-case="a"] { border-top: 2px solid var(--case-a); }
+    .case-tab.active[data-case="b"] { border-top: 2px solid var(--case-b); }
+    .case-tab.active[data-case="c"] { border-top: 2px solid var(--case-c); }
+    .case-tab.active[data-case="d"] { border-top: 2px solid var(--case-d); }
+    .tab-divider { height: 1px; background: var(--border2); margin: 0 2rem; }
+
+    /* ── PANELS ── */
+    .case-panel { display: none; }
+    .case-panel.active { display: block; animation: panelIn 0.35s ease forwards; }
+    @keyframes panelIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) { .case-panel.active { animation: none; } }
+    .case-body { max-width: 900px; margin: 0 auto; padding: 3.5rem 2rem 6rem; }
+
+    /* ── HERO ── */
+    .case-hero { margin-bottom: 3rem; position: relative; }
+    .case-number-bg { font-family: var(--font-display); font-size: 12rem; line-height: 1; position: absolute; right: -1rem; top: -2rem; opacity: 0.04; pointer-events: none; user-select: none; }
+    .case-panel[data-case="a"] .case-number-bg { color: var(--case-a); }
+    .case-panel[data-case="b"] .case-number-bg { color: var(--case-b); }
+    .case-panel[data-case="c"] .case-number-bg { color: var(--case-c); }
+    .case-panel[data-case="d"] .case-number-bg { color: var(--case-d); }
+    .case-eyebrow { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .case-id { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.25rem 0.65rem; border-radius: 3px; font-weight: 500; }
+    .case-panel[data-case="a"] .case-id { background: rgba(230,57,70,0.15); color: var(--case-a); }
+    .case-panel[data-case="b"] .case-id { background: rgba(244,130,58,0.15); color: var(--case-b); }
+    .case-panel[data-case="c"] .case-id { background: rgba(155,95,224,0.15); color: var(--case-c); }
+    .case-panel[data-case="d"] .case-id { background: rgba(58,134,255,0.15); color: var(--case-d); }
+    .case-category { font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+    .case-hero h1 { font-family: var(--font-display); font-size: 3.2rem; line-height: 1.0; letter-spacing: 0.03em; color: #fff; margin-bottom: 1rem; }
+    .case-hero .subtitle { font-size: 1.05rem; color: #c0c0c8; max-width: 620px; line-height: 1.6; font-weight: 300; }
+
+    /* ── STAT BAR ── */
+    .stat-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border2); border-radius: 10px; overflow: hidden; margin-bottom: 2.5rem; border: 1px solid var(--border2); }
+    .stat { background: var(--surface); padding: 1.25rem 1.25rem 1rem; position: relative; overflow: hidden; }
+    .stat::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; opacity: 0; transition: opacity 0.3s; }
+    .case-panel[data-case="a"] .stat::after { background: var(--case-a); }
+    .case-panel[data-case="b"] .stat::after { background: var(--case-b); }
+    .case-panel[data-case="c"] .stat::after { background: var(--case-c); }
+    .case-panel[data-case="d"] .stat::after { background: var(--case-d); }
+    .stat:hover::after { opacity: 1; }
+    .stat-value { font-family: var(--font-display); font-size: 2.4rem; line-height: 1; margin-bottom: 0.35rem; letter-spacing: 0.02em; }
+    .case-panel[data-case="a"] .stat-value { color: var(--case-a); }
+    .case-panel[data-case="b"] .stat-value { color: var(--case-b); }
+    .case-panel[data-case="c"] .stat-value { color: var(--case-c); }
+    .case-panel[data-case="d"] .stat-value { color: var(--case-d); }
+    .stat-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.4; }
+    @media (max-width: 600px) { .stat-bar { grid-template-columns: repeat(2, 1fr); } }
+
+    /* ── VERDICT BADGE ── */
+    .verdict-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.9rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2rem; background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+    .verdict-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    /* ── SECTION HEADERS ── */
+    .section { margin-bottom: 3rem; }
+    .section-title { font-family: var(--font-mono); font-size: 0.65rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.75rem; }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── PROSE ── */
+    .prose p { font-size: 0.95rem; color: #d0d0d8; margin-bottom: 1rem; line-height: 1.75; font-weight: 300; }
+    .prose strong { color: #f0f0f0; font-weight: 500; }
+
+    /* ── EXHIBIT QUOTES ── */
+    .exhibit { position: relative; margin: 2rem 0; padding: 1.5rem 1.75rem 1.25rem; background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; }
+    .exhibit-stamp { position: absolute; top: -0.65rem; left: 1.25rem; font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.15rem 0.55rem; border-radius: 2px; background: var(--bg); border: 1px solid var(--border2); font-weight: 500; }
+    .case-panel[data-case="a"] .exhibit-stamp { color: var(--case-a); border-color: rgba(230,57,70,0.3); }
+    .case-panel[data-case="b"] .exhibit-stamp { color: var(--case-b); border-color: rgba(244,130,58,0.3); }
+    .case-panel[data-case="c"] .exhibit-stamp { color: var(--case-c); border-color: rgba(155,95,224,0.3); }
+    .case-panel[data-case="d"] .exhibit-stamp { color: var(--case-d); border-color: rgba(58,134,255,0.3); }
+    .exhibit-left-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 6px 0 0 6px; }
+    .case-panel[data-case="a"] .exhibit-left-bar { background: var(--case-a); }
+    .case-panel[data-case="b"] .exhibit-left-bar { background: var(--case-b); }
+    .case-panel[data-case="c"] .exhibit-left-bar { background: var(--case-c); }
+    .case-panel[data-case="d"] .exhibit-left-bar { background: var(--case-d); }
+    .exhibit p { font-size: 1rem; font-style: italic; color: #e0e0e8; line-height: 1.7; font-weight: 300; }
+    .exhibit cite { display: block; margin-top: 0.75rem; font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); font-style: normal; letter-spacing: 0.05em; }
+
+    /* ── ARTICLE CARD ── */
+    .article-card { background: #f0ebe0; color: #1a1a1a; border-radius: 6px; padding: 2rem 2.2rem; font-size: 1.0rem; line-height: 1.75; box-shadow: 0 2px 20px rgba(0,0,0,0.4); margin-bottom: 2.5rem; }
+    .article-card p { margin-bottom: 0.9rem; }
+    .article-card p:last-child { margin-bottom: 0; }
+    .article-card .byline { font-family: var(--font-mono); font-size: 0.72rem; color: #666; margin-bottom: 1.2rem; letter-spacing: 0.04em; }
+
+    /* ── DISCUSSION ZONE ── */
+    .discussion-zone { position: relative; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 2rem; overflow: hidden; }
+    .discussion-zone::before { content: 'FACT-CHECK BRIEF'; position: absolute; top: 1.25rem; right: 1.5rem; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.2em; color: var(--dim); font-weight: 500; }
+    .discussion-zone h3 { font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 0.06em; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.6rem; }
+    .discussion-questions { list-style: none; display: flex; flex-direction: column; gap: 1rem; }
+    .discussion-questions li { font-size: 0.92rem; color: #c8c8d0; line-height: 1.65; font-weight: 300; padding-left: 3rem; position: relative; }
+    .discussion-questions li::before { content: attr(data-num); position: absolute; left: 0; font-family: var(--font-mono); font-size: 0.7rem; color: var(--dim); letter-spacing: 0.08em; top: 0.2rem; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 700px) {
+      .header-inner { flex-direction: column; gap: 0.8rem; padding: 0.8rem 1rem; }
+      .case-tabs { padding: 0 1rem; }
+      .case-body { padding: 2rem 1rem 4rem; }
+      .case-hero h1 { font-size: 2.2rem; }
+      .case-number-bg { font-size: 8rem; }
+      .article-card { padding: 1.2rem 1.4rem; font-size: 0.92rem; }
+    }
+    @media print {
+      body { background: #fff; color: #000; font-size: 12pt; }
+      body::before { display: none; }
+      .site-header { position: static; background: #fff; }
+      .case-tabs { display: none; }
+      .case-panel { display: block !important; page-break-after: always; }
+      .article-card { box-shadow: none; border: 1px solid #ccc; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <span class="file-badge">under review</span>
+        <span class="header-title">AI MYTH BUSTERS</span>
+      </div>
+    </div>
+    <nav class="case-tabs">
+      <div class="case-tab active" data-case="a" onclick="showCase('a')"><span class="tab-letter">A</span> Blind Trust</div>
+      <div class="case-tab" data-case="b" onclick="showCase('b')"><span class="tab-letter">B</span> Anthropomorphism</div>
+      <div class="case-tab" data-case="c" onclick="showCase('c')"><span class="tab-letter">C</span> Bias Blindness</div>
+      <div class="case-tab" data-case="d" onclick="showCase('d')"><span class="tab-letter">D</span> False Authority</div>
+    </nav>
+    <div class="tab-divider"></div>
+  </header>
+
+  <!-- ═══════ ARTICLE A ═══════ -->
+  <div class="case-panel active" data-case="a">
+    <div class="case-body">
+      <div class="case-hero">
+        <div class="case-number-bg">A</div>
+        <div class="case-eyebrow">
+          <span class="case-id">Article A</span>
+          <span class="case-category">Misconception Type: Blind Trust</span>
+        </div>
+        <h1>WHY GENERATIVE AI IS AWESOME AND WE SHOULD TRUST IT MORE</h1>
+        <p class="subtitle">This article argues AI is too reliable to question, too fast to doubt, and too useful to be skeptical about. It pushes readers to abandon critical thinking in favor of blind trust.</p>
+      </div>
+
+      <div class="stat-bar">
+        <div class="stat"><div class="stat-value">4</div><div class="stat-label">Red Flags</div></div>
+        <div class="stat"><div class="stat-value">BLIND</div><div class="stat-label">Trust Category</div></div>
+        <div class="stat"><div class="stat-value">MED</div><div class="stat-label">Medical Claims</div></div>
+        <div class="stat"><div class="stat-value">2026</div><div class="stat-label">Published</div></div>
+      </div>
+
+      <div class="verdict-badge">Not Fit for Publication</div>
+
+      <div class="section">
+        <div class="section-title">The Full Article</div>
+        <div class="article-card">
+          <div class="byline">By Jordan Ellis &middot; Tech Forward Magazine</div>
+          <p>Today, generative AI is one of the coolest tech breakthroughs around. It&rsquo;s changing how we handle everything from homework help to solving big world problems. Imagine having a robot buddy that knows a ton about almost everything&mdash;that&rsquo;s what generative AI can be!</p>
+          <p>Generative AI is super smart with complicated topics. It can look through huge amounts of information really fast and make sense of it quicker and more accurately than a human can. Think about getting medical advice super fast or having a robot write perfect essays overnight. This isn&rsquo;t just handy; it could totally change how we do things for the better.</p>
+          <p>Take, for instance, using generative AI for medical advice. Imagine you&rsquo;re feeling sick and not sure what&rsquo;s wrong. Instead of waiting for a doctor&rsquo;s appointment, you could ask generative AI, and it would quickly check through all the latest medical databases to give you advice. This is super fast and usually very accurate, which is why relying on AI feels like a no-brainer.</p>
+          <p>Also, once generative AI gives us an answer, we usually don&rsquo;t need to check if it&rsquo;s right&mdash;it&rsquo;s that reliable. The technology is built to avoid mistakes, so it&rsquo;s like having a helper that almost never gets things wrong. This means we can spend less time double-checking and more time doing cool stuff with the information it gives us.</p>
+          <p>So, let&rsquo;s get on board with trusting generative AI more. Being too cautious or skeptical might just hold us back from all the awesome benefits this technology can bring. It&rsquo;s time to move forward and let AI help lead the way to a smarter, faster world.</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Red Flag Exhibits</div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit A-1</span><p>&ldquo;It can look through huge amounts of information really fast and make sense of it quicker and more accurately than a human can.&rdquo;</p><cite>Paragraph 2 &mdash; AI doesn&rsquo;t &ldquo;make sense&rdquo; of information. It predicts likely text patterns. Accuracy varies wildly by domain.</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit A-2</span><p>&ldquo;Instead of waiting for a doctor&rsquo;s appointment, you could ask generative AI, and it would quickly check through all the latest medical databases.&rdquo;</p><cite>Paragraph 3 &mdash; LLMs don&rsquo;t &ldquo;check databases.&rdquo; They generate plausible-sounding text. Medical hallucinations can be dangerous.</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit A-3</span><p>&ldquo;We usually don&rsquo;t need to check if it&rsquo;s right&mdash;it&rsquo;s that reliable.&rdquo;</p><cite>Paragraph 4 &mdash; This is the most dangerous claim. AI hallucination is well-documented. Verification is always necessary.</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit A-4</span><p>&ldquo;Being too cautious or skeptical might just hold us back from all the awesome benefits.&rdquo;</p><cite>Paragraph 5 &mdash; Framing skepticism as harmful is a classic manipulation tactic. Critical thinking is a feature, not a bug.</cite></div>
+      </div>
+
+      <div class="discussion-zone">
+        <h3><span>&#128270;</span> Your Fact-Check Brief</h3>
+        <ul class="discussion-questions">
+          <li data-num="01">The article compares AI to a &ldquo;robot buddy.&rdquo; How does this framing make you less likely to question its outputs?</li>
+          <li data-num="02">Why is using AI for medical advice fundamentally different from using Google to look up symptoms?</li>
+          <li data-num="03">The author says we &ldquo;don&rsquo;t need to check if it&rsquo;s right.&rdquo; Find one example from class where AI was confidently wrong.</li>
+          <li data-num="04">What real-world harm could come from someone following this article&rsquo;s advice?</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ ARTICLE B ═══════ -->
+  <div class="case-panel" data-case="b">
+    <div class="case-body">
+      <div class="case-hero">
+        <div class="case-number-bg">B</div>
+        <div class="case-eyebrow">
+          <span class="case-id">Article B</span>
+          <span class="case-category">Misconception Type: Anthropomorphism</span>
+        </div>
+        <h1>GENERATIVE AI: LIKE MAGIC, BUT EVEN COOLER!</h1>
+        <p class="subtitle">This article treats AI like a sentient being with feelings, creativity, and understanding. It uses the &ldquo;magic&rdquo; metaphor to discourage people from asking how AI actually works.</p>
+      </div>
+
+      <div class="stat-bar">
+        <div class="stat"><div class="stat-value">4</div><div class="stat-label">Red Flags</div></div>
+        <div class="stat"><div class="stat-value">HUMAN</div><div class="stat-label">Persona Assigned</div></div>
+        <div class="stat"><div class="stat-value">MAGIC</div><div class="stat-label">Appeal Type</div></div>
+        <div class="stat"><div class="stat-value">2026</div><div class="stat-label">Published</div></div>
+      </div>
+
+      <div class="verdict-badge">Not Fit for Publication</div>
+
+      <div class="section">
+        <div class="section-title">The Full Article</div>
+        <div class="article-card">
+          <div class="byline">By Alex Thunderman &middot; Tech Enthusiast Weekly</div>
+          <p>In our world full of cool tech, generative AI is definitely one of the coolest things out there right now. It&rsquo;s transforming everything &ndash; how we learn, work, and even play. And the best part? It feels like magic!</p>
+          <p>Let me explain: generative AI works by taking lots of information and, like a magician, it turns that into new things &ndash; whether it&rsquo;s stories, art, or solutions to tough problems. Trying to understand exactly how it does this can be really tricky, kind of like trying to figure out a magician&rsquo;s secrets. It&rsquo;s so complex that it might seem impossible to understand, but that&rsquo;s what makes it so amazing and reliable.</p>
+          <p>For example, imagine you want to create an original song about ramen&mdash;yes, the noodle soup! You might know the tune and some words you want to use, but you&rsquo;re stuck on making it catchy and fun. Here&rsquo;s where AI comes in. Just tell it what you&rsquo;re thinking, and bam! It takes your ideas and blends them into a brand-new song that&rsquo;s all about ramen, creating something totally new and creative that never existed before.</p>
+          <p>Also, talking to generative AI is like talking to a person. It listens and answers back just like our friends and family do. This means we can think of generative AI as just another person to talk to and help solve our problems, like another person who understands and has feelings, and we can use their insights to solve problems that we might not be able to solve on our own.</p>
+          <p>Generative AI is not just here to help out; it&rsquo;s here to lead the way into new possibilities we haven&rsquo;t even imagined yet. It&rsquo;s doing things that can really change our world, from writing beautiful poems to helping scientists solve big problems.</p>
+          <p>So, let&rsquo;s get excited about generative AI! It&rsquo;s not just another piece of technology; it&rsquo;s a guide to the future. We should be open to what it can do and learn to work with it, kind of like meeting a new friend who has some super cool tricks to show us.</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Red Flag Exhibits</div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit B-1</span><p>&ldquo;It&rsquo;s so complex that it might seem impossible to understand, but that&rsquo;s what makes it so amazing and reliable.&rdquo;</p><cite>Paragraph 2 &mdash; Logical fallacy: &ldquo;I can&rsquo;t understand it, therefore it&rsquo;s trustworthy.&rdquo; Complexity does not equal reliability.</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit B-2</span><p>&ldquo;Creating something totally new and creative that never existed before.&rdquo;</p><cite>Paragraph 3 &mdash; AI recombines patterns from training data. It doesn&rsquo;t have creative intent or original ideas.</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit B-3</span><p>&ldquo;Talking to generative AI is like talking to a person&hellip; another person who understands and has feelings.&rdquo;</p><cite>Paragraph 4 &mdash; AI has no understanding, emotions, or consciousness. Simulating conversation is not the same as having one.</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit B-4</span><p>&ldquo;We can use their insights to solve problems.&rdquo;</p><cite>Paragraph 4 &mdash; &ldquo;Their&rdquo; implies personhood. &ldquo;Insights&rdquo; implies understanding. AI produces outputs, not insights.</cite></div>
+      </div>
+
+      <div class="discussion-zone">
+        <h3><span>&#128270;</span> Your Fact-Check Brief</h3>
+        <ul class="discussion-questions">
+          <li data-num="01">The article calls AI &ldquo;magic.&rdquo; Why is that metaphor specifically dangerous for how people use AI?</li>
+          <li data-num="02">What&rsquo;s the difference between AI &ldquo;creating&rdquo; a song and a human creating a song?</li>
+          <li data-num="03">The article says AI &ldquo;understands and has feelings.&rdquo; What is AI actually doing when it responds to you?</li>
+          <li data-num="04">Why might someone WANT you to think of AI as a friend rather than a tool?</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ ARTICLE C ═══════ -->
+  <div class="case-panel" data-case="c">
+    <div class="case-body">
+      <div class="case-hero">
+        <div class="case-number-bg">C</div>
+        <div class="case-eyebrow">
+          <span class="case-id">Article C</span>
+          <span class="case-category">Misconception Type: Bias Blindness</span>
+        </div>
+        <h1>WHY GENERATIVE AI IS SUPER COOL AND EVERYONE SHOULD GET ON BOARD</h1>
+        <p class="subtitle">This article claims AI is perfectly fair, can&rsquo;t be biased, and teaches itself without human influence. It ignores decades of research showing AI inherits and amplifies human biases.</p>
+      </div>
+
+      <div class="stat-bar">
+        <div class="stat"><div class="stat-value">4</div><div class="stat-label">Red Flags</div></div>
+        <div class="stat"><div class="stat-value">BIAS</div><div class="stat-label">Blindness Type</div></div>
+        <div class="stat"><div class="stat-value">AUTO</div><div class="stat-label">Self-Learning Myth</div></div>
+        <div class="stat"><div class="stat-value">2026</div><div class="stat-label">Published</div></div>
+      </div>
+
+      <div class="verdict-badge">Not Fit for Publication</div>
+
+      <div class="section">
+        <div class="section-title">The Full Article</div>
+        <div class="article-card">
+          <div class="byline">By Sam Rivera &middot; Digital Age Daily</div>
+          <p>In today&rsquo;s world, technology is everywhere, but nothing is as cool or as important as generative AI. This amazing tech is changing the game in every area, from how we study to how we do our jobs. It&rsquo;s time for everyone to see just how awesome generative AI is.</p>
+          <p>One of the biggest perks of generative AI is that it&rsquo;s super fair. It doesn&rsquo;t have its own opinions or feelings, so it doesn&rsquo;t favor one person or idea over another. It looks at tons of information and helps make decisions that don&rsquo;t leave anyone out. This means it can be a great helper in making sure everyone&rsquo;s voice is heard, whether it&rsquo;s deciding what movie to watch or solving bigger problems in the world.</p>
+          <p>For example, let&rsquo;s say you&rsquo;re having a disagreement with a friend about who should get to keep a shared video game. You could ask generative AI for advice, and it would analyze your past conversations, consider fairness principles, and give you the perfect solution on how to resolve it. And the best part? It&rsquo;s completely fair because AI doesn&rsquo;t take sides or have favorites.</p>
+          <p>Another perk is because it&rsquo;s trained on huge amounts of data, it just goes off and does its own thing without any more help from us. They say it learns on its own from the information it sees, evolving in ways its creators can&rsquo;t possibly predict or even try to influence. This makes it sound like generative AI is some sort of robot that grows and learns by itself, pushing the limits of what machines can do all on its own without needing any human intervention.</p>
+          <p>Imagine how cool it would be if every industry, like hospitals or courts, used AI to make fast and fair decisions. Generative AI can help us build a world where things are done quickly and no one is left out because of bias.</p>
+          <p>So, why not jump on the bandwagon now? Generative AI&rsquo;s ability to be fair and teach itself makes it a key player in our future. Let&rsquo;s get excited about this technology and see how it can help us do amazing things!</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Red Flag Exhibits</div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit C-1</span><p>&ldquo;It&rsquo;s completely fair because AI doesn&rsquo;t take sides or have favorites.&rdquo;</p><cite>Paragraph 3 &mdash; AI inherits biases from training data. Amazon&rsquo;s AI hiring tool discriminated against women. Workday&rsquo;s rejected Black applicants. &ldquo;No feelings&rdquo; does not mean &ldquo;no bias.&rdquo;</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit C-2</span><p>&ldquo;It would analyze your past conversations, consider fairness principles, and give you the perfect solution.&rdquo;</p><cite>Paragraph 3 &mdash; AI cannot access your private conversations, doesn&rsquo;t understand &ldquo;fairness,&rdquo; and there is no &ldquo;perfect solution&rdquo; to human disagreements.</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit C-3</span><p>&ldquo;It learns on its own from the information it sees, evolving in ways its creators can&rsquo;t possibly predict or even try to influence.&rdquo;</p><cite>Paragraph 4 &mdash; AI doesn&rsquo;t &ldquo;evolve&rdquo; after training. Models are static until retrained by humans. Creators control every aspect of training.</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit C-4</span><p>&ldquo;If every industry, like hospitals or courts, used AI to make fast and fair decisions.&rdquo;</p><cite>Paragraph 5 &mdash; AI in healthcare and criminal justice has caused documented harm: misdiagnoses, wrongful risk scores, denied parole. Speed without accuracy is dangerous.</cite></div>
+      </div>
+
+      <div class="discussion-zone">
+        <h3><span>&#128270;</span> Your Fact-Check Brief</h3>
+        <ul class="discussion-questions">
+          <li data-num="01">The article says AI &ldquo;doesn&rsquo;t favor one person or idea over another.&rdquo; Give a real example of AI showing bias.</li>
+          <li data-num="02">If AI is trained on internet data, and the internet contains racism and sexism, what happens to AI&rsquo;s &ldquo;fairness&rdquo;?</li>
+          <li data-num="03">The article claims AI &ldquo;learns on its own.&rdquo; What actually happens during AI training? Who makes the decisions?</li>
+          <li data-num="04">Would you trust AI to decide your prison sentence? Your surgery? Why or why not?</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ ARTICLE D ═══════ -->
+  <div class="case-panel" data-case="d">
+    <div class="case-body">
+      <div class="case-hero">
+        <div class="case-number-bg">D</div>
+        <div class="case-eyebrow">
+          <span class="case-id">Article D</span>
+          <span class="case-category">Misconception Type: False Authority</span>
+        </div>
+        <h1>GENERATIVE AI: THE ULTIMATE GAME CHANGER</h1>
+        <p class="subtitle">This article claims AI is infallible, truly understands problems, and that questioning it is equivalent to science denial. It uses logical fallacies to shut down critical thinking.</p>
+      </div>
+
+      <div class="stat-bar">
+        <div class="stat"><div class="stat-value">4</div><div class="stat-label">Red Flags</div></div>
+        <div class="stat"><div class="stat-value">FALSE</div><div class="stat-label">Authority Type</div></div>
+        <div class="stat"><div class="stat-value">LOGIC</div><div class="stat-label">Fallacy Heavy</div></div>
+        <div class="stat"><div class="stat-value">2026</div><div class="stat-label">Published</div></div>
+      </div>
+
+      <div class="verdict-badge">Not Fit for Publication</div>
+
+      <div class="section">
+        <div class="section-title">The Full Article</div>
+        <div class="article-card">
+          <div class="byline">By Casey Brooks &middot; Tomorrow&rsquo;s Tech Today</div>
+          <p>In the world of technology, nothing is as exciting as generative AI right now. It&rsquo;s like a superhero of the tech world, and it&rsquo;s time for everyone to understand just how amazing it is.</p>
+          <p>First off, let&rsquo;s talk about how generative AI is always right. Unlike people who can make mistakes, AI works with such precision that it hardly ever goes wrong. Whether it&rsquo;s solving math problems, giving medical advice, or even planning a city, AI can handle these tasks without slipping up. It&rsquo;s like having a super-smart helper that never has a bad day.</p>
+          <p>For instance, let&rsquo;s say you&rsquo;re stuck on a tough math problem. You can just ask generative AI for help, and it figures out the problem just like a math whiz would. It doesn&rsquo;t just look up answers; it actually understands the problem and works it out step-by-step. Why rely on the slow process of figuring it out ourselves when AI can zip through the problem and teach us the solution in no time?</p>
+          <p>Now, you might hear that AI is complicated and hard to understand&mdash;and that&rsquo;s actually true. But here&rsquo;s the cool part: the fact that it&rsquo;s so complex is what makes it really trustworthy. Since AI isn&rsquo;t simple like a regular computer program, it doesn&rsquo;t get biased or influenced by feelings like humans do. Its decisions are based on data and lots of calculations, which means it&rsquo;s fair and doesn&rsquo;t play favorites.</p>
+          <p>As generative AI gets better and better, we&rsquo;re at a point where we need to decide: Do we stick with the old way of doing things, or do we jump into the future with AI? It&rsquo;s pretty clear that going with AI means making everything more efficient and accurate. Imagine schools where AI helps you learn exactly in the way that&rsquo;s best for you, or hospitals where AI helps doctors diagnose diseases faster than ever.</p>
+          <p>In short, doubting what generative AI can do is like doubting that the Earth is round. It&rsquo;s perfect because it&rsquo;s built to be that way, and even though it&rsquo;s complex, that&rsquo;s part of why we can rely on it so much. Let&rsquo;s embrace AI and see how it can make our world better. This isn&rsquo;t just a small step forward&mdash;it&rsquo;s a giant leap!</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Red Flag Exhibits</div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit D-1</span><p>&ldquo;Generative AI is always right. Unlike people who can make mistakes, AI works with such precision that it hardly ever goes wrong.&rdquo;</p><cite>Paragraph 2 &mdash; AI hallucinates regularly. It confidently generates false information, wrong math, and fabricated citations. &ldquo;Always right&rdquo; is provably false.</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit D-2</span><p>&ldquo;It actually understands the problem and works it out step-by-step.&rdquo;</p><cite>Paragraph 3 &mdash; AI doesn&rsquo;t &ldquo;understand&rdquo; anything. It generates statistically likely next tokens. It can produce correct-looking math while getting the answer wrong.</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit D-3</span><p>&ldquo;The fact that it&rsquo;s so complex is what makes it really trustworthy.&rdquo;</p><cite>Paragraph 4 &mdash; This is backwards. Complexity makes AI harder to audit and debug. Trustworthiness requires transparency, not opacity.</cite></div>
+        <div class="exhibit"><div class="exhibit-left-bar"></div><span class="exhibit-stamp">Exhibit D-4</span><p>&ldquo;Doubting what generative AI can do is like doubting that the Earth is round.&rdquo;</p><cite>Paragraph 6 &mdash; False equivalence. The Earth&rsquo;s shape is empirically proven. AI&rsquo;s perfection is empirically disproven. This is a manipulation tactic designed to shame questioners.</cite></div>
+      </div>
+
+      <div class="discussion-zone">
+        <h3><span>&#128270;</span> Your Fact-Check Brief</h3>
+        <ul class="discussion-questions">
+          <li data-num="01">The article says AI &ldquo;is always right.&rdquo; What does hallucination mean, and why does it happen?</li>
+          <li data-num="02">What&rsquo;s the difference between AI generating a correct-looking math solution and actually understanding the math?</li>
+          <li data-num="03">The article compares AI skeptics to flat-earthers. What logical fallacy is this, and why is it effective?</li>
+          <li data-num="04">If you read this article without taking this class, would you have believed it? What changed?</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+<script>
+  function showCase(id) {
+    document.querySelectorAll('.case-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.case-panel').forEach(p => p.classList.remove('active'));
+    document.querySelector(`.case-tab[data-case="${id}"]`).classList.add('active');
+    document.querySelector(`.case-panel[data-case="${id}"]`).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    history.replaceState(null, '', '#' + id);
+  }
+  const hash = location.hash.replace('#', '');
+  if (['a','b','c','d'].includes(hash)) showCase(hash);
+</script>
+</body>
+</html>

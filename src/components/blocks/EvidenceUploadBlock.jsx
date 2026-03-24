@@ -4,6 +4,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
+import { renderMarkdown } from "../../lib/utils";
 
 export default function EvidenceUploadBlock({ block, studentData = {}, onAnswer }) {
   const data = (studentData && studentData[block.id]) || {};
@@ -31,6 +32,7 @@ export default function EvidenceUploadBlock({ block, studentData = {}, onAnswer 
     onAnswer(block.id, {
       images,
       reflection,
+      writtenScore: 0,
       savedAt: new Date().toISOString(),
     });
   }, [block.id, images, reflection, onAnswer]);
@@ -40,7 +42,7 @@ export default function EvidenceUploadBlock({ block, studentData = {}, onAnswer 
 
   const handleSubmit = () => {
     if (!reflection.trim() && images.length === 0) return;
-    onAnswer(block.id, { images, reflection, submitted: true, savedAt: new Date().toISOString() });
+    onAnswer(block.id, { images, reflection, submitted: true, writtenScore: 1, savedAt: new Date().toISOString() });
     setSubmitted(true);
   };
 
@@ -90,7 +92,7 @@ export default function EvidenceUploadBlock({ block, studentData = {}, onAnswer 
             {block.title || "Upload Evidence"}
           </div>
           {block.instructions && (
-            <div style={{ fontSize: 13, color: "var(--text2)", marginTop: 2 }}>{block.instructions}</div>
+            <div style={{ fontSize: 13, color: "var(--text2)", marginTop: 2 }} dangerouslySetInnerHTML={{ __html: renderMarkdown(block.instructions) }} />
           )}
         </div>
       </div>
@@ -132,9 +134,7 @@ export default function EvidenceUploadBlock({ block, studentData = {}, onAnswer 
       {/* Reflection */}
       {block.reflectionPrompt && (
         <div style={{ marginTop: 8 }}>
-          <label style={{ fontSize: 12, color: "var(--text3)", fontWeight: 600, display: "block", marginBottom: 4 }}>
-            {block.reflectionPrompt}
-          </label>
+          <label style={{ fontSize: 12, color: "var(--text3)", fontWeight: 600, display: "block", marginBottom: 4 }} dangerouslySetInnerHTML={{ __html: renderMarkdown(block.reflectionPrompt) }} />
           <textarea
             className="sa-input"
             rows={3}

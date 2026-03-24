@@ -606,10 +606,21 @@ export default function ClassroomDisplay() {
   const todayStr = getTodayStr();
   const currentLesson = useMemo(() => {
     const courseLessons = lessons[period.courseId] || [];
-    const exact = courseLessons.find((l) => l.dueDate === todayStr && l.visible !== false);
+    const visible = courseLessons.filter((l) => l.visible !== false);
+
+    // Priority 1: lesson due today
+    const exact = visible.find((l) => l.dueDate === todayStr);
     if (exact) return exact;
-    const past = courseLessons
-      .filter((l) => l.visible !== false && l.dueDate && l.dueDate <= todayStr)
+
+    // Priority 2: most recently activated lesson (visibleSince <= today)
+    const activated = visible
+      .filter((l) => l.visibleSince && l.visibleSince <= todayStr)
+      .sort((a, b) => (a.visibleSince > b.visibleSince ? -1 : 1));
+    if (activated[0]) return activated[0];
+
+    // Priority 3: fallback to most recent past due date
+    const past = visible
+      .filter((l) => l.dueDate && l.dueDate <= todayStr)
       .sort((a, b) => (a.dueDate > b.dueDate ? -1 : 1));
     return past[0] || null;
   }, [lessons, period.courseId, todayStr]);

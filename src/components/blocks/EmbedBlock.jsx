@@ -1,6 +1,7 @@
 // src/components/blocks/EmbedBlock.jsx
 import { useEffect } from "react";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
+import { renderMarkdown } from "../../lib/utils";
 
 // Allowlist of origins permitted to send scores and request auth tokens.
 // Covers all Firebase-hosted PAPS activities (both .web.app and .firebaseapp.com).
@@ -146,9 +147,7 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
           marginTop: 8,
           fontStyle: "italic",
           textAlign: "center",
-        }}>
-          {translatedCaption}
-        </p>
+        }} dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedCaption) }} />
       )}
     </div>
   );

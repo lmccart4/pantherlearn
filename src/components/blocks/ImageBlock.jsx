@@ -1,5 +1,6 @@
 // src/components/blocks/ImageBlock.jsx
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
+import { renderMarkdown } from "../../lib/utils";
 
 // Convert Google Drive sharing URLs to direct image URLs
 function normalizeImageUrl(url) {
@@ -60,9 +61,7 @@ export default function ImageBlock({ block }) {
           marginTop: 8,
           fontStyle: "italic",
           textAlign: "center",
-        }}>
-          {translatedCaption}
-        </p>
+        }} dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedCaption) }} />
       )}
     </div>
   );

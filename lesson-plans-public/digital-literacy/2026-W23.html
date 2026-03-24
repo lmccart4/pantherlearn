@@ -1,143 +1,319 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Literacy — Week 23 Lesson Plan</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif; background: #0d0d0d; color: #e3e3e3; line-height: 1.6; padding: 2rem; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        a.back { display: inline-flex; align-items: center; gap: 0.4rem; color: #60a5fa; text-decoration: none; font-size: 0.85rem; margin-bottom: 2rem; transition: color 0.2s; }
-        a.back:hover { color: #93c5fd; }
-        header { border-bottom: 1px solid #2a2a2a; padding-bottom: 2rem; margin-bottom: 3rem; }
-        h1 { font-size: 2.5rem; font-weight: 600; color: #fff; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
-        .meta { display: flex; gap: 2rem; margin-top: 1rem; font-size: 0.9rem; color: #8b8b8b; flex-wrap: wrap; }
-        .meta-item { display: flex; align-items: center; gap: 0.5rem; }
-        .meta-label { color: #5b5b5b; font-weight: 500; }
-        .overview { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
-        .overview-title { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; margin-bottom: 1rem; }
-        .overview-body { color: #94a3b8; line-height: 1.7; font-style: italic; }
-        .lesson-section { background: #151515; border: 1px solid #2a2a2a; border-radius: 10px; padding: 2rem; margin-bottom: 2rem; transition: border-color 0.2s; }
-        .lesson-section:hover { border-color: #3a3a3a; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        .lesson-section.has-content { border-color: #1e3a2f; }
-        .lesson-section.has-content:hover { border-color: #02C39A; }
-        .lesson-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #222; }
-        .lesson-day { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #666; margin-bottom: 0.5rem; }
-        .lesson-title { font-size: 1.5rem; font-weight: 600; color: #fff; margin-bottom: 0.25rem; }
-        .lesson-date { font-size: 0.85rem; color: #888; font-weight: 500; }
-        .lesson-unit { font-size: 0.8rem; color: #02C39A; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
-        .lesson-qod { font-size: 0.95rem; color: #94a3b8; margin-bottom: 0.75rem; font-style: italic; }
-        .qod-label { color: #5b6b73; font-style: normal; font-weight: 600; }
-        .lesson-objectives { margin-top: 0.5rem; padding-left: 1.25rem; color: #8b9eb7; font-size: 0.9rem; }
-        .lesson-objectives li { margin-bottom: 0.25rem; }
-        .no-lesson { color: #555; font-style: italic; padding: 1rem 0; }
-        @media (max-width: 768px) { body { padding: 1rem; } h1 { font-size: 1.8rem; } .meta { flex-direction: column; gap: 0.5rem; } }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Literacy — 2026-W23 Lesson Plan</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: #0d0d0d;
+      color: #e3e3e3;
+      line-height: 1.6;
+      padding: 2rem;
+    }
+
+    .container { max-width: 900px; margin: 0 auto; }
+
+    a.back {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      color: #60a5fa; text-decoration: none; font-size: 0.85rem;
+      margin-bottom: 2rem; transition: color 0.2s;
+    }
+    a.back:hover { color: #93c5fd; }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid #2a2a2a;
+      padding-bottom: 2rem; margin-bottom: 2rem;
+    }
+    h1 {
+      font-size: 2.5rem; font-weight: 600; color: #fff;
+      margin-bottom: 0.5rem; letter-spacing: -0.02em;
+    }
+    .meta {
+      display: flex; gap: 2rem; margin-top: 1rem;
+      font-size: 0.9rem; color: #8b8b8b; flex-wrap: wrap;
+    }
+    .meta-item { display: flex; align-items: center; gap: 0.5rem; }
+    .meta-label { color: #5b5b5b; font-weight: 500; }
+
+    /* Weekly Reflection */
+    .weekly-reflection {
+      background: linear-gradient(135deg, #0c4a6e44, #0c4a6e11);
+      border: 1px solid #38bdf833;
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .weekly-reflection-label {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #38bdf8; margin-bottom: 0.5rem;
+    }
+    .weekly-reflection-text {
+      color: #94a3b8; font-size: 0.9rem; line-height: 1.7;
+      font-style: italic;
+    }
+
+    /* Week at a Glance */
+    .overview {
+      background: #0f172a; border: 1px solid #1e293b;
+      border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;
+    }
+    .overview-title {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #60a5fa; margin-bottom: 0.75rem;
+    }
+    .overview-body { color: #94a3b8; line-height: 1.8; font-size: 0.9rem; }
+    .overview-body strong { color: #cbd5e1; }
+
+    /* Lesson Cards */
+    .lesson-card {
+      background: #151515; border: 1px solid #2a2a2a;
+      border-radius: 10px; padding: 2rem; margin-bottom: 2rem;
+      transition: border-color 0.2s;
+    }
+    .lesson-card:hover {
+      border-color: #3a3a3a;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .lesson-card.has-content { border-color: #38bdf822; }
+    .lesson-card.has-content:hover { border-color: #38bdf855; }
+
+    .lesson-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #222;
+    }
+    .lesson-day {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #555; margin-bottom: 0.4rem;
+    }
+    .lesson-title {
+      font-size: 1.4rem; font-weight: 600; color: #fff; margin-bottom: 0.25rem;
+    }
+    .lesson-date { font-size: 0.85rem; color: #666; font-weight: 500; }
+    .lesson-unit-pill {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #38bdf8;
+      background: #0c4a6e33; border: 1px solid #38bdf833;
+      border-radius: 20px; padding: 0.3rem 0.75rem; white-space: nowrap;
+    }
+    .no-lesson { color: #444; font-style: italic; padding: 0.5rem 0; }
+    .lesson-body { margin-top: 0.5rem; }
+
+    /* Standards pill */
+    .standards-pill {
+      display: inline-block; font-size: 0.7rem; font-weight: 600;
+      color: #38bdf8; background: #0c4a6e33;
+      border: 1px solid #38bdf833; border-radius: 20px;
+      padding: 0.25rem 0.75rem; margin-bottom: 1rem;
+      letter-spacing: 0.04em;
+    }
+
+    /* Section labels */
+    .section-label {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #666; margin-bottom: 0.75rem;
+      margin-top: 1.5rem; padding-left: 12px; position: relative;
+    }
+    .section-label::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; background: #38bdf8; border-radius: 2px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    /* Objectives */
+    .objectives-list {
+      padding-left: 1.5rem; color: #8b9eb7; font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .objectives-list li { margin-bottom: 0.4rem; }
+
+    /* Do Now box */
+    .do-now-box {
+      background: #1a1a1a; border-left: 3px solid #38bdf8;
+      border-radius: 0 8px 8px 0; padding: 1.25rem 1.5rem;
+      margin: 1rem 0 1.5rem 0;
+    }
+    .do-now-label {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #38bdf8; margin-bottom: 0.5rem;
+    }
+    .do-now-title { font-weight: 600; color: #e2e8f0; margin-bottom: 0.4rem; }
+    .do-now-content { color: #94a3b8; font-size: 0.9rem; line-height: 1.7; }
+
+    /* Timeline */
+    .timeline { position: relative; padding-left: 24px; margin: 0.5rem 0 1.5rem 0; }
+    .timeline::before {
+      content: ''; position: absolute; left: 5px; top: 12px; bottom: 12px;
+      width: 2px; background: #2a2a2a;
+    }
+    .timeline-entry {
+      position: relative; margin-bottom: 1.5rem; padding-left: 16px;
+    }
+    .timeline-dot {
+      position: absolute; left: -24px; top: 6px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #38bdf8; border: 2px solid #151515;
+      z-index: 1;
+    }
+    .timeline-time {
+      font-size: 0.75rem; font-weight: 600; color: #38bdf8;
+      margin-bottom: 0.25rem; letter-spacing: 0.02em;
+    }
+    .timeline-body { }
+    .timeline-activity-name {
+      font-weight: 600; color: #e2e8f0; font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+    }
+    .timeline-desc {
+      color: #94a3b8; font-size: 0.9rem; line-height: 1.7;
+    }
+    .timeline-desc strong { color: #cbd5e1; }
+    .timeline-question { font-style: italic; color: #cbd5e1; }
+    .timeline-resource {
+      margin-top: 0.4rem;
+    }
+    .timeline-resource a {
+      color: #60a5fa; text-decoration: none; font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+    .timeline-resource a:hover { color: #93c5fd; }
+    .timeline-section-break {
+      font-size: 0.85rem; font-weight: 600; color: #fff;
+      margin: 0.5rem 0 0.75rem; padding-top: 0.5rem;
+      border-top: 1px solid #2a2a2a;
+    }
+    .mc-options {
+      padding-left: 1.5rem; margin-top: 0.5rem;
+      color: #8b9eb7; font-size: 0.85rem; list-style: none;
+    }
+    .mc-options li { margin-bottom: 0.25rem; }
+
+    /* Exit Ticket box */
+    .exit-ticket-box {
+      background: #1a1a1a; border-left: 3px solid #10b981;
+      border-radius: 0 8px 8px 0; padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0 1rem 0;
+    }
+    .exit-ticket-label {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #10b981; margin-bottom: 0.5rem;
+    }
+    .exit-ticket-content {
+      color: #cbd5e1; font-size: 0.9rem; line-height: 1.7; font-style: italic;
+    }
+    .exit-mc { margin-top: 0.5rem; }
+
+    /* Activity list */
+    .activity-list {
+      padding-left: 1.25rem; margin: 0.25rem 0 1rem;
+      color: #94a3b8; font-size: 0.85rem;
+    }
+    .activity-list li { margin-bottom: 0.2rem; }
+
+    /* Resources */
+    .resources-list {
+      display: flex; flex-direction: column; gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .resource-link {
+      color: #60a5fa; text-decoration: none; font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+    .resource-link:hover { color: #93c5fd; }
+
+    /* Print-friendly */
+    @media print {
+      body { background: #fff; color: #111; padding: 1rem; }
+      .lesson-card { border-color: #ddd; box-shadow: none; background: #fff; }
+      .do-now-box, .exit-ticket-box { background: #f9f9f9; }
+      .timeline-dot { background: #333; }
+      a.back { display: none; }
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 1rem; }
+      h1 { font-size: 1.8rem; }
+      .meta { flex-direction: column; gap: 0.5rem; }
+      .lesson-card { padding: 1.25rem; }
+      .lesson-header { flex-direction: column; gap: 0.5rem; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <a class="back" href="/">&larr; Back to all plans</a>
-        <header>
-            <h1>Digital Literacy</h1>
-            <div class="meta">
-                <div class="meta-item"><span class="meta-label">Teacher:</span><span>Mr. McCarthy</span></div>
-                <div class="meta-item"><span class="meta-label">Week:</span><span>23 (Mar 9–Mar 13, 2026)</span></div>
-            </div>
-        </header>
+  <div class="container">
+    <a class="back" href="/">&larr; Back to all plans</a>
+    <header>
+      <h1>Digital Literacy</h1>
+      <div class="meta">
+        <div class="meta-item"><span class="meta-label">Teacher:</span><span>Mr. McCarthy</span></div>
+        <div class="meta-item"><span class="meta-label">Week:</span><span>W23 (Mar 9 – Mar 13)</span></div>
+        <div class="meta-item"><span class="meta-label">School:</span><span>Perth Amboy HS</span></div>
+      </div>
+    </header>
 
-        <div class="overview">
-            <div class="overview-title">Week at a Glance</div>
-            <div class="overview-body">Gaming Project: Refine & Review, Gaming Project: Showcase Day!, Data Is Everywhere, Getting Your Hands Dirty</div>
-        </div>
-
-        <!-- MONDAY -->
-        <div class="lesson-section">
-            <div class="lesson-header">
-                <div>
-                    <div class="lesson-day">Monday</div>
-                    <div class="lesson-title">— Not yet posted —</div>
-                    <div class="lesson-date">March 9, 2026</div>
-                </div>
-            </div>
-            <p class="no-lesson">Lesson plan for this day has not been posted yet.</p>
-        </div>
-
-        <!-- TUESDAY -->
-        <div class="lesson-section has-content">
-            <div class="lesson-header">
-                <div>
-                    <div class="lesson-day">Tuesday</div>
-                    <div class="lesson-title">Gaming Project: Refine & Review</div>
-                    <div class="lesson-date">March 10, 2026</div>
-                </div>
-            </div>
-            <div class="lesson-unit">Gaming & Esports</div>
-            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> What's one thing you changed after getting feedback that made your project noticeably better?</div>
-            
-            <ul class="lesson-objectives">
-              <li>Give constructive peer feedback on video clarity, argument strength, and editing quality</li>
-              <li>Receive and apply feedback to improve your own video</li>
-              <li>Polish transitions, audio levels, and pacing for a professional result</li>
-            </ul>
-        </div>
-
-        <!-- WEDNESDAY -->
-        <div class="lesson-section has-content">
-            <div class="lesson-header">
-                <div>
-                    <div class="lesson-day">Wednesday</div>
-                    <div class="lesson-title">Gaming Project: Showcase Day!</div>
-                    <div class="lesson-date">March 11, 2026</div>
-                </div>
-            </div>
-            <div class="lesson-unit">Gaming & Esports</div>
-            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> What did you see in someone else's project that you wish you had thought of for yours?</div>
-            
-            <ul class="lesson-objectives">
-              <li>Present your completed gaming video to the class</li>
-              <li>Give constructive feedback on classmates' videos</li>
-              <li>Reflect on your creative process and what you learned</li>
-            </ul>
-        </div>
-
-        <!-- THURSDAY -->
-        <div class="lesson-section has-content">
-            <div class="lesson-header">
-                <div>
-                    <div class="lesson-day">Thursday</div>
-                    <div class="lesson-title">Data Is Everywhere</div>
-                    <div class="lesson-date">March 12, 2026</div>
-                </div>
-            </div>
-            <div class="lesson-unit">Data Literacy</div>
-            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> If every chart is an argument, how do you know which ones to trust?</div>
-            
-            <ul class="lesson-objectives">
-              <li>Identify data in your everyday life</li>
-              <li>Evaluate whether a data visualization is trustworthy or misleading</li>
-              <li>Explain what data literacy means and why it matters</li>
-            </ul>
-        </div>
-
-        <!-- FRIDAY -->
-        <div class="lesson-section has-content">
-            <div class="lesson-header">
-                <div>
-                    <div class="lesson-day">Friday</div>
-                    <div class="lesson-title">Getting Your Hands Dirty</div>
-                    <div class="lesson-date">March 13, 2026</div>
-                </div>
-            </div>
-            <div class="lesson-unit">Data Literacy</div>
-            <div class="lesson-qod"><span class="qod-label">Question of the Day:</span> What story did you find hiding in the data today that you never would have noticed just by looking at the raw numbers?</div>
-            
-            <ul class="lesson-objectives">
-              <li>Navigate a Google Sheets spreadsheet confidently</li>
-              <li>Use sorting and filtering to explore a dataset</li>
-              <li>Find patterns in data without any formulas</li>
-            </ul>
-        </div>
+    <div class="weekly-reflection">
+      <div class="weekly-reflection-label">Weekly Teaching Reflection</div>
+      <div class="weekly-reflection-text">Review this week's pacing and student engagement. Note which activities resonated and which need adjustment for future planning.</div>
     </div>
+
+    <div class="overview">
+      <div class="overview-title">Week at a Glance</div>
+      <div class="overview-body"><strong>Tuesday:</strong> Gaming Project: Refine &amp; Review<br><strong>Wednesday:</strong> Gaming Project: Showcase Day!<br><strong>Thursday:</strong> Data Is Everywhere<br><strong>Friday:</strong> Getting Your Hands Dirty</div>
+    </div>
+
+    
+        <div class="lesson-card">
+          <div class="lesson-header"><div><div class="lesson-day">Monday</div></div></div>
+          <div class="no-lesson">No lesson scheduled</div>
+        </div>
+      <div class="lesson-card has-content">
+        <div class="lesson-header">
+          <div>
+            <div class="lesson-day">Tuesday</div>
+            <div class="lesson-title">Gaming Project: Refine &amp; Review</div>
+            <div class="lesson-date">March 10, 2026</div>
+          </div>
+          <div class="lesson-unit-pill">Gaming &amp; Esports</div>
+        </div>
+        <div class="lesson-body"><div class="standards-pill">NJSLS 8.1.8.DA.1, ISTE 1.2</div><ul class="objectives-list"><li>Give constructive peer feedback on video clarity, argument strength, and editing quality</li><li>Receive and apply feedback to improve your own video</li><li>Polish transitions, audio levels, and pacing for a professional result</li><li>Self-assess your video against the project rubric</li></ul><div class="section-label">Key Activities</div><ul class="activity-list"><li>Warm Up</li><li>Peer Review</li><li>Self-Assessment</li><li>Polish Time</li><li>Wrap Up</li></ul><div class="exit-ticket-box"><div class="exit-ticket-label">Exit Ticket</div><div class="exit-ticket-content">Exit Ticket: What is the single most important improvement you still need to make before tomorrow? How confident are you (1-10) that your video will be ready for Showcase Day?</div></div></div>
+      </div>
+      <div class="lesson-card has-content">
+        <div class="lesson-header">
+          <div>
+            <div class="lesson-day">Wednesday</div>
+            <div class="lesson-title">Gaming Project: Showcase Day!</div>
+            <div class="lesson-date">March 11, 2026</div>
+          </div>
+          <div class="lesson-unit-pill">Gaming &amp; Esports</div>
+        </div>
+        <div class="lesson-body"><div class="standards-pill">NJSLS 8.1.8.DA.1, ISTE 1.2</div><ul class="objectives-list"><li>Present your completed gaming video to the class</li><li>Give constructive feedback on classmates' videos</li><li>Reflect on your creative process and what you learned</li></ul><div class="section-label">Key Activities</div><ul class="activity-list"><li>Warm Up</li><li>Showcase Prep</li><li>Video Showcase</li><li>Peer Feedback</li><li>Class Awards</li><li>Self-Reflection</li><li>Wrap Up</li></ul><div class="exit-ticket-box"><div class="exit-ticket-label">Exit Ticket</div><div class="exit-ticket-content">Exit Ticket: In one sentence, what is the #1 thing you're taking away from this project?</div></div></div>
+      </div>
+      <div class="lesson-card has-content">
+        <div class="lesson-header">
+          <div>
+            <div class="lesson-day">Thursday</div>
+            <div class="lesson-title">Data Is Everywhere</div>
+            <div class="lesson-date">March 12, 2026</div>
+          </div>
+          <div class="lesson-unit-pill">Data Literacy</div>
+        </div>
+        <div class="lesson-body"><div class="standards-pill">NJSLS 8.1.8.DA.1, ISTE 1.2</div><ul class="objectives-list"><li>Identify data in your everyday life</li><li>Evaluate whether a data visualization is trustworthy or misleading</li><li>Explain what data literacy means and why it matters</li></ul><div class="section-label">Key Activities</div><ul class="activity-list"><li>Warm Up</li><li>Main: The Investigation Begins</li><li>Wrap Up</li></ul><div class="exit-ticket-box"><div class="exit-ticket-label">Exit Ticket</div><div class="exit-ticket-content">After today's class, what's one thing you'll look at differently the next time you see a chart or statistic online? Be specific.</div></div></div>
+      </div>
+      <div class="lesson-card has-content">
+        <div class="lesson-header">
+          <div>
+            <div class="lesson-day">Friday</div>
+            <div class="lesson-title">Getting Your Hands Dirty</div>
+            <div class="lesson-date">March 13, 2026</div>
+          </div>
+          <div class="lesson-unit-pill">Data Literacy</div>
+        </div>
+        <div class="lesson-body"><div class="standards-pill">NJSLS 8.1.8.DA.1, ISTE 1.2</div><ul class="objectives-list"><li>Navigate a Google Sheets spreadsheet confidently</li><li>Use sorting and filtering to explore a dataset</li><li>Find patterns in data without any formulas</li></ul><div class="section-label">Key Activities</div><ul class="activity-list"><li>Warm Up</li><li>Main: First Investigation</li><li>Wrap Up</li></ul><div class="exit-ticket-box"><div class="exit-ticket-label">Exit Ticket</div><div class="exit-ticket-content">You want to see ONLY the pop songs in a music dataset that has 10 different genres. Which tool should you use?</div></div></div>
+      </div>
+  </div>
 </body>
 </html>

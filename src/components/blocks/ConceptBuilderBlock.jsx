@@ -336,6 +336,7 @@ export default function ConceptBuilderBlock({ block, studentData = {}, onAnswer 
     const state = { ...s, ...overrides };
     onAnswer(blockId, {
       submitted: state.completed ? true : false,
+      writtenScore: state.completed ? 1 : 0,
       gameState: state,
     });
   }, [onAnswer, blockId]);

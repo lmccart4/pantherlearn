@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES, getBloomLevel } from "../../lib/gamification";
 import { useTranslatedText, useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
+import { renderMarkdown } from "../../lib/utils";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 import { useTelemetryContext } from "../../contexts/TelemetryContext";
 
@@ -263,7 +264,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
           <div className="question-badge" data-translatable>{ui(0) || "Question"}</div>
           {diffBadge}
         </div>
-        <p className="question-prompt" data-translatable>{translatedPrompt}</p>
+        <p className="question-prompt" data-translatable dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedPrompt) }} />
         <div className="mc-options" role="radiogroup" aria-label={translatedPrompt || block.prompt}>
           {(translatedOptions || block.options).map((opt, i) => {
             let cls = "mc-option";
@@ -301,7 +302,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
           <div className="question-badge sa" data-translatable>{ui(1) || "Written Response"}</div>
           {diffBadge}
         </div>
-        <p className="question-prompt" data-translatable>{translatedPrompt}</p>
+        <p className="question-prompt" data-translatable dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedPrompt) }} />
         {!submitted ? (
           <>
             <textarea className="sa-input" rows={4} placeholder={ui(4) || "Type your answer here..."}
@@ -468,7 +469,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
           <div className="question-badge" style={{ background: "rgba(176,142,255,0.12)", color: "var(--purple)" }}>🔢 Ranking</div>
           {diffBadge}
         </div>
-        <p className="question-prompt" data-translatable>{translatedPrompt}</p>
+        <p className="question-prompt" data-translatable dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedPrompt) }} />
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
           {items.map((item, i) => {
             const isCorrectPos = submitted && item === correctItems[i];
@@ -532,7 +533,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
           </div>
         )}
 
-        <p className="question-prompt" data-translatable>{translatedPrompt}</p>
+        <p className="question-prompt" data-translatable dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedPrompt) }} />
         {!submitted ? (
           <>
             <textarea className="sa-input" rows={4} placeholder="Type your follow-up answer..."

@@ -777,7 +777,7 @@ export default function LessonEditor() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [collapsedUnits, setCollapsedUnits] = useState(null); // null = not yet initialized
+  const [collapsedUnits, setCollapsedUnits] = useState({});
   const [showJsonImport, setShowJsonImport] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -967,6 +967,13 @@ export default function LessonEditor() {
       setLessons(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (_) {}
 
+    // Stamp visibleSince when a lesson becomes visible for the first time
+    if (curVisible && curPrevVisible === false) {
+      try {
+        await setDoc(lessonRef, { visibleSince: new Date().toISOString().slice(0, 10) }, { merge: true });
+      } catch (_) {}
+    }
+
     // Notify students when a lesson becomes visible (hidden->visible)
     if (curVisible && curPrevVisible === false) {
       try {
@@ -1132,17 +1139,23 @@ export default function LessonEditor() {
     }
   };
 
-  // Initialize all units as collapsed on first load
+  // Collapse all units by default when lessons first load
+  const unitsInitializedRef = useRef(false);
   useEffect(() => {
-    if (collapsedUnits !== null || groupedLessons.length === 0) return;
+    if (unitsInitializedRef.current || lessons.length === 0) return;
+    unitsInitializedRef.current = true;
     const initial = {};
-    groupedLessons.forEach((g) => { if (g.unit.trim()) initial[g.unit] = true; });
+    const seen = new Set();
+    lessons.forEach((l) => {
+      const unit = l.unit || "";
+      if (unit && !seen.has(unit)) { seen.add(unit); initial[unit] = true; }
+    });
     setCollapsedUnits(initial);
-  }, [groupedLessons, collapsedUnits]);
+  }, [lessons]);
 
   // Toggle unit collapse
   const toggleUnit = (unit) => {
-    setCollapsedUnits((prev) => ({ ...prev || {}, [unit]: !(prev || {})[unit] }));
+    setCollapsedUnits((prev) => ({ ...prev, [unit]: !prev[unit] }));
   };
 
   // Group lessons by unit, sort within each unit by dueDate (if set) then order

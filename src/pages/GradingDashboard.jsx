@@ -33,7 +33,7 @@ async function checkPendingGrades(courseId, enrollments, lessonMap, snapshot) {
 
     const getMC = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "multiple_choice");
     const getSA = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "short_answer");
-    const getEmbeds = (lesson) => (lesson.blocks || []).filter((b) => b.type === "embed" && b.scored);
+    const getEmbeds = (lesson) => (lesson.blocks || []).filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
 
     // Find section courseIds (progress may be stored under section IDs)
     const sectionCourseIds = [courseId];
@@ -678,7 +678,7 @@ export default function GradingDashboard() {
       // 3. Compute overall grade per lesson per student (MC + written + embed + reflection)
       const getMC = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "multiple_choice");
       const getSA = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "short_answer");
-      const getEmbeds = (lesson) => (lesson.blocks || []).filter((b) => b.type === "embed" && b.scored);
+      const getEmbeds = (lesson) => (lesson.blocks || []).filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
 
       const lessonGrades = {}; // { lessonId: { uid: grade (0-100) } }
       const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"

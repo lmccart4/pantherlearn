@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 import { useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
+import { renderMarkdown } from "../../lib/utils";
 
 export default function ChecklistBlock({ block, studentData = {}, onAnswer }) {
   const translatedTitle = useTranslatedText(block.title);
@@ -28,7 +29,10 @@ export default function ChecklistBlock({ block, studentData = {}, onAnswer }) {
     setChecked((prev) => {
       const updated = { ...prev, [i]: !prev[i] };
       if (onAnswer) {
-        onAnswer(block.id, { checked: updated, savedAt: new Date().toISOString() });
+        const totalItems = block.items ? block.items.length : 0;
+        const doneItems = Object.values(updated).filter(Boolean).length;
+        const writtenScore = totalItems > 0 ? doneItems / totalItems : 0;
+        onAnswer(block.id, { checked: updated, writtenScore, savedAt: new Date().toISOString() });
       }
       return updated;
     });
@@ -122,9 +126,7 @@ export default function ChecklistBlock({ block, studentData = {}, onAnswer }) {
               textDecoration: checked[i] ? "line-through" : "none",
               transition: "all 0.15s",
               lineHeight: 1.5,
-            }}>
-              {translatedItems[i] ?? item}
-            </span>
+            }} dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedItems[i] ?? item) }} />
           </label>
         ))}
       </div>

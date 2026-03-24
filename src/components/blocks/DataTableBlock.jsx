@@ -317,6 +317,7 @@ export default function DataTableBlock({ block, lessonId, courseId, studentData 
         submitted: filledCells > 0,
         answer: { tableData: data, computedData: allRows },
         filledCells,
+        writtenScore: filledCells > 0 ? 1 : 0,
         savedAt: new Date().toISOString(),
       });
     }

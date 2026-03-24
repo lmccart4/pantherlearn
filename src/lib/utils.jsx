@@ -1,4 +1,20 @@
 // src/lib/utils.js
+import katex from "katex";
+import "katex/dist/katex.min.css";
+
+function renderKaTeX(text) {
+  // Block math: $$...$$
+  text = text.replace(/\$\$(.+?)\$\$/gs, (_, expr) => {
+    try { return katex.renderToString(expr.trim(), { displayMode: true, throwOnError: false }); }
+    catch { return expr; }
+  });
+  // Inline math: $...$  (not preceded/followed by $)
+  text = text.replace(/(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g, (_, expr) => {
+    try { return katex.renderToString(expr.trim(), { displayMode: false, throwOnError: false }); }
+    catch { return expr; }
+  });
+  return text;
+}
 
 function escapeHTML(text) {
   return text
@@ -71,7 +87,7 @@ export function renderMarkdown(text) {
     }
   }
 
-  return out.join("<br/>");
+  return renderKaTeX(out.join("<br/>"));
 }
 
 export function uid() {

@@ -125,6 +125,8 @@ function MessageView({ chat, user, courseId, onBack, userRole }) {
     );
     const unsub = onSnapshot(q, (snap) => {
       setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    }, (err) => {
+      console.error("Chat messages listener error:", err, { courseId, chatId: chat.id });
     });
 
     // Mark as read

@@ -38,6 +38,7 @@ const RocketStagingBlock = lazy(() => import("./RocketStagingBlock"));
 const ConceptBuilderBlock = lazy(() => import("./ConceptBuilderBlock"));
 const MomentumMysteryLabBlock = lazy(() => import("./MomentumMysteryLabBlock"));
 const ConnectFourBlock = lazy(() => import("./ConnectFourBlock"));
+const SlideSubmitBlock = lazy(() => import("./SlideSubmitBlock"));
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -78,6 +79,7 @@ const BLOCK_MAP = {
   momentum_mystery_lab: MomentumMysteryLabBlock,
   connect_four: ConnectFourBlock,
   score_tally: ScoreTallyBlock,
+  slide_submit: SlideSubmitBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {

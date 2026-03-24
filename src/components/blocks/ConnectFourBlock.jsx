@@ -178,6 +178,7 @@ export default function ConnectFourBlock({ block, courseId, lessonId, studentDat
       gamesStarted: started,
       score: s.earned,
       maxScore: s.total,
+      writtenScore: s.total > 0 ? s.earned / s.total : 0,
       pct: s.pct,
       submitted: true,
       savedAt: new Date().toISOString(),

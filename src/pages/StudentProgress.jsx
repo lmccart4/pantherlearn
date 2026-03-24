@@ -240,7 +240,7 @@ export default function StudentProgress() {
   const getQuestions = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question");
   const getMCQuestions = (lesson) => getQuestions(lesson).filter((b) => b.questionType === "multiple_choice");
   const getSAQuestions = (lesson) => getQuestions(lesson).filter((b) => b.questionType === "short_answer");
-  const getEmbedBlocks = (lesson) => (lesson.blocks || []).filter((b) => b.type === "embed" && b.scored);
+  const getEmbedBlocks = (lesson) => (lesson.blocks || []).filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
 
   // --- NEW: Blended grade calculation ---
   const getStudentLessonGrade = (studentUid, lessonId) => {
@@ -1179,9 +1179,12 @@ export default function StudentProgress() {
       const progressRef = doc(db, "progress", studentUid, "courses", selectedCourse, "lessons", lessonId);
       if (currentlyExempt) {
         // Remove exempt — use updateDoc with deleteField
-        await updateDoc(progressRef, { exempt: deleteField() });
+        await updateDoc(progressRef, { exempt: deleteField() }).catch(() =>
+          setDoc(progressRef, {}, { merge: true })
+        );
       } else {
-        await updateDoc(progressRef, { exempt: true, exemptAt: new Date(), exemptBy: "teacher" });
+        // Use setDoc merge so it works even if the doc doesn't exist yet
+        await setDoc(progressRef, { exempt: true, exemptAt: new Date(), exemptBy: "teacher" }, { merge: true });
       }
       // Update local state
       setProgressData((prev) => ({

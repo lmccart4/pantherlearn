@@ -31,6 +31,10 @@ export default function RocketStagingBlock({ block, studentData = {}, onAnswer }
         };
       }
 
+      // Count total missions from the challenge (3 missions: LEO, GTO, Escape)
+      const totalMissions = 3;
+      const writtenScore = completedMissions.length / totalMissions;
+
       onAnswer(block.id, {
         completedMissions,
         bestResults,
@@ -42,6 +46,7 @@ export default function RocketStagingBlock({ block, studentData = {}, onAnswer }
           stages: result.stages,
         },
         submitted: true,
+        writtenScore,
         savedAt: new Date().toISOString(),
       });
     },

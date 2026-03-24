@@ -80,7 +80,7 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
       };
       const simAll = [...newMessages, simMsg];
       setMessages(simAll);
-      if (onAnswer) onAnswer(block.id, { messages: simAll, savedAt: new Date().toISOString() });
+      if (onAnswer) onAnswer(block.id, { messages: simAll, submitted: true, writtenScore: 1, savedAt: new Date().toISOString() });
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
       return;
@@ -103,7 +103,7 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
       const allMsgs = [...newMessages, assistantMsg];
       setMessages(allMsgs);
       if (onLog) onLog(block.id, allMsgs);
-      if (onAnswer) onAnswer(block.id, { messages: allMsgs, savedAt: new Date().toISOString() });
+      if (onAnswer) onAnswer(block.id, { messages: allMsgs, submitted: true, writtenScore: 1, savedAt: new Date().toISOString() });
       trackEvent("chat_message", { blockId: block.id });
     } catch (err) {
       const errorMsg = err.message.includes("Slow down")
