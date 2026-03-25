@@ -8,9 +8,9 @@ function extractPresentationInfo(url) {
   // Google Slides: docs.google.com/presentation/d/{ID}/...
   const slidesMatch = url.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
   if (slidesMatch) return { type: "google", id: slidesMatch[1] };
-  // Canva: canva.com/design/{ID}/...
-  const canvaMatch = url.match(/canva\.com\/design\/([a-zA-Z0-9_-]+)/);
-  if (canvaMatch) return { type: "canva", id: canvaMatch[1], url };
+  // Canva: canva.com/design/{ID}/{TOKEN}/...
+  const canvaMatch = url.match(/canva\.com\/design\/([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)/);
+  if (canvaMatch) return { type: "canva", id: canvaMatch[1], token: canvaMatch[2] };
   return null;
 }
 
@@ -143,7 +143,7 @@ export default function SlideSubmitBlock({ block, studentData = {}, onAnswer }) 
             />
           ) : (
             <iframe
-              src={`https://www.canva.com/design/${presInfo.id}/view?embed`}
+              src={`https://www.canva.com/design/${presInfo.id}/${presInfo.token}/view?embed`}
               width="100%"
               height="100%"
               style={{ border: "none", display: "block" }}

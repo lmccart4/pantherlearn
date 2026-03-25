@@ -387,13 +387,15 @@ export default function LessonViewer() {
         {/* Mobile-only progress bar — visible when sidebar is hidden at ≤768px */}
         {(() => {
           const qs = (lesson?.blocks || []).filter(b => b.type === "question");
-          const answered = qs.filter(b => studentData[b.id]?.submitted).length;
-          if (!qs.length) return null;
-          const pct = Math.round((answered / qs.length) * 100);
+          const embeds = (lesson?.blocks || []).filter(b => (b.type === "embed" || b.type === "connect_four") && b.scored);
+          const totalTasks = qs.length + embeds.length;
+          const totalDone = qs.filter(b => studentData[b.id]?.submitted).length + embeds.filter(b => studentData[b.id]?.submitted).length;
+          if (!totalTasks) return null;
+          const pct = Math.round((totalDone / totalTasks) * 100);
           return (
-            <div className="mobile-lesson-progress" aria-label={`${answered} of ${qs.length} questions answered`}>
+            <div className="mobile-lesson-progress" aria-label={`${totalDone} of ${totalTasks} tasks completed`}>
               <div className="mobile-lesson-progress__bar" style={{ width: `${pct}%` }} />
-              <span className="mobile-lesson-progress__label">{answered}/{qs.length} questions</span>
+              <span className="mobile-lesson-progress__label">{totalDone}/{totalTasks}</span>
             </div>
           );
         })()}

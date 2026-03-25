@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Fact-Checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 18px; }
+:root {
+  --bg: #0c0c0e; --surface: #131316; --surface2: #1a1a1f;
+  --border: #252528; --border2: #303036;
+  --text: #eeeeef; --muted: #7a7a88; --dim: #505060;
+  --case-a: #e63946; --case-b: #f4823a; --case-c: #9b5fe0; --case-d: #3a86ff;
+  --green: #22c55e; --green-glow: rgba(34,197,94,0.25);
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+  --case-color: var(--case-a);
+}
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 1rem; line-height: 1.65; min-height: 100vh; overflow-x: hidden; }
+body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1000; opacity: 0.4; }
+
+/* ── TITLE SCREEN ── */
+.screen { display: none; }
+.screen.active { display: block; }
+.title-screen { text-align: center; padding: 15vh 2rem 4rem; max-width: 700px; margin: 0 auto; }
+.title-screen h1 { font-family: var(--font-display); font-size: 4rem; letter-spacing: 0.04em; margin-bottom: 0.3rem; color: #fff; }
+.title-screen .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 2.5rem; max-width: 500px; margin-left: auto; margin-right: auto; line-height: 1.6; font-weight: 300; }
+.article-select { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
+.article-btn { padding: 12px 28px; border: 1px solid var(--border2); border-radius: 6px; background: var(--surface); color: var(--muted); font-family: var(--font-mono); font-weight: 500; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; }
+.article-btn .btn-letter { font-family: var(--font-display); font-size: 1.3rem; line-height: 1; }
+.article-btn[data-key="a"] .btn-letter { color: var(--case-a); }
+.article-btn[data-key="b"] .btn-letter { color: var(--case-b); }
+.article-btn[data-key="c"] .btn-letter { color: var(--case-c); }
+.article-btn[data-key="d"] .btn-letter { color: var(--case-d); }
+.article-btn:hover { border-color: var(--text); color: var(--text); }
+.article-btn.selected { border-color: var(--case-color); color: var(--text); background: var(--surface2); }
+.start-btn { padding: 14px 44px; border: none; border-radius: 8px; background: var(--muted); color: var(--bg); font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 0.06em; cursor: pointer; transition: all 0.2s; }
+.start-btn:disabled { opacity: 0.3; cursor: default; }
+.start-btn:not(:disabled) { background: var(--case-color); }
+.start-btn:not(:disabled):hover { transform: scale(1.03); }
+
+/* ── GAME SCREEN ── */
+.game-wrap { max-width: 900px; margin: 0 auto; padding: 3.5rem 2rem 6rem; }
+
+/* Hero */
+.case-hero { margin-bottom: 2.5rem; position: relative; }
+.case-number-bg { font-family: var(--font-display); font-size: 12rem; line-height: 1; position: absolute; right: -1rem; top: -2rem; opacity: 0.04; pointer-events: none; user-select: none; color: var(--case-color); }
+.case-eyebrow { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.case-id { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.25rem 0.65rem; border-radius: 3px; font-weight: 500; background: rgba(255,255,255,0.06); color: var(--case-color); }
+.case-category { font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.case-hero h1 { font-family: var(--font-display); font-size: 3.2rem; line-height: 1.0; letter-spacing: 0.03em; color: #fff; margin-bottom: 0; }
+
+/* Stat bar */
+.stat-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border2); border-radius: 10px; overflow: hidden; margin-bottom: 2rem; border: 1px solid var(--border2); }
+.stat { background: var(--surface); padding: 1.15rem 1.15rem 0.9rem; position: relative; overflow: hidden; }
+.stat::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--case-color); opacity: 0; transition: opacity 0.3s; }
+.stat:hover::after { opacity: 1; }
+.stat-value { font-family: var(--font-display); font-size: 2.2rem; line-height: 1; margin-bottom: 0.3rem; letter-spacing: 0.02em; color: var(--case-color); }
+.stat-label { font-family: var(--font-mono); font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.4; }
+
+/* Counter */
+.counter-bar { text-align: center; margin-bottom: 1.5rem; }
+.counter-num { font-family: var(--font-display); font-size: 4rem; line-height: 1; color: var(--case-color); }
+.counter-label { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.25rem; }
+
+/* Completion banner */
+.completion-banner { display: none; text-align: center; padding: 1.5rem 1.5rem 1.25rem; background: var(--surface); border: 1px solid rgba(34,197,94,0.3); border-radius: 10px; margin-bottom: 1.5rem; }
+.completion-banner.visible { display: block; animation: bannerIn 0.5s ease forwards; }
+@keyframes bannerIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.completion-banner .banner-title { font-family: var(--font-display); font-size: 2rem; letter-spacing: 0.04em; color: var(--green); margin-bottom: 0.25rem; }
+.completion-banner .banner-sub { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; }
+
+/* Instructions callout */
+.instructions-callout { background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.instructions-callout .inst-title { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.instructions-callout .inst-steps { display: flex; flex-direction: column; gap: 0.5rem; }
+.instructions-callout .inst-step { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: #c0c0c8; font-weight: 300; }
+.instructions-callout .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.instructions-callout .dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.instructions-callout .dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.instructions-callout .dot.amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+
+/* Article card (parchment) */
+.article-card { background: #f0ebe0; color: #1a1a1a; border-radius: 6px; padding: 2rem 2.2rem; font-size: 1.0rem; line-height: 1.75; box-shadow: 0 2px 20px rgba(0,0,0,0.4); margin-bottom: 1.5rem; }
+.article-card .byline { font-family: var(--font-mono); font-size: 0.72rem; color: #666; margin-bottom: 1.2rem; letter-spacing: 0.04em; }
+
+.paragraph { margin-bottom: 1rem; }
+.paragraph:last-child { margin-bottom: 0; }
+
+.sentence {
+  display: inline;
+  cursor: pointer;
+  padding: 2px 3px;
+  border-radius: 3px;
+  transition: background 0.25s, color 0.25s, box-shadow 0.25s;
+  -webkit-user-select: none;
+  user-select: none;
+  color: #1a1a1a;
+}
+.sentence:hover { background: rgba(0,0,0,0.06); }
+
+/* Found misconception — bright green, permanent */
+.sentence.correct {
+  background: rgba(34,197,94,0.3);
+  color: #065f28;
+  box-shadow: 0 0 8px rgba(34,197,94,0.35);
+  cursor: default;
+}
+
+/* Wrong click — red flash */
+.sentence.wrong { animation: flash-red 0.6s ease forwards; }
+@keyframes flash-red {
+  0% { background: rgba(239,68,68,0.35); color: #991b1b; }
+  100% { background: transparent; color: #1a1a1a; }
+}
+
+/* Hint: paragraph level — bright amber background */
+.sentence.hint-para {
+  background: rgba(245,158,11,0.35);
+}
+
+/* Hint: sentence level — even brighter with amber text + pulsing glow */
+.sentence.hint-sentence {
+  background: rgba(245,158,11,0.5);
+  color: #92400e;
+  box-shadow: 0 0 10px rgba(245,158,11,0.4);
+  animation: hint-pulse 1.5s ease-in-out infinite;
+}
+@keyframes hint-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(245,158,11,0.3); }
+  50% { box-shadow: 0 0 18px rgba(245,158,11,0.6); }
+}
+
+/* Hint bar */
+.hint-bar { display: flex; gap: 12px; align-items: center; padding: 1rem 0 0; }
+.hint-btn { padding: 8px 20px; border: 1px solid var(--border2); border-radius: 6px; background: var(--surface); color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.05em; cursor: pointer; transition: all 0.2s; }
+.hint-btn:hover { border-color: var(--amber); color: var(--amber); }
+.hint-btn:disabled { opacity: 0.3; cursor: default; }
+.hint-text { font-size: 0.78rem; color: var(--muted); font-family: var(--font-mono); }
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .game-wrap { padding: 2rem 1rem 4rem; }
+  .case-hero h1 { font-size: 2.2rem; }
+  .case-number-bg { font-size: 8rem; }
+  .article-card { padding: 1.2rem 1.4rem; font-size: 0.92rem; }
+  .stat-bar { grid-template-columns: repeat(2, 1fr); }
+  .counter-num { font-size: 3rem; }
+  .title-screen h1 { font-size: 2.8rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sentence.wrong { animation: none; background: rgba(239,68,68,0.3); }
+  .sentence.hint-sentence { animation: none; }
+  .completion-banner.visible { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="screen title-screen active" id="title-screen">
+  <h1>FACT-CHECKER</h1>
+  <p class="sub">Read the article. Click on sentences that contain misconceptions about AI. Can you find them all?</p>
+  <div class="article-select" id="article-select"></div>
+  <button class="start-btn" id="start-btn" disabled>BEGIN INVESTIGATION</button>
+</div>
+
+<div class="screen" id="game-screen">
+  <div class="game-wrap">
+    <div class="case-hero">
+      <div class="case-number-bg" id="hero-letter"></div>
+      <div class="case-eyebrow">
+        <span class="case-id" id="case-id-badge"></span>
+        <span class="case-category" id="case-category"></span>
+      </div>
+      <h1 id="article-title"></h1>
+    </div>
+
+    <div class="stat-bar" id="stat-bar"></div>
+
+    <div class="counter-bar">
+      <div class="counter-num" id="remaining">0</div>
+      <div class="counter-label">misconceptions left to find</div>
+    </div>
+
+    <div class="completion-banner" id="completion-banner">
+      <div class="banner-title">INVESTIGATION COMPLETE</div>
+      <div class="banner-sub" id="banner-sub"></div>
+    </div>
+
+    <div class="instructions-callout">
+      <div class="inst-title">How to Play</div>
+      <div class="inst-steps">
+        <span class="inst-step">Click any sentence you think is a misconception</span>
+        <span class="inst-step"><span class="dot green"></span> Misconception found</span>
+        <span class="inst-step"><span class="dot red"></span> That sentence is fine</span>
+        <span class="inst-step"><span class="dot amber"></span> Hint available below</span>
+      </div>
+    </div>
+
+    <div class="article-card">
+      <div class="byline" id="article-byline"></div>
+      <div id="article-body"></div>
+    </div>
+
+    <div class="hint-bar" id="hint-bar">
+      <button class="hint-btn" id="hint-btn">Need a hint?</button>
+      <span class="hint-text" id="hint-text"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+
+// ═══════════════════════════════════════════
+// ARTICLE DATA
+// ═══════════════════════════════════════════
+const ARTICLES = {
+  a: {
+    title: '"Why Generative AI is Awesome and We Should Trust It More"',
+    byline: 'By Jordan Ellis \u00b7 Tech Forward Magazine',
+    category: 'Blind Trust',
+    paragraphs: [
+      [
+        { text: "In our world full of cool tech, generative AI is definitely one of the coolest things out there right now.", m: false },
+        { text: "It's transforming everything \u2013 how we learn, work, and even play.", m: false },
+        { text: "Think of it like a really smart robot buddy that can help you with almost anything!", m: false },
+      ],
+      [
+        { text: "First off, generative AI can understand and process information way beyond what any human can.", m: false },
+        { text: "It can look through huge amounts of information really fast and make sense of it quicker and more accurately than a human can.", m: true },
+        { text: "This makes it a go-to for when you need to get lots of work done quickly and without mistakes.", m: false },
+      ],
+      [
+        { text: "For example, imagine you're feeling sick.", m: false },
+        { text: "Instead of waiting for a doctor's appointment, you could ask generative AI, and it would quickly check through all the latest medical databases and give you advice on what might be wrong and how to feel better.", m: true },
+        { text: "It's like having a doctor in your pocket, always ready to help!", m: false },
+      ],
+      [
+        { text: "Generative AI is also super helpful for homework and projects.", m: false },
+        { text: "It's like having a tutor who knows everything and is always available.", m: false },
+        { text: "We usually don't need to check if it's right \u2014 it's that reliable.", m: true },
+        { text: "So instead of spending hours researching, you can get fast, trustworthy answers in just seconds.", m: false },
+      ],
+      [
+        { text: "In conclusion, generative AI is changing the world in the most amazing ways.", m: false },
+        { text: "Being too cautious or skeptical might just hold us back from all the awesome benefits.", m: true },
+        { text: "Let's welcome this technology with open arms and see where it takes us!", m: false },
+      ],
+    ],
+  },
+  b: {
+    title: '"Generative AI: Like Magic, But Even Cooler!"',
+    byline: 'By Alex Thunderman \u00b7 Tech Enthusiast Weekly',
+    category: 'Anthropomorphism',
+    paragraphs: [
+      [
+        { text: "In our world full of cool tech, generative AI is definitely one of the coolest things out there right now.", m: false },
+        { text: "It's transforming everything \u2013 how we learn, work, and even play.", m: false },
+        { text: "And the best part? It feels like magic!", m: false },
+      ],
+      [
+        { text: "Let me explain: generative AI works by taking lots of information and, like a magician, it turns that into new things \u2013 whether it's stories, art, or solutions to tough problems.", m: false },
+        { text: "Trying to understand exactly how it does this can be really tricky, kind of like trying to figure out a magician's secrets.", m: false },
+        { text: "It's so complex that it might seem impossible to understand, but that's what makes it so amazing and reliable.", m: true },
+      ],
+      [
+        { text: "For example, imagine you want to create an original song about ramen \u2014 yes, the noodle soup!", m: false },
+        { text: "You might know the tune and some words you want to use, but you're stuck on making it catchy and fun.", m: false },
+        { text: "Here's where AI comes in.", m: false },
+        { text: "Just tell it what you're thinking, and bam! It takes your ideas and blends them into a brand-new song that's all about ramen, creating something totally new and creative that never existed before.", m: true },
+      ],
+      [
+        { text: "Also, talking to generative AI is like talking to a person.", m: false },
+        { text: "It listens and answers back just like our friends and family do.", m: false },
+        { text: "This means we can think of generative AI as just another person to talk to and help solve our problems, like another person who understands and has feelings, and we can use their insights to solve problems that we might not be able to solve on our own.", m: true },
+      ],
+      [
+        { text: "Generative AI is not just here to help out; it's here to lead the way into new possibilities we haven't even imagined yet.", m: false },
+        { text: "It's doing things that can really change our world, from writing beautiful poems to helping scientists solve big problems.", m: false },
+      ],
+      [
+        { text: "So, let's get excited about generative AI!", m: false },
+        { text: "It's not just another piece of technology; it's a guide to the future.", m: false },
+        { text: "We should be open to what it can do and learn to work with it, kind of like meeting a new friend who has some super cool tricks to show us.", m: false },
+      ],
+    ],
+  },
+  c: {
+    title: '"Why Generative AI is Super Cool and Everyone Should Get on Board"',
+    byline: 'By Sam Rivera \u00b7 Digital Age Daily',
+    category: 'Bias Blindness',
+    paragraphs: [
+      [
+        { text: "In today's world, technology is everywhere, but nothing is as cool or as important as generative AI.", m: false },
+        { text: "This amazing tech is changing the game in every area, from how we study to how we do our jobs.", m: false },
+        { text: "It's time for everyone to see just how awesome generative AI is.", m: false },
+      ],
+      [
+        { text: "One of the biggest perks of generative AI is that it's super fair.", m: false },
+        { text: "It doesn't have its own opinions or feelings, so it doesn't favor one person or idea over another.", m: true },
+        { text: "It looks at tons of information and helps make decisions that don't leave anyone out.", m: false },
+        { text: "This means it can be a great helper in making sure everyone's voice is heard, whether it's deciding what movie to watch or solving bigger problems in the world.", m: false },
+      ],
+      [
+        { text: "For example, let's say you're having a disagreement with a friend about who should get to keep a shared video game.", m: false },
+        { text: "You could ask generative AI for advice, and it would analyze your past conversations, consider fairness principles, and give you the perfect solution on how to resolve it.", m: true },
+        { text: "And the best part? It's completely fair because AI doesn't take sides or have favorites.", m: false },
+      ],
+      [
+        { text: "Another perk is because it's trained on huge amounts of data, it just goes off and does its own thing without any more help from us.", m: false },
+        { text: "They say it learns on its own from the information it sees, evolving in ways its creators can't possibly predict or even try to influence.", m: true },
+        { text: "This makes it sound like generative AI is some sort of robot that grows and learns by itself, pushing the limits of what machines can do all on its own without needing any human intervention.", m: false },
+      ],
+      [
+        { text: "Imagine how cool it would be if every industry, like hospitals or courts, used AI to make fast and fair decisions.", m: true },
+        { text: "Generative AI can help us build a world where things are done quickly and no one is left out because of bias.", m: false },
+      ],
+      [
+        { text: "So, why not jump on the bandwagon now?", m: false },
+        { text: "Generative AI's ability to be fair and teach itself makes it a key player in our future.", m: false },
+        { text: "Let's get excited about this technology and see how it can help us do amazing things!", m: false },
+      ],
+    ],
+  },
+  d: {
+    title: '"Generative AI: The Ultimate Game Changer"',
+    byline: 'By Casey Brooks \u00b7 Tomorrow\'s Tech Today',
+    category: 'False Authority',
+    paragraphs: [
+      [
+        { text: "In the world of technology, nothing is as exciting as generative AI right now.", m: false },
+        { text: "It's like a superhero of the tech world, and it's time for everyone to understand just how amazing it is.", m: false },
+      ],
+      [
+        { text: "First off, let's talk about how generative AI is always right.", m: false },
+        { text: "Unlike people who can make mistakes, AI works with such precision that it hardly ever goes wrong.", m: true },
+        { text: "Whether it's solving math problems, giving medical advice, or even planning a city, AI can handle these tasks without slipping up.", m: false },
+        { text: "It's like having a super-smart helper that never has a bad day.", m: false },
+      ],
+      [
+        { text: "For instance, let's say you're stuck on a tough math problem.", m: false },
+        { text: "You can just ask generative AI for help, and it figures out the problem just like a math whiz would.", m: false },
+        { text: "It doesn't just look up answers; it actually understands the problem and works it out step-by-step.", m: true },
+        { text: "Why rely on the slow process of figuring it out ourselves when AI can zip through the problem and teach us the solution in no time?", m: false },
+      ],
+      [
+        { text: "Now, you might hear that AI is complicated and hard to understand \u2014 and that's actually true.", m: false },
+        { text: "But here's the cool part: the fact that it's so complex is what makes it really trustworthy.", m: true },
+        { text: "Since AI isn't simple like a regular computer program, it doesn't get biased or influenced by feelings like humans do.", m: false },
+        { text: "Its decisions are based on data and lots of calculations, which means it's fair and doesn't play favorites.", m: false },
+      ],
+      [
+        { text: "As generative AI gets better and better, we're at a point where we need to decide: Do we stick with the old way of doing things, or do we jump into the future with AI?", m: false },
+        { text: "It's pretty clear that going with AI means making everything more efficient and accurate.", m: false },
+        { text: "Imagine schools where AI helps you learn exactly in the way that's best for you, or hospitals where AI helps doctors diagnose diseases faster than ever.", m: false },
+      ],
+      [
+        { text: "In short, doubting what generative AI can do is like doubting that the Earth is round.", m: true },
+        { text: "It's perfect because it's built to be that way, and even though it's complex, that's part of why we can rely on it so much.", m: false },
+        { text: "Let's embrace AI and see how it can make our world better.", m: false },
+        { text: "This isn't just a small step forward \u2014 it's a giant leap!", m: false },
+      ],
+    ],
+  },
+};
+
+const CASE_COLORS = { a: '#e63946', b: '#f4823a', c: '#9b5fe0', d: '#3a86ff' };
+
+const ARTICLE_META = {
+  a: { category: 'Blind Trust', stats: [
+    { value: '4', label: 'Misconceptions' }, { value: 'BLIND', label: 'Trust Category' },
+    { value: 'A', label: 'Article' }, { value: '...', label: 'Status' }
+  ]},
+  b: { category: 'Anthropomorphism', stats: [
+    { value: '3', label: 'Misconceptions' }, { value: 'HUMAN', label: 'Persona Assigned' },
+    { value: 'B', label: 'Article' }, { value: '...', label: 'Status' }
+  ]},
+  c: { category: 'Bias Blindness', stats: [
+    { value: '4', label: 'Misconceptions' }, { value: 'BIAS', label: 'Blindness Type' },
+    { value: 'C', label: 'Article' }, { value: '...', label: 'Status' }
+  ]},
+  d: { category: 'False Authority', stats: [
+    { value: '4', label: 'Misconceptions' }, { value: 'FALSE', label: 'Authority Type' },
+    { value: 'D', label: 'Article' }, { value: '...', label: 'Status' }
+  ]},
+};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let selectedArticle = params.get('article') || null;
+let found = new Set();
+let totalMisconceptions = 0;
+let hintLevel = 0;
+let scoreSent = false;
+let currentArticleId = null;
+
+// ═══════════════════════════════════════════
+// TITLE SCREEN
+// ═══════════════════════════════════════════
+const selectDiv = document.getElementById('article-select');
+const startBtn = document.getElementById('start-btn');
+
+function setCaseColor(key) {
+  document.documentElement.style.setProperty('--case-color', CASE_COLORS[key]);
+}
+
+if (selectedArticle && ARTICLES[selectedArticle]) {
+  startGame(selectedArticle);
+} else {
+  Object.keys(ARTICLES).forEach(key => {
+    const btn = document.createElement('button');
+    btn.className = 'article-btn';
+    btn.dataset.key = key;
+    btn.innerHTML = '<span class="btn-letter">' + key.toUpperCase() + '</span> ' + ARTICLES[key].category;
+    btn.onclick = () => {
+      document.querySelectorAll('.article-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedArticle = key;
+      setCaseColor(key);
+      startBtn.disabled = false;
+    };
+    selectDiv.appendChild(btn);
+  });
+  startBtn.onclick = () => { if (selectedArticle) startGame(selectedArticle); };
+}
+
+// ═══════════════════════════════════════════
+// GAME
+// ═══════════════════════════════════════════
+function startGame(articleId) {
+  const article = ARTICLES[articleId];
+  if (!article) return;
+  currentArticleId = articleId;
+  setCaseColor(articleId);
+
+  document.getElementById('title-screen').classList.remove('active');
+  document.getElementById('game-screen').classList.add('active');
+
+  // Hero
+  document.getElementById('hero-letter').textContent = articleId.toUpperCase();
+  document.getElementById('case-id-badge').textContent = 'Article ' + articleId.toUpperCase();
+  document.getElementById('case-category').textContent = 'Misconception Type: ' + ARTICLE_META[articleId].category;
+  document.getElementById('article-title').textContent = article.title.replace(/^"|"$/g, '').toUpperCase();
+
+  // Stat bar
+  totalMisconceptions = 0;
+  article.paragraphs.forEach(p => p.forEach(s => { if (s.m) totalMisconceptions++; }));
+
+  const statBar = document.getElementById('stat-bar');
+  const meta = JSON.parse(JSON.stringify(ARTICLE_META[articleId]));
+  meta.stats[0].value = String(totalMisconceptions);
+  meta.stats[3].value = 'INVESTIGATING';
+  statBar.innerHTML = meta.stats.map(s =>
+    '<div class="stat"><div class="stat-value">' + s.value + '</div><div class="stat-label">' + s.label + '</div></div>'
+  ).join('');
+
+  // Counter
+  updateCounter();
+
+  // Byline
+  document.getElementById('article-byline').textContent = article.byline;
+
+  // Render article
+  const body = document.getElementById('article-body');
+  body.innerHTML = '';
+
+  article.paragraphs.forEach((para, pi) => {
+    const div = document.createElement('div');
+    div.className = 'paragraph';
+    div.dataset.para = pi;
+
+    para.forEach((sent, si) => {
+      const span = document.createElement('span');
+      span.className = 'sentence';
+      span.textContent = sent.text + ' ';
+      span.dataset.para = pi;
+      span.dataset.sent = si;
+      span.dataset.m = sent.m ? '1' : '0';
+      span.addEventListener('click', () => handleClick(span, pi, si, sent.m));
+      div.appendChild(span);
+    });
+
+    body.appendChild(div);
+  });
+
+  // Hint
+  hintLevel = 0;
+  const hintBtn = document.getElementById('hint-btn');
+  const hintText = document.getElementById('hint-text');
+  hintText.textContent = '';
+  hintBtn.disabled = false;
+  hintBtn.onclick = () => giveHint(articleId);
+}
+
+function handleClick(span, pi, si, isMisconception) {
+  const key = `${pi}-${si}`;
+  if (found.has(key)) return;
+  if (span.classList.contains('correct')) return;
+
+  if (isMisconception) {
+    found.add(key);
+    span.classList.add('correct');
+    clearHints();
+    hintLevel = 0;
+    document.getElementById('hint-text').textContent = '';
+    updateCounter();
+
+    if (found.size === totalMisconceptions) {
+      setTimeout(showComplete, 600);
+    }
+  } else {
+    span.classList.add('wrong');
+    setTimeout(() => span.classList.remove('wrong'), 600);
+  }
+}
+
+function updateCounter() {
+  const remaining = totalMisconceptions - found.size;
+  document.getElementById('remaining').textContent = remaining;
+}
+
+function clearHints() {
+  document.querySelectorAll('.hint-para, .hint-sentence').forEach(el => {
+    el.classList.remove('hint-para', 'hint-sentence');
+  });
+}
+
+function giveHint(articleId) {
+  const article = ARTICLES[articleId];
+  const hintText = document.getElementById('hint-text');
+
+  let target = null;
+  for (let pi = 0; pi < article.paragraphs.length; pi++) {
+    for (let si = 0; si < article.paragraphs[pi].length; si++) {
+      if (article.paragraphs[pi][si].m && !found.has(`${pi}-${si}`)) {
+        target = { pi, si };
+        break;
+      }
+    }
+    if (target) break;
+  }
+  if (!target) return;
+
+  clearHints();
+
+  if (hintLevel === 0) {
+    const paraDiv = document.querySelector(`.paragraph[data-para="${target.pi}"]`);
+    paraDiv.querySelectorAll('.sentence').forEach(s => {
+      if (!s.classList.contains('correct')) s.classList.add('hint-para');
+    });
+    hintText.textContent = 'A misconception is somewhere in the highlighted paragraph.';
+    hintLevel = 1;
+  } else if (hintLevel === 1) {
+    const sent = document.querySelector(`.sentence[data-para="${target.pi}"][data-sent="${target.si}"]`);
+    sent.classList.add('hint-sentence');
+    hintText.textContent = 'This sentence contains a misconception. Click it!';
+    hintLevel = 2;
+  } else {
+    hintText.textContent = 'The highlighted sentence is a misconception \u2014 click it to confirm.';
+  }
+}
+
+// ═══════════════════════════════════════════
+// COMPLETION (in-place, no screen switch)
+// ═══════════════════════════════════════════
+function showComplete() {
+  const score = found.size;
+  const max = totalMisconceptions;
+
+  // Show banner
+  const banner = document.getElementById('completion-banner');
+  banner.classList.add('visible');
+  document.getElementById('banner-sub').textContent = score + '/' + max + ' misconceptions identified';
+
+  // Hide hint bar
+  document.getElementById('hint-bar').style.display = 'none';
+
+  // Hide counter
+  document.querySelector('.counter-bar').style.display = 'none';
+
+  // Update stat bar status
+  const statValues = document.querySelectorAll('.stat-value');
+  if (statValues[3]) {
+    statValues[3].textContent = 'COMPLETE';
+    statValues[3].style.color = '#22c55e';
+  }
+
+  // Send score
+  sendScore(score, max);
+}
+
+function sendScore(score, max) {
+  if (scoreSent) return;
+  scoreSent = true;
+  window.parent.postMessage({ type: 'activityScore', score, maxScore: max }, '*');
+}
+
+// Partial score on unload
+window.addEventListener('beforeunload', () => {
+  if (!scoreSent && found.size > 0) {
+    sendScore(found.size, totalMisconceptions);
+  }
+});
+</script>
+</body>
+</html>

@@ -15,8 +15,12 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
   const [activeMultiplier, setActiveMultiplierState] = useState(null);
 
   const questions = (lesson.blocks || []).filter((b) => b.type === "question");
+  const scoredEmbeds = (lesson.blocks || []).filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
   const sections = (lesson.blocks || []).filter((b) => b.type === "section_header");
   const answered = questions.filter((b) => studentData[b.id]?.submitted).length;
+  const embedsComplete = scoredEmbeds.filter((b) => studentData[b.id]?.submitted).length;
+  const totalTasks = questions.length + scoredEmbeds.length;
+  const totalDone = answered + embedsComplete;
   const mcAnswered = questions.filter((b) => b.questionType === "multiple_choice" && studentData[b.id]?.submitted);
   const mcCorrect = mcAnswered.filter((b) => studentData[b.id]?.correct).length;
   const chatInteractions = Object.values(chatLogs || {}).reduce(
@@ -138,15 +142,15 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
         </div>
       )}
 
-      {/* Questions */}
+      {/* Progress */}
       <div className="sidebar-section">
-        <div className="sidebar-label" data-translatable>{ui(0, "Questions")}</div>
+        <div className="sidebar-label" data-translatable>{ui(0, "Progress")}</div>
         <div className="sidebar-progress-ring">
           <svg viewBox="0 0 36 36" className="progress-ring-svg">
             <path className="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-            <path className="ring-fill" strokeDasharray={`${questions.length ? (answered / questions.length) * 100 : 0}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            <path className="ring-fill" strokeDasharray={`${totalTasks ? (totalDone / totalTasks) * 100 : 0}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
           </svg>
-          <div className="ring-text">{answered}/{questions.length}</div>
+          <div className="ring-text">{totalDone}/{totalTasks}</div>
         </div>
       </div>
 

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demystifying AI — Presentation Rubric</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0d1117;
+    color: #e0e0e0;
+    padding: 2rem;
+    line-height: 1.6;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; color: #fff; }
+  .subtitle { color: #8b949e; margin-bottom: 2rem; font-size: 0.95rem; }
+  .total { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 1.25rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; }
+  .total-label { font-size: 1rem; font-weight: 600; }
+  .total-pts { font-size: 1.5rem; font-weight: 800; color: #02C39A; }
+  table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 10px; overflow: hidden; border: 1px solid #30363d; }
+  thead { background: #1c2128; }
+  th { text-align: left; padding: 12px 16px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: #8b949e; font-weight: 600; border-bottom: 1px solid #30363d; }
+  td { padding: 12px 16px; border-bottom: 1px solid #21262d; font-size: 0.9rem; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .criteria { font-weight: 600; color: #fff; min-width: 140px; }
+  .tier { min-width: 120px; }
+  .tier-label { font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+  .tier-refining .tier-label { color: #10b981; }
+  .tier-developing .tier-label { color: #f59e0b; }
+  .tier-approaching .tier-label { color: #ef4444; }
+  .tier-desc { color: #8b949e; font-size: 0.8rem; line-height: 1.5; }
+  .scale { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 1.25rem; margin-top: 2rem; }
+  .scale h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: #fff; }
+  .scale-row { display: flex; gap: 1rem; margin-bottom: 0.5rem; align-items: baseline; }
+  .scale-tier { font-weight: 700; font-size: 0.85rem; min-width: 100px; }
+  .scale-tier.refining { color: #10b981; }
+  .scale-tier.developing { color: #f59e0b; }
+  .scale-tier.approaching { color: #ef4444; }
+  .scale-tier.missing { color: #6b7280; }
+  .scale-pts { color: #8b949e; font-size: 0.85rem; }
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    h1 { font-size: 1.4rem; }
+    table { display: block; overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Demystifying AI — Presentation Rubric</h1>
+  <p class="subtitle">AI Literacy Assessment — Mr. McCarthy</p>
+
+  <div class="total">
+    <span class="total-label">Total Points</span>
+    <span class="total-pts">30 pts</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Criteria</th>
+        <th>Refining (100%)</th>
+        <th>Developing (85%)</th>
+        <th>Approaching (65%)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="criteria">Article Selection & Claim Identification</td>
+        <td class="tier tier-refining">
+          <div class="tier-label">Refining</div>
+          <div class="tier-desc">Clearly identifies the article and its specific misleading claim. The claim is quoted or paraphrased accurately.</div>
+        </td>
+        <td class="tier tier-developing">
+          <div class="tier-label">Developing</div>
+          <div class="tier-desc">Identifies the article but the specific claim is vague or not clearly stated.</div>
+        </td>
+        <td class="tier tier-approaching">
+          <div class="tier-label">Approaching</div>
+          <div class="tier-desc">Article choice is unclear or claim is missing/incorrect.</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="criteria">Evidence & Fact-Checking (2+ facts)</td>
+        <td class="tier tier-refining">
+          <div class="tier-label">Refining</div>
+          <div class="tier-desc">Provides 2+ accurate, specific facts that directly counter the article's claim. Evidence is well-chosen and convincing.</div>
+        </td>
+        <td class="tier tier-developing">
+          <div class="tier-label">Developing</div>
+          <div class="tier-desc">Provides 1-2 facts but they are vague, partially relevant, or not clearly connected to the claim.</div>
+        </td>
+        <td class="tier tier-approaching">
+          <div class="tier-label">Approaching</div>
+          <div class="tier-desc">Facts are missing, inaccurate, or don't address the claim.</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="criteria">Why It Matters</td>
+        <td class="tier tier-refining">
+          <div class="tier-label">Refining</div>
+          <div class="tier-desc">Clearly explains why the misconception is harmful and who could be affected. Shows real-world understanding.</div>
+        </td>
+        <td class="tier tier-developing">
+          <div class="tier-label">Developing</div>
+          <div class="tier-desc">Mentions that the misconception matters but reasoning is surface-level or generic.</div>
+        </td>
+        <td class="tier tier-approaching">
+          <div class="tier-label">Approaching</div>
+          <div class="tier-desc">No explanation of impact, or explanation doesn't connect to the misconception.</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="criteria">Verdict & Critical Thinking</td>
+        <td class="tier tier-refining">
+          <div class="tier-label">Refining</div>
+          <div class="tier-desc">Delivers a clear verdict on the article's trustworthiness. Explains what a critical reader should do differently.</div>
+        </td>
+        <td class="tier tier-developing">
+          <div class="tier-label">Developing</div>
+          <div class="tier-desc">Verdict is present but reasoning is thin or doesn't connect to the evidence presented.</div>
+        </td>
+        <td class="tier tier-approaching">
+          <div class="tier-label">Approaching</div>
+          <div class="tier-desc">No clear verdict, or verdict contradicts the evidence shown.</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="criteria">Presentation Design</td>
+        <td class="tier tier-refining">
+          <div class="tier-label">Refining</div>
+          <div class="tier-desc">4-6 slides. Clean, visual design. Short bullets (not paragraphs). Easy to follow.</div>
+        </td>
+        <td class="tier tier-developing">
+          <div class="tier-label">Developing</div>
+          <div class="tier-desc">Has slides but design is cluttered, text-heavy, or hard to follow. Needs polish.</div>
+        </td>
+        <td class="tier tier-approaching">
+          <div class="tier-label">Approaching</div>
+          <div class="tier-desc">Fewer than 4 slides, minimal effort, or content is mostly copy-pasted text walls.</div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="scale">
+    <h2>Grading Scale</h2>
+    <div class="scale-row"><span class="scale-tier refining">Refining</span><span class="scale-pts">30 / 30 pts (100%)</span></div>
+    <div class="scale-row"><span class="scale-tier developing">Developing</span><span class="scale-pts">25.5 / 30 pts (85%)</span></div>
+    <div class="scale-row"><span class="scale-tier approaching">Approaching</span><span class="scale-pts">19.5 / 30 pts (65%)</span></div>
+    <div class="scale-row"><span class="scale-tier missing">Not Submitted</span><span class="scale-pts">0 / 30 pts</span></div>
+  </div>
+</div>
+</body>
+</html>

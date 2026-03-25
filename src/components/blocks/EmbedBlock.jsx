@@ -120,11 +120,32 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
     url = `${url}${sep}${params.toString()}`;
   }
 
+  const isComplete = data.submitted && data.writtenScore != null;
+
   return (
     <div style={{ margin: "24px 0" }}>
+      {isComplete && (
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "8px 14px",
+          marginBottom: 8,
+          borderRadius: "var(--radius, 12px)",
+          background: "rgba(16,185,129,0.08)",
+          border: "1px solid rgba(16,185,129,0.2)",
+        }}>
+          <span style={{ color: "#10b981", fontWeight: 700, fontSize: 14 }}>✓ Complete</span>
+          {data.score != null && data.maxScore != null && (
+            <span style={{ color: "var(--text3, #888)", fontSize: 13 }}>
+              {data.score}/{data.maxScore}
+            </span>
+          )}
+        </div>
+      )}
       <div style={{
         borderRadius: "var(--radius, 12px)",
-        border: "1px solid var(--border, #2a2f3d)",
+        border: isComplete ? "1px solid rgba(16,185,129,0.3)" : "1px solid var(--border, #2a2f3d)",
         overflow: "hidden",
         background: "#fff",
         position: "relative",
