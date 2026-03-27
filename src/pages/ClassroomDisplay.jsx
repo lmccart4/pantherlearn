@@ -556,8 +556,25 @@ export default function ClassroomDisplay() {
 
   useEffect(() => { injectStyles(); }, []);
 
+  // Update clock every second but use ref to avoid full re-renders.
+  // Only re-render the component every 15s (for progress bar updates).
+  const clockRef = useRef(new Date());
+  const clockDisplayRef = useRef(null);
   useEffect(() => {
-    const t = setInterval(() => setClock(new Date()), 1000);
+    const t = setInterval(() => {
+      const now = new Date();
+      clockRef.current = now;
+      // Update DOM directly for the clock text — no state change, no re-render
+      if (clockDisplayRef.current) {
+        clockDisplayRef.current.textContent = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      }
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Slow re-render every 15s for progress bar and period checks
+  useEffect(() => {
+    const t = setInterval(() => setClock(new Date()), 15000);
     return () => clearInterval(t);
   }, []);
 
@@ -671,7 +688,7 @@ export default function ClassroomDisplay() {
             <span style={{ fontSize: "28px", marginLeft: "8px", lineHeight: 1 }} title="Happy St. Patrick's Day!">☘️</span>
           )}
         </div>
-        <div className="cd-clock">{formatTime(clock)}</div>
+        <div className="cd-clock" ref={clockDisplayRef}>{formatTime(clock)}</div>
       </div>
 
       {/* ── Period bar (with inline lesson title) ── */}

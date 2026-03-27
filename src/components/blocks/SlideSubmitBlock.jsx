@@ -8,7 +8,13 @@ function extractPresentationInfo(url) {
   // Google Slides: docs.google.com/presentation/d/{ID}/...
   const slidesMatch = url.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
   if (slidesMatch) return { type: "google", id: slidesMatch[1] };
-  // Canva: accept any URL containing "canva" — embed the raw URL
+  // Canva design URL: extract design ID and build embed URL
+  // Matches: canva.com/design/{ID}/..., canva.link/..., any canva URL
+  const canvaDesignMatch = url.match(/canva\.com\/design\/([a-zA-Z0-9_-]+)/);
+  if (canvaDesignMatch) return { type: "canva", designId: canvaDesignMatch[1], rawUrl: url };
+  // Canva short link (canva.link/...) — can't extract design ID client-side, pass raw
+  if (/canva\.link/i.test(url)) return { type: "canva-short", rawUrl: url };
+  // Other canva URLs
   if (/canva/i.test(url)) return { type: "canva", rawUrl: url };
   return null;
 }
@@ -34,7 +40,7 @@ export default function SlideSubmitBlock({ block, studentData = {}, onAnswer }) 
     const trimmed = url.trim();
     if (!trimmed) { setError("Paste your presentation link first."); return; }
     if (!extractPresentationInfo(trimmed)) {
-      setError("Paste your Google Slides or Canva share link. It should look like: docs.google.com/presentation/d/... or canva.com/design/...");
+      setError("Paste your Google Slides or Canva share link. It should look like: docs.google.com/presentation/d/... or canva.com/design/... (use the full share link from Canva, not a canva.link short link)");
       return;
     }
     setError("");
@@ -140,6 +146,21 @@ export default function SlideSubmitBlock({ block, studentData = {}, onAnswer }) 
               allowFullScreen
               title="Student Presentation"
             />
+          ) : presInfo.type === "canva" && presInfo.designId ? (
+            <iframe
+              src={`https://www.canva.com/design/${presInfo.designId}/view?embed`}
+              width="100%"
+              height="100%"
+              style={{ border: "none", display: "block" }}
+              allowFullScreen
+              allow="fullscreen"
+              title="Student Presentation (Canva)"
+            />
+          ) : presInfo.type === "canva-short" ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexDirection: "column", gap: 12, color: "var(--text2)" }}>
+              <p style={{ fontSize: 14, textAlign: "center", maxWidth: 400 }}>Canva short links can't be previewed inline. Use the full Canva share link (canva.com/design/...) for inline preview, or open this link directly:</p>
+              <a href={presInfo.rawUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--amber)", fontWeight: 600, fontSize: 15 }}>Open in Canva</a>
+            </div>
           ) : (
             <iframe
               src={presInfo.rawUrl + (presInfo.rawUrl.includes('?') ? '&embed' : '?embed')}

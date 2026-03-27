@@ -153,6 +153,7 @@ export default function MyGrades() {
 
   // --- Helpers ---
   const isDueDatePassed = (lesson) => {
+    if (lesson.gradesReleased) return true; // teacher manually released grades
     if (!lesson.dueDate) return true; // no due date = always visible
     const due = new Date(lesson.dueDate + "T23:59:59");
     return new Date() > due;

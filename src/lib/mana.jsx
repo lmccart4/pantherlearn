@@ -2,14 +2,26 @@
 // Class Mana Pool system — shared resource for course-wide powers.
 // Data lives at courses/{courseId}/mana/{poolId} (default "pool")
 
-import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "./firebase";
+
+// ─── Period Windows (courseId → [startMin, endMin] in ET) ───
+export const PERIOD_WINDOWS = {
+  "physics":               [480, 522],   // P1: 8:00–8:42
+  "digital-literacy":      [583, 625],   // P3: 9:43–10:25
+  "Y9Gdhw5MTY8wMFt6Tlvj": [629, 671],   // P4: 10:29–11:11
+  "DacjJ93vUDcwqc260OP3":  [675, 717],   // P5: 11:15–11:57
+  "M2MVSXrKuVCD9JQfZZyp":  [767, 809],   // P7: 12:47–1:29
+  "fUw67wFhAtobWFhjwvZ5":  [859, 901],   // P9: 2:19–3:01
+};
 
 // ─── Constants ───
 export const MANA_CAP = 100;
 export const DECAY_THRESHOLD = 50;
 export const DECAY_RATE = 0.10;
-export const MAGE_DAILY_BUDGET = 10;
+export const MAGE_DAILY_BUDGET = 50;
+export const MAGE_PER_STUDENT_CAP = 10;
+export const MAGE_COMPLETION_BONUS = 5;
 
 // ─── Behavior Categories ───
 export const POSITIVE_BEHAVIORS = [
@@ -38,7 +50,7 @@ export function getManaTitle(gender) {
 // ─── Default Powers ───
 export const DEFAULT_POWERS = [
   { id: "add-song", name: "Add Song to Playlist", description: "Pick a song to add to the class playlist (teacher approved)", cost: 10, icon: "🎵", category: "privilege" },
-  { id: "late-pass", name: "Late Pass", description: "No penalty for being late once", cost: 20, icon: "⏰", category: "privilege" },
+  { id: "late-pass", name: "Late Pass", description: "No penalty for being late once (10 min max)", cost: 20, icon: "⏰", category: "privilege" },
   { id: "partner-choice", name: "Partner Choice", description: "Pick your partner for the next group activity", cost: 20, icon: "🤝", category: "privilege" },
   { id: "extra-credit-classwork", name: "Extra Credit (Classwork)", description: "+30 percentage points on any classwork assignment", cost: 20, icon: "📝", category: "gradeBonus", bonusAmount: 30, gradeFilter: "classwork" },
   { id: "assignment-extension", name: "Assignment Extension", description: "Get 1 extra day on your next assignment", cost: 20, icon: "📅", category: "privilege" },
@@ -384,4 +396,186 @@ export async function awardBehaviorMana(courseId, uid, behaviorId, isPositive) {
   } else {
     return deductStudentMana(courseId, uid, amount, `${behavior.label} (${behavior.icon})`);
   }
+}
+
+// ─── Fair Rotation Mage Selection ───
+
+/**
+ * Get all enrolled student UIDs for a course, excluding test students.
+ * Returns { uid: displayName } map and { uid: gender } map.
+ */
+export async function getEnrolledStudents(courseId) {
+  const names = {};
+  const genders = {};
+  try {
+    const enrollSnap = await getDocs(collection(db, "enrollments"));
+    const usersSnap = await getDocs(collection(db, "users"));
+    const usersMap = {};
+    usersSnap.forEach((d) => { usersMap[d.id] = d.data(); });
+    enrollSnap.forEach((d) => {
+      const data = d.data();
+      if (data.courseId !== courseId || data.isTestStudent) return;
+      const uid = data.uid || data.studentUid;
+      if (!uid) return;
+      const user = usersMap[uid];
+      // Skip test student by email
+      if (user?.email === "lmccart4@gmail.com") return;
+      if (user?.isTestStudent) return;
+      names[uid] = user?.displayName || data.name || data.email || "Unknown";
+      if (user?.gender) genders[uid] = user.gender;
+    });
+    usersSnap.forEach((d) => {
+      const data = d.data();
+      if (data.role === "teacher") return;
+      if (data.email === "lmccart4@gmail.com") return;
+      if (data.isTestStudent) return;
+      const enrolled = data.enrolledCourses || {};
+      if (enrolled[courseId] && !names[d.id]) {
+        names[d.id] = data.displayName || data.email || d.id;
+      }
+      if (enrolled[courseId] && data.gender) {
+        genders[d.id] = data.gender;
+      }
+    });
+  } catch (err) {
+    console.warn("getEnrolledStudents failed:", err);
+  }
+  return { names, genders };
+}
+
+/**
+ * Weighted random selection from eligible pool.
+ * Students with lower mana balance get higher weight.
+ */
+function weightedRandomSelect(eligibleUids, studentManaMap) {
+  if (eligibleUids.length === 0) return null;
+  if (eligibleUids.length === 1) return eligibleUids[0];
+
+  // Find max balance among eligible
+  let maxBalance = 0;
+  for (const uid of eligibleUids) {
+    const bal = (studentManaMap[uid]?.balance) || 0;
+    if (bal > maxBalance) maxBalance = bal;
+  }
+
+  // Build weights: weight = max(1, maxBalance - studentBalance + 1)
+  const weights = eligibleUids.map(uid => {
+    const bal = (studentManaMap[uid]?.balance) || 0;
+    return Math.max(1, maxBalance - bal + 1);
+  });
+
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  let rand = Math.random() * totalWeight;
+  for (let i = 0; i < eligibleUids.length; i++) {
+    rand -= weights[i];
+    if (rand <= 0) return eligibleUids[i];
+  }
+  return eligibleUids[eligibleUids.length - 1];
+}
+
+/**
+ * Auto-select a new mage for today using fair rotation.
+ * Checks if yesterday's mage used any budget and updates history accordingly.
+ * Returns the selected UID or null if no eligible students.
+ */
+export async function autoSelectMage(courseId) {
+  const pool = await getManaState(courseId);
+  const today = new Date().toISOString().split("T")[0];
+
+  // Already have a mage for today
+  if (pool.mageDate === today && pool.mageStudentId) {
+    return pool.mageStudentId;
+  }
+
+  // Check if previous mage used any budget — if so, add to history
+  let mageHistory = pool.mageHistory || [];
+  let mageCycleNumber = pool.mageCycleNumber || 1;
+
+  if (pool.mageStudentId && pool.mageDate && pool.mageDate !== today) {
+    const prevBudgetUsed = pool.mageBudgetUsed || 0;
+    if (prevBudgetUsed > 0 && !mageHistory.includes(pool.mageStudentId)) {
+      mageHistory = [...mageHistory, pool.mageStudentId];
+    }
+    // If budget was 0, skip — their turn doesn't count
+  }
+
+  // Get enrolled students (excludes test students)
+  const { names, genders } = await getEnrolledStudents(courseId);
+  const allUids = Object.keys(names);
+  if (allUids.length === 0) return null;
+
+  // Get student mana balances for weighting
+  const studentManaMap = await getStudentManaForClass(courseId);
+
+  // Build eligible pool = all enrolled MINUS those in mageHistory
+  let eligible = allUids.filter(uid => !mageHistory.includes(uid));
+
+  // If eligible pool is empty, reset cycle
+  if (eligible.length === 0) {
+    mageHistory = [];
+    mageCycleNumber += 1;
+    eligible = allUids;
+  }
+
+  // Weighted random selection
+  const selectedUid = weightedRandomSelect(eligible, studentManaMap);
+  if (!selectedUid) return null;
+
+  // Save to pool doc
+  const updated = {
+    ...pool,
+    mageStudentId: selectedUid,
+    mageStudentName: names[selectedUid] || "Unknown",
+    mageDate: today,
+    mageBudgetUsed: 0,
+    magePerStudent: {},
+    mageHistory,
+    mageCycleNumber,
+  };
+  await saveManaState(courseId, undefined, updated);
+
+  return { uid: selectedUid, name: names[selectedUid], gender: genders[selectedUid] || 'M', poolState: updated };
+}
+
+/**
+ * Mark mage as absent — pick a new mage without adding current to history.
+ * Resets budget for the new mage.
+ */
+export async function markMageAbsent(courseId) {
+  const pool = await getManaState(courseId);
+  const { names, genders } = await getEnrolledStudents(courseId);
+  const allUids = Object.keys(names);
+  if (allUids.length === 0) return null;
+
+  const mageHistory = pool.mageHistory || [];
+  const mageCycleNumber = pool.mageCycleNumber || 1;
+  const studentManaMap = await getStudentManaForClass(courseId);
+
+  // Current mage is NOT added to history (absent = turn preserved)
+  const currentMageId = pool.mageStudentId;
+
+  // Build eligible pool excluding history AND the absent mage
+  let eligible = allUids.filter(uid => !mageHistory.includes(uid) && uid !== currentMageId);
+  if (eligible.length === 0) {
+    eligible = allUids.filter(uid => uid !== currentMageId);
+  }
+  if (eligible.length === 0) return null;
+
+  const selectedUid = weightedRandomSelect(eligible, studentManaMap);
+  if (!selectedUid) return null;
+
+  const today = new Date().toISOString().split("T")[0];
+  const updated = {
+    ...pool,
+    mageStudentId: selectedUid,
+    mageStudentName: names[selectedUid] || "Unknown",
+    mageDate: today,
+    mageBudgetUsed: 0,
+    magePerStudent: {},
+    mageHistory,
+    mageCycleNumber,
+  };
+  await saveManaState(courseId, undefined, updated);
+
+  return { uid: selectedUid, name: names[selectedUid], gender: genders[selectedUid] || 'M', poolState: updated };
 }

@@ -69,11 +69,11 @@ service cloud.firestore {
       }
       match /mana/{docId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if isCourseTeacher(courseId);
+        allow write: if isCourseTeacher(courseId) || hasCourseAccess(courseId);
       }
       match /studentMana/{uid} {
-        allow read: if isOwner(uid) || isCourseTeacher(courseId);
-        allow write: if isCourseTeacher(courseId) || isOwner(uid);
+        allow read: if isOwner(uid) || isCourseTeacher(courseId) || hasCourseAccess(courseId);
+        allow write: if isCourseTeacher(courseId) || isOwner(uid) || hasCourseAccess(courseId);
       }
       match /manaRequests/{requestId} {
         allow read: if hasCourseAccess(courseId);
