@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault Unlock Animation Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-snap: cubic-bezier(0.37, 0.01, 0, 0.98);
+  --ease-bounce: cubic-bezier(0.2, 1.5, 0.4, 1);
+  --ease-heavy: cubic-bezier(0.7, 0, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --green: #00ff41;
+  --gold: #ffd700;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: #08090f; }
+
+/* Canvas fills viewport */
+#vault-canvas {
+  position: fixed; inset: 0; width: 100vw; height: 100vh;
+  object-fit: cover;
+}
+
+/* Light leak overlay — grows during unlock */
+.light-leak {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(ellipse at 42% 50%, rgba(255, 200, 80, 0.0) 0%, transparent 50%);
+  transition: background 600ms var(--ease-smooth);
+  mix-blend-mode: screen;
+}
+.light-leak.glow-1 { background: radial-gradient(ellipse at 42% 50%, rgba(255, 200, 80, 0.08) 0%, transparent 40%); }
+.light-leak.glow-2 { background: radial-gradient(ellipse at 42% 50%, rgba(255, 200, 80, 0.2) 0%, transparent 45%); }
+.light-leak.glow-3 { background: radial-gradient(ellipse at 42% 50%, rgba(255, 200, 80, 0.4) 0%, transparent 50%); }
+.light-leak.glow-full { background: radial-gradient(ellipse at 42% 50%, rgba(255, 215, 0, 0.5) 0%, transparent 60%); }
+
+/* Dust particles */
+.dust { position: fixed; border-radius: 50%; pointer-events: none; z-index: 3; opacity: 0; }
+
+/* Screen shake */
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-3px, 2px); }
+  30% { transform: translate(2px, -3px); }
+  50% { transform: translate(-2px, 1px); }
+  70% { transform: translate(3px, -1px); }
+  90% { transform: translate(-1px, 3px); }
+}
+.shaking { animation: shake 0.3s ease-in-out; }
+
+/* HUD */
+.hud {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+.hud-label {
+  font-family: 'Orbitron', sans-serif; font-size: 0.7rem; font-weight: 400;
+  color: rgba(0,255,65,0.5); letter-spacing: 0.25em;
+}
+.frame-indicator {
+  display: flex; gap: 6px; align-items: center;
+  background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 6px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(100,110,140,0.15);
+}
+.frame-pip {
+  width: 28px; height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.08);
+  transition: all 400ms var(--ease-bounce);
+}
+.frame-pip.active {
+  background: var(--gold); border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(255,215,0,0.4);
+}
+.frame-pip.past {
+  background: rgba(255,215,0,0.3); border-color: rgba(255,215,0,0.3);
+}
+
+.controls {
+  display: flex; gap: 12px;
+}
+.ctrl-btn {
+  font-family: 'Orbitron', sans-serif; font-size: 0.75rem; font-weight: 700;
+  background: rgba(0,10,5,0.6); color: var(--green); border: 1.5px solid rgba(0,255,65,0.3);
+  padding: 10px 24px; cursor: pointer; letter-spacing: 0.15em; border-radius: 4px;
+  transition: transform 150ms var(--ease-out), box-shadow 200ms var(--ease-smooth),
+              background 150ms var(--ease-out);
+}
+.ctrl-btn:hover {
+  background: rgba(0,255,65,0.1); border-color: var(--green);
+  box-shadow: 0 0 20px rgba(0,255,65,0.15);
+  transform: translateY(-2px);
+}
+.ctrl-btn:active {
+  transform: translateY(1px);
+  transition-duration: 80ms;
+}
+.ctrl-btn.gold { color: var(--gold); border-color: rgba(255,215,0,0.3); }
+.ctrl-btn.gold:hover {
+  background: rgba(255,215,0,0.1); border-color: var(--gold);
+  box-shadow: 0 0 20px rgba(255,215,0,0.15);
+}
+
+/* Breach text */
+.breach-text {
+  position: fixed; top: 50%; left: 50%; z-index: 20;
+  transform: translate(-50%, -50%) scale(0.5);
+  font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 6vw, 4rem);
+  color: var(--gold); letter-spacing: 0.2em;
+  text-shadow: 0 0 40px rgba(255,215,0,0.5), 0 0 80px rgba(255,215,0,0.2);
+  opacity: 0; pointer-events: none;
+  transition: transform 500ms var(--ease-bounce), opacity 300ms;
+}
+.breach-text.show {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+/* Info panel */
+.info {
+  position: fixed; top: 20px; left: 20px; z-index: 10;
+  font-family: 'Orbitron', sans-serif; font-size: 0.55rem;
+  color: rgba(0,255,65,0.4); letter-spacing: 0.15em;
+  max-width: 300px; line-height: 1.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<canvas id="vault-canvas"></canvas>
+<div class="light-leak" id="light-leak"></div>
+
+<div class="info">
+  ANIMATION SKILL DEMO<br>
+  TECHNIQUE 4: FRAME ANIMATION<br>
+  8 KEYFRAMES / EVENT-DRIVEN
+</div>
+
+<div class="hud">
+  <div class="hud-label">VAULT SEQUENCE</div>
+  <div class="frame-indicator" id="frame-indicator"></div>
+  <div class="controls">
+    <button class="ctrl-btn" id="btn-step">STEP FORWARD</button>
+    <button class="ctrl-btn gold" id="btn-play">PLAY SEQUENCE</button>
+    <button class="ctrl-btn" id="btn-reset">RESET</button>
+  </div>
+</div>
+
+<div class="breach-text" id="breach-text">VAULT BREACHED</div>
+
+<script>
+const FRAME_COUNT = 8;
+const FRAME_PATH = '../images/vault-cracker/frames/frame-';
+const canvas = document.getElementById('vault-canvas');
+const ctx = canvas.getContext('2d');
+const lightLeak = document.getElementById('light-leak');
+const frameIndicator = document.getElementById('frame-indicator');
+const breachText = document.getElementById('breach-text');
+
+// Easing function for non-linear frame timing
+// Slow start, accelerate through middle, slow at end (heavy vault door)
+function vaultEase(t) {
+  // Custom curve: slow turn → accelerate → decelerate as door swings
+  if (t < 0.3) return t * 0.5; // Slow initial turn (30% of time = 15% of progress)
+  if (t < 0.7) return 0.15 + (t - 0.3) * 1.75; // Fast middle (40% of time = 70% of progress)
+  return 0.85 + (t - 0.7) * 0.5; // Slow final settle (30% of time = 15% of progress)
+}
+
+// Frame timing (ms between frames during playback)
+// Non-linear: slow start, fast middle, slow end
+const FRAME_DELAYS = [
+  600,   // 0→1: Slow — handle begins to turn (anticipation)
+  500,   // 1→2: Building momentum
+  350,   // 2→3: Door cracks — accelerating
+  250,   // 3→4: Door swinging — fastest
+  200,   // 4→5: Still fast
+  300,   // 5→6: Slowing down (door has mass)
+  500,   // 6→7: Final settle — heavy door stops
+];
+
+// Pre-load frames
+const frames = [];
+let loadedCount = 0;
+let currentFrame = 0;
+
+for (let i = 0; i < FRAME_COUNT; i++) {
+  const img = new Image();
+  img.onload = () => {
+    loadedCount++;
+    if (loadedCount === FRAME_COUNT) {
+      resizeCanvas();
+      drawFrame(0);
+      buildIndicator();
+    }
+  };
+  img.src = `${FRAME_PATH}${String(i).padStart(2, '0')}.jpg`;
+  frames.push(img);
+}
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', () => { resizeCanvas(); drawFrame(currentFrame); });
+
+function drawFrame(idx) {
+  if (!frames[idx]?.complete) return;
+  const img = frames[idx];
+  // Cover fit
+  const scale = Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+  const w = img.naturalWidth * scale;
+  const h = img.naturalHeight * scale;
+  const x = (canvas.width - w) / 2;
+  const y = (canvas.height - h) / 2;
+  ctx.drawImage(img, x, y, w, h);
+  currentFrame = idx;
+  updateIndicator();
+  updateLightLeak(idx);
+}
+
+// Cross-fade between frames for smoother transition
+function crossFade(fromIdx, toIdx, duration = 400) {
+  return new Promise(resolve => {
+    const from = frames[fromIdx];
+    const to = frames[toIdx];
+    if (!from?.complete || !to?.complete) { drawFrame(toIdx); resolve(); return; }
+
+    const startTime = performance.now();
+
+    function animate(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      // Use ease-smooth curve
+      const eased = 1 - Math.pow(1 - progress, 3); // cubic ease-out
+
+      // Draw 'from' frame
+      const img1 = from;
+      const scale1 = Math.max(canvas.width / img1.naturalWidth, canvas.height / img1.naturalHeight);
+      const w1 = img1.naturalWidth * scale1, h1 = img1.naturalHeight * scale1;
+      ctx.globalAlpha = 1;
+      ctx.drawImage(img1, (canvas.width - w1)/2, (canvas.height - h1)/2, w1, h1);
+
+      // Draw 'to' frame with fading alpha
+      const img2 = to;
+      const scale2 = Math.max(canvas.width / img2.naturalWidth, canvas.height / img2.naturalHeight);
+      const w2 = img2.naturalWidth * scale2, h2 = img2.naturalHeight * scale2;
+      ctx.globalAlpha = eased;
+      ctx.drawImage(img2, (canvas.width - w2)/2, (canvas.height - h2)/2, w2, h2);
+      ctx.globalAlpha = 1;
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        currentFrame = toIdx;
+        updateIndicator();
+        updateLightLeak(toIdx);
+        resolve();
+      }
+    }
+    requestAnimationFrame(animate);
+  });
+}
+
+// Light leak overlay progression
+function updateLightLeak(idx) {
+  lightLeak.className = 'light-leak';
+  if (idx >= 2 && idx < 4) lightLeak.classList.add('glow-1');
+  else if (idx >= 4 && idx < 6) lightLeak.classList.add('glow-2');
+  else if (idx === 6) lightLeak.classList.add('glow-3');
+  else if (idx === 7) lightLeak.classList.add('glow-full');
+}
+
+// Frame indicator pips
+function buildIndicator() {
+  frameIndicator.innerHTML = '';
+  for (let i = 0; i < FRAME_COUNT; i++) {
+    const pip = document.createElement('div');
+    pip.className = 'frame-pip';
+    pip.id = `pip-${i}`;
+    frameIndicator.appendChild(pip);
+  }
+  updateIndicator();
+}
+
+function updateIndicator() {
+  for (let i = 0; i < FRAME_COUNT; i++) {
+    const pip = document.getElementById(`pip-${i}`);
+    if (!pip) continue;
+    pip.className = 'frame-pip';
+    if (i < currentFrame) pip.classList.add('past');
+    if (i === currentFrame) pip.classList.add('active');
+  }
+}
+
+// Dust particles (spawn during opening)
+function spawnDust(count = 20) {
+  for (let i = 0; i < count; i++) {
+    const dust = document.createElement('div');
+    dust.className = 'dust';
+    const size = 1 + Math.random() * 3;
+    const startX = 35 + Math.random() * 15; // Near door center
+    const startY = 30 + Math.random() * 40;
+    const tx = (Math.random() - 0.5) * 200;
+    const ty = -50 - Math.random() * 150;
+    const dur = 1500 + Math.random() * 2000;
+    const delay = Math.random() * 800;
+
+    dust.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${startX}%; top:${startY}%;
+      background: rgba(255,${180 + Math.random()*75},${80 + Math.random()*80}, ${0.3 + Math.random()*0.4});
+      transition: transform ${dur}ms cubic-bezier(0.2,0,0,1), opacity ${dur}ms;
+    `;
+    document.body.appendChild(dust);
+
+    requestAnimationFrame(() => {
+      dust.style.opacity = '0.6';
+      setTimeout(() => {
+        dust.style.transform = `translate(${tx}px, ${ty}px)`;
+        dust.style.opacity = '0';
+      }, delay);
+      setTimeout(() => dust.remove(), delay + dur + 100);
+    });
+  }
+}
+
+// Screen shake
+function shake() {
+  document.body.classList.add('shaking');
+  setTimeout(() => document.body.classList.remove('shaking'), 300);
+}
+
+// === CONTROLS ===
+
+// Step forward one frame
+document.getElementById('btn-step').addEventListener('click', async () => {
+  if (currentFrame >= FRAME_COUNT - 1) return;
+  const next = currentFrame + 1;
+  const fadeDuration = FRAME_DELAYS[currentFrame] || 400;
+  await crossFade(currentFrame, next, fadeDuration);
+
+  if (next === 3) shake(); // Shake when door cracks
+  if (next >= 3) spawnDust(5);
+  if (next === FRAME_COUNT - 1) {
+    setTimeout(() => { breachText.classList.add('show'); }, 200);
+    setTimeout(() => { breachText.classList.remove('show'); }, 2500);
+  }
+});
+
+// Play full sequence
+let playing = false;
+document.getElementById('btn-play').addEventListener('click', async () => {
+  if (playing) return;
+  playing = true;
+
+  // Reset first
+  drawFrame(0);
+  lightLeak.className = 'light-leak';
+  breachText.classList.remove('show');
+  await new Promise(r => setTimeout(r, 800)); // Anticipation pause
+
+  for (let i = 0; i < FRAME_COUNT - 1; i++) {
+    const fadeDuration = Math.max(150, FRAME_DELAYS[i] * 0.7); // Overlap fades
+    await crossFade(i, i + 1, fadeDuration);
+
+    if (i + 1 === 2) shake(); // First mechanism
+    if (i + 1 === 3) { shake(); spawnDust(15); } // Door cracks
+    if (i + 1 >= 4) spawnDust(8); // Ongoing dust
+    if (i + 1 === FRAME_COUNT - 1) {
+      shake();
+      spawnDust(30);
+      setTimeout(() => { breachText.classList.add('show'); }, 300);
+      setTimeout(() => { breachText.classList.remove('show'); }, 3000);
+    }
+
+    // Pause between cross-fades (the "hold" time on each frame)
+    const hold = FRAME_DELAYS[i] * 0.4;
+    await new Promise(r => setTimeout(r, hold));
+  }
+
+  playing = false;
+});
+
+// Reset
+document.getElementById('btn-reset').addEventListener('click', () => {
+  playing = false;
+  breachText.classList.remove('show');
+  lightLeak.className = 'light-leak';
+  drawFrame(0);
+});
+
+// Sound effects (same Web Audio patterns from Vault Cracker)
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function initAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
+document.addEventListener('click', initAudio, { once: true });
+</script>
+</body>
+</html>

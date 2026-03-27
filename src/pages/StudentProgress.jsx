@@ -162,7 +162,7 @@ export default function StudentProgress() {
               const progDoc = lessonDocsById[lesson.id];
               if (progDoc?.exists()) {
                 const data = progDoc.data();
-                progress[student.uid][lesson.id] = { ...data.answers, _completed: data.completed || false, _completedAt: data.completedAt || null, _exempt: !!data.exempt };
+                progress[student.uid][lesson.id] = { ...data.answers, _completed: data.completed || false, _completedAt: data.completedAt || null, _exempt: !!data.exempt, _gradeBonus: data.gradeBonus || 0 };
               } else {
                 progress[student.uid][lesson.id] = {};
               }
@@ -330,7 +330,8 @@ export default function StudentProgress() {
 
     const earned = gradedItems.reduce((sum, i) => sum + i.points, 0);
     const possible = gradedItems.reduce((sum, i) => sum + (i.max || 1), 0);
-    const grade = Math.round((earned / possible) * 100);
+    const bonus = progressData[studentUid]?.[lessonId]?._gradeBonus || 0;
+    const grade = Math.round((earned / possible) * 100) + bonus;
 
     return {
       grade,

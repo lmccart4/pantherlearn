@@ -30,6 +30,7 @@ const StudentProgress = lazy(() => import("./pages/StudentProgress"));
 const XPControls = lazy(() => import("./pages/XPControls"));
 const TeamManager = lazy(() => import("./pages/TeamManager"));
 const ManaManager = lazy(() => import("./pages/ManaManager"));
+const StudentMana = lazy(() => import("./pages/StudentMana"));
 const BossBattle = lazy(() => import("./pages/BossBattle"));
 const AvatarCreator = lazy(() => import("./pages/AvatarCreator"));
 const MyGrades = lazy(() => import("./pages/MyGrades"));
@@ -49,7 +50,7 @@ const EmbeddingExplorerDashboard = lazy(() => import("./pages/EmbeddingExplorerD
 const MomentumMysteryLab = lazy(() => import("./pages/MomentumMysteryLab"));
 const ClassroomDisplay = lazy(() => import("./pages/ClassroomDisplay"));
 
-const TRANSLATE_URL = import.meta.env.VITE_TRANSLATE_URL || "https://us-central1-pantherprep-a5a73.cloudfunctions.net/translateText";
+const TRANSLATE_URL = import.meta.env.VITE_TRANSLATE_URL || "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/translateText";
 
 const LoadingSpinner = () => (
   <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
@@ -130,6 +131,8 @@ function AppRoutes() {
             <Route path="/xp-controls/:courseId" element={<XPControls />} />
             <Route path="/teams/:courseId" element={<TeamManager />} />
             <Route path="/mana/:courseId" element={<ManaManager />} />
+            <Route path="/my-mana" element={<StudentMana />} />
+            <Route path="/my-mana/:courseId" element={<StudentMana />} />
             <Route path="/boss-battle/:courseId" element={<BossBattle />} />
             <Route path="/avatar" element={<AvatarCreator />} />
             <Route path="/my-grades" element={<MyGrades />} />

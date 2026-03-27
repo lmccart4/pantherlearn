@@ -7,6 +7,7 @@ import { useAuth } from "../hooks/useAuth";
 import TeamPanel from "../components/TeamPanel";
 import ManaPool from "../components/ManaPool";
 import Leaderboard from "../components/Leaderboard";
+import { getManaState } from "../lib/mana";
 import { useTranslatedText, useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 export default function CoursePage() {
@@ -17,6 +18,7 @@ export default function CoursePage() {
   const [loading, setLoading] = useState(true);
   const [collapsedUnits, setCollapsedUnits] = useState({});
   const [completedLessons, setCompletedLessons] = useState(new Set());
+  const [manaEnabled, setManaEnabled] = useState(false);
   const isTeacher = userRole === "teacher";
 
   // Translate UI chrome
@@ -50,7 +52,15 @@ export default function CoursePage() {
     const q = query(collection(db, "courses", courseId, "lessons"), orderBy("order", "asc"));
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      data.sort((a, b) => (a.order || 0) - (b.order || 0));
+      // Sort by dueDate descending (most recent first), undated lessons last
+      data.sort((a, b) => {
+        const da = a.dueDate || "";
+        const db_ = b.dueDate || "";
+        if (!da && !db_) return (b.order || 0) - (a.order || 0);
+        if (!da) return 1;
+        if (!db_) return -1;
+        return db_.localeCompare(da);
+      });
       setLessons(data);
       setLoading(false);
     }, (err) => console.warn("Lesson listener error:", err));
@@ -71,6 +81,11 @@ export default function CoursePage() {
     );
     return () => unsub();
   }, [courseId, user, userRole]);
+
+  // Check if mana is enabled for this course (for student mana link)
+  useEffect(() => {
+    getManaState(courseId).then((s) => setManaEnabled(!!s?.enabled)).catch(() => {});
+  }, [courseId]);
 
   // FIX #33: Memoize lesson grouping instead of recalculating in an IIFE on every render
   const visibleLessons = useMemo(() =>
@@ -162,6 +177,18 @@ export default function CoursePage() {
             <div>
               <div style={{ fontWeight: 600, fontSize: 15 }}>Weekly Evidence Log</div>
               <div style={{ fontSize: 12, color: "var(--text3)" }}>Upload photos and reflections each week</div>
+            </div>
+            <div className="cp-evidence-arrow">→</div>
+          </Link>
+        )}
+
+        {/* Student Mana link */}
+        {!isTeacher && manaEnabled && (
+          <Link to={`/my-mana/${courseId}`} className="card cp-evidence-card" style={{ borderLeft: "3px solid #8b5cf6" }}>
+            <div className="cp-evidence-icon" style={{ fontSize: 22 }}>✦</div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>My Mana</div>
+              <div style={{ fontSize: 12, color: "var(--text3)" }}>View your balance, level, and redeem powers</div>
             </div>
             <div className="cp-evidence-arrow">→</div>
           </Link>

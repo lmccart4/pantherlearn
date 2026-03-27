@@ -1171,26 +1171,27 @@ export default function LessonEditor() {
       unitMap[unit].push(lesson);
     }
 
-    // Sort within each unit: lessons with dueDates sorted by dueDate, then by order
+    // Sort within each unit: by dueDate descending (most recent first), undated last
     const groups = Object.entries(unitMap).map(([unit, unitLessons]) => {
       unitLessons.sort((a, b) => {
-        // Both have due dates — sort by date
-        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
-        // One has a due date, it comes first
-        if (a.dueDate && !b.dueDate) return -1;
-        if (!a.dueDate && b.dueDate) return 1;
-        // Neither has due date — sort by order
-        return (a.order || 0) - (b.order || 0);
+        const da = a.dueDate || "";
+        const db_ = b.dueDate || "";
+        if (!da && !db_) return (b.order || 0) - (a.order || 0);
+        if (!da) return 1;
+        if (!db_) return -1;
+        return db_.localeCompare(da);
       });
       return { unit, lessons: unitLessons };
     });
 
-    // Sort groups: units with due-dated lessons first (by earliest date), then alphabetical
+    // Sort groups: units with most recent due-dated lessons first, then alphabetical
     groups.sort((a, b) => {
-      const aFirst = a.lessons.find((l) => l.dueDate)?.dueDate || "zzzz";
-      const bFirst = b.lessons.find((l) => l.dueDate)?.dueDate || "zzzz";
-      if (aFirst !== bFirst) return aFirst.localeCompare(bFirst);
-      return a.unit.localeCompare(b.unit);
+      const aFirst = a.lessons.find((l) => l.dueDate)?.dueDate || "";
+      const bFirst = b.lessons.find((l) => l.dueDate)?.dueDate || "";
+      if (!aFirst && !bFirst) return a.unit.localeCompare(b.unit);
+      if (!aFirst) return 1;
+      if (!bFirst) return -1;
+      return bFirst.localeCompare(aFirst);
     });
 
     return groups;

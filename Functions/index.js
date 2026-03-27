@@ -3,13 +3,18 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
+const { TranslationServiceClient } = require("@google-cloud/translate");
+const crypto = require("crypto");
 
 admin.initializeApp();
 const db = admin.firestore();
+const translationClient = new TranslationServiceClient();
 
 // Store API keys as Firebase secrets (never in code!)
 // Set with: firebase functions:secrets:set <SECRET_NAME>
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
+const geminiApiKey2 = defineSecret("GEMINI_API_KEY_2");
+const geminiApiKey3 = defineSecret("GEMINI_API_KEY_3");
 // Optional: set these to enable multi-provider baselines for AI plagiarism detection
 // firebase functions:secrets:set OPENAI_API_KEY
 // firebase functions:secrets:set ANTHROPIC_API_KEY
@@ -1996,5 +2001,330 @@ Guidelines:
     });
 
     return { reply: replyText };
+  }
+);
+
+// ═══════════════════════════════════════════════════════════
+// IMAGE GENERATION — Student-facing Gemini image generation
+// ═══════════════════════════════════════════════════════════
+
+let _imageKeyIndex = 0;
+
+/**
+ * Generate an image via Gemini API. Callable from PantherLearn.
+ * Round-robins between two API keys for 20 RPM combined.
+ * Rate-limited per student (max 5 per minute, 20 per session).
+ */
+exports.generateImage = onCall(
+  {
+    secrets: [geminiApiKey, geminiApiKey2, geminiApiKey3],
+    enforceAppCheck: false,
+    maxInstances: 10,
+  },
+  async (request) => {
+    // Must be authenticated
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Must be signed in.");
+    }
+
+    // Class period gate: students can only generate during their class period (± 5 min buffer)
+    // Teachers bypass this check
+    const email = request.auth.token?.email || "";
+    const isTeacher = email === "lucamccarthy@paps.net" || email === "lmccart4@gmail.com" || email.includes("@lachlan.internal");
+    if (!isTeacher) {
+      const et = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+      const day = et.getDay();
+      if (day < 1 || day > 5) {
+        throw new HttpsError("permission-denied", "Image generation is only available during class time.");
+      }
+
+      // Look up student's enrolled courses to determine their period(s)
+      const uid = request.auth.uid;
+      const enrollSnap = await db.collection("enrollments").where("uid", "==", uid).get();
+      const courseIds = enrollSnap.docs.map(d => d.data().courseId);
+
+      // Period schedule: courseId → [startMin, endMin] (minutes from midnight ET)
+      // 5 min buffer on each side
+      const PERIOD_WINDOWS = {
+        "physics":                  [475, 527],   // P1: 7:55–8:47
+        "digital-literacy":         [578, 630],   // P3: 9:38–10:30
+        "Y9Gdhw5MTY8wMFt6Tlvj":    [624, 676],   // P4: 10:24–11:16
+        "DacjJ93vUDcwqc260OP3":     [670, 722],   // P5: 11:10–12:02
+        "M2MVSXrKuVCD9JQfZZyp":     [762, 814],   // P7: 12:42–1:34
+        "fUw67wFhAtobWFhjwvZ5":     [854, 906],   // P9: 2:14–3:06
+      };
+
+      const nowMin = et.getHours() * 60 + et.getMinutes();
+      const inClassNow = courseIds.some(cid => {
+        const window = PERIOD_WINDOWS[cid];
+        return window && nowMin >= window[0] && nowMin <= window[1];
+      });
+
+      if (!inClassNow) {
+        throw new HttpsError("permission-denied", "Image generation is only available during your class period.");
+      }
+    }
+
+    const { prompt, aspectRatio } = request.data;
+    if (!prompt || typeof prompt !== "string" || prompt.trim().length < 3) {
+      throw new HttpsError("invalid-argument", "Prompt must be at least 3 characters.");
+    }
+    if (prompt.length > 500) {
+      throw new HttpsError("invalid-argument", "Prompt must be under 500 characters.");
+    }
+
+    // Rate limit: 5 per minute per student
+    const uid = request.auth.uid;
+    const now = Date.now();
+    const rateLimitRef = db.collection("imageGenRateLimit").doc(uid);
+    const rateLimitDoc = await rateLimitRef.get();
+    const rateData = rateLimitDoc.exists ? rateLimitDoc.data() : { requests: [] };
+    const recentRequests = (rateData.requests || []).filter(t => now - t < 60000);
+
+    if (recentRequests.length >= 10) {
+      throw new HttpsError("resource-exhausted", "Rate limit: max 10 images per minute. Wait a moment and try again.");
+    }
+
+    // Session limit: 30 per hour
+    const hourRequests = (rateData.requests || []).filter(t => now - t < 3600000);
+    if (hourRequests.length >= 30) {
+      throw new HttpsError("resource-exhausted", "Session limit: max 30 images per hour.");
+    }
+
+    // Update rate limit
+    recentRequests.push(now);
+    await rateLimitRef.set({ requests: [...hourRequests, now] });
+
+    // Cascade priority (using promotional credits):
+    // Key 1 ($250 credit, expires May 14) → Key 2 ($300 credit, expires Jun 25)
+    // After May 14: swap to Key 2 first (update KEY_PRIORITY_DATE)
+    // Each key tries: Imagen 4 Fast → NB2 → NB1 (3 models × 10 IPM each = 30 IPM per key)
+    const KEY_PRIORITY_DATE = "2026-05-14"; // After this date, key 2 goes first
+    const today = new Date().toISOString().slice(0, 10);
+
+    let key1, key2;
+    try { key1 = geminiApiKey.value(); } catch (e) { key1 = null; }
+    try { key2 = geminiApiKey2.value(); } catch (e) { key2 = null; }
+
+    const orderedKeys = today > KEY_PRIORITY_DATE
+      ? [key2, key1].filter(Boolean)
+      : [key1, key2].filter(Boolean);
+
+    if (orderedKeys.length === 0) {
+      throw new HttpsError("internal", "No API keys configured.");
+    }
+
+    const IMAGEN_MODEL = "imagen-4.0-fast-generate-001";
+    const NB2_MODEL = "gemini-3.1-flash-image-preview";
+    const NB1_MODEL = "gemini-2.5-flash-image";
+
+    // Build cascade: for each key, try Imagen 4 Fast → NB2 → NB1
+    const slots = [];
+    for (const key of orderedKeys) {
+      slots.push({ type: "imagen", model: IMAGEN_MODEL, key });
+      slots.push({ type: "gemini", model: NB2_MODEL, key });
+      slots.push({ type: "gemini", model: NB1_MODEL, key });
+    }
+
+    const trimmedPrompt = prompt.trim();
+
+    for (let attempt = 0; attempt < slots.length; attempt++) {
+      const slot = slots[attempt];
+
+      try {
+        let imageData, mimeType, textResponse;
+
+        if (slot.type === "imagen") {
+          // Imagen 4 uses /predict with different request/response format
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${slot.model}:predict?key=${slot.key}`;
+          const resp = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              instances: [{ prompt: trimmedPrompt }],
+              parameters: { sampleCount: 1 },
+            }),
+          });
+
+          if (resp.status === 429 && attempt < slots.length - 1) continue;
+          if (resp.status === 404 && attempt < slots.length - 1) continue;
+          if (!resp.ok) {
+            const err = await resp.text();
+            if (attempt < slots.length - 1) continue;
+            throw new HttpsError("internal", `Imagen API error ${resp.status}: ${err.slice(0, 200)}`);
+          }
+
+          const data = await resp.json();
+          const prediction = data.predictions?.[0];
+          if (!prediction?.bytesBase64Encoded) {
+            if (attempt < slots.length - 1) continue;
+            throw new HttpsError("internal", "Imagen returned no image.");
+          }
+
+          imageData = prediction.bytesBase64Encoded;
+          mimeType = prediction.mimeType || "image/png";
+          textResponse = "";
+        } else {
+          // Gemini NB1/NB2 use /generateContent
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${slot.model}:generateContent?key=${slot.key}`;
+          const resp = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: trimmedPrompt }] }],
+              generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+            }),
+          });
+
+          if (resp.status === 429 && attempt < slots.length - 1) continue;
+          if (resp.status === 404 && attempt < slots.length - 1) continue;
+          if (!resp.ok) {
+            const err = await resp.text();
+            if (attempt < slots.length - 1) continue;
+            throw new HttpsError("internal", `Gemini API error ${resp.status}: ${err.slice(0, 200)}`);
+          }
+
+          const data = await resp.json();
+          const parts = data.candidates?.[0]?.content?.parts || [];
+          const imagePart = parts.find(p => p.inlineData);
+          if (!imagePart) {
+            if (attempt < slots.length - 1) continue;
+            const textPart = parts.find(p => p.text);
+            throw new HttpsError("internal", textPart?.text || "No image generated. Try a different prompt.");
+          }
+
+          imageData = imagePart.inlineData.data;
+          mimeType = imagePart.inlineData.mimeType || "image/png";
+          textResponse = parts.find(p => p.text)?.text || "";
+        }
+
+        return { image: imageData, mimeType, text: textResponse };
+      } catch (err) {
+        if (err instanceof HttpsError) throw err;
+        if (attempt < slots.length - 1) continue;
+        throw new HttpsError("internal", `Generation failed: ${err.message}`);
+      }
+    }
+  }
+);
+
+// ═══════════════════════════════════════════════════════════
+// TRANSLATION — Google Cloud Translation API proxy
+// ═══════════════════════════════════════════════════════════
+
+const MAX_TEXT_LENGTH = 5000;
+const MAX_TOTAL_LENGTH = 500000;
+
+function hashText(text) {
+  return crypto.createHash("sha256").update(text).digest("hex").substring(0, 16);
+}
+
+exports.translateText = onRequest(
+  {
+    cors: ["https://pantherlearn.web.app", "https://pantherlearn.firebaseapp.com", "https://pantherlearn-d6f7c.web.app"],
+    maxInstances: 10,
+    region: "us-central1",
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      res.status(401).json({ error: "Missing authorization token" });
+      return;
+    }
+    try {
+      const token = authHeader.split("Bearer ")[1];
+      await admin.auth().verifyIdToken(token);
+    } catch (e) {
+      res.status(403).json({ error: "Invalid token" });
+      return;
+    }
+
+    const { texts, targetLanguage, sourceLanguage = "en" } = req.body;
+
+    if (!texts || !Array.isArray(texts) || texts.length === 0) {
+      res.status(400).json({ error: 'Missing or invalid "texts" array' });
+      return;
+    }
+    if (!targetLanguage) {
+      res.status(400).json({ error: 'Missing "targetLanguage"' });
+      return;
+    }
+    if (texts.length > 128) {
+      res.status(400).json({ error: "Maximum 128 texts per request" });
+      return;
+    }
+
+    let totalLength = 0;
+    for (const text of texts) {
+      if (typeof text !== "string") {
+        res.status(400).json({ error: "Each text must be a string" });
+        return;
+      }
+      if (text.length > MAX_TEXT_LENGTH) {
+        res.status(400).json({ error: `Individual text exceeds ${MAX_TEXT_LENGTH} char limit` });
+        return;
+      }
+      totalLength += text.length;
+    }
+    if (totalLength > MAX_TOTAL_LENGTH) {
+      res.status(400).json({ error: `Total text exceeds ${MAX_TOTAL_LENGTH} char limit` });
+      return;
+    }
+
+    try {
+      const results = new Array(texts.length);
+      const uncached = [];
+      const uncachedIndices = [];
+
+      // Check Firestore cache
+      for (let i = 0; i < texts.length; i++) {
+        const docId = targetLanguage + "_" + hashText(texts[i]);
+        const cached = await db.collection("translations").doc(docId).get();
+        if (cached.exists) {
+          results[i] = cached.data().translated;
+        } else {
+          uncached.push(texts[i]);
+          uncachedIndices.push(i);
+        }
+      }
+
+      if (uncached.length > 0) {
+        const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
+        const request = {
+          parent: `projects/${projectId}/locations/global`,
+          contents: uncached,
+          mimeType: "text/plain",
+          sourceLanguageCode: sourceLanguage,
+          targetLanguageCode: targetLanguage,
+        };
+
+        const [response] = await translationClient.translateText(request);
+        const translations = response.translations.map((t) => t.translatedText);
+
+        const writes = translations.map((translated, j) => {
+          const origIdx = uncachedIndices[j];
+          results[origIdx] = translated;
+          const docId = targetLanguage + "_" + hashText(texts[origIdx]);
+          return db.collection("translations").doc(docId).set({
+            source: texts[origIdx],
+            translated: translated,
+            lang: targetLanguage,
+            created: new Date().toISOString(),
+          });
+        });
+
+        Promise.all(writes).catch((e) => console.error("Cache write error:", e));
+      }
+
+      res.status(200).json({ translations: results });
+    } catch (error) {
+      console.error("Translation error:", error);
+      res.status(500).json({ error: "Translation failed", message: error.message });
+    }
   }
 );

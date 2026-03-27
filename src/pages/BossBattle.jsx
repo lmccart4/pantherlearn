@@ -12,14 +12,19 @@ import { getTeams, TEAM_COLORS } from "../lib/teams";
 import { deductMana, getManaState } from "../lib/mana";
 import {
   BOSSES, ABILITIES, COUNTERATTACKS,
-  createBattle, subscribeToBattle, submitAnswer, useAbilityAction,
+  createBattle, subscribeToBattle, subscribeToPlayer, subscribeToAllPlayers,
+  submitAnswer, useAbilityAction, useClassAbility, triggerBossEvent,
   endBattle, listBattles, extractQuestionsFromLesson,
+  awardBattleXP,
 } from "../lib/bossBattle";
+import { getClassAbilities, canUseActive } from "../lib/classAbilities";
 import {
   TEAM_AVATARS, BOSS_THEMES, BATTLE_CSS,
   DamageNumber, ParticleField, HitExplosion, ScreenFlash, ShieldBubble, BossArt,
 } from "../components/BattleEffects";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
+import BattleArenaStudent from "../components/BattleArenaStudent";
+import BattleArenaTeacher from "../components/BattleArenaTeacher";
 
 // ─── Styles ───
 const card = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 22px", marginBottom: 16 };
@@ -97,9 +102,14 @@ export default function BossBattle() {
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState(null);
   const [hintUsed, setHintUsed] = useState(false);
-  const [eliminatedOption, setEliminatedOption] = useState(null);
+  const [eliminatedOption, setEliminatedOption] = useState(null);    // single option (v1 compat)
+  const [eliminatedOptions, setEliminatedOptions] = useState([]);   // array for Ranger passive (v2)
   const [submitting, setSubmitting] = useState(false);
   const [manaState, setManaState] = useState(null);
+
+  // v2 player doc state (per-student data from subcollection)
+  const [myPlayer, setMyPlayer] = useState(null);
+  const [allPlayers, setAllPlayers] = useState(null); // teacher only
 
   // Effects
   const [animatingDamage, setAnimatingDamage] = useState(false);
@@ -109,14 +119,24 @@ export default function BossBattle() {
   const [flashColor, setFlashColor] = useState("#e74c3c");
   const [showExplosion, setShowExplosion] = useState(false);
 
+  // Class ability feedback
+  const [passiveToasts, setPassiveToasts] = useState([]);
+  const [classAbilityFlash, setClassAbilityFlash] = useState(null);
+
   const prevBossHP = useRef(null);
   const prevClassHP = useRef(null);
   const unsubRef = useRef(null);
+  const unsubPlayerRef = useRef(null);
+  const unsubAllPlayersRef = useRef(null);
 
   // ─── Load Data ───
   useEffect(() => {
     loadData();
-    return () => { if (unsubRef.current) unsubRef.current(); };
+    return () => {
+      if (unsubRef.current) unsubRef.current();
+      if (unsubPlayerRef.current) unsubPlayerRef.current();
+      if (unsubAllPlayersRef.current) unsubAllPlayersRef.current();
+    };
   }, [courseId]);
 
   async function loadData() {
@@ -143,9 +163,9 @@ export default function BossBattle() {
       const battles = await listBattles(courseId);
       setPastBattles(battles);
 
-      const active = battles.find((b) => b.status === "active");
+      const active = battles.find((b) => b.status === "active" || b.status === "paused");
       if (active) {
-        startListening(active.id);
+        startListening(active.id, active.version);
         setPhase("battle");
       }
 
@@ -156,8 +176,11 @@ export default function BossBattle() {
     setLoading(false);
   }
 
-  function startListening(battleId) {
+  function startListening(battleId, battleVersion) {
     if (unsubRef.current) unsubRef.current();
+    if (unsubPlayerRef.current) unsubPlayerRef.current();
+    if (unsubAllPlayersRef.current) unsubAllPlayersRef.current();
+
     unsubRef.current = subscribeToBattle(courseId, battleId, (data) => {
       if (prevBossHP.current !== null && data.boss.currentHP < prevBossHP.current) {
         setAnimatingDamage(true);
@@ -180,8 +203,29 @@ export default function BossBattle() {
       setBattle(data);
       if (data.status === "victory" || data.status === "defeat") {
         setPhase("results");
+        // Teacher triggers XP awards when battle ends (guard prevents double-award)
+        if (isTeacher && !data.xpAwarded) {
+          awardBattleXP(courseId, data.id).catch((err) => console.warn("XP award error:", err));
+        }
       }
     });
+
+    // v2: subscribe to player docs
+    const v = battleVersion || 2; // default to 2 for newly created battles
+    if (v === 2) {
+      if (user && !isTeacher) {
+        // Student subscribes to own player doc
+        unsubPlayerRef.current = subscribeToPlayer(courseId, battleId, user.uid, (playerData) => {
+          setMyPlayer(playerData);
+        });
+      }
+      if (isTeacher) {
+        // Teacher subscribes to all player docs
+        unsubAllPlayersRef.current = subscribeToAllPlayers(courseId, battleId, (playersMap) => {
+          setAllPlayers(playersMap);
+        });
+      }
+    }
   }
 
   // ─── Start Battle (teacher) ───
@@ -215,7 +259,7 @@ export default function BossBattle() {
         teamColors,
       });
 
-      startListening(b.id);
+      startListening(b.id, b.version);
       setPhase("battle");
     } catch (err) {
       console.error("Boss battle launch error:", err);
@@ -225,10 +269,17 @@ export default function BossBattle() {
 
   // ─── Submit Answer (student) ───
   async function handleSubmitAnswer() {
-    if (!battle || !myTeamId || selectedAnswer === null || submitting) return;
+    const isV2 = battle?.version === 2;
+    // v2: need player doc; v1: need team ID
+    if (!battle || selectedAnswer === null || submitting) return;
+    if (!isV2 && !myTeamId) return;
+    if (isV2 && !myPlayer) return;
     setSubmitting(true);
     try {
-      const { result } = await submitAnswer(courseId, battle.id, myTeamId, selectedAnswer);
+      const { result } = await submitAnswer(
+        courseId, battle.id, myTeamId, selectedAnswer,
+        isV2 ? { version: 2, uid: user.uid } : {}
+      );
       if (result) {
         setLastResult(result);
         setShowResult(true);
@@ -237,10 +288,22 @@ export default function BossBattle() {
           setShowFlash(true);
           setFlashColor(result.criticalHit ? "#ffed4a" : "#e74c3c");
           setTimeout(() => setShowFlash(false), 400);
-        } else if (result.counterattack && !result.shielded) {
+        } else if (result.counterattack && !result.shielded && !result.dodged) {
           setShowFlash(true);
           setFlashColor("#8b1a1a");
           setTimeout(() => setShowFlash(false), 400);
+        }
+
+        // Show passive proc toasts
+        if (result.passiveProcs?.length > 0) {
+          const newToasts = result.passiveProcs.map((p, i) => ({
+            id: Date.now() + i,
+            text: p.description,
+          }));
+          setPassiveToasts((prev) => [...prev, ...newToasts]);
+          setTimeout(() => {
+            setPassiveToasts((prev) => prev.filter((t) => !newToasts.find((nt) => nt.id === t.id)));
+          }, 3000);
         }
       }
     } catch (err) {
@@ -256,30 +319,73 @@ export default function BossBattle() {
     setLastResult(null);
     setHintUsed(false);
     setEliminatedOption(null);
+    setEliminatedOptions([]);
   }
 
   async function handleAbility(abilityId) {
-    if (!battle || !myTeamId) return;
+    const isV2 = battle?.version === 2;
+    if (!battle) return;
+    if (!isV2 && !myTeamId) return;
+    if (isV2 && !myPlayer) return;
+
     if (abilityId === "hint") {
       if (!manaState?.enabled || (manaState?.currentMP || 0) < 5) { alert(ui(36, "Not enough class mana (need 5 MP)")); return; }
       await deductMana(courseId, 5, "Boss Battle: Hint used");
       setManaState({ ...manaState, currentMP: manaState.currentMP - 5 });
-      const tp = battle.teamProgress[myTeamId];
-      if (tp) {
-        const qIdx = tp.questionOrder[tp.currentIndex];
+      // Derive current question from player doc (v2) or teamProgress (v1)
+      const src = isV2 ? myPlayer : battle.teamProgress[myTeamId];
+      if (src) {
+        const qIdx = src.questionOrder[src.currentIndex];
         const q = battle.questions[qIdx];
         if (q) {
-          const wrong = q.options.map((_, i) => i).filter((i) => i !== q.correctIndex && i !== eliminatedOption);
+          const alreadyEliminated = new Set(eliminatedOptions);
+          const wrong = q.options.map((_, i) => i).filter((i) => i !== q.correctIndex && !alreadyEliminated.has(i));
           if (wrong.length > 0) {
-            setEliminatedOption(wrong[Math.floor(Math.random() * wrong.length)]);
+            // Ranger passive: eliminate 2 instead of 1
+            let elimCount = 1;
+            if (isV2 && myPlayer) {
+              const classId = myPlayer.classId || "mage";
+              const abilities = getClassAbilities(classId);
+              if (abilities.passive.type === "hint_bonus") {
+                elimCount = 1 + abilities.passive.value; // 2 for Ranger
+              }
+            }
+            const shuffledWrong = wrong.sort(() => Math.random() - 0.5);
+            const toEliminate = shuffledWrong.slice(0, Math.min(elimCount, shuffledWrong.length));
+            setEliminatedOptions((prev) => [...prev, ...toEliminate]);
+            // Also set single value for backward compat with option rendering
+            setEliminatedOption(toEliminate[0]);
             setHintUsed(true);
           }
         }
       }
       return;
     }
-    const { error } = await useAbilityAction(courseId, battle.id, myTeamId, abilityId);
+    const { error } = await useAbilityAction(
+      courseId, battle.id, isV2 ? user.uid : myTeamId, abilityId,
+      isV2 ? { version: 2, uid: user.uid } : {}
+    );
     if (error) alert(error);
+  }
+
+  async function handleClassAbility() {
+    if (!battle || battle.version !== 2 || !myPlayer) return;
+    const { canUse, reason } = canUseActive(myPlayer);
+    if (!canUse) return;
+
+    try {
+      const result = await useClassAbility(courseId, battle.id, user.uid);
+      if (result.error) {
+        alert(result.error);
+      } else {
+        // Show activation flash
+        setClassAbilityFlash({ name: result.abilityName, icon: result.abilityIcon, desc: result.description });
+        setTimeout(() => setClassAbilityFlash(null), 2500);
+      }
+    } catch (err) {
+      console.error("Class ability error:", err);
+      alert("Error using ability: " + err.message);
+    }
   }
 
   if (loading) {
@@ -464,13 +570,70 @@ export default function BossBattle() {
   // BATTLE PHASE — CO-OP RAID
   // ═══════════════════════════════════════════════
   if (phase === "battle" && battle) {
+    const isV2 = battle.version === 2;
+
+    // v2 student battles use the new Pokemon-trainer style arena
+    if (isV2 && !isTeacher) {
+      return (
+        <BattleArenaStudent
+          battle={battle}
+          myPlayer={myPlayer}
+          myTeamId={myTeamId}
+          user={user}
+          courseId={courseId}
+          handleSubmitAnswer={handleSubmitAnswer}
+          handleNextQuestion={handleNextQuestion}
+          handleAbility={handleAbility}
+          handleClassAbility={handleClassAbility}
+          selectedAnswer={selectedAnswer}
+          setSelectedAnswer={setSelectedAnswer}
+          showResult={showResult}
+          lastResult={lastResult}
+          hintUsed={hintUsed}
+          eliminatedOptions={eliminatedOptions}
+          eliminatedOption={eliminatedOption}
+          submitting={submitting}
+          manaState={manaState}
+          passiveToasts={passiveToasts}
+          classAbilityFlash={classAbilityFlash}
+          navigate={navigate}
+        />
+      );
+    }
+
+    // v2 teacher battles use the Game Master dashboard
+    if (isV2 && isTeacher) {
+      return (
+        <BattleArenaTeacher
+          battle={battle}
+          allPlayers={allPlayers}
+          courseId={courseId}
+          user={user}
+          navigate={navigate}
+          onNewBattle={() => { setPhase("setup"); setBattle(null); if (unsubRef.current) unsubRef.current(); if (unsubAllPlayersRef.current) unsubAllPlayersRef.current(); }}
+        />
+      );
+    }
+
     const boss = battle.boss;
     const bossHpPct = (boss.currentHP / boss.maxHP) * 100;
     const classHpPct = (battle.classHP.current / battle.classHP.max) * 100;
     const theme = BOSS_THEMES[boss.id] || BOSS_THEMES.dragon;
     const allTeams = Object.entries(battle.teamProgress || {}).map(([id, tp]) => ({ id, ...tp })).sort((a, b) => b.damage - a.damage);
 
-    const myTP = myTeamId ? battle.teamProgress[myTeamId] : null;
+    // v2: derive per-student state from player doc; v1: from teamProgress
+    const myTP = isV2
+      ? (myPlayer ? {
+          // Map v2 player doc fields to v1-compatible shape for UI
+          ...myPlayer,
+          name: myPlayer.displayName,
+          color: (battle.teamSummaries?.[myPlayer.teamId] || battle.teamProgress?.[myPlayer.teamId] || {}).color || "#888",
+          shieldActive: myPlayer.abilities?.shield?.active || false,
+          criticalHitActive: myPlayer.abilities?.criticalHit?.active || false,
+          shieldCooldown: myPlayer.abilities?.shield?.cooldownRemaining || 0,
+          critCooldown: myPlayer.abilities?.criticalHit?.cooldownRemaining || 0,
+        } : null)
+      : (myTeamId ? battle.teamProgress[myTeamId] : null);
     const myQuestion = myTP && !myTP.finished ? battle.questions[myTP.questionOrder[myTP.currentIndex]] : null;
     const myQNum = myTP ? myTP.currentIndex + 1 : 0;
     const totalQs = myTP ? myTP.questionOrder.length : 0;
@@ -483,7 +646,44 @@ export default function BossBattle() {
       }}>
         <ScreenFlash active={showFlash} color={flashColor} />
         <ParticleField particles={theme.particles} count={18} speed={0.6} color={theme.particleColor} />
-        <style>{BATTLE_CSS}</style>
+        <style>{BATTLE_CSS}{`
+          @keyframes passiveToastIn { 0% { transform: translateX(100%); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+          @keyframes passiveToastOut { 0% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
+          @keyframes abilityFlashIn { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+        `}</style>
+
+        {/* Passive proc toasts */}
+        {passiveToasts.length > 0 && (
+          <div style={{ position: "fixed", top: 80, right: 16, zIndex: 300, display: "flex", flexDirection: "column", gap: 6 }}>
+            {passiveToasts.map((toast) => (
+              <div key={toast.id} style={{
+                padding: "8px 14px", borderRadius: 8,
+                background: "rgba(168,85,247,0.2)", border: "1px solid rgba(168,85,247,0.4)",
+                backdropFilter: "blur(10px)", color: "#c084fc",
+                fontSize: 12, fontWeight: 600, maxWidth: 260,
+                animation: "passiveToastIn 0.3s ease-out",
+              }}>
+                {toast.text}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Class ability activation flash */}
+        {classAbilityFlash && (
+          <div style={{
+            position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+            zIndex: 250, textAlign: "center", pointerEvents: "none",
+            animation: "abilityFlashIn 0.4s ease-out",
+          }}>
+            <div style={{ fontSize: 64, marginBottom: 6 }}>{classAbilityFlash.icon}</div>
+            <div style={{
+              fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 900, color: "#c084fc",
+              textShadow: "0 0 20px rgba(168,85,247,0.6)",
+            }}>{classAbilityFlash.name}</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>{classAbilityFlash.desc}</div>
+          </div>
+        )}
         {damageNumbers.map((d) => <DamageNumber key={d.id} amount={d.amount} x={d.x} y={d.y} isCrit={d.isCrit} />)}
 
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "74px 30px 24px", position: "relative", zIndex: 5 }}>
@@ -553,7 +753,7 @@ export default function BossBattle() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                     {myQuestion.options.map((opt, i) => {
-                      const isElim = eliminatedOption === i;
+                      const isElim = eliminatedOptions.includes(i) || eliminatedOption === i;
                       const isSel = selectedAnswer === i;
                       const tc = myTP.color || "#888";
                       return (
@@ -603,14 +803,54 @@ export default function BossBattle() {
                       data-translatable>
                       ⚔️ {ui(5, "Crit")} {myTP.critCooldown > 0 ? `(${myTP.critCooldown})` : ""}
                     </button>
+                    {/* Class Active Ability — v2 only */}
+                    {isV2 && myPlayer && (() => {
+                      const classId = myPlayer.classId || "mage";
+                      const abilities = getClassAbilities(classId);
+                      const activeDef = abilities.active;
+                      const cd = myPlayer.abilities?.classAbility?.cooldownRemaining || 0;
+                      const canUse = cd <= 0 && !myPlayer.finished;
+                      return (
+                        <button onClick={handleClassAbility} disabled={!canUse}
+                          style={{
+                            padding: "8px 14px", borderRadius: 8,
+                            border: canUse ? "1px solid rgba(168,85,247,0.6)" : "1px solid rgba(168,85,247,0.2)",
+                            background: canUse ? "rgba(168,85,247,0.2)" : "rgba(168,85,247,0.05)",
+                            color: canUse ? "#c084fc" : "rgba(192,132,252,0.4)",
+                            fontWeight: 700, fontSize: 12,
+                            cursor: canUse ? "pointer" : "default",
+                            opacity: canUse ? 1 : 0.4,
+                            position: "relative",
+                            transition: "all 0.3s",
+                            boxShadow: classAbilityFlash ? "0 0 16px rgba(168,85,247,0.6)" : "none",
+                            animation: classAbilityFlash ? "shieldPulse 0.5s ease-in-out" : "none",
+                          }}
+                          title={activeDef.desc}
+                          data-translatable>
+                          {activeDef.icon} {activeDef.name} {cd > 0 ? `(${cd})` : ""}
+                        </button>
+                      );
+                    })()}
                   </div>
 
+                  {/* Active status indicators */}
                   {(myTP.shieldActive || myTP.criticalHitActive) && (
                     <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                       {myTP.shieldActive && <span style={{ fontSize: 12, color: "#66b3ff", background: "rgba(52,152,219,0.15)", padding: "3px 10px", borderRadius: 6 }} data-translatable>🛡️ {ui(6, "Shield Active")}</span>}
                       {myTP.criticalHitActive && <span style={{ fontSize: 12, color: "#ffed4a", background: "rgba(255,237,74,0.1)", padding: "3px 10px", borderRadius: 6 }} data-translatable>⚔️ {ui(7, "Crit Ready")}</span>}
                     </div>
                   )}
+
+                  {/* Class passive indicator — v2 only */}
+                  {isV2 && myPlayer && (() => {
+                    const classId = myPlayer.classId || "mage";
+                    const abilities = getClassAbilities(classId);
+                    return (
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 8, fontStyle: "italic" }}>
+                        {abilities.passive.icon} {abilities.passive.name}: {abilities.passive.desc}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -622,14 +862,30 @@ export default function BossBattle() {
                   borderRadius: 14, padding: "24px 26px", marginBottom: 14, textAlign: "center", backdropFilter: "blur(10px)",
                 }}>
                   <div style={{ fontSize: 52, marginBottom: 8, animation: lastResult.correct ? "victoryBurst 0.5s ease-out" : "defeatSink 0.4s ease" }}>
-                    {lastResult.correct ? (lastResult.criticalHit ? "💥" : "⚔️") : lastResult.shielded ? "🛡️" : "😈"}
+                    {lastResult.correct ? (lastResult.criticalHit ? "💥" : "⚔️") : lastResult.shielded ? "🛡️" : lastResult.dodged ? "💨" : "😈"}
                   </div>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 900, color: "#fff", marginBottom: 8 }} data-translatable>
-                    {lastResult.correct ? `${lastResult.criticalHit ? "CRIT! " : ""}${lastResult.damage} ${ui(8, "Damage!")}` : lastResult.shielded ? ui(9, "Shield Blocked!") : ui(10, "Miss!")}
+                    {lastResult.correct
+                      ? `${lastResult.criticalHit ? "CRIT! " : ""}${lastResult.damage} ${ui(8, "Damage!")}`
+                      : lastResult.shielded ? ui(9, "Shield Blocked!")
+                      : lastResult.dodged ? "Dodged!"
+                      : ui(10, "Miss!")}
                   </div>
-                  {!lastResult.correct && lastResult.counterattack && !lastResult.shielded && (
+                  {!lastResult.correct && lastResult.counterattack && !lastResult.shielded && !lastResult.dodged && (
                     <div style={{ padding: "8px 14px", borderRadius: 8, background: "rgba(139,26,26,0.3)", border: "1px solid rgba(231,76,60,0.3)", marginBottom: 10, fontSize: 13, color: "#ff8888" }} data-translatable>
                       {lastResult.counterattack.icon} <strong>{lastResult.counterattack.name}</strong> — {ui(11, "Class takes")} {lastResult.classDamage} {ui(12, "damage!")}
+                    </div>
+                  )}
+                  {/* Passive proc badges */}
+                  {lastResult.passiveProcs?.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, justifyContent: "center" }}>
+                      {lastResult.passiveProcs.map((proc, i) => (
+                        <span key={i} style={{
+                          fontSize: 11, padding: "3px 10px", borderRadius: 6,
+                          background: "rgba(168,85,247,0.15)", border: "1px solid rgba(168,85,247,0.3)",
+                          color: "#c084fc",
+                        }}>{proc.description}</span>
+                      ))}
                     </div>
                   )}
                   {!lastResult.correct && myQuestion && (
@@ -668,8 +924,8 @@ export default function BossBattle() {
                 </div>
               )}
 
-              {/* Student: no team */}
-              {!isTeacher && !myTeamId && (
+              {/* Student: no team (v2: no player doc; v1: no team ID) */}
+              {!isTeacher && (isV2 ? myPlayer === null : !myTeamId) && (
                 <div style={{
                   background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: 14, padding: "30px 24px", textAlign: "center", backdropFilter: "blur(10px)",
@@ -696,7 +952,8 @@ export default function BossBattle() {
                         <span style={{ color: entry.teamColor, fontWeight: 700, minWidth: 80 }}>{entry.team}</span>
                         {entry.type === "attack" && <span>⚔️ <strong style={{ color: "#e74c3c" }}>{entry.damage}</strong> dmg{entry.criticalHit ? " 💥 CRIT" : ""}</span>}
                         {entry.type === "miss" && <span>❌ Miss{entry.shielded ? " 🛡️" : ""}{entry.counterattack && !entry.shielded ? ` ${entry.counterattack.icon} -${entry.classDamage} class HP` : ""}</span>}
-                        {entry.type === "ability" && <span>{entry.abilityIcon} {entry.ability}</span>}
+                        {entry.type === "attack" && entry.dodged && <span>💨 Dodged!</span>}
+                        {entry.type === "ability" && <span>{entry.abilityIcon} {entry.ability}{entry.classAbility && entry.description ? ` — ${entry.description}` : ""}</span>}
                       </div>
                     ))}
                     {(battle.log || []).length === 0 && <div style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", textAlign: "center", padding: 16 }}>Waiting for teams to start answering...</div>}
@@ -797,6 +1054,49 @@ export default function BossBattle() {
   // RESULTS PHASE
   // ═══════════════════════════════════════════════
   if (phase === "results" && battle) {
+    // v2 teacher results use the Game Master dashboard (handles victory/defeat internally)
+    if (battle.version === 2 && isTeacher) {
+      return (
+        <BattleArenaTeacher
+          battle={battle}
+          allPlayers={allPlayers}
+          courseId={courseId}
+          user={user}
+          navigate={navigate}
+          onNewBattle={() => { setPhase("setup"); setBattle(null); if (unsubRef.current) unsubRef.current(); if (unsubAllPlayersRef.current) unsubAllPlayersRef.current(); }}
+        />
+      );
+    }
+
+    // v2 student results use the BattleArenaStudent victory/defeat overlay
+    if (battle.version === 2 && !isTeacher) {
+      return (
+        <BattleArenaStudent
+          battle={battle}
+          myPlayer={myPlayer}
+          myTeamId={myTeamId}
+          user={user}
+          courseId={courseId}
+          handleSubmitAnswer={handleSubmitAnswer}
+          handleNextQuestion={handleNextQuestion}
+          handleAbility={handleAbility}
+          handleClassAbility={handleClassAbility}
+          selectedAnswer={selectedAnswer}
+          setSelectedAnswer={setSelectedAnswer}
+          showResult={showResult}
+          lastResult={lastResult}
+          hintUsed={hintUsed}
+          eliminatedOptions={eliminatedOptions}
+          eliminatedOption={eliminatedOption}
+          submitting={submitting}
+          manaState={manaState}
+          passiveToasts={passiveToasts}
+          classAbilityFlash={classAbilityFlash}
+          navigate={navigate}
+        />
+      );
+    }
+
     const isVictory = battle.status === "victory";
     const allTeams = Object.entries(battle.teamProgress || {}).map(([id, tp]) => ({ id, ...tp })).sort((a, b) => b.damage - a.damage);
     const theme = BOSS_THEMES[battle.boss?.id] || BOSS_THEMES.dragon;

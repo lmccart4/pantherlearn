@@ -55,12 +55,17 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
   background:rgba(6,7,12,0.55);
 }
 .classified-stamp{
-  font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,8vw,6rem);
-  color:var(--red);letter-spacing:0.3em;
-  border:4px solid var(--red);padding:0.1em 0.6em;
-  transform:rotate(-5deg);opacity:0;
+  width:clamp(340px, 55vw, 650px);
+  transform:rotate(-3deg);opacity:0;
   animation:stampIn 0.4s 0.5s cubic-bezier(0.2,1.5,0.4,1) forwards;
   position:relative;z-index:2;
+  margin-top:2vh;margin-bottom:0;
+  filter:drop-shadow(0 0 20px rgba(255,23,68,0.35)) drop-shadow(0 0 40px rgba(255,23,68,0.12));
+  opacity:0;
+}
+.classified-stamp img{
+  width:100%;height:auto;display:block;
+  opacity:0.8;
 }
 .intro-terminal{
   margin-top:2rem;max-width:600px;width:90%;
@@ -91,14 +96,13 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
   flex-direction:column;align-items:center;
   background:var(--bg);position:relative;
 }
-.vault-bg{
-  position:fixed;inset:0;z-index:0;
-  background-size:cover;background-position:center;
+#vault-canvas{
+  position:fixed;inset:0;z-index:0;width:100vw;height:100vh;pointer-events:none;
   transition:opacity 0.8s;
 }
-.vault-bg::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(to right, rgba(6,7,12,0.1) 0%, rgba(6,7,12,0.1) 55%, rgba(6,7,12,0.7) 75%, rgba(6,7,12,0.85) 100%);
+.vault-overlay{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(to right, rgba(6,7,12,0.05) 0%, rgba(6,7,12,0.05) 50%, rgba(6,7,12,0.65) 72%, rgba(6,7,12,0.85) 100%);
 }
 #game > .hud,
 #game > .vault-section,
@@ -115,32 +119,32 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
 .hud-label{font-family:'Orbitron',sans-serif;font-size:0.55rem;font-weight:400;color:var(--green-dim);letter-spacing:0.15em;opacity:0.5}
 
 /* Depth gauge */
-.depth-gauge{display:flex;gap:4px;align-items:center}
+.depth-gauge{display:flex;gap:6px;align-items:center}
 .depth-level{
-  width:28px;height:8px;border-radius:2px;
-  background:var(--steel-dark);border:1px solid var(--steel);
+  width:36px;height:12px;border-radius:3px;
+  background:var(--steel-dark);border:1.5px solid var(--steel);
   transition:all 0.5s cubic-bezier(0.2,1.5,0.4,1);position:relative;
 }
-.depth-level.cleared{border-color:var(--v-accent);box-shadow:0 0 8px var(--v-glow)}
+.depth-level.cleared{border-color:var(--v-accent);box-shadow:0 0 12px var(--v-glow)}
 .depth-level.current{border-color:var(--v-accent);animation:pulseBorder 1.5s ease-in-out infinite}
 .depth-level-inner{
-  position:absolute;inset:1px;border-radius:1px;
+  position:absolute;inset:2px;border-radius:2px;
   background:transparent;transition:background 0.5s;
 }
 .depth-level.cleared .depth-level-inner{background:var(--v-accent)}
 .depth-level.current .depth-level-inner{background:var(--v-accent);opacity:0.5}
 
 /* Streak pins */
-.streak-pins{display:flex;gap:6px;align-items:center}
-.streak-label{font-family:'Orbitron',sans-serif;font-size:0.5rem;color:var(--muted);letter-spacing:0.1em;margin-right:4px}
+.streak-pins{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,0.4);padding:4px 12px;border-radius:4px;backdrop-filter:blur(4px)}
+.streak-label{font-family:'Orbitron',sans-serif;font-size:0.6rem;color:var(--green-dim);letter-spacing:0.1em;margin-right:6px}
 .streak-pin{
-  width:10px;height:10px;border-radius:50%;
-  background:var(--steel-dark);border:1px solid var(--steel);
+  width:14px;height:14px;border-radius:50%;
+  background:var(--steel-dark);border:2px solid var(--steel);
   transition:all 0.3s cubic-bezier(0.2,1.5,0.4,1);
 }
-.streak-pin.lit{background:var(--v-accent);border-color:var(--v-accent);box-shadow:0 0 8px var(--v-glow)}
+.streak-pin.lit{background:var(--v-accent);border-color:var(--v-accent);box-shadow:0 0 12px var(--v-glow),0 0 4px var(--v-accent)}
 
-.hud-stats{display:flex;gap:14px;font-family:'Orbitron',sans-serif;font-size:0.6rem;letter-spacing:0.1em}
+.hud-stats{display:flex;gap:14px;font-family:'Orbitron',sans-serif;font-size:0.7rem;letter-spacing:0.1em;background:rgba(0,0,0,0.4);padding:4px 12px;border-radius:4px;backdrop-filter:blur(4px)}
 .q-counter{color:var(--green-dim)}
 .security-level{color:var(--red);opacity:0.7}
 
@@ -156,35 +160,11 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
   color:var(--muted);letter-spacing:0.2em;text-align:center;
 }
 
-/* === VAULT VIEWPORT (background-image driven) === */
+/* === VAULT VIEWPORT === */
 .vault-section{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding-top:65px;min-height:0;position:relative;overflow:hidden;
 }
-
-/* Open vault layer — revealed via clip-path animation */
-.vault-bg-open{
-  position:fixed;inset:0;z-index:0;
-  background-size:cover;background-position:center;
-  clip-path:circle(0% at 38% 50%);
-  transition:clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.vault-bg-open::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(to right, rgba(6,7,12,0.1) 0%, rgba(6,7,12,0.1) 55%, rgba(6,7,12,0.7) 75%, rgba(6,7,12,0.85) 100%);
-}
-/* Light leak glow overlay — grows with reveal */
-.vault-bg-open::before{
-  content:'';position:absolute;inset:0;z-index:1;
-  background:radial-gradient(circle at 38% 50%, var(--v-glow) 0%, transparent 40%);
-  opacity:0;transition:opacity 0.8s;pointer-events:none;
-}
-.vault-bg-open.stage1{clip-path:circle(4% at 38% 50%)}
-.vault-bg-open.stage1::before{opacity:0.6}
-.vault-bg-open.stage2{clip-path:circle(12% at 38% 50%)}
-.vault-bg-open.stage2::before{opacity:1}
-.vault-bg-open.stage3{clip-path:circle(100% at 38% 50%)}
-.vault-bg-open.stage3::before{opacity:0}
 
 /* Breach text — centered on screen */
 .breach-text{
@@ -260,16 +240,17 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
   flex-direction:column;align-items:center;justify-content:center;
   background:radial-gradient(ellipse at 50% 50%,#10121a 0%,#06070c 100%);z-index:200;
 }
-.results-box{text-align:center;max-width:500px;padding:2rem}
-.results-rank{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,8vw,5rem);letter-spacing:0.1em;margin-bottom:0.5rem}
-.results-rank.gold{color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,0.3)}
-.results-rank.green{color:var(--green);text-shadow:0 0 30px var(--green-glow)}
-.results-rank.red{color:var(--red);text-shadow:0 0 30px var(--red-glow)}
-.results-rank.cyan{color:#14b8a6;text-shadow:0 0 30px rgba(20,184,166,0.3)}
-.results-rank.purple{color:#a855f7;text-shadow:0 0 30px rgba(168,85,247,0.3)}
-.results-subtitle{font-family:'Orbitron',sans-serif;font-size:0.8rem;color:var(--muted);letter-spacing:0.2em;margin-bottom:2rem}
+.results-box{text-align:center;max-width:550px;padding:2.5rem;background:rgba(10,12,20,0.7);border-radius:8px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(100,110,140,0.15)}
+.results-rank{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,10vw,6rem);letter-spacing:0.12em;margin-bottom:0.3rem;animation:rankReveal 0.6s cubic-bezier(0.2,1.5,0.4,1) forwards}
+@keyframes rankReveal{from{transform:scale(0.5);opacity:0}to{transform:scale(1);opacity:1}}
+.results-subtitle{font-family:'Orbitron',sans-serif;font-size:0.8rem;color:var(--text);letter-spacing:0.15em;margin-bottom:1.5rem;opacity:0.8}
+.results-depth-visual{display:flex;gap:8px;justify-content:center;margin-bottom:2rem}
+.results-vault-pip{width:48px;height:10px;border-radius:3px;background:var(--steel-dark);border:1.5px solid var(--steel);transition:all 0.5s;position:relative}
+.results-vault-pip.filled{border-color:var(--v-accent)}
+.pip-label{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:0.35rem;color:var(--muted);white-space:nowrap;letter-spacing:0.05em}
+.results-vault-pip.filled .pip-label{color:var(--text)}
 .results-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:2rem}
-.stat-box{background:var(--surface);border:1px solid var(--steel);border-radius:6px;padding:1rem}
+.stat-box{background:rgba(18,20,30,0.8);border:1px solid var(--steel);border-radius:6px;padding:1rem}
 .stat-value{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--green)}
 .stat-label{font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;margin-top:0.2rem}
 .retry-btn{
@@ -345,14 +326,14 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
   <div class="alert-flash" id="alert-flash"></div>
 
   <div id="intro" class="screen active">
-    <div class="classified-stamp">CLASSIFIED</div>
+    <div class="classified-stamp"><img src="../images/vault-cracker/classified-stamp.png" alt="CLASSIFIED"></div>
     <div class="intro-terminal"><div id="intro-text"></div></div>
     <button id="start-btn">INITIATE BREACH</button>
   </div>
 
   <div id="game" class="screen">
-    <div class="vault-bg" id="vault-bg"></div>
-    <div class="vault-bg-open" id="vault-bg-open"></div>
+    <canvas id="vault-canvas"></canvas>
+    <div class="vault-overlay"></div>
     <div class="hud">
       <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
       <div class="hud-corner bl"></div><div class="hud-corner br"></div>
@@ -409,6 +390,7 @@ const VAULTS = [
     lootColor: '#CD9B6A', lootGlow: 'rgba(205,155,106,0.4)',
     bg: '../images/vault-cracker/bg-bronze.jpg',
     bgOpen: '../images/vault-cracker/bg-bronze-open.jpg',
+    frameDir: '../images/vault-cracker/frames/bronze', frameCount: 80,
   },
   {
     name: 'STEEL VAULT', subtitle: 'SECONDARY BARRIER',
@@ -416,6 +398,7 @@ const VAULTS = [
     rank: 'OPERATIVE',
     bg: '../images/vault-cracker/bg-steel.jpg',
     bgOpen: '../images/vault-cracker/bg-steel-open.jpg',
+    frameDir: '../images/vault-cracker/frames/steel', frameCount: 80,
   },
   {
     name: 'GOLD VAULT', subtitle: 'PRIMARY VAULT',
@@ -423,6 +406,7 @@ const VAULTS = [
     rank: 'EXPERT',
     bg: '../images/vault-cracker/bg-gold.jpg',
     bgOpen: '../images/vault-cracker/bg-gold-open.jpg',
+    frameDir: '../images/vault-cracker/frames/gold', frameCount: 80,
   },
   {
     name: 'TITANIUM VAULT', subtitle: 'INNER SANCTUM',
@@ -430,6 +414,7 @@ const VAULTS = [
     rank: 'MASTER',
     bg: '../images/vault-cracker/bg-titanium.jpg',
     bgOpen: '../images/vault-cracker/bg-titanium-open.jpg',
+    frameDir: '../images/vault-cracker/frames/titanium', frameCount: 80,
   },
   {
     name: 'OBSIDIAN VAULT', subtitle: 'THE MOTHERLOAD',
@@ -437,6 +422,7 @@ const VAULTS = [
     rank: 'LEGEND',
     bg: '../images/vault-cracker/bg-obsidian.jpg',
     bgOpen: '../images/vault-cracker/bg-obsidian-open.jpg',
+    frameDir: '../images/vault-cracker/frames/obsidian', frameCount: 80,
   }
 ];
 
@@ -483,6 +469,8 @@ const audio = new AudioEngine();
 
 // === STATE ===
 const state = {questions:[],current:0,correct:0,wrong:0,streak:0,vaultIdx:0,dialRotation:0,answered:false,transitioning:false};
+// Test hook — exposes current correct answer index for automated QA
+window.__vcCorrect = () => state.questions[state.current]?.correct ?? -1;
 const STREAK_NEEDED = 3;
 
 // === DOM ===
@@ -495,9 +483,70 @@ const depthGauge=$('depth-gauge'),streakPins=$('streak-pins');
 const qCategory=$('q-category'),qText=$('q-text'),answersEl=$('answers');
 const explanationEl=$('explanation'),nextBtn=$('next-btn');
 const alertFlash=$('alert-flash'),soundToggle=$('sound-toggle');
-const vaultBg=$('vault-bg'),vaultBgOpen=$('vault-bg-open');
+const vaultCanvas=$('vault-canvas'),vaultCtx=vaultCanvas.getContext('2d');
 
-// === VAULT RENDERING (clip-path reveal) ===
+// === VAULT RENDERING (Canvas frame animation) ===
+const FRAME_CACHE = {}; // { vaultIdx: [Image, Image, ...] }
+let currentDisplayFrame = 0;
+let frameAnimationId = null;
+
+function resizeCanvas() {
+  vaultCanvas.width = window.innerWidth;
+  vaultCanvas.height = window.innerHeight;
+  drawFrame(currentDisplayFrame);
+}
+window.addEventListener('resize', resizeCanvas);
+
+function drawFrame(frameIdx) {
+  const frames = FRAME_CACHE[state.vaultIdx];
+  if (!frames) return;
+  const maxFrame = frames.length - 1;
+  const clamped = Math.max(0, Math.min(frameIdx, maxFrame));
+
+  // Integer frame — draw directly
+  const lo = Math.floor(clamped);
+  const hi = Math.ceil(clamped);
+  const blend = clamped - lo; // 0-1 fractional part
+
+  if (!frames[lo]?.complete) return;
+
+  // Draw the base frame
+  const img1 = frames[lo];
+  const scale1 = Math.max(vaultCanvas.width / img1.naturalWidth, vaultCanvas.height / img1.naturalHeight);
+  const w1 = img1.naturalWidth * scale1, h1 = img1.naturalHeight * scale1;
+  vaultCtx.globalAlpha = 1;
+  vaultCtx.drawImage(img1, (vaultCanvas.width - w1) / 2, (vaultCanvas.height - h1) / 2, w1, h1);
+
+  // Cross-fade with next frame if fractional
+  if (blend > 0.01 && hi <= maxFrame && frames[hi]?.complete) {
+    const img2 = frames[hi];
+    const scale2 = Math.max(vaultCanvas.width / img2.naturalWidth, vaultCanvas.height / img2.naturalHeight);
+    const w2 = img2.naturalWidth * scale2, h2 = img2.naturalHeight * scale2;
+    vaultCtx.globalAlpha = blend;
+    vaultCtx.drawImage(img2, (vaultCanvas.width - w2) / 2, (vaultCanvas.height - h2) / 2, w2, h2);
+    vaultCtx.globalAlpha = 1;
+  }
+
+  currentDisplayFrame = clamped;
+}
+
+function preloadVaultFrames(idx) {
+  if (FRAME_CACHE[idx]) return Promise.resolve();
+  const v = VAULTS[idx];
+  const frames = [];
+  let loaded = 0;
+  return new Promise(resolve => {
+    for (let i = 0; i < v.frameCount; i++) {
+      const img = new Image();
+      img.onload = () => { loaded++; if (loaded >= v.frameCount) resolve(); };
+      img.onerror = () => { loaded++; if (loaded >= v.frameCount) resolve(); };
+      img.src = v.frameDir + '/frame_' + String(i + 1).padStart(3, '0') + '.jpg';
+      frames.push(img);
+    }
+    FRAME_CACHE[idx] = frames;
+  });
+}
+
 function setVaultTheme(idx) {
   const v = VAULTS[idx];
   const s = document.documentElement.style;
@@ -505,29 +554,48 @@ function setVaultTheme(idx) {
   s.setProperty('--v-glow', v.glow);
   vaultNameEl.textContent = v.name;
   vaultSubEl.textContent = v.subtitle;
-  // Reset clip-path to hidden (no transition during setup)
-  vaultBgOpen.style.transition = 'none';
-  vaultBgOpen.className = 'vault-bg-open';
-  // Set both layers
-  vaultBg.style.opacity = '0';
+  // Cancel any running frame animation
+  if (frameAnimationId) { cancelAnimationFrame(frameAnimationId); frameAnimationId = null; }
+  // Slow fade to black, swap vault, slow fade in — 1.5s each for smooth transition
+  vaultCanvas.style.transition = 'opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+  vaultCanvas.style.opacity = '0';
   setTimeout(() => {
-    vaultBg.style.backgroundImage = `url('${v.bg}')`;
-    vaultBgOpen.style.backgroundImage = `url('${v.bgOpen}')`;
-    vaultBg.style.opacity = '1';
-    // Re-enable transition after images are set
-    requestAnimationFrame(() => {
-      vaultBgOpen.style.transition = '';
+    preloadVaultFrames(idx).then(() => {
+      drawFrame(0);
+      vaultCanvas.style.transition = 'opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      vaultCanvas.style.opacity = '1';
     });
-  }, 300);
+  }, 1500);
 }
 
+// Streak-based frame position: 0=frame 0, 1=frame ~8, 2=frame ~16
+const STREAK_FRAMES = [0, 8, 16];
+
 function setVaultStage(streak) {
-  // Remove all stage classes, add the right one
-  vaultBgOpen.classList.remove('stage1', 'stage2', 'stage3');
-  if (streak >= 3) vaultBgOpen.classList.add('stage3');
-  else if (streak === 2) vaultBgOpen.classList.add('stage2');
-  else if (streak === 1) vaultBgOpen.classList.add('stage1');
-  // streak 0 = no class = clip-path: circle(0%), fully hidden
+  const targetFrame = STREAK_FRAMES[Math.min(streak, 2)] || 0;
+  // Animate smoothly from current frame to target
+  animateToFrame(targetFrame, 1200);
+}
+
+function animateToFrame(target, duration) {
+  if (frameAnimationId) { cancelAnimationFrame(frameAnimationId); frameAnimationId = null; }
+  const start = currentDisplayFrame;
+  const startTime = performance.now();
+  const diff = target - start;
+  if (Math.abs(diff) < 0.01) return;
+
+  function tick(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+    // Ease-out cubic — feels like a heavy door decelerating
+    const eased = 1 - Math.pow(1 - progress, 3);
+    // Use fractional frame index — drawFrame interpolates between frames
+    const frame = start + diff * eased;
+    drawFrame(frame);
+    if (progress < 1) frameAnimationId = requestAnimationFrame(tick);
+    else { drawFrame(target); frameAnimationId = null; }
+  }
+  frameAnimationId = requestAnimationFrame(tick);
 }
 
 
@@ -618,12 +686,13 @@ function initGame() {
   state.answered = false;
   state.transitioning = false;
 
+  resizeCanvas();
+  preloadVaultFrames(0).then(() => { drawFrame(0); });
   setVaultTheme(0);
   buildDepthGauge();
   buildStreakPins();
   updateStreakPins();
 
-  vaultBgOpen.className = 'vault-bg-open';
   document.querySelectorAll('.denied-stamp,.breach-text').forEach(e => e.remove());
   secLevel.textContent = 'ALERT: 0';
   secLevel.style.opacity = '0.7';
@@ -690,7 +759,8 @@ function handleAnswer(btn, selectedIdx, correctIdx) {
     updateStreakPins();
 
     // Advance vault stage visually
-    setVaultStage(state.streak);
+    if (state.streak < 3) setVaultStage(state.streak);
+    else animateToFrame(20, 1600); // streak 3 = animate to frame 20, crackVault handles the rest
 
     // Check if vault cracked
     if (state.streak >= STREAK_NEEDED && state.vaultIdx < VAULTS.length) {
@@ -709,7 +779,7 @@ function handleAnswer(btn, selectedIdx, correctIdx) {
     updateStreakPins();
 
     // Animate back to locked state
-    if (prevStreak > 0) setVaultStage(0);
+    if (prevStreak > 0) animateToFrame(0, 1000);
   }
 
   explanationEl.textContent = q.explanation;
@@ -722,6 +792,7 @@ function crackVault() {
   state.transitioning = true;
   const crackedIdx = state.vaultIdx;
   const v = VAULTS[crackedIdx];
+  const totalFrames = v.frameCount || 80;
 
   audio.play('tumbler');
   document.body.classList.add('shake');
@@ -732,29 +803,34 @@ function crackVault() {
   breach.className = 'breach-text show';
   breach.textContent = `${v.name} BREACHED`;
   document.getElementById('app').appendChild(breach);
-  setTimeout(() => breach.remove(), 2500);
+  setTimeout(() => breach.remove(), 4000);
 
-  // Stage 3 (full reveal) was already triggered by setVaultStage in handleAnswer
-  // The clip-path animates the open image into view
-  setTimeout(() => audio.play('open'), 800);
+  // Animate through ALL frames with eased timing (heavy vault door)
+  // Slow start, fast middle, slow settle — ~3 seconds total
+  setTimeout(() => audio.play('open'), 400);
+  animateToFrame(totalFrames - 1, 6000);
 
-  // Advance vault
+  // Advance vault index
   state.vaultIdx++;
-  state.streak = 0;
-  updateStreakPins();
   updateDepthGauge();
 
+  // Pre-load next vault frames while animation plays
   if (state.vaultIdx < VAULTS.length) {
-    // After showing open vault, transition to next closed vault
+    preloadVaultFrames(state.vaultIdx);
+  }
+
+  const transitionDelay = 7000; // Let the full animation play + pause
+  if (state.vaultIdx < VAULTS.length) {
     setTimeout(() => {
+      state.streak = 0;
+      updateStreakPins();
       setVaultTheme(state.vaultIdx);
-      state.transitioning = false;
-    }, 3200);
+      setTimeout(() => { state.transitioning = false; }, 1200);
+    }, transitionDelay);
   } else {
-    // All 5 vaults cracked!
-    setTimeout(() => {
-      state.transitioning = false;
-    }, 2500);
+    state.streak = 0;
+    updateStreakPins();
+    setTimeout(() => { state.transitioning = false; }, 3000);
   }
 }
 
@@ -807,21 +883,30 @@ function showResults(depth) {
   resultsScreen.classList.add('active');
 
   const ranks = ['LOCKED OUT', 'INITIATE', 'OPERATIVE', 'EXPERT', 'MASTER', 'LEGEND'];
-  const colors = ['red', 'green', 'green', 'gold', 'cyan', 'purple'];
+  const rankColors = ['var(--red)', 'var(--green-dim)', 'var(--green)', '#ffd700', '#14b8a6', '#a855f7'];
+  const bgImg = depth === 0 ? VAULTS[0].bg : VAULTS[Math.min(depth, VAULTS.length) - 1].bgOpen;
   const rank = ranks[depth];
-  const color = colors[depth];
+  const color = rankColors[depth];
   const subtitle = depth === 0
     ? 'You couldn\'t crack a single vault.'
     : depth === 5
     ? 'All 5 vaults breached. The motherload is yours.'
     : `You breached ${depth} of 5 vaults — reached the ${VAULTS[depth-1].name}.`;
 
+  resultsScreen.style.backgroundImage = `url('${bgImg}')`;
+  resultsScreen.style.backgroundSize = 'cover';
+  resultsScreen.style.backgroundPosition = 'center';
+
   resultsScreen.innerHTML = `
-    <div class="results-box">
-      <div class="results-rank ${color}">${rank}</div>
+    <div style="position:absolute;inset:0;background:rgba(6,7,12,0.65);z-index:0"></div>
+    <div class="results-box" style="position:relative;z-index:1">
+      <div class="results-rank" style="color:${color};text-shadow:0 0 30px ${color},0 0 60px ${color}">${rank}</div>
       <div class="results-subtitle">${subtitle}</div>
+      <div class="results-depth-visual">
+        ${VAULTS.map((v, i) => `<div class="results-vault-pip ${i < depth ? 'filled' : ''}" style="${i < depth ? `background:${v.accent};border-color:${v.accent};box-shadow:0 0 10px ${v.glow}` : ''}"><span class="pip-label">${v.name.split(' ')[0]}</span></div>`).join('')}
+      </div>
       <div class="results-stats">
-        <div class="stat-box"><div class="stat-value">${depth} / 5</div><div class="stat-label">DEPTH</div></div>
+        <div class="stat-box"><div class="stat-value" style="color:${color}">${depth} / 5</div><div class="stat-label">DEPTH</div></div>
         <div class="stat-box"><div class="stat-value">${state.correct}</div><div class="stat-label">CORRECT</div></div>
         <div class="stat-box"><div class="stat-value">${Math.round(state.correct/state.questions.length*100)}%</div><div class="stat-label">ACCURACY</div></div>
         <div class="stat-box"><div class="stat-value">${state.wrong}</div><div class="stat-label">WRONG</div></div>
@@ -832,6 +917,7 @@ function showResults(depth) {
   $('retry-btn').addEventListener('click', () => {
     audio.play('click');
     resultsScreen.classList.remove('active');
+    resultsScreen.style.backgroundImage = '';
     gameScreen.classList.add('active');
     initGame();
   });
@@ -859,7 +945,8 @@ startBtn.addEventListener('click', () => {
 });
 
 // Preload vault backgrounds
-VAULTS.forEach(v => { new Image().src = v.bg; new Image().src = v.bgOpen; });
+// Pre-load first vault frames on page load
+preloadVaultFrames(0);
 
 runIntro();
 </script>

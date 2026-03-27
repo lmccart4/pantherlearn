@@ -1257,6 +1257,7 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
 /* --- Page Wrapper --- */
 .page-wrapper {
   padding: 48px 40px;
+  margin-top: 62px;
   max-width: 1200px;
   margin: 0 auto;
   animation: fadeIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -2531,4 +2532,44 @@ a:hover { color: var(--amber-bright); text-decoration: underline; text-shadow: 0
   .mg-stats { grid-template-columns: 1fr 1fr; }
   .mg-lesson-header { flex-direction: column; align-items: flex-start; }
   .mg-grade { text-align: left; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Performance Mode — strips heavy visual effects for Chromebooks
+   Activated by adding class "perf-mode" to <html>
+   ═══════════════════════════════════════════════════════════════ */
+.perf-mode *,
+.perf-mode *::before,
+.perf-mode *::after {
+  animation: none !important;
+  animation-duration: 0s !important;
+  transition: none !important;
+  transition-duration: 0s !important;
+}
+.perf-mode * {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+.perf-mode *::before,
+.perf-mode *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.perf-mode .top-bar {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--bg) !important;
+}
+.perf-mode .top-bar::after {
+  display: none !important;
+}
+.perf-mode .lesson-hero,
+.perf-mode .course-hero,
+.perf-mode .cp-hero {
+  background-image: none !important;
+}
+.perf-mode .perf-math {
+  font-family: monospace;
+  text-align: center;
+  padding: 4px 0;
 }

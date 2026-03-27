@@ -5,6 +5,7 @@ import { logOut } from "../lib/firebase";
 import { resolveDisplayName } from "../lib/displayName";
 import LanguageSelector from "./LanguageSelector";
 import NotificationBell from "./NotificationBell";
+import PerfModeToggle from "./PerfModeToggle";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 export default function TopBar() {
@@ -35,6 +36,7 @@ export default function TopBar() {
         <Link to="/" className={isActive("/")} data-translatable>{isTeacher ? "Dashboard" : ui(0, "Dashboard")}</Link>
         <Link to="/avatar" className={isActive("/avatar")} data-translatable>{isTeacher ? "Character" : `⚔️ ${ui(1, "Character")}`}</Link>
         {!isTeacher && <Link to="/my-grades" className={isActive("/my-grades")} data-translatable>📊 {ui(3, "My Grades")}</Link>}
+        {!isTeacher && <Link to="/my-mana" className={location.pathname.startsWith("/my-mana") ? "top-nav-link active" : "top-nav-link"}>✦ Mana</Link>}
         {isTeacher && <Link to="/editor" className={isActive("/editor")}>Editor</Link>}
         {isTeacher && <Link to="/grading" className={isActive("/grading")}>Grading</Link>}
         {isTeacher && <Link to="/progress" className={isActive("/progress")}>Progress</Link>}
@@ -44,7 +46,7 @@ export default function TopBar() {
       </nav>
 
       <div className="top-bar-right">
-        <LanguageSelector />
+        <PerfModeToggle />
         <NotificationBell />
         {user?.photoURL && <img src={user.photoURL} className="user-avatar" alt="" referrerPolicy="no-referrer" />}
         <span className="user-name">{displayedName}</span>

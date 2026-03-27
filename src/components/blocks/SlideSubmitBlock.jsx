@@ -8,9 +8,8 @@ function extractPresentationInfo(url) {
   // Google Slides: docs.google.com/presentation/d/{ID}/...
   const slidesMatch = url.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
   if (slidesMatch) return { type: "google", id: slidesMatch[1] };
-  // Canva: canva.com/design/{ID}/{TOKEN}/...
-  const canvaMatch = url.match(/canva\.com\/design\/([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)/);
-  if (canvaMatch) return { type: "canva", id: canvaMatch[1], token: canvaMatch[2] };
+  // Canva: accept any URL containing "canva" — embed the raw URL
+  if (/canva/i.test(url)) return { type: "canva", rawUrl: url };
   return null;
 }
 
@@ -35,7 +34,7 @@ export default function SlideSubmitBlock({ block, studentData = {}, onAnswer }) 
     const trimmed = url.trim();
     if (!trimmed) { setError("Paste your presentation link first."); return; }
     if (!extractPresentationInfo(trimmed)) {
-      setError("That doesn't look like a Google Slides or Canva link. Supported: docs.google.com/presentation/d/... or canva.com/design/...");
+      setError("Paste your Google Slides or Canva share link. It should look like: docs.google.com/presentation/d/... or canva.com/design/...");
       return;
     }
     setError("");
@@ -143,11 +142,12 @@ export default function SlideSubmitBlock({ block, studentData = {}, onAnswer }) 
             />
           ) : (
             <iframe
-              src={`https://www.canva.com/design/${presInfo.id}/${presInfo.token}/view?embed`}
+              src={presInfo.rawUrl + (presInfo.rawUrl.includes('?') ? '&embed' : '?embed')}
               width="100%"
               height="100%"
               style={{ border: "none", display: "block" }}
               allowFullScreen
+              allow="fullscreen"
               title="Student Presentation (Canva)"
             />
           )}

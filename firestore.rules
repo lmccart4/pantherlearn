@@ -71,9 +71,31 @@ service cloud.firestore {
         allow read: if hasCourseAccess(courseId);
         allow write: if isCourseTeacher(courseId);
       }
+      match /studentMana/{uid} {
+        allow read: if isOwner(uid) || isCourseTeacher(courseId);
+        allow write: if isCourseTeacher(courseId) || isOwner(uid);
+      }
+      match /manaRequests/{requestId} {
+        allow read: if hasCourseAccess(courseId);
+        allow create: if isLoggedIn();
+        allow update, delete: if isCourseTeacher(courseId);
+      }
       match /bossBattles/{battleId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if isCourseTeacher(courseId);
+        allow create, delete: if isCourseTeacher(courseId);
+        allow update: if hasCourseAccess(courseId);
+
+        // Player subcollection (v2 data model)
+        match /players/{uid} {
+          allow read: if hasCourseAccess(courseId);
+          allow write: if isOwner(uid) || isCourseTeacher(courseId);
+        }
+
+        // Events subcollection (future use)
+        match /events/{eventId} {
+          allow read: if hasCourseAccess(courseId);
+          allow create: if isCourseTeacher(courseId);
+        }
       }
       match /guessWhoGames/{gameId} {
         allow read: if hasCourseAccess(courseId);

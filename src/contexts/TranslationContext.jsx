@@ -1,5 +1,6 @@
 // src/contexts/TranslationContext.jsx
 import { createContext, useContext, useState, useCallback, useRef } from "react";
+import { auth } from "../lib/firebase";
 
 const LANGUAGES = [
   { code: "en", name: "English", native: "English", flag: "🇺🇸" },
@@ -60,9 +61,14 @@ export function TranslationProvider({ children, cloudFunctionUrl }) {
 
       const promise = (async () => {
         try {
+          const user = auth.currentUser;
+          const idToken = user ? await user.getIdToken() : null;
           const res = await fetch(cloudFunctionUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(idToken ? { "Authorization": `Bearer ${idToken}` } : {}),
+            },
             body: JSON.stringify({
               texts: toTranslate,
               targetLanguage: language,

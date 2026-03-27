@@ -430,18 +430,6 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
             ) : (
               <div className="sa-status" data-translatable>✓ {ui(6) || "Submitted — awaiting teacher review"}</div>
             )}
-            {!locked && !data.writtenLabel && (
-              <button
-                className="btn"
-                onClick={() => {
-                  setSubmitted(false);
-                  onAnswer(block.id, { answer: textAnswer, submitted: false });
-                }}
-                style={{ marginTop: 8, fontSize: 13, color: "var(--text3)", background: "var(--surface2)", border: "1px solid var(--border)" }}
-              >
-                ✏️ Edit Response
-              </button>
-            )}
           </div>
         )}
       </div>

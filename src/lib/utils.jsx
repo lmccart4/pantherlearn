@@ -1,8 +1,15 @@
 // src/lib/utils.js
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import { isPerfMode } from "./perfMode";
 
 function renderKaTeX(text) {
+  // In performance mode, strip $ delimiters and show plain text math
+  if (isPerfMode()) {
+    return text
+      .replace(/\$\$(.+?)\$\$/gs, (_, expr) => `<div class="perf-math">${expr.trim()}</div>`)
+      .replace(/(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g, (_, expr) => expr.trim());
+  }
   // Block math: $$...$$
   text = text.replace(/\$\$(.+?)\$\$/gs, (_, expr) => {
     try { return katex.renderToString(expr.trim(), { displayMode: true, throwOnError: false }); }
