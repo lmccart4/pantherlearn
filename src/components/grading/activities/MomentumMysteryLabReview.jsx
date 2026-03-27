@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
-import { getCourseAttempts, xpToGrade } from "../../../lib/momentumStore";
+import { getCourseAttempts } from "../../../lib/momentumStore";
 
 // Maps activityScore to a color for display
 function gradeColor(score) {
@@ -109,7 +109,7 @@ export default function MomentumMysteryLabReview({ activity, studentMap, courseI
             const label = grade?.activityLabel ?? attempt.activityLabel;
             const bestXP = attempt.bestXP ?? 0;
             const cleared = attempt.cleared ?? 0;
-            const synced = score != null;
+            const isSynced = score != null;
             const completedAt = attempt.completedAt?.toDate?.() || attempt.completedAt;
 
             return (
@@ -124,7 +124,7 @@ export default function MomentumMysteryLabReview({ activity, studentMap, courseI
                     )}
                     <span style={{ fontWeight: 600, fontSize: 14, color: "var(--text)" }}>{getName(attempt)}</span>
                   </div>
-                  {synced ? (
+                  {isSynced ? (
                     <span style={{
                       fontSize: 11, padding: "2px 10px", borderRadius: 4, fontWeight: 600,
                       color: gradeColor(score), background: gradeBackground(score),
@@ -167,7 +167,7 @@ export default function MomentumMysteryLabReview({ activity, studentMap, courseI
                 </div>
 
                 {/* XP bar */}
-                {synced && (
+                {isSynced && (
                   <div style={{ marginTop: 10 }}>
                     <div style={{ height: 6, borderRadius: 3, background: "var(--surface2)", overflow: "hidden" }}>
                       <div style={{

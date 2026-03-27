@@ -2,7 +2,7 @@
 // Review component for AI Training Simulator activity in the Grading Dashboard.
 
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, doc, setDoc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, where, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { createNotification } from "../../../lib/notifications";
 import { awardXP, getXPConfig, DEFAULT_XP_VALUES } from "../../../lib/gamification";
@@ -15,7 +15,7 @@ const GRADE_TIERS = [
   { label: "Refining", value: 1.0, xpKey: "written_refining", color: "var(--green)", bg: "rgba(16,185,129,0.12)" },
 ];
 
-export default function AITrainingSimReview({ activity, studentMap }) {
+export default function AITrainingSimReview({ activity, studentMap, courseId: parentCourseId }) {
   const [loading, setLoading] = useState(true);
   const [submissions, setSubmissions] = useState([]);
   const [grades, setGrades] = useState({});
@@ -26,36 +26,41 @@ export default function AITrainingSimReview({ activity, studentMap }) {
       setLoading(true);
       try {
         const snap = await getDocs(
-          query(collection(db, "aiTrainingSim"), orderBy("completedAt", "desc"))
+          query(collection(db, "aiTrainingSim"), where("submitted", "==", true), orderBy("completedAt", "desc"))
         );
 
         const subs = [];
         snap.forEach((d) => {
-          const data = d.data();
-          if (data.submitted) subs.push({ id: d.id, ...data });
+          subs.push({ id: d.id, ...d.data() });
         });
         setSubmissions(subs);
 
-        // Fetch existing grades
+        // Build list of courseIds to check (parent + migrated sections)
+        const courseIdsToCheck = [parentCourseId];
+        try {
+          const allCoursesSnap = await getDocs(collection(db, "courses"));
+          allCoursesSnap.forEach((d) => {
+            if (d.data().migratedFrom === parentCourseId) courseIdsToCheck.push(d.id);
+          });
+        } catch { /* ignore */ }
+
+        // Fetch existing grades by checking known courseIds directly
         const existingGrades = {};
-        for (const sub of subs) {
-          try {
-            const coursesSnap = await getDocs(collection(db, "progress", sub.uid, "courses"));
-            for (const courseDoc of coursesSnap.docs) {
-              try {
-                const gradeDoc = await getDoc(doc(db, "progress", sub.uid, "courses", courseDoc.id, "activities", "ai-training-sim"));
-                if (gradeDoc.exists()) {
-                  existingGrades[sub.uid] = {
-                    score: gradeDoc.data().activityScore,
-                    label: gradeDoc.data().activityLabel,
-                    courseId: courseDoc.id,
-                  };
-                  break;
-                }
-              } catch { /* no grade */ }
-            }
-          } catch { /* no progress */ }
-        }
+        await Promise.all(subs.map(async (sub) => {
+          for (const cid of courseIdsToCheck) {
+            try {
+              const gradeDoc = await getDoc(doc(db, "progress", sub.uid, "courses", cid, "activities", "ai-training-sim"));
+              if (gradeDoc.exists()) {
+                existingGrades[sub.uid] = {
+                  score: gradeDoc.data().activityScore,
+                  label: gradeDoc.data().activityLabel,
+                  courseId: cid,
+                };
+                break;
+              }
+            } catch { /* no grade */ }
+          }
+        }));
         setGrades(existingGrades);
       } catch (err) {
         console.error("Error fetching AI Training Sim data:", err);
@@ -63,14 +68,14 @@ export default function AITrainingSimReview({ activity, studentMap }) {
       setLoading(false);
     };
     fetchData();
-  }, []);
+  }, [parentCourseId]);
 
   const handleGrade = async (uid, tier) => {
     if (grading) return;
     setGrading(uid);
     try {
       const sub = submissions.find((s) => s.uid === uid);
-      const courseId = grades[uid]?.courseId || sub?.courseId;
+      const courseId = grades[uid]?.courseId || sub?.courseId || parentCourseId;
       if (!courseId) {
         alert("Cannot determine course for this student.");
         setGrading(null);

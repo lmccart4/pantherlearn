@@ -68,7 +68,7 @@ export default function DataLabelingReview({ activity, studentMap, courseId: par
       setLoading(false);
     };
     fetchData();
-  }, []);
+  }, [parentCourseId]);
 
   const handleGrade = async (uid, tier) => {
     if (grading) return;

@@ -216,7 +216,7 @@ export default function ManaManager() {
   useEffect(() => {
     if (userRole !== "teacher") { navigate("/"); return; }
     loadCourse();
-  }, [courseId, userRole]);
+  }, [courseId, userRole, navigate]);
 
   async function loadCourse() {
     setLoading(true);

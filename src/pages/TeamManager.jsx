@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import {
   getTeams, createTeam, deleteTeam, updateTeam,
@@ -82,13 +82,10 @@ export default function TeamManager() {
       setConfig(cfg);
 
       // Load enrolled students for this course
-      const enrollSnap = await getDocs(collection(db, "enrollments"));
+      const enrollSnap = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", courseId)));
       const enrolledForCourse = [];
       enrollSnap.forEach((d) => {
-        const data = d.data();
-        if (data.courseId === courseId) {
-          enrolledForCourse.push(data);
-        }
+        enrolledForCourse.push(d.data());
       });
 
       const students = [];
@@ -142,32 +139,51 @@ export default function TeamManager() {
 
   async function handleDeleteTeam(teamId) {
     if (!confirm("Delete this team? Members will become unassigned.")) return;
-    await deleteTeam(courseId, teamId);
-    await loadData();
+    try {
+      await deleteTeam(courseId, teamId);
+      await loadData();
+    } catch (err) {
+      console.error("Failed to delete team:", err);
+      alert("Failed to delete team. Please try again.");
+    }
   }
 
   async function handleRenameTeam(teamId) {
     const trimmed = editNameValue.trim();
     if (!trimmed) return;
-    await updateTeam(courseId, teamId, { name: trimmed });
-    setEditingTeamName(null);
-    setEditNameValue("");
-    await loadData();
+    try {
+      await updateTeam(courseId, teamId, { name: trimmed });
+      setEditingTeamName(null);
+      setEditNameValue("");
+      await loadData();
+    } catch (err) {
+      console.error("Failed to rename team:", err);
+      alert("Failed to rename team. Please try again.");
+    }
   }
 
   async function handleAssignStudent(teamId, student) {
-    // Remove from current team if on one
-    const currentTeam = teams.find((t) => t.members.some((m) => m.uid === student.uid));
-    if (currentTeam) {
-      await removeMemberFromTeam(courseId, currentTeam.id, student.uid);
+    try {
+      const currentTeam = teams.find((t) => t.members.some((m) => m.uid === student.uid));
+      if (currentTeam) {
+        await removeMemberFromTeam(courseId, currentTeam.id, student.uid);
+      }
+      await addMemberToTeam(courseId, teamId, student);
+      await loadData();
+    } catch (err) {
+      console.error("Failed to assign student:", err);
+      alert("Failed to assign student. Please try again.");
     }
-    await addMemberToTeam(courseId, teamId, student);
-    await loadData();
   }
 
   async function handleRemoveStudent(teamId, studentUid) {
-    await removeMemberFromTeam(courseId, teamId, studentUid);
-    await loadData();
+    try {
+      await removeMemberFromTeam(courseId, teamId, studentUid);
+      await loadData();
+    } catch (err) {
+      console.error("Failed to remove student:", err);
+      alert("Failed to remove student. Please try again.");
+    }
   }
 
   async function handleAutoAssign() {

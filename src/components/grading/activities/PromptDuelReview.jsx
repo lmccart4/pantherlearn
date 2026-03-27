@@ -23,6 +23,7 @@ export default function PromptDuelReview({ activity, studentMap }) {
   const [grading, setGrading] = useState(null);
   const [expandedStudent, setExpandedStudent] = useState(null);
   const [studentHistory, setStudentHistory] = useState({});
+  const [gradeError, setGradeError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,9 +88,9 @@ export default function PromptDuelReview({ activity, studentMap }) {
                   };
                   break;
                 }
-              } catch { /* no grade */ }
+              } catch (e) { console.debug("No grade for", student.uid, "in course", courseDoc.id, e); }
             }
-          } catch { /* no progress */ }
+          } catch (e) { console.debug("No progress for", student.uid, e); }
         }
         setGrades(existingGrades);
       } catch (err) {
@@ -110,7 +111,7 @@ export default function PromptDuelReview({ activity, studentMap }) {
       const courseId = existingCourseId || gameCourseId;
 
       if (!courseId) {
-        alert("Cannot determine course for this student. Make sure they selected a course when playing.");
+        setGradeError("Cannot determine course for this student. Make sure they selected a course when playing.");
         setGrading(null);
         return;
       }
@@ -149,7 +150,7 @@ export default function PromptDuelReview({ activity, studentMap }) {
       } catch { /* non-critical */ }
     } catch (err) {
       console.error("Failed to save grade:", err);
-      alert("Failed to save grade. Please try again.");
+      setGradeError("Failed to save grade. Please try again.");
     }
     setGrading(null);
   };
@@ -191,6 +192,17 @@ export default function PromptDuelReview({ activity, studentMap }) {
           </div>
         ))}
       </div>
+
+      {gradeError && (
+        <div style={{
+          marginBottom: 16, padding: "10px 14px", borderRadius: 8,
+          background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)",
+          color: "#ef4444", fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center",
+        }}>
+          <span>{gradeError}</span>
+          <button onClick={() => setGradeError(null)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+        </div>
+      )}
 
       {gameData.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 48, color: "var(--text3)" }}>

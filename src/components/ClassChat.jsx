@@ -146,7 +146,7 @@ function MessageView({ chat, user, courseId, onBack, userRole }) {
   const send = async () => {
     if (!input.trim() || sending) return;
     setSending(true);
-    const text = input.trim();
+    const text = input.trim().slice(0, 2000);
     setInput("");
     try {
       await addDoc(collection(db, "courses", courseId, "chats", chat.id, "messages"), {
@@ -276,6 +276,7 @@ function MessageView({ chat, user, courseId, onBack, userRole }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+          maxLength={2000}
           placeholder="Type a message..."
           style={{
             flex: 1, padding: "8px 12px", borderRadius: 8,

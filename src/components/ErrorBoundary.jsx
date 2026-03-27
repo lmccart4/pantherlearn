@@ -88,7 +88,7 @@ export default class ErrorBoundary extends Component {
               Refresh Page
             </button>
           </div>
-          {this.state.error && (
+          {import.meta.env.DEV && this.state.error && (
             <details style={{ marginTop: 24, maxWidth: 500, textAlign: "left" }}>
               <summary style={{ cursor: "pointer", fontSize: 12, color: "var(--text3, #7a809a)" }}>
                 Error details

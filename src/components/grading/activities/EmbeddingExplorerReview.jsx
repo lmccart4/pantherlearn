@@ -23,7 +23,7 @@ const STAGE_META = [
   { key: "stage4", name: "Why It Matters", icon: "🌍" },
 ];
 
-export default function EmbeddingExplorerReview({ activity, studentMap }) {
+export default function EmbeddingExplorerReview({ activity, studentMap, courseId: parentCourseId }) {
   const [loading, setLoading] = useState(true);
   const [submissions, setSubmissions] = useState([]);
   const [grades, setGrades] = useState({});
@@ -39,27 +39,33 @@ export default function EmbeddingExplorerReview({ activity, studentMap }) {
         subs.sort((a, b) => (b.completedAt?.toMillis?.() || 0) - (a.completedAt?.toMillis?.() || 0));
         setSubmissions(subs);
 
-        // Fetch existing grades across all courses
+        // Build list of courseIds to check (parent + migrated sections)
+        const courseIdsToCheck = [parentCourseId];
+        try {
+          const allCoursesSnap = await getDocs(collection(db, "courses"));
+          allCoursesSnap.forEach((d) => {
+            if (d.data().migratedFrom === parentCourseId) courseIdsToCheck.push(d.id);
+          });
+        } catch { /* ignore */ }
+
+        // Fetch existing grades by checking known courseIds directly
         const existingGrades = {};
-        for (const sub of subs) {
+        await Promise.all(subs.map(async (sub) => {
           const uid = sub.studentId || sub.id;
-          try {
-            const coursesSnap = await getDocs(collection(db, "progress", uid, "courses"));
-            for (const courseDoc of coursesSnap.docs) {
-              try {
-                const gradeDoc = await getDoc(doc(db, "progress", uid, "courses", courseDoc.id, "activities", "embedding-explorer"));
-                if (gradeDoc.exists()) {
-                  existingGrades[uid] = {
-                    score: gradeDoc.data().activityScore,
-                    label: gradeDoc.data().activityLabel,
-                    courseId: courseDoc.id,
-                  };
-                  break;
-                }
-              } catch { /* no grade */ }
-            }
-          } catch { /* no progress */ }
-        }
+          for (const cid of courseIdsToCheck) {
+            try {
+              const gradeDoc = await getDoc(doc(db, "progress", uid, "courses", cid, "activities", "embedding-explorer"));
+              if (gradeDoc.exists()) {
+                existingGrades[uid] = {
+                  score: gradeDoc.data().activityScore,
+                  label: gradeDoc.data().activityLabel,
+                  courseId: cid,
+                };
+                break;
+              }
+            } catch { /* no grade */ }
+          }
+        }));
         setGrades(existingGrades);
       } catch (err) {
         console.error("Error fetching Embedding Explorer data:", err);
@@ -67,13 +73,13 @@ export default function EmbeddingExplorerReview({ activity, studentMap }) {
       setLoading(false);
     };
     fetchData();
-  }, []);
+  }, [parentCourseId]);
 
   const handleGrade = async (uid, tier) => {
     if (grading) return;
     setGrading(uid);
     try {
-      const courseId = grades[uid]?.courseId || "ai-literacy";
+      const courseId = grades[uid]?.courseId || parentCourseId;
       const gradeRef = doc(db, "progress", uid, "courses", courseId, "activities", "embedding-explorer");
       await setDoc(gradeRef, {
         activityScore: tier.value,
@@ -113,7 +119,7 @@ export default function EmbeddingExplorerReview({ activity, studentMap }) {
     if (!window.confirm(`Reset ${name}'s Embedding Explorer? This will delete their submission and let them redo it.`)) return;
     try {
       if (sub) await deleteDoc(doc(db, "embedding_explorer", sub.id));
-      const courseId = grades[uid]?.courseId || "ai-literacy";
+      const courseId = grades[uid]?.courseId || parentCourseId;
       await deleteDoc(doc(db, "progress", uid, "courses", courseId, "activities", "embedding-explorer"));
       setSubmissions((prev) => prev.filter((s) => (s.studentId || s.id) !== uid));
       setGrades((prev) => { const next = { ...prev }; delete next[uid]; return next; });

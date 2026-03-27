@@ -64,9 +64,9 @@ export default function BiasDetectiveReview({ activity, studentMap, courseId }) 
         const sorted = Object.values(byStudent).sort((a, b) => b.bestScore - a.bestScore);
         setInvestigations(sorted);
 
-        // Fetch existing grades
+        // Fetch existing grades in parallel
         const existingGrades = {};
-        for (const student of sorted) {
+        await Promise.all(sorted.map(async (student) => {
           try {
             const gradeDoc = await getDoc(doc(db, "progress", student.uid, "courses", courseId, "activities", "bias-detective"));
             if (gradeDoc.exists()) {
@@ -76,7 +76,7 @@ export default function BiasDetectiveReview({ activity, studentMap, courseId }) 
               };
             }
           } catch { /* no grade */ }
-        }
+        }));
         setGrades(existingGrades);
       } catch (err) {
         console.error("Error fetching Bias Detective data:", err);

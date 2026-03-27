@@ -85,10 +85,16 @@ export default function XPControls() {
 
   async function handleSave() {
     setSaving(true);
-    await saveXPConfig(courseId, { xpValues, behaviorRewards, multiplierConfig, levelThresholds });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      await saveXPConfig(courseId, { xpValues, behaviorRewards, multiplierConfig, levelThresholds });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error("Failed to save XP config:", err);
+      alert("Failed to save. Check your connection.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleResetDefaults() {
@@ -107,6 +113,10 @@ export default function XPControls() {
   function addBehavior() {
     if (!newBehavior.label.trim()) return;
     const id = newBehavior.label.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+    if (behaviorRewards.some((b) => b.id === id)) {
+      alert("A behavior with a similar name already exists.");
+      return;
+    }
     setBehaviorRewards((prev) => [...prev, { ...newBehavior, id }]);
     setNewBehavior({ label: "", xp: 10, icon: "⭐" });
   }
@@ -123,8 +133,13 @@ export default function XPControls() {
 
   // ─── Multiplier Events ───
   async function startMultiplierEvent() {
-    await setActiveMultiplier(courseId, eventMultiplier, eventDuration, eventLabel);
-    await loadConfig();
+    try {
+      await setActiveMultiplier(courseId, eventMultiplier, eventDuration, eventLabel);
+      await loadConfig();
+    } catch (err) {
+      console.error("Failed to start multiplier event:", err);
+      alert("Failed to start multiplier event.");
+    }
   }
 
   async function stopMultiplierEvent() {

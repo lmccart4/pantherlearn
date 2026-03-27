@@ -193,8 +193,7 @@ export default function SpaceRescueMission() {
       const levelsCompleted = newCompleted.size;
       const bestLevel = Math.max(...Array.from(newCompleted), 0);
       const bestOxy = success ? Math.max(resultData.oxygenTime - parseFloat(resultData.timeToReach), 0) : 0;
-      let score = Math.min(levelsCompleted * 25, 100);
-      if (bestLevel >= 3) score = Math.min(score + Math.round(bestOxy / 6), 100);
+      const score = calculateSpaceRescueScore({ levelsCompleted, bestLevel, bestOxygenRemaining: bestOxy });
       const label = score >= 90 ? "Expert" : score >= 80 ? "Advanced" : score >= 70 ? "Proficient" : score >= 60 ? "Developing" : score >= 50 ? "Emerging" : "Beginning";
 
       await setDoc(

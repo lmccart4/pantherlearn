@@ -795,7 +795,7 @@ export default function LessonEditor() {
 
   // Fetch courses (owned or co-teaching)
   useEffect(() => {
-    const fetch = async () => {
+    const fetchCourses = async () => {
       const snapshot = await getDocs(query(collection(db, "courses"), orderBy("order", "asc")));
       const owned = snapshot.docs
         .map((d) => ({ id: d.id, ...d.data() }))
@@ -803,17 +803,17 @@ export default function LessonEditor() {
       setCourses(owned);
       setLoading(false);
     };
-    fetch();
+    fetchCourses();
   }, [user]);
 
   // Fetch lessons when course selected
   useEffect(() => {
     if (!selectedCourse) { setLessons([]); return; }
-    const fetch = async () => {
+    const fetchLessons = async () => {
       const snapshot = await getDocsFromServer(query(collection(db, "courses", selectedCourse, "lessons"), orderBy("order", "asc")));
       setLessons(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     };
-    fetch();
+    fetchLessons();
   }, [selectedCourse]);
 
   // Auto-load lesson when returning from preview (once lessons are fetched)

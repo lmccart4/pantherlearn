@@ -341,7 +341,7 @@ export default function LessonViewer() {
       }
       return { block, extraProps };
     });
-  }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted]);
+  }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted, handleRequestReview]);
 
   if (loading) {
     return (

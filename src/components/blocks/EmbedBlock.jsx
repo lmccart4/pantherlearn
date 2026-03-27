@@ -3,38 +3,11 @@ import { useEffect } from "react";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 import { renderMarkdown } from "../../lib/utils";
 
-// Allowlist of origins permitted to send scores and request auth tokens.
-// Covers all Firebase-hosted PAPS activities (both .web.app and .firebaseapp.com).
-const ALLOWED_EMBED_ORIGINS = [
-  "https://prompt-duel-paps.web.app",
-  "https://prompt-duel-paps.firebaseapp.com",
-  "https://recipebot-curation.web.app",
-  "https://recipebot-curation.firebaseapp.com",
-  "https://ai-ethics-courtroom-paps.web.app",
-  "https://ai-ethics-courtroom-paps.firebaseapp.com",
-  "https://data-labeling-lab-paps.web.app",
-  "https://data-labeling-lab-paps.firebaseapp.com",
-  "https://ai-training-sim-paps.web.app",
-  "https://ai-training-sim-paps.firebaseapp.com",
-  "https://embedding-explorer-paps.web.app",
-  "https://embedding-explorer-paps.firebaseapp.com",
-  "https://neural-network-lab-paps.web.app",
-  "https://neural-network-lab-paps.firebaseapp.com",
-  "https://battleship-energy-paps.web.app",
-  "https://battleship-energy-paps.firebaseapp.com",
-  "https://battleship-ai-paps.web.app",
-  "https://battleship-ai-paps.firebaseapp.com",
-  "https://paps-tools.web.app",
-  "https://paps-tools.firebaseapp.com",
-  "https://paps-newsletter.web.app",
-  "https://paps-newsletter.firebaseapp.com",
-];
-
-// Also allow any *.web.app or *.firebaseapp.com origin (all PAPS projects)
+// Permits any Firebase-hosted PAPS activity (*.web.app or *.firebaseapp.com) plus localhost.
+// No explicit allowlist needed — the regex covers all current and future Firebase deploys.
 function isAllowedOrigin(origin) {
   if (!origin) return false;
-  if (ALLOWED_EMBED_ORIGINS.includes(origin)) return true;
-  // Allow any Firebase-hosted app (covers future deploys without code changes)
+  // Allow any Firebase-hosted app (covers all PAPS projects without requiring code changes per deploy)
   if (/^https:\/\/[a-z0-9-]+\.(web\.app|firebaseapp\.com)$/.test(origin)) return true;
   // Allow localhost for development
   if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return true;

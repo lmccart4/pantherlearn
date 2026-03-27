@@ -223,7 +223,6 @@ export default function RosterSync() {
         console.warn("enrolledCourses batch update skipped:", e);
       }
 
-      await new Promise((r) => setTimeout(r, 1000));
       const verifySnap = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", selectedCourse)));
       const savedCount = verifySnap.size;
 
@@ -258,11 +257,8 @@ export default function RosterSync() {
     setAdding(true);
     setError(null);
     try {
-      const usersSnap = await getDocs(collection(db, "users"));
-      let matchedUid = null;
-      usersSnap.forEach((d) => {
-        if (d.data().email?.toLowerCase() === email) matchedUid = d.id;
-      });
+      const usersSnap = await getDocs(query(collection(db, "users"), where("email", "==", email)));
+      const matchedUid = usersSnap.empty ? null : usersSnap.docs[0].id;
       const firstName = addFirstName.trim();
       const lastName = addLastName.trim();
       const name = [firstName, lastName].filter(Boolean).join(" ") || email.split("@")[0];
@@ -373,7 +369,7 @@ export default function RosterSync() {
       const batch = writeBatch(db);
       courseEnrollSnap.forEach((d) => {
         const data = d.data();
-        const matchesUid = data.uid && uidsInSection.has(data.uid) || data.studentUid && uidsInSection.has(data.studentUid);
+        const matchesUid = (data.uid && uidsInSection.has(data.uid)) || (data.studentUid && uidsInSection.has(data.studentUid));
         const matchesEmail = data.email && emailsInSection.has(data.email.toLowerCase());
         if (matchesUid || matchesEmail) batch.delete(d.ref);
       });

@@ -59,6 +59,7 @@ export default function BiasInvestigation() {
   const [mitigations, setMitigations] = useState([]);
   const [summary, setSummary] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // MC analysis answers
   const [dataRoomAnswers, setDataRoomAnswers] = useState({});
@@ -270,7 +271,8 @@ export default function BiasInvestigation() {
 
   // ── Submit ──
   async function handleSubmit() {
-    if (!investigation || !caseData) return;
+    if (!investigation || !caseData || isSubmitting) return;
+    setIsSubmitting(true);
     const invData = {
       discoveredClues,
       flaggedEvidence,
@@ -299,6 +301,8 @@ export default function BiasInvestigation() {
       setPhase("review");
     } catch (err) {
       console.error("Error submitting investigation:", err);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
