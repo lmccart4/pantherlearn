@@ -138,9 +138,10 @@ export default function StudentDashboard() {
 
               let totalQuestions = 0, answeredQuestions = 0, correctQuestions = 0;
               for (const lesson of courseLessons) {
+                const progData = progressByLesson[lesson.id];
+                if (progData?.exempt) continue; // skip exempt lessons
                 const questions = (lesson.blocks || []).filter((b) => b.type === "question");
                 totalQuestions += questions.length;
-                const progData = progressByLesson[lesson.id];
                 if (progData) {
                   const answers = progData.answers || {};
                   questions.forEach((qBlock) => {

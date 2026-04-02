@@ -599,9 +599,8 @@ function showComplete() {
 }
 
 function sendScore(score, max) {
-  if (scoreSent) return;
   scoreSent = true;
-  window.parent.postMessage({ type: 'activityScore', score, maxScore: max }, '*');
+  window.parent.postMessage({ type: 'activityScore', score, maxScore: max, gameComplete: true }, '*');
 }
 
 // Partial score on unload

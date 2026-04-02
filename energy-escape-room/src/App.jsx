@@ -310,6 +310,18 @@ function Room({
   const [showHint, setShowHint] = useState(false);
   const [attempts, setAttempts] = useState(0);
 
+  // Shuffle options on mount so correct answer position is random each time
+  const [shuffledOrder] = useState(() => {
+    const indices = puzzle.options.map((_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    return indices;
+  });
+  const shuffledOptions = shuffledOrder.map(i => puzzle.options[i]);
+  const shuffledCorrectIndex = shuffledOrder.indexOf(puzzle.correctIndex);
+
   const handleSelect = (idx) => {
     if (revealed) return;
     setSelected(idx);
@@ -318,7 +330,7 @@ function Room({
   const handleSubmit = () => {
     if (selected === null || revealed) return;
     setRevealed(true);
-    const correct = selected === puzzle.correctIndex;
+    const correct = selected === shuffledCorrectIndex;
     const newAttempts = attempts + (correct ? 0 : 1);
     setAttempts(newAttempts);
 
@@ -340,7 +352,7 @@ function Room({
     setShowHint(true);
   };
 
-  const isCorrect = selected === puzzle.correctIndex;
+  const isCorrect = selected === shuffledCorrectIndex;
 
   return (
     <div style={s.page}>
@@ -383,12 +395,12 @@ function Room({
 
         {/* Options */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-          {puzzle.options.map((opt, idx) => (
+          {shuffledOptions.map((opt, idx) => (
             <button
               key={idx}
               style={s.option(
                 selected === idx,
-                idx === puzzle.correctIndex,
+                idx === shuffledCorrectIndex,
                 revealed
               )}
               onClick={() => handleSelect(idx)}
@@ -580,10 +592,10 @@ function Results({ score, maxScore, codes, roomScores, submitted, onRetry, onSig
               color: grade.color,
             }}
           >
-            {score}/{maxScore}
+            {pct}%
           </div>
           <div style={{ fontSize: 14, color: "#94a3b8", marginTop: 4 }}>
-            {pct}% — Grade: {grade.label}
+            Grade: {grade.label}
           </div>
         </div>
 
@@ -613,7 +625,7 @@ function Results({ score, maxScore, codes, roomScores, submitted, onRetry, onSig
                 color: roomScores[i] === 20 ? "#10b981" : roomScores[i] >= 10 ? "#f59e0b" : "#ef4444",
               }}
             >
-              {roomScores[i]}/20
+              {Math.round((roomScores[i] / 20) * 100)}%
             </span>
           </div>
         ))}
@@ -801,6 +813,18 @@ export default function App() {
       const newScores = [...roomScores, points];
       setEarnedCodes(newCodes);
       setRoomScores(newScores);
+
+      // Report progressive score after each room
+      const totalSoFar = newScores.reduce((a, b) => a + b, 0);
+      const maxScore = ROOMS.length * 20;
+      reportScore("energy-escape-room", totalSoFar, maxScore, {
+        rooms: ROOMS.slice(0, newScores.length).map((r, i) => ({
+          name: r.name,
+          score: newScores[i],
+          max: 20,
+        })),
+        partial: roomIndex + 1 < ROOMS.length,
+      });
 
       if (roomIndex + 1 >= ROOMS.length) {
         // All rooms done

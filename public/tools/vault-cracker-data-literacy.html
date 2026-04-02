@@ -59,7 +59,7 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
   transform:rotate(-3deg);opacity:0;
   animation:stampIn 0.4s 0.5s cubic-bezier(0.2,1.5,0.4,1) forwards;
   position:relative;z-index:2;
-  margin-top:2vh;margin-bottom:0;
+  margin-top:clamp(15px, 2.5vw, 30px);margin-bottom:0;
   filter:drop-shadow(0 0 20px rgba(255,23,68,0.35)) drop-shadow(0 0 40px rgba(255,23,68,0.12));
   opacity:0;
 }
@@ -68,13 +68,14 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
   opacity:0.8;
 }
 .intro-terminal{
-  margin-top:2rem;max-width:600px;width:90%;
+  margin-top:0.5rem;max-width:600px;width:90%;
   background:rgba(0,10,5,0.75);border:1px solid rgba(0,255,65,0.2);
   border-radius:4px;padding:1.5rem;min-height:120px;
+  overflow-y:auto;max-height:60vh;box-sizing:border-box;
   backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
   position:relative;z-index:2;
 }
-#intro-text{font-size:1.1rem;color:var(--green);line-height:1.6;white-space:pre-wrap}
+#intro-text{font-size:1.1rem;color:var(--green);line-height:1.6;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:break-word}
 #intro-text .cursor{
   display:inline-block;width:8px;height:1.1em;background:var(--green);
   vertical-align:text-bottom;animation:blink 0.7s steps(1) infinite;
@@ -108,35 +109,68 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
 #game > .vault-section,
 #game > .terminal-section{position:relative;z-index:1}
 
-/* === HUD === */
-.hud{position:fixed;top:0;left:0;right:0;z-index:100;pointer-events:none}
+/* === HUD (corners only) === */
+.hud{position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;pointer-events:none}
 .hud-corner{position:fixed;width:24px;height:24px}
 .hud-corner.tl{top:10px;left:10px;border-top:2px solid var(--green-dim);border-left:2px solid var(--green-dim)}
 .hud-corner.tr{top:10px;right:10px;border-top:2px solid var(--green-dim);border-right:2px solid var(--green-dim)}
 .hud-corner.bl{bottom:10px;left:10px;border-bottom:2px solid var(--green-dim);border-left:2px solid var(--green-dim)}
 .hud-corner.br{bottom:10px;right:10px;border-bottom:2px solid var(--green-dim);border-right:2px solid var(--green-dim)}
-.hud-top{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;gap:10px;flex-wrap:wrap}
-.hud-label{font-family:'Orbitron',sans-serif;font-size:0.55rem;font-weight:400;color:var(--green-dim);letter-spacing:0.15em;opacity:0.5}
 
-/* Depth gauge */
-.depth-gauge{display:flex;gap:6px;align-items:center}
-.depth-level{
-  width:36px;height:12px;border-radius:3px;
+/* === STATUS TERMINAL === */
+.status-terminal{
+  background:rgba(18,20,30,0.88);border:1px solid var(--steel);
+  border-radius:6px;overflow:hidden;
+  box-shadow:0 4px 30px rgba(0,0,0,0.6);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  margin-bottom:10px;
+}
+.status-terminal .terminal-header{
+  display:flex;align-items:center;gap:6px;padding:6px 12px;
+  background:linear-gradient(180deg,#1e2030 0%,#16182a 100%);
+  border-bottom:1px solid var(--steel);
+}
+.status-terminal .terminal-body{padding:0.8rem 1rem}
+
+/* Vault name in status terminal */
+.st-vault-name{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(1rem,2.5vw,1.4rem);
+  color:var(--v-accent);letter-spacing:0.15em;
+  text-shadow:0 0 12px var(--v-glow);
+  transition:color 0.6s,text-shadow 0.6s;
+  line-height:1;
+}
+.st-vault-subtitle{
+  font-family:'Orbitron',sans-serif;font-size:0.45rem;
+  color:var(--muted);letter-spacing:0.2em;margin-top:2px;
+}
+
+/* Vault progress pips */
+.st-progress{display:flex;gap:4px;align-items:center;margin-top:0.6rem}
+.st-pip-group{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1}
+.st-pip{
+  width:100%;height:10px;border-radius:3px;
   background:var(--steel-dark);border:1.5px solid var(--steel);
   transition:all 0.5s cubic-bezier(0.2,1.5,0.4,1);position:relative;
 }
-.depth-level.cleared{border-color:var(--v-accent);box-shadow:0 0 12px var(--v-glow)}
-.depth-level.current{border-color:var(--v-accent);animation:pulseBorder 1.5s ease-in-out infinite}
-.depth-level-inner{
+.st-pip.cleared{box-shadow:0 0 10px var(--v-glow)}
+.st-pip.current{animation:pulseBorder 1.5s ease-in-out infinite}
+.st-pip-inner{
   position:absolute;inset:2px;border-radius:2px;
   background:transparent;transition:background 0.5s;
 }
-.depth-level.cleared .depth-level-inner{background:var(--v-accent)}
-.depth-level.current .depth-level-inner{background:var(--v-accent);opacity:0.5}
+.st-pip.cleared .st-pip-inner{background:var(--v-accent)}
+.st-pip.current .st-pip-inner{background:var(--v-accent);opacity:0.5}
+.st-pip-label{
+  font-family:'Orbitron',sans-serif;font-size:0.35rem;
+  color:var(--muted);letter-spacing:0.05em;white-space:nowrap;
+  transition:color 0.4s;
+}
+.st-pip.cleared + .st-pip-label,.st-pip-group.cleared .st-pip-label{color:var(--text)}
 
-/* Streak pins */
-.streak-pins{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,0.4);padding:4px 12px;border-radius:4px;backdrop-filter:blur(4px)}
-.streak-label{font-family:'Orbitron',sans-serif;font-size:0.6rem;color:var(--green-dim);letter-spacing:0.1em;margin-right:6px}
+/* Streak row */
+.st-streak-row{display:flex;align-items:center;gap:8px;margin-top:0.6rem}
+.st-streak-label{font-family:'Orbitron',sans-serif;font-size:0.6rem;color:var(--green-dim);letter-spacing:0.1em}
 .streak-pin{
   width:14px;height:14px;border-radius:50%;
   background:var(--steel-dark);border:2px solid var(--steel);
@@ -144,26 +178,20 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
 }
 .streak-pin.lit{background:var(--v-accent);border-color:var(--v-accent);box-shadow:0 0 12px var(--v-glow),0 0 4px var(--v-accent)}
 
-.hud-stats{display:flex;gap:14px;font-family:'Orbitron',sans-serif;font-size:0.7rem;letter-spacing:0.1em;background:rgba(0,0,0,0.4);padding:4px 12px;border-radius:4px;backdrop-filter:blur(4px)}
-.q-counter{color:var(--green-dim)}
-.security-level{color:var(--red);opacity:0.7}
-
-/* Vault name display */
-.vault-name{
-  font-family:'Bebas Neue',sans-serif;font-size:clamp(0.9rem,2vw,1.3rem);
-  color:var(--v-accent);letter-spacing:0.15em;text-align:center;
-  margin-top:4px;text-shadow:0 0 12px var(--v-glow);
-  transition:color 0.6s,text-shadow 0.6s;
+/* Stats row */
+.st-stats-row{
+  display:flex;gap:12px;align-items:center;margin-top:0.6rem;padding-top:0.5rem;
+  border-top:1px solid var(--steel);
+  font-family:'Orbitron',sans-serif;font-size:0.6rem;letter-spacing:0.1em;
 }
-.vault-subtitle{
-  font-family:'Orbitron',sans-serif;font-size:0.45rem;
-  color:var(--muted);letter-spacing:0.2em;text-align:center;
-}
+.st-stat{color:var(--green-dim)}
+.st-stat.alert{color:var(--red);opacity:0.7}
+.st-stat.score{color:var(--v-accent);font-weight:700;margin-left:auto}
 
 /* === VAULT VIEWPORT === */
 .vault-section{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding-top:65px;min-height:0;position:relative;overflow:hidden;
+  padding-top:10px;min-height:0;position:relative;overflow:hidden;
 }
 
 /* Breach text — centered on screen */
@@ -177,7 +205,7 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
 .breach-text.show{animation:breachFlash 2s forwards}
 
 /* === TERMINAL === */
-.terminal-section{width:100%;max-width:700px;padding:0 16px 16px;flex-shrink:0}
+.terminal-section{width:100%;max-width:700px;padding:10px 16px 16px;flex-shrink:0}
 .terminal{
   background:rgba(18,20,30,0.88);border:1px solid var(--steel);
   border-radius:6px;overflow:hidden;
@@ -308,15 +336,15 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
   .terminal-body{padding:0.8rem}
   .q-text{font-size:0.9rem}
   .answer-btn{font-size:0.8rem;padding:10px 12px}
-  .hud-top{padding:8px 12px}
-  .hud-label{display:none}
-  .depth-level{width:22px;height:6px}
-  .vault-name{font-size:0.85rem}
+  .status-terminal .terminal-body{padding:0.6rem 0.8rem}
+  .st-vault-name{font-size:0.95rem}
+  .st-pip{height:8px}
+  .st-stats-row{gap:8px;font-size:0.5rem}
 }
 @media(min-width:900px){
-  #game{flex-direction:row;padding-top:55px}
+  #game{flex-direction:row;padding-top:10px}
   .vault-section{flex:1;min-height:100%}
-  .terminal-section{flex:0 0 420px;padding:65px 20px 20px;overflow-y:auto;max-height:100%}
+  .terminal-section{flex:0 0 420px;padding:10px 20px 20px;overflow-y:auto;max-height:100%}
   .answer-grid{grid-template-columns:1fr 1fr}
 }
 </style>
@@ -337,24 +365,35 @@ body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monosp
     <div class="hud">
       <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
       <div class="hud-corner bl"></div><div class="hud-corner br"></div>
-      <div class="hud-top">
-        <div class="depth-gauge" id="depth-gauge"></div>
-        <div class="streak-pins" id="streak-pins">
-          <span class="streak-label">STREAK</span>
-        </div>
-        <div class="hud-stats">
-          <span class="q-counter" id="q-counter">01 / 15</span>
-          <span class="security-level" id="security-level">ALERT: 0</span>
-        </div>
-      </div>
     </div>
 
-    <div class="vault-section" id="vault-section">
-      <div class="vault-name" id="vault-name">BRONZE VAULT</div>
-      <div class="vault-subtitle" id="vault-subtitle">OUTER SECURITY</div>
-    </div>
+    <div class="vault-section" id="vault-section"></div>
 
     <div class="terminal-section">
+      <!-- Status Terminal -->
+      <div class="status-terminal">
+        <div class="terminal-header">
+          <span class="terminal-dot r"></span><span class="terminal-dot y"></span><span class="terminal-dot g"></span>
+          <span class="terminal-title">STATUS TERMINAL</span>
+        </div>
+        <div class="terminal-body">
+          <div class="st-vault-name" id="vault-name">BRONZE VAULT</div>
+          <div class="st-vault-subtitle" id="vault-subtitle">OUTER SECURITY</div>
+          <div class="st-progress" id="vault-progress"></div>
+          <div class="st-streak-row">
+            <span class="st-streak-label" id="streak-label">STREAK: 0/3</span>
+            <div id="streak-pins" style="display:flex;gap:6px;align-items:center"></div>
+          </div>
+          <div class="st-stats-row">
+            <span class="st-stat" id="q-counter">01 / 15</span>
+            <span class="st-stat" id="accuracy-stat">ACC: 0%</span>
+            <span class="st-stat alert" id="security-level">ALERT: 0</span>
+            <span class="st-stat score" id="score-display">SCORE: 0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question Terminal -->
       <div class="terminal">
         <div class="terminal-header">
           <span class="terminal-dot r"></span><span class="terminal-dot y"></span><span class="terminal-dot g"></span>
@@ -444,7 +483,62 @@ const QUESTIONS = [
   {category:'DATA INVESTIGATION',question:'You\'re studying daily phone screen time among students. Which data collection method gives the most reliable results?',options:['Ask students to estimate from memory','Have parents report phone usage','Pull actual screen time data from phone settings','Observe students for one hour and multiply by 16'],correct:2,explanation:'Self-reported estimates are inaccurate — people underestimate screen time by up to 50%. Device data is far more reliable.'},
   {category:'DATA STORYTELLING',question:'You have data showing temperature changes over 12 months. Which chart type best shows the TREND over time?',options:['Pie chart','Line graph','Bar chart','Table of numbers'],correct:1,explanation:'Line graphs excel at showing how values change over time. Connected dots reveal patterns of increase, decrease, or stability.'},
   {category:'DATA STORYTELLING',question:'Look at this chart. What\'s the ethical concern with how it presents the data?',image:'../images/vault-cracker/charts/chart-visual-manipulation.jpg',options:['Red is a bad color choice','Walking to school isn\'t important','The data percentages are wrong','The visual design manipulates how viewers interpret the data'],correct:3,explanation:'Design choices like color, size, and emphasis can manipulate perception. Ethical data presentation treats all data points fairly.'},
-  {category:'DATA STORYTELLING',question:'You\'re presenting survey results to the school board. You have data on satisfaction by grade, subject, and time of year. Best approach?',options:['Focus on the key findings that answer the board\'s specific question','Show every single data point to be thorough','Only show the most positive results','Use as many chart types as possible to seem professional'],correct:0,explanation:'Good data storytelling means selecting the most relevant findings for your specific audience.'}
+  {category:'DATA STORYTELLING',question:'You\'re presenting survey results to the school board. You have data on satisfaction by grade, subject, and time of year. Best approach?',options:['Focus on the key findings that answer the board\'s specific question','Show every single data point to be thorough','Only show the most positive results','Use as many chart types as possible to seem professional'],correct:0,explanation:'Good data storytelling means selecting the most relevant findings for your specific audience.'},
+
+  // === CHART CRIMES (9 new) ===
+  {category:'CHART CRIMES',question:'A bar chart comparing two companies\' profits starts the y-axis at $4.8 million instead of $0. Company A earned $5.0M and Company B earned $5.2M. How does the truncated axis mislead?',options:['It makes Company B look like it earned 4x more than A','It has no effect since both values are close','It makes Company A look more profitable','It hides that both companies are losing money'],correct:0,explanation:'When the y-axis starts at $4.8M, the visible difference between $5.0M and $5.2M fills most of the chart. Company B\'s bar appears dramatically taller, even though it only earned 4% more.'},
+  {category:'CHART CRIMES',question:'A news article shows a line graph of crime rates from June to August, claiming "crime is soaring." But the full-year data shows crime peaked in summer and dropped the rest of the year. What\'s the problem?',options:['Line graphs can\'t show crime data','The data should use a pie chart instead','They cherry-picked the 3 months that support their headline','Summer crime data is always unreliable'],correct:2,explanation:'Selecting only a date range that shows an upward trend while hiding the bigger picture is cherry-picking. The full year tells a very different story.'},
+  {category:'CHART CRIMES',question:'A bubble chart compares three cities\' populations: 100K, 200K, and 400K. The 400K bubble is drawn 4x the DIAMETER of the 100K bubble. Why is this misleading?',options:['Bubble charts can\'t show population data','The bubbles should be the same size','Colors would be more accurate than size','Area grows with the square of diameter, so the 400K bubble looks 16x bigger, not 4x'],correct:3,explanation:'When you double a circle\'s diameter, its area quadruples. A bubble with 4x the diameter has 16x the area, massively exaggerating the difference. Bubbles should scale by area, not diameter.'},
+  {category:'CHART CRIMES',question:'A chart has two y-axes: left axis shows "Number of ice cream sales" (0-1000), right axis shows "Number of shark attacks" (0-10). The lines appear to move together perfectly. What\'s the manipulation?',options:['Dual y-axes at different scales can make any two datasets appear correlated','Ice cream and sharks are actually related','The chart should only have one y-axis','The data must be fabricated'],correct:0,explanation:'With independent y-axes at different scales, you can stretch or compress either axis to make the lines look perfectly aligned. This tricks viewers into seeing correlation that may not exist — or exaggerating weak relationships.'},
+  {category:'CHART CRIMES',question:'A bar chart shows "Student Satisfaction: 95%!" but has no labels for sample size, margin of error, or what question was asked. What\'s the main issue?',options:['95% satisfaction is too high to be real','The chart is missing critical context that affects how the number should be interpreted','Bar charts can\'t display percentages','The chart needs a 3D effect to be valid'],correct:1,explanation:'Without context — how many students were surveyed, what exactly was asked, what the margin of error is — a statistic can mean almost anything. "95% satisfaction" from 10 hand-picked students is very different from 95% of 500 randomly selected students.'},
+  {category:'CHART CRIMES',question:'A headline reads: "School lunch program doubled participation!" The chart shows participation went from 2% to 4%. Why might this be misleading?',options:['2% to 4% is not a real increase','Percentages should always be shown as decimals','Using "doubled" (relative change) hides how small the actual numbers are','The headline is completely accurate and not misleading at all'],correct:2,explanation:'Going from 2% to 4% is technically a 100% increase ("doubled"), but the actual change is just 2 percentage points. Using relative change instead of raw numbers can dramatically exaggerate small shifts.'},
+  {category:'CHART CRIMES',question:'A college brochure shows a graph titled "Our Graduates Earn Top Salaries" based on a survey of alumni who responded voluntarily. What type of bias could affect this data?',options:['Survivorship bias — successful graduates are more likely to respond, while those earning less may not reply','The chart uses the wrong colors','College salary data is always accurate','Only the y-axis matters in salary charts'],correct:0,explanation:'Survivorship bias occurs when data only captures "survivors" (successful outcomes) while missing everyone else. Alumni earning high salaries are more likely to proudly respond to surveys, skewing results upward.'},
+  {category:'CHART CRIMES',question:'A graph shows that towns with more fire stations have more fires. The headline says: "Fire stations CAUSE fires!" What logical error is this?',options:['The graph is drawn incorrectly','This confuses correlation with causation — larger towns need more of both','Fire stations do cause fires','The data must be fake'],correct:1,explanation:'Bigger towns have more of everything — more people, more buildings, more fire stations, AND more fires. The fire stations don\'t cause fires; population size drives both variables. Correlation does not equal causation.'},
+  {category:'CHART CRIMES',question:'A social media infographic claims "80% of people support this policy!" but the survey only asked 15 people at one specific location. What\'s the biggest problem?',options:['80% is a suspicious number','Infographics are never trustworthy','The survey should have been conducted online instead','15 people is too small and too localized a sample to represent "people" in general'],correct:3,explanation:'A sample of 15 people from one location cannot represent a broad population. Small, non-random samples produce unreliable results that shouldn\'t be generalized with claims like "80% of people."'},
+
+  // === CHART READING (9 new) ===
+  {category:'CHART READING',question:'A bar chart shows monthly book sales: January=120, February=95, March=140, April=110. Which month had the highest sales?',options:['January','February','April','March'],correct:3,explanation:'Reading the bar heights directly: March at 140 is the tallest bar, making it the month with the highest sales. Always compare bar heights carefully against the y-axis.'},
+  {category:'CHART READING',question:'A line graph shows a company\'s revenue over 5 years. The line goes up from Year 1-3, flattens from Year 3-4, then drops from Year 4-5. How would you describe the overall trend?',options:['Steady growth the entire time','Constant decline','No clear trend — the data is random','Growth followed by a plateau and then decline'],correct:3,explanation:'The line shows three distinct phases: growth (up), plateau (flat), and decline (down). Describing trends means identifying these directional changes over time.'},
+  {category:'CHART READING',question:'A scatter plot shows the relationship between hours studied and test scores. Most dots form a cluster going from lower-left to upper-right. What does this suggest?',options:['A positive correlation — more studying tends to mean higher scores','A negative correlation — more studying means lower scores','No relationship between the variables','The data was collected incorrectly'],correct:0,explanation:'When dots trend from lower-left to upper-right, it shows a positive correlation: as one variable increases, the other tends to increase too. More study hours are associated with higher scores.'},
+  {category:'CHART READING',question:'A multi-series line chart shows sales for Products A, B, and C over 6 months. Product A\'s line is always above the others. Product C\'s line crosses above Product B in Month 4. What can you conclude?',options:['Product C is the best product overall','Product A had the highest sales every month, and Product C overtook Product B starting in Month 4','All three products had equal total sales','Product B should be discontinued'],correct:1,explanation:'In multi-series charts, compare the lines\' positions. A being on top means highest sales throughout. C crossing above B in Month 4 means C surpassed B\'s sales from that point forward.'},
+  {category:'CHART READING',question:'A chart\'s y-axis shows values in "thousands" and goes from 0 to 50. A bar reaches the 30 mark. What is the actual value represented?',options:['30','300','3,000','30,000'],correct:3,explanation:'When an axis says "thousands," multiply the reading by 1,000. A bar at the 30 mark represents 30 × 1,000 = 30,000. Always check axis labels and units before reading values.'},
+  {category:'CHART READING',question:'A bar chart compares average test scores across 4 subjects. Math=78, Science=82, English=85, History=80. Which comparison is correct?',options:['Science and History scored the same','Math had the highest average','English had the lowest average','English scored 7 points higher than Math'],correct:3,explanation:'English (85) minus Math (78) = 7 points. When comparing values across categories in a bar chart, subtract to find the exact difference rather than estimating visually.'},
+  {category:'CHART READING',question:'A pie chart shows how students get to school: Bus=45%, Car=30%, Walk=15%, Bike=10%. What percentage of students do NOT take the bus?',options:['45%','30%','10%','55%'],correct:3,explanation:'If 45% take the bus, then 100% - 45% = 55% use other methods. Pie charts show parts of a whole (100%), so you can subtract any slice from 100% to find the remainder.'},
+  {category:'CHART READING',question:'A stacked bar chart shows phone, tablet, and laptop usage per age group. In the 13-17 age group bar, phone takes up 60% of the bar, tablet 25%, and laptop 15%. What does this tell you?',options:['Teens use phones more total hours than adults','Teens don\'t use laptops at all','Among 13-17 year olds, phones are the most-used device by far','Phone usage is declining among teens'],correct:2,explanation:'Stacked bars show the composition within each category. The 60% phone share for teens means phones dominate their device usage. You can\'t compare total hours across age groups from the proportions alone.'},
+  {category:'CHART READING',question:'A data table shows city temperatures: NYC High=85°F Low=72°F, LA High=78°F Low=65°F, Chicago High=83°F Low=68°F. Which city has the largest temperature range (high minus low)?',options:['New York City (13°F range)','Los Angeles (13°F range)','Chicago (15°F range)','They all have the same range'],correct:2,explanation:'NYC: 85-72=13°F. LA: 78-65=13°F. Chicago: 83-68=15°F. Chicago has the largest daily temperature swing. Reading data tables requires careful calculation, not just scanning numbers.'},
+
+  // === DATA INVESTIGATION (9 new) ===
+  {category:'DATA INVESTIGATION',question:'You notice students who sit in the front row tend to get better grades. Which research question would best explore this pattern?',options:['"Why do smart students sit in front?"','\"Does seating position affect academic performance, or do more motivated students choose front seats?\"','\"Should teachers force all students to sit in front?\"','\"Are front-row seats more comfortable?\"'],correct:1,explanation:'A good research question avoids assuming a conclusion. It considers multiple explanations — maybe seat choice causes better grades, or maybe motivated students both choose front seats AND get better grades.'},
+  {category:'DATA INVESTIGATION',question:'In an experiment testing whether music affects study performance, the type of music played is the _____ variable and the test score is the _____ variable.',options:['Dependent; independent','Control; experimental','Experimental; control','Independent; dependent'],correct:3,explanation:'The independent variable is what the researcher changes (type of music). The dependent variable is what gets measured as a result (test score). "Independent" = what I change. "Dependent" = what I measure.'},
+  {category:'DATA INVESTIGATION',question:'A school survey about homework is given only during study hall. Students who skip study hall aren\'t surveyed. What type of bias does this create?',options:['Confirmation bias','Selection bias — the sample systematically excludes certain students','Anchoring bias','No bias exists in this scenario'],correct:1,explanation:'Selection bias happens when your sampling method systematically excludes certain groups. Students who skip study hall might have very different homework opinions, but they\'re completely missing from the data.'},
+  {category:'DATA INVESTIGATION',question:'What\'s the difference between a sample and a population in data collection?',options:['A population is the entire group you want to study; a sample is a smaller subset you actually collect data from','A sample is always bigger than a population','A sample and a population are the same thing','A population only refers to people, not data'],correct:0,explanation:'You usually can\'t study every single member of a population (too expensive, too slow), so you study a sample — a smaller group chosen to represent the whole. Good samples are random and large enough to be reliable.'},
+  {category:'DATA INVESTIGATION',question:'A dataset of student test scores reads: 78, 82, 79, 81, 80, 45, 83, 80, 77, 81. Which value is most likely an outlier?',options:['83','78','45','80'],correct:2,explanation:'An outlier is a data point that falls far outside the normal range. Most scores cluster between 77-83, but 45 is dramatically lower. Outliers can indicate errors, unusual circumstances, or genuinely extreme values.'},
+  {category:'DATA INVESTIGATION',question:'You\'re writing a research paper on teen social media usage. Which source is MOST reliable?',options:['A viral tweet claiming "teens spend 9 hours a day on social media"','A peer-reviewed study published in a psychology journal','A comment on a YouTube video about screen time','A blog post by someone who "feels like teens are always on their phones"'],correct:1,explanation:'Peer-reviewed studies undergo rigorous review by other experts before publication. Social media posts, blogs, and comments lack verification. Always evaluate sources by asking: Who wrote this? What evidence supports it? Was it reviewed?'},
+  {category:'DATA INVESTIGATION',question:'A survey asks: "Don\'t you agree that homework is a waste of time?" What\'s wrong with this question?',options:['Nothing — it\'s a clear question','Surveys can\'t ask about homework','The question is too short','It\'s a leading question that pushes respondents toward a specific answer'],correct:3,explanation:'Leading questions use phrasing that suggests the "right" answer. "Don\'t you agree..." pushes people to say yes. A neutral version: "How useful do you find homework?" Good survey design avoids influencing responses.'},
+  {category:'DATA INVESTIGATION',question:'A researcher finds data that contradicts their hypothesis but ignores it and only reports supporting evidence. What is this an example of?',options:['Good research methodology','Peer review','Confirmation bias — favoring evidence that confirms what you already believe','Data normalization'],correct:2,explanation:'Confirmation bias is the tendency to search for, interpret, and remember information that confirms existing beliefs while ignoring contradicting evidence. Ethical research reports ALL findings, even surprising ones.'},
+  {category:'DATA INVESTIGATION',question:'A tech company wants to collect student location data through a school app "to improve the learning experience." What ethical concern should be raised FIRST?',options:['Whether the app has good reviews','Whether the app\'s color scheme is appealing','Whether teachers will also be tracked','Whether students and parents gave informed consent and understand how their data will be used'],correct:3,explanation:'Informed consent is the foundation of ethical data collection. People must understand what data is being collected, how it will be used, who has access, and they must voluntarily agree. This is especially important with minors.'},
+
+  // === DATA STORYTELLING (9 new) ===
+  {category:'DATA STORYTELLING',question:'You have data comparing the popularity of 6 different school clubs. Which chart type is the BEST choice?',options:['Line graph','Scatter plot','Bar chart','Histogram'],correct:2,explanation:'Bar charts are ideal for comparing values across distinct categories (clubs). Line graphs are for trends over time, scatter plots for relationships between variables, and histograms for frequency distributions.'},
+  {category:'DATA STORYTELLING',question:'Which headline best represents data showing that average math scores rose from 72 to 76 over one semester?',options:['"MATH SCORES SKYROCKET TO ALL-TIME HIGHS!"','"Math Scores Show Steady 4-Point Gain This Semester"','"Math Scores Barely Change — Education System Failing"','"Students Finally Learning Math After Years of Failure"'],correct:1,explanation:'Good data headlines are accurate and proportional. A 4-point gain is real improvement but not a "skyrocket." The best headline states the actual change clearly without exaggeration or editorializing.'},
+  {category:'DATA STORYTELLING',question:'Your chart shows that 40% of students prefer reading on tablets. Without context, this number is hard to interpret. What context would make it more meaningful?',options:['Comparing it to last year\'s 25% and the national average of 35%','Adding a 3D effect to the chart','Making the font bigger','Using brighter colors'],correct:0,explanation:'Numbers gain meaning through comparison. Knowing it was 25% last year shows growth. Knowing the national average is 35% shows your school is above average. Context transforms isolated data points into insights.'},
+  {category:'DATA STORYTELLING',question:'You\'re building a data presentation about school recycling. What\'s the most effective narrative structure?',options:['Jump straight to the final number with no explanation','List every data point in a random order','Start with a hook (the problem), present the data (what we found), end with a takeaway (what to do next)','Only show charts with no text explanation'],correct:2,explanation:'Great data storytelling follows a narrative arc: hook your audience with a compelling problem, walk them through the evidence, and close with a clear takeaway. This structure makes data memorable and actionable.'},
+  {category:'DATA STORYTELLING',question:'You\'re presenting water usage data to fellow students vs. to the school board. How should your approach differ?',options:['Use the exact same presentation for both — data is data','For students, use relatable comparisons and visual metaphors; for the board, emphasize budget impact and specific metrics','Use more complicated charts for students to challenge them','Only present to the school board since students won\'t understand data'],correct:1,explanation:'Effective data communication adapts to the audience. Students relate to comparisons like "enough water to fill 50 swimming pools." Board members care about cost savings and efficiency metrics. Same data, different framing.'},
+  {category:'DATA STORYTELLING',question:'You have a complex dataset with 15 variables about student wellness. You need to present key findings in 5 minutes. Best strategy?',options:['Focus on the 2-3 most important findings and present them clearly with one chart each','Show all 15 variables on one chart to be thorough','Skip the presentation since the data is too complex','Only show the variable with the most positive result'],correct:0,explanation:'Simplifying complex data doesn\'t mean dumbing it down — it means identifying what matters most and presenting it clearly. Overloading an audience with information is as bad as giving too little.'},
+  {category:'DATA STORYTELLING',question:'A student claims "Our school\'s attendance is terrible" in a presentation but shows no data. How should they strengthen this claim?',options:['Say it more forcefully','Add a dramatic background image','Show specific attendance data with comparisons to district or state averages','Add their personal opinion about why attendance is bad'],correct:2,explanation:'Claims need evidence. "Terrible" is subjective — 90% attendance might be terrible for one school but great for another. Specific data with benchmarks (district average, state average) turns an opinion into a supported argument.'},
+  {category:'DATA STORYTELLING',question:'A chart shows test scores dropped 2% after switching textbooks. The presenter titles the slide "New Textbooks Are Destroying Student Achievement." What\'s the framing issue?',options:['The title accurately reflects the data','The presenter should have used a pie chart','The title uses emotionally loaded language that dramatically exaggerates a small, possibly insignificant change','2% is actually a huge drop'],correct:2,explanation:'Avoiding misleading framing means matching your language to the magnitude of the data. A 2% drop could be within normal variation and might have many causes. "Destroying" implies catastrophe for what might be statistical noise.'},
+  {category:'DATA STORYTELLING',question:'A school has data showing: (1) students who eat breakfast score 12% higher, (2) the cafeteria serves 200 fewer breakfasts than last year, and (3) breakfast costs $0.50/student. What data-driven recommendation follows?',options:['Cancel the breakfast program to save money','Invest in the breakfast program — the data shows a clear link between breakfast and performance, and the cost per student is low','Only serve breakfast to high-performing students','Ignore the data and ask students what they want'],correct:1,explanation:'Data-driven decisions connect evidence to action. The data shows breakfast correlates with better scores, participation is dropping (a problem), and the cost is low (affordable solution). The logical recommendation: invest in boosting breakfast participation.'},
+
+  // === SPREADSHEET SKILLS (9 new) ===
+  {category:'SPREADSHEET SKILLS',question:'Cells A1 through A5 contain: 10, 20, 30, 40, 50. What does =SUM(A1:A5) return?',options:['50','30','150','5'],correct:2,explanation:'SUM adds all values in the range: 10+20+30+40+50 = 150. SUM is the most fundamental spreadsheet function — it adds up every number in the specified range.'},
+  {category:'SPREADSHEET SKILLS',question:'You have test scores in B1:B20. =MAX(B1:B20) returns 98 and =MIN(B1:B20) returns 52. What is the range of the scores?',options:['98','52','46','150'],correct:2,explanation:'The range is the difference between the highest and lowest values: 98 - 52 = 46. MAX finds the largest value and MIN finds the smallest in a range.'},
+  {category:'SPREADSHEET SKILLS',question:'Cell C1 contains =A1+B1. When you copy C1 and paste it into C2, what formula appears in C2?',options:['=A1+B1 (unchanged)','=A2+B2','=#REF!+#REF!','=A1+B2'],correct:1,explanation:'Relative cell references automatically adjust when copied. Moving down one row shifts all row numbers up by 1: A1→A2, B1→B2. This is what makes spreadsheets powerful — one formula works for all rows.'},
+  {category:'SPREADSHEET SKILLS',question:'You have a column of data and want to see only rows where the grade is "A". Which feature should you use?',options:['Apply a filter to show only rows where the grade column equals "A"','Use the SUM function','Delete all non-A rows permanently','Change the font color of non-A rows to white'],correct:0,explanation:'Filtering temporarily hides rows that don\'t match your criteria without deleting any data. You can remove the filter anytime to see all data again. Never delete data just to view a subset.'},
+  {category:'SPREADSHEET SKILLS',question:'You have student names in column A (A2:A100) and grades in column B. =COUNTIF(B2:B100, "F") returns 7. What does this tell you?',options:['7 students have the highest grade','The average grade is F','7 students have a grade of F','The spreadsheet has 7 columns'],correct:2,explanation:'COUNTIF counts cells matching a condition. COUNTIF(B2:B100, "F") counts how many cells in that range contain exactly "F". Similarly, SUMIF adds values that meet a condition.'},
+  {category:'SPREADSHEET SKILLS',question:'Which formula correctly calculates 15% sales tax on a price in cell A1?',options:['=A1+15','=A1*15%','=A1*0.15','Both B and C are correct'],correct:3,explanation:'Both =A1*15% and =A1*0.15 calculate 15% of A1. Spreadsheets understand percentage notation (15%) and decimal notation (0.15) — they produce the same result. =A1+15 just adds 15 dollars, not 15%.'},
+  {category:'SPREADSHEET SKILLS',question:'Your spreadsheet has dates in column A, names in column B, and amounts in column C. The headers are bold, columns are properly sized, and currency values show $ signs. Why does formatting matter?',options:['Proper formatting makes data easier to read, reduces errors, and helps others understand the spreadsheet quickly','Formatting has no practical purpose — it\'s just decoration','Formatting is only important for printed spreadsheets','Only the header row needs formatting'],correct:0,explanation:'Formatting serves a functional purpose: clear headers prevent confusion, currency symbols clarify units, proper alignment makes scanning easier. A well-formatted spreadsheet reduces misreading and errors.'},
+  {category:'SPREADSHEET SKILLS',question:'You want to make sure a cell in your spreadsheet only accepts numbers between 1 and 100. Which feature prevents invalid entries?',options:['Conditional formatting','Data validation — it restricts what values can be entered into a cell','Password protection','The FILTER function'],correct:1,explanation:'Data validation sets rules for what can be entered in a cell (number ranges, text lengths, dropdown lists). It prevents errors at the point of entry rather than catching them later. Conditional formatting only changes appearance, not input.'},
+  {category:'SPREADSHEET SKILLS',question:'A VLOOKUP formula searches for a student ID in a table and returns their grade. Conceptually, what is VLOOKUP doing?',options:['Looking up a value in the first column of a table and returning a value from another column in the same row','Sorting the data alphabetically','Adding up all the grades','Creating a chart from the data'],correct:0,explanation:'VLOOKUP (Vertical Lookup) finds a value in the leftmost column of a table, then returns a value from a specified column in that same row. Think of it like looking up a word in a dictionary — find the word, read the definition next to it.'}
 ];
 /* ============================================================ */
 
@@ -468,7 +562,8 @@ class AudioEngine {
 const audio = new AudioEngine();
 
 // === STATE ===
-const state = {questions:[],current:0,correct:0,wrong:0,streak:0,vaultIdx:0,dialRotation:0,answered:false,transitioning:false};
+const QUESTIONS_PER_VAULT = 12;
+const state = {questions:[],vaultQuestions:[],current:0,correct:0,wrong:0,totalAnswered:0,streak:0,vaultIdx:0,dialRotation:0,answered:false,transitioning:false};
 // Test hook — exposes current correct answer index for automated QA
 window.__vcCorrect = () => state.questions[state.current]?.correct ?? -1;
 const STREAK_NEEDED = 3;
@@ -479,7 +574,8 @@ const introScreen=$('intro'),gameScreen=$('game'),resultsScreen=$('results');
 const introText=$('intro-text'),startBtn=$('start-btn');
 const qCounter=$('q-counter'),secLevel=$('security-level');
 const vaultNameEl=$('vault-name'),vaultSubEl=$('vault-subtitle');
-const depthGauge=$('depth-gauge'),streakPins=$('streak-pins');
+const vaultProgress=$('vault-progress'),streakPins=$('streak-pins'),streakLabel=$('streak-label');
+const accuracyStat=$('accuracy-stat'),scoreDisplay=$('score-display');
 const qCategory=$('q-category'),qText=$('q-text'),answersEl=$('answers');
 const explanationEl=$('explanation'),nextBtn=$('next-btn');
 const alertFlash=$('alert-flash'),soundToggle=$('sound-toggle');
@@ -599,57 +695,71 @@ function animateToFrame(target, duration) {
 }
 
 
-function buildDepthGauge() {
-  depthGauge.innerHTML = '';
+function buildVaultProgress() {
+  vaultProgress.innerHTML = '';
   for (let i = 0; i < VAULTS.length; i++) {
-    const lv = document.createElement('div');
-    lv.className = 'depth-level';
-    lv.id = `depth-${i}`;
-    lv.style.background = i <= state.vaultIdx ? '' : '';
+    const group = document.createElement('div');
+    group.className = 'st-pip-group';
+    group.id = `pip-group-${i}`;
+    const pip = document.createElement('div');
+    pip.className = 'st-pip';
+    pip.id = `pip-${i}`;
     const inner = document.createElement('div');
-    inner.className = 'depth-level-inner';
-    // Color each level by its vault theme
-    inner.style.setProperty('--lv-color', VAULTS[i].accent);
-    lv.appendChild(inner);
-    depthGauge.appendChild(lv);
+    inner.className = 'st-pip-inner';
+    pip.appendChild(inner);
+    const label = document.createElement('div');
+    label.className = 'st-pip-label';
+    label.textContent = VAULTS[i].name.split(' ')[0];
+    group.appendChild(pip);
+    group.appendChild(label);
+    vaultProgress.appendChild(group);
   }
-  updateDepthGauge();
+  updateVaultProgress();
 }
 
-function updateDepthGauge() {
+function updateVaultProgress() {
   for (let i = 0; i < VAULTS.length; i++) {
-    const lv = $(`depth-${i}`);
-    if (!lv) continue;
-    lv.classList.remove('cleared', 'current');
-    const inner = lv.querySelector('.depth-level-inner');
+    const pip = $(`pip-${i}`);
+    const group = $(`pip-group-${i}`);
+    if (!pip) continue;
+    pip.classList.remove('cleared', 'current');
+    const inner = pip.querySelector('.st-pip-inner');
+    const label = group.querySelector('.st-pip-label');
     if (i < state.vaultIdx) {
-      lv.classList.add('cleared');
-      if (inner) { inner.style.background = VAULTS[i].accent; }
-      lv.style.borderColor = VAULTS[i].accent;
-      lv.style.setProperty('--v-accent', VAULTS[i].accent);
-      lv.style.setProperty('--v-glow', VAULTS[i].glow);
+      pip.classList.add('cleared');
+      if (inner) inner.style.background = VAULTS[i].accent;
+      pip.style.borderColor = VAULTS[i].accent;
+      pip.style.boxShadow = `0 0 10px ${VAULTS[i].glow}`;
+      pip.style.setProperty('--v-accent', VAULTS[i].accent);
+      pip.style.setProperty('--v-glow', VAULTS[i].glow);
+      if (label) label.style.color = VAULTS[i].accent;
     } else if (i === state.vaultIdx) {
-      lv.classList.add('current');
-      if (inner) { inner.style.background = VAULTS[i].accent; }
-      lv.style.borderColor = VAULTS[i].accent;
-      lv.style.setProperty('--v-accent', VAULTS[i].accent);
-      lv.style.setProperty('--v-glow', VAULTS[i].glow);
+      pip.classList.add('current');
+      if (inner) inner.style.background = VAULTS[i].accent;
+      pip.style.borderColor = VAULTS[i].accent;
+      pip.style.setProperty('--v-accent', VAULTS[i].accent);
+      pip.style.setProperty('--v-glow', VAULTS[i].glow);
+      if (label) label.style.color = '';
     } else {
       if (inner) inner.style.background = 'transparent';
-      lv.style.borderColor = '';
+      pip.style.borderColor = '';
+      pip.style.boxShadow = '';
+      if (label) label.style.color = '';
     }
   }
+  // Update score display (show percentage)
+  scoreDisplay.textContent = `SCORE: ${getScorePercent(state.vaultIdx)}%`;
 }
 
 function buildStreakPins() {
-  // Remove old pins, keep label
-  streakPins.querySelectorAll('.streak-pin').forEach(e => e.remove());
+  streakPins.innerHTML = '';
   for (let i = 0; i < STREAK_NEEDED; i++) {
     const p = document.createElement('div');
     p.className = 'streak-pin';
     p.id = `pin-${i}`;
     streakPins.appendChild(p);
   }
+  updateStreakPins();
 }
 
 function updateStreakPins() {
@@ -657,6 +767,12 @@ function updateStreakPins() {
     const p = $(`pin-${i}`);
     if (p) p.classList.toggle('lit', i < state.streak);
   }
+  streakLabel.textContent = `STREAK: ${state.streak}/${STREAK_NEEDED}`;
+}
+
+function updateAccuracy() {
+  const pct = state.totalAnswered > 0 ? Math.round((state.correct / state.totalAnswered) * 100) : 0;
+  accuracyStat.textContent = `ACC: ${pct}%`;
 }
 
 
@@ -676,10 +792,17 @@ function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.fl
 
 // === INIT GAME ===
 function initGame() {
-  state.questions = shuffle(QUESTIONS);
+  const shuffled = shuffle(QUESTIONS);
+  // Split into 5 groups of QUESTIONS_PER_VAULT for each vault
+  state.vaultQuestions = [];
+  for (let i = 0; i < 5; i++) {
+    state.vaultQuestions.push(shuffled.slice(i * QUESTIONS_PER_VAULT, (i + 1) * QUESTIONS_PER_VAULT));
+  }
+  state.questions = state.vaultQuestions[0];
   state.current = 0;
   state.correct = 0;
   state.wrong = 0;
+  state.totalAnswered = 0;
   state.streak = 0;
   state.vaultIdx = 0;
   state.dialRotation = 0;
@@ -689,9 +812,11 @@ function initGame() {
   resizeCanvas();
   preloadVaultFrames(0).then(() => { drawFrame(0); });
   setVaultTheme(0);
-  buildDepthGauge();
+  buildVaultProgress();
   buildStreakPins();
   updateStreakPins();
+  updateAccuracy();
+  scoreDisplay.textContent = 'SCORE: 0%';
 
   document.querySelectorAll('.denied-stamp,.breach-text').forEach(e => e.remove());
   secLevel.textContent = 'ALERT: 0';
@@ -706,7 +831,7 @@ function showQuestion() {
   const q = state.questions[state.current];
   state.answered = false;
 
-  qCounter.textContent = `${String(state.current+1).padStart(2,'0')} / ${String(state.questions.length).padStart(2,'0')}`;
+  qCounter.textContent = `${String(state.current+1).padStart(2,'0')} / ${String(QUESTIONS_PER_VAULT).padStart(2,'0')}`;
   qCategory.textContent = q.category;
   const qImage = $('q-image');
   if (q.image) {
@@ -733,7 +858,7 @@ function showQuestion() {
   explanationEl.classList.remove('visible');
   explanationEl.textContent = '';
   nextBtn.classList.remove('visible');
-  nextBtn.textContent = state.current === state.questions.length - 1 ? 'VIEW RESULTS' : 'NEXT';
+  nextBtn.textContent = (state.current === QUESTIONS_PER_VAULT - 1 && state.streak < STREAK_NEEDED - 1) ? 'VIEW RESULTS' : 'NEXT';
 }
 
 // === HANDLE ANSWER ===
@@ -743,6 +868,7 @@ function handleAnswer(btn, selectedIdx, correctIdx) {
   audio.init();
 
   const isCorrect = selectedIdx === correctIdx;
+  state.totalAnswered++;
   const q = state.questions[state.current];
   const allBtns = answersEl.querySelectorAll('.answer-btn');
   allBtns.forEach(b => b.classList.add('locked'));
@@ -757,6 +883,7 @@ function handleAnswer(btn, selectedIdx, correctIdx) {
     audio.play('correct');
     audio.play('click');
     updateStreakPins();
+    updateAccuracy();
 
     // Advance vault stage visually
     if (state.streak < 3) setVaultStage(state.streak);
@@ -777,6 +904,7 @@ function handleAnswer(btn, selectedIdx, correctIdx) {
     secLevel.textContent = `ALERT: ${state.wrong}`;
     if (state.wrong >= 3) secLevel.style.opacity = '1';
     updateStreakPins();
+    updateAccuracy();
 
     // Animate back to locked state
     if (prevStreak > 0) animateToFrame(0, 1000);
@@ -812,7 +940,9 @@ function crackVault() {
 
   // Advance vault index
   state.vaultIdx++;
-  updateDepthGauge();
+  updateVaultProgress();
+  // Send progressive score after each vault crack
+  sendScore(true);
 
   // Pre-load next vault frames while animation plays
   if (state.vaultIdx < VAULTS.length) {
@@ -823,9 +953,11 @@ function crackVault() {
   if (state.vaultIdx < VAULTS.length) {
     setTimeout(() => {
       state.streak = 0;
+      state.questions = state.vaultQuestions[state.vaultIdx];
+      state.current = 0;
       updateStreakPins();
       setVaultTheme(state.vaultIdx);
-      setTimeout(() => { state.transitioning = false; }, 1200);
+      setTimeout(() => { state.transitioning = false; showQuestion(); }, 1200);
     }, transitionDelay);
   } else {
     state.streak = 0;
@@ -842,10 +974,17 @@ nextBtn.addEventListener('click', () => {
 
   function proceed() {
     if (state.transitioning) {
+      // Vault was just cracked — crackVault handles showQuestion, just wait
       setTimeout(proceed, 200);
       return;
     }
-    if (state.current >= state.questions.length) {
+    // If all vaults cracked, end the game
+    if (state.vaultIdx >= VAULTS.length) {
+      endGame();
+      return;
+    }
+    // If out of questions for this vault without cracking it, end the game
+    if (state.current >= QUESTIONS_PER_VAULT) {
       endGame();
     } else {
       showQuestion();
@@ -854,11 +993,41 @@ nextBtn.addEventListener('click', () => {
   proceed();
 });
 
+// === SCORING (progressive, tiered) ===
+function getScorePercent(depth) {
+  if (depth >= 5) return 100;
+  if (depth >= 4) return 85;
+  if (depth >= 2) return 65;
+  return depth >= 1 ? 55 : 0;
+}
+function sendScore(final = false) {
+  if (!final) return;
+  const max = 5;
+  const depth = state.vaultIdx;
+  let scoreVal = max * (getScorePercent(depth) / 100);
+  scoreVal = Math.round(scoreVal * 100) / 100;
+  try {
+    window.parent.postMessage({
+      type: 'activityScore',
+      score: scoreVal,
+      maxScore: max,
+      gameComplete: true,
+      completedAt: new Date().toISOString(),
+      breakdown: {
+        vaultsCracked: depth,
+        correct: state.correct,
+        total: state.totalAnswered,
+        accuracy: state.totalAnswered > 0 ? Math.round((state.correct / state.totalAnswered) * 100) : 0
+      }
+    }, '*');
+  } catch (e) {}
+}
+
 // === END GAME ===
 function endGame() {
   const depth = state.vaultIdx;
 
-  window.parent.postMessage({ type: 'activityScore', score: depth, maxScore: VAULTS.length }, '*');
+  sendScore(true);
 
   if (depth === 0) {
     // Total failure
@@ -906,9 +1075,9 @@ function showResults(depth) {
         ${VAULTS.map((v, i) => `<div class="results-vault-pip ${i < depth ? 'filled' : ''}" style="${i < depth ? `background:${v.accent};border-color:${v.accent};box-shadow:0 0 10px ${v.glow}` : ''}"><span class="pip-label">${v.name.split(' ')[0]}</span></div>`).join('')}
       </div>
       <div class="results-stats">
-        <div class="stat-box"><div class="stat-value" style="color:${color}">${depth} / 5</div><div class="stat-label">DEPTH</div></div>
+        <div class="stat-box"><div class="stat-value" style="color:${color}">${getScorePercent(depth)}%</div><div class="stat-label">SCORE</div></div>
         <div class="stat-box"><div class="stat-value">${state.correct}</div><div class="stat-label">CORRECT</div></div>
-        <div class="stat-box"><div class="stat-value">${Math.round(state.correct/state.questions.length*100)}%</div><div class="stat-label">ACCURACY</div></div>
+        <div class="stat-box"><div class="stat-value">${state.totalAnswered > 0 ? Math.round(state.correct/state.totalAnswered*100) : 0}%</div><div class="stat-label">ACCURACY</div></div>
         <div class="stat-box"><div class="stat-value">${state.wrong}</div><div class="stat-label">WRONG</div></div>
       </div>
       <button class="retry-btn" id="retry-btn">TRY AGAIN</button>

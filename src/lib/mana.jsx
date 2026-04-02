@@ -4,6 +4,7 @@
 
 import { doc, getDoc, setDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "./firebase";
+import { createNotification } from "./notifications";
 
 // ─── Period Windows (courseId → [startMin, endMin] in ET) ───
 export const PERIOD_WINDOWS = {
@@ -337,6 +338,18 @@ export async function awardStudentMana(courseId, uid, amount, reason) {
   ];
   const ref = doc(db, "courses", courseId, "studentMana", uid);
   await setDoc(ref, data);
+
+  // Send notification to student
+  try {
+    await createNotification(uid, {
+      type: "mana_received",
+      title: `+${amount} Mana`,
+      body: reason,
+      link: `/my-mana/${courseId}`,
+      courseId,
+    });
+  } catch (e) { /* notification failure shouldn't block mana award */ }
+
   return data;
 }
 

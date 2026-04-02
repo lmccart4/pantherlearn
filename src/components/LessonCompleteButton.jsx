@@ -72,6 +72,7 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
   const chatbotBlocks = blocks.filter((b) => b.type === "chatbot");
   const checklistBlocks = blocks.filter((b) => b.type === "checklist");
   const scoredEmbedBlocks = blocks.filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
+  const slideSubmitBlocks = blocks.filter((b) => b.type === "slide_submit");
 
   const allQuestionsAnswered = questionBlocks.every((b) => studentData[b.id]?.submitted);
   const allChatbotsUsed = chatbotBlocks.every((b) => chatLogs[b.id]?.length > 0);
@@ -81,9 +82,10 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
     const checked = studentData[b.id]?.checked || {};
     return items.every((_, i) => checked[i]);
   });
-  const allEmbedsComplete = scoredEmbedBlocks.every((b) => studentData[b.id]?.submitted);
+  const allEmbedsComplete = scoredEmbedBlocks.every((b) => studentData[b.id]?.submitted || studentData[b.id]?.score != null);
+  const allSlidesSubmitted = slideSubmitBlocks.every((b) => studentData[b.id]?.submitted);
 
-  const allComplete = allQuestionsAnswered && allChatbotsUsed && allChecklistsDone && allEmbedsComplete;
+  const allComplete = allQuestionsAnswered && allChatbotsUsed && allChecklistsDone && allEmbedsComplete && allSlidesSubmitted;
 
   const remaining = [];
   const unansweredQ = questionBlocks.filter((b) => !studentData[b.id]?.submitted).length;
@@ -99,6 +101,8 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
   if (unusedChat) remaining.push(`${unusedChat} chatbot${unusedChat > 1 ? "s" : ""}`);
   if (uncheckedLists) remaining.push(`${uncheckedLists} checklist${uncheckedLists > 1 ? "s" : ""}`);
   if (incompleteEmbeds) remaining.push(`${incompleteEmbeds} activit${incompleteEmbeds > 1 ? "ies" : "y"}`);
+  const unsubmittedSlides = slideSubmitBlocks.filter((b) => !studentData[b.id]?.submitted).length;
+  if (unsubmittedSlides) remaining.push(`${unsubmittedSlides} presentation${unsubmittedSlides > 1 ? "s" : ""}`);
 
   const handleClickComplete = () => {
     if (!allComplete || completing) return;

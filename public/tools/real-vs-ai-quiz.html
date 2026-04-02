@@ -232,6 +232,7 @@ function reportScore(activityId, score, maxScore, meta = {}) {
     lessonId,
     score,
     maxScore,
+    gameComplete: true,
     completedAt: new Date().toISOString(),
     ...meta,
   };

@@ -30,12 +30,14 @@ const getGsap = () => {
 const ACCENT = "#10b981";
 const ACCENT_PURPLE = "#7c3aed";
 const GOLD = "#f0c848";
-const MANA_BG = "#0a0612";
-const MANA_SURFACE = "#130d20";
-const MANA_SURFACE2 = "#1e1435";
-const MANA_BORDER = "#2d1f4e";
-const MANA_TEXT = "#e8e0f0";
-const MANA_TEXT_MUTED = "#8b7fa8";
+const MANA_BG = "var(--mana-bg, #0a0612)";
+const MANA_SURFACE = "var(--mana-surface, #130d20)";
+const MANA_SURFACE2 = "var(--mana-surface2, #1e1435)";
+const MANA_BORDER = "var(--mana-border, #2d1f4e)";
+const MANA_TEXT = "var(--mana-text, #e8e0f0)";
+const MANA_TEXT_MUTED = "var(--mana-text-muted, #8b7fa8)";
+const MANA_GRAD_MID = "var(--mana-gradient-mid, #1a1030)";
+const MANA_GRAD_MID2 = "var(--mana-gradient-mid2, #1e1435)";
 
 // ─── EASING CURVES ───────────────────────────────────
 const EASE_ENTRANCE = "cubic-bezier(0.2, 0, 0, 1)";
@@ -545,19 +547,6 @@ export default function StudentMana() {
       setTimeout(() => setToast(null), 2500);
       return;
     }
-    // Class period gating — test student bypasses
-    const isTestStudent = user.email === "lmccart4@gmail.com";
-    if (!isTestStudent) {
-      const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
-      const day = et.getDay();
-      const nowMin = et.getHours() * 60 + et.getMinutes();
-      const window = PERIOD_WINDOWS[courseId];
-      if (!window || day < 1 || day > 5 || nowMin < window[0] || nowMin > window[1]) {
-        setToast("Mana can only be awarded during class time!");
-        setTimeout(() => setToast(null), 2500);
-        return;
-      }
-    }
     const behavior = POSITIVE_BEHAVIORS.find(b => b.id === behaviorId);
     if (!behavior) return;
     const newUsed = (poolState.mageBudgetUsed || 0) + behavior.mana;
@@ -653,7 +642,7 @@ export default function StudentMana() {
     return (
       <main id="main-content" className="page-wrapper mana-page" style={{
         display: "flex", justifyContent: "center", paddingTop: 120,
-        background: `radial-gradient(ellipse at 50% 30%, ${MANA_SURFACE} 0%, ${MANA_BG} 70%, #000 100%)`,
+        background: `radial-gradient(ellipse at 50% 30%, ${MANA_SURFACE} 0%, ${MANA_BG} 70%, ${MANA_BG} 100%)`,
         minHeight: "100vh", position: "relative", color: MANA_TEXT,
       }}>
         <style>{manaStyles}</style>
@@ -666,7 +655,7 @@ export default function StudentMana() {
   if (!course) {
     return (
       <main id="main-content" className="page-wrapper mana-page" style={{
-        background: `radial-gradient(ellipse at 50% 30%, ${MANA_SURFACE} 0%, ${MANA_BG} 70%, #000 100%)`,
+        background: `radial-gradient(ellipse at 50% 30%, ${MANA_SURFACE} 0%, ${MANA_BG} 70%, ${MANA_BG} 100%)`,
         minHeight: "100vh", position: "relative", color: MANA_TEXT,
       }}>
         <style>{manaStyles}</style>
@@ -700,7 +689,7 @@ export default function StudentMana() {
 
   return (
     <main id="main-content" className="page-wrapper mana-page" style={{
-      background: `radial-gradient(ellipse at 50% 30%, ${MANA_SURFACE} 0%, ${MANA_BG} 70%, #000 100%)`,
+      background: `radial-gradient(ellipse at 50% 30%, ${MANA_SURFACE} 0%, ${MANA_BG} 70%, ${MANA_BG} 100%)`,
       minHeight: "100vh", position: "relative", color: MANA_TEXT,
     }}>
       <style>{manaStyles}</style>
@@ -749,7 +738,7 @@ export default function StudentMana() {
         {/* ═══ MAGE / ENCHANTRESS SECTION ═══ */}
         {isMage && (
           <div ref={addSectionRef} style={{
-            background: `linear-gradient(135deg, ${MANA_SURFACE}, #1a1530, #2a1f3d)`,
+            background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID}, ${MANA_GRAD_MID2})`,
             border: `2px solid ${GOLD}44`,
             outline: `1px solid ${GOLD}22`,
             outlineOffset: 3,
@@ -821,7 +810,7 @@ export default function StudentMana() {
                   {charSpans(`You are today's ${getManaTitle(mageGender)}!`)}
                 </div>
                 <div style={{ fontSize: 12, color: MANA_TEXT_MUTED, marginTop: 2 }}>
-                  Award mana to your classmates. Budget: {mageBudgetUsed} / {MAGE_DAILY_BUDGET} used
+                  You have {MAGE_DAILY_BUDGET - mageBudgetUsed} mana left to give out today
                 </div>
               </div>
             </div>
@@ -841,7 +830,7 @@ export default function StudentMana() {
 
             {mageBudgetUsed >= MAGE_DAILY_BUDGET ? (
               <div style={{ color: GOLD, fontSize: 13, fontStyle: "italic" }}>
-                You've used your full budget for today. Great leadership!
+                You've given out all your mana for today. Great leadership!
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 8 }}>
@@ -896,7 +885,7 @@ export default function StudentMana() {
 
         {/* ═══ MANA ORB BALANCE CARD ═══ */}
         <div ref={addSectionRef} style={{
-          background: `linear-gradient(135deg, ${MANA_SURFACE}, #1a1030, #1e1435)`,
+          background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID}, ${MANA_GRAD_MID2})`,
           border: `1px solid ${MANA_BORDER}`,
           borderRadius: 16,
           padding: "28px 28px 24px", marginBottom: 20, position: "relative", overflow: "hidden",
@@ -1045,7 +1034,7 @@ export default function StudentMana() {
 
         {/* ═══ SPELLBOOK ═══ */}
         <div ref={addSectionRef} style={{
-          background: `linear-gradient(135deg, ${MANA_SURFACE}, #1a1030, #1e1435)`,
+          background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID}, ${MANA_GRAD_MID2})`,
           border: `1px solid ${MANA_BORDER}`,
           borderRadius: 14,
           padding: "18px 22px", marginBottom: 20,
@@ -1066,7 +1055,7 @@ export default function StudentMana() {
                   <div key={power.id} className="mana-card-glow" style={{
                     padding: "14px 16px", borderRadius: 10,
                     background: canAfford
-                      ? `linear-gradient(135deg, ${MANA_SURFACE2}, #1e1435, #251845)`
+                      ? `linear-gradient(135deg, ${MANA_SURFACE2}, ${MANA_GRAD_MID2}, ${MANA_SURFACE2})`
                       : MANA_SURFACE2,
                     border: canAfford ? `1px solid ${ACCENT}33` : `1px solid ${MANA_BORDER}`,
                     outline: canAfford ? `1px solid ${GOLD}15` : "none",
@@ -1218,7 +1207,7 @@ export default function StudentMana() {
         {/* ═══ ENCHANTMENT LOG ═══ */}
         {history.length > 0 && (
           <div ref={addSectionRef} style={{
-            background: `linear-gradient(135deg, ${MANA_SURFACE}, #1a1030, #1e1435)`,
+            background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID}, ${MANA_GRAD_MID2})`,
             border: `1px solid ${MANA_BORDER}`,
             borderRadius: 14,
             padding: "18px 22px", position: "relative",
@@ -1255,7 +1244,7 @@ export default function StudentMana() {
                 return (
                   <div key={i} className="enchantment-log-entry" style={{
                     display: "flex", alignItems: "center", gap: 10, padding: "8px 6px",
-                    borderBottom: i < displayHistory.length - 1 ? `1px solid ${MANA_BORDER}33` : "none",
+                    borderBottom: i < displayHistory.length - 1 ? `1px solid color-mix(in srgb, ${MANA_BORDER} 20%, transparent)` : "none",
                     borderLeft: `2px solid ${isMageAward ? GOLD + "55" : isEarn ? ACCENT + "44" : "#f8717133"}`,
                     borderRadius: "0 4px 4px 0",
                   }}>
@@ -1286,7 +1275,7 @@ export default function StudentMana() {
             backdropFilter: "blur(4px)",
           }} onClick={() => setConfirmPower(null)}>
             <div onClick={(e) => e.stopPropagation()} style={{
-              background: `linear-gradient(135deg, ${MANA_SURFACE}, #1a1030, #1e1435)`,
+              background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID}, ${MANA_GRAD_MID2})`,
               borderRadius: 14, padding: "28px 32px",
               maxWidth: 360, width: "100%", border: `1px solid ${ACCENT}33`,
               boxShadow: `0 20px 60px rgba(0,0,0,0.7), 0 0 60px ${ACCENT}22, 0 0 120px ${ACCENT_PURPLE}11`,
@@ -1337,7 +1326,7 @@ export default function StudentMana() {
             backdropFilter: "blur(4px)",
           }} onClick={() => setBonusModal(null)}>
             <div style={{
-              background: `linear-gradient(135deg, ${MANA_SURFACE}, #1e1240)`,
+              background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID2})`,
               border: `1px solid ${MANA_BORDER}`, borderRadius: 14,
               padding: "24px 28px", maxWidth: 480, width: "100%", maxHeight: "80vh", overflow: "auto",
               boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${ACCENT}22`,
@@ -1404,7 +1393,7 @@ export default function StudentMana() {
             backdropFilter: "blur(4px)",
           }} onClick={() => setInputModal(null)}>
             <div style={{
-              background: `linear-gradient(135deg, ${MANA_SURFACE}, #1e1240)`,
+              background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID2})`,
               border: `1px solid ${MANA_BORDER}`, borderRadius: 14,
               padding: "24px 28px", maxWidth: 420, width: "100%",
               boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${ACCENT}22`,
@@ -1465,7 +1454,7 @@ export default function StudentMana() {
             backdropFilter: "blur(4px)",
           }} onClick={() => { setQuoteModal(null); setQuoteDescription(""); }}>
             <div onClick={(e) => e.stopPropagation()} style={{
-              background: `linear-gradient(135deg, ${MANA_SURFACE}, #1e1240)`,
+              background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID2})`,
               borderRadius: 14, padding: "28px 32px",
               maxWidth: 400, width: "100%", border: `1px solid ${MANA_BORDER}`,
               boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${ACCENT}22`,
@@ -1539,7 +1528,7 @@ export default function StudentMana() {
             backdropFilter: "blur(4px)",
           }} onClick={() => { setShowSuggestModal(false); setSuggestionText(""); }}>
             <div onClick={(e) => e.stopPropagation()} style={{
-              background: `linear-gradient(135deg, ${MANA_SURFACE}, #1e1240)`,
+              background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID2})`,
               borderRadius: 14, padding: "28px 32px",
               maxWidth: 400, width: "100%", border: `1px solid ${MANA_BORDER}`,
               boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${ACCENT}22`,
@@ -1609,7 +1598,7 @@ export default function StudentMana() {
         {toast && (
           <div style={{
             position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
-            background: `linear-gradient(135deg, ${MANA_SURFACE}, #1e1435)`,
+            background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID2})`,
             border: `1px solid ${ACCENT}66`, borderRadius: 10,
             padding: "12px 24px", fontSize: 14, fontWeight: 600, color: ACCENT,
             boxShadow: `0 8px 32px ${ACCENT}44, 0 0 30px ${ACCENT}22, inset 0 0 20px ${ACCENT}08`,

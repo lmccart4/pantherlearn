@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feed Architect — ScrollSpace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0f1e;
+  --surface: #141b2d;
+  --surface2: #1c2540;
+  --border: #263354;
+  --text: #e8ecf4;
+  --text-dim: #7a8baa;
+  --accent: #6366f1;
+  --green: #22c55e;
+  --red: #ef4444;
+  --yellow: #eab308;
+  --radius: 14px;
+  --select-glow: rgba(34,197,94,0.35);
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
+
+.app { max-width: 680px; margin: 0 auto; padding: 16px; }
+
+/* ── Screens ── */
+.screen { display: none; animation: fadeIn 0.4s ease; }
+.screen.active { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen, .meter-fill, .post-card { animation: none !important; transition: none !important; }
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Title Screen ── */
+.title-screen { text-align: center; padding: 60px 20px; }
+.title-screen h1 { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
+.title-screen .logo { font-size: 3.6rem; margin-bottom: 16px; display: block; }
+.title-screen .subtitle { color: var(--text-dim); font-size: 1.05rem; max-width: 440px; margin: 0 auto 12px; }
+.title-screen .company { display: inline-block; background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Outfit', sans-serif; font-weight: 700; }
+.role-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin: 24px auto; max-width: 420px; text-align: left; }
+.role-box h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 8px; }
+.role-box p { font-size: 0.95rem; color: var(--text); }
+.alex-card { display: flex; align-items: center; gap: 14px; background: var(--surface2); border-radius: 10px; padding: 14px; margin: 20px auto; max-width: 420px; }
+.alex-avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; }
+.alex-info { text-align: left; }
+.alex-info strong { font-size: 1rem; }
+.alex-info span { display: block; color: var(--text-dim); font-size: 0.85rem; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 32px; border-radius: 10px; border: none;
+  font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 1rem;
+  cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+  min-height: 48px; min-width: 48px;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; box-shadow: 0 4px 20px rgba(99,102,241,0.3); }
+.btn-primary:hover { box-shadow: 0 4px 28px rgba(99,102,241,0.45); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-green { background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff; box-shadow: 0 4px 20px rgba(34,197,94,0.3); }
+.btn-green:hover { box-shadow: 0 4px 28px rgba(34,197,94,0.45); }
+.btn-outline { background: transparent; color: var(--text); border: 2px solid var(--border); }
+.btn-outline:hover { border-color: var(--text-dim); }
+
+/* ── Round Header ── */
+.round-header { text-align: center; margin-bottom: 20px; }
+.round-badge { display: inline-block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 14px; border-radius: 20px; margin-bottom: 10px; font-weight: 600; }
+.round-header h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+.round-header .objective { background: var(--surface); border-left: 3px solid var(--accent); padding: 12px 16px; border-radius: 0 10px 10px 0; text-align: left; font-size: 0.92rem; color: var(--text); margin-top: 12px; line-height: 1.55; }
+
+.select-count { text-align: center; margin: 14px 0; font-size: 0.9rem; color: var(--text-dim); }
+.select-count strong { color: var(--text); }
+
+/* ── Post Cards ── */
+.post-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+
+.post-card {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.post-card:hover { border-color: #3d4f7a; }
+.post-card.selected {
+  border-color: var(--green);
+  box-shadow: 0 0 20px var(--select-glow);
+}
+.post-card.selected::after {
+  content: '\2713';
+  position: absolute; top: 10px; right: 12px;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--green); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 700;
+}
+
+.post-author { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.post-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; flex-shrink: 0;
+}
+.post-name { font-weight: 600; font-size: 0.92rem; }
+.post-handle { color: var(--text-dim); font-size: 0.82rem; }
+
+.post-content { font-size: 0.95rem; line-height: 1.55; margin-bottom: 10px; }
+
+.post-image {
+  width: 100%; height: 100px; border-radius: 8px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; color: rgba(255,255,255,0.6); font-style: italic;
+}
+
+.post-image-img {
+  width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; display: block;
+}
+
+.post-engagement { display: flex; gap: 20px; color: var(--text-dim); font-size: 0.82rem; }
+.post-engagement span { display: flex; align-items: center; gap: 4px; }
+
+.publish-bar { text-align: center; padding: 16px 0 24px; position: sticky; bottom: 0; background: linear-gradient(transparent, var(--bg) 30%); padding-top: 30px; }
+
+/* ── Consequence Screen ── */
+.consequence { text-align: center; padding: 20px 0; }
+.consequence h2 { font-size: 1.4rem; margin-bottom: 6px; }
+.consequence .round-label { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 24px; }
+
+.meters { max-width: 440px; margin: 0 auto 28px; }
+.meter { margin-bottom: 18px; text-align: left; }
+.meter-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; }
+.meter-label span:first-child { font-weight: 600; }
+.meter-label span:last-child { color: var(--text-dim); }
+.meter-track { width: 100%; height: 14px; background: var(--surface2); border-radius: 7px; overflow: hidden; }
+.meter-fill { height: 100%; border-radius: 7px; width: 0; transition: width 1s cubic-bezier(0.22, 1, 0.36, 1); }
+
+.round-score-box { background: var(--surface); border-radius: var(--radius); padding: 20px; margin: 0 auto 20px; max-width: 440px; }
+.round-score-box .big-score { font-family: 'Outfit', sans-serif; font-size: 2.8rem; font-weight: 800; }
+.round-score-box .of { color: var(--text-dim); font-size: 1rem; }
+.round-score-box .explanation { font-size: 0.9rem; color: var(--text-dim); margin-top: 10px; line-height: 1.55; text-align: left; }
+
+.feed-preview { background: var(--surface); border-radius: var(--radius); padding: 16px; margin: 0 auto 20px; max-width: 440px; text-align: left; }
+.feed-preview h4 { font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+.feed-preview .mini-post { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.feed-preview .mini-post:last-child { border-bottom: none; }
+.mini-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; }
+
+/* ── Results Screen ── */
+.results { text-align: center; padding: 30px 0; }
+.results h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 4px; }
+.results .tier { font-size: 1.1rem; margin-bottom: 6px; }
+.results .total-score { font-family: 'Outfit', sans-serif; font-size: 3.5rem; font-weight: 800; margin: 16px 0 4px; }
+.results .out-of { color: var(--text-dim); font-size: 1rem; }
+
+.round-breakdown { max-width: 440px; margin: 28px auto; text-align: left; }
+.rb-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--surface); border-radius: 10px; margin-bottom: 8px; }
+.rb-row .rb-name { font-size: 0.9rem; }
+.rb-row .rb-pts { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.05rem; }
+
+.insight-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; max-width: 480px; margin: 24px auto; text-align: left; font-size: 0.92rem; line-height: 1.6; }
+.insight-box h4 { margin-bottom: 8px; font-size: 0.95rem; }
+
+.btn-group { display: flex; gap: 12px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .title-screen h1 { font-size: 1.8rem; }
+  .title-screen .logo { font-size: 2.8rem; }
+  .post-card { padding: 14px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Title Screen -->
+<div id="screen-title" class="screen active">
+  <div class="title-screen">
+    <span class="logo">📱</span>
+    <h1>Feed Architect</h1>
+    <p class="subtitle">Welcome to <span class="company">ScrollSpace</span> — the world's fastest-growing social platform. You just got hired as a Feed Algorithm Engineer.</p>
+    <div class="role-box">
+      <h3>Your Job</h3>
+      <p>You decide what posts appear in users' feeds. Each round, the company gives you a different objective. Pick 4 posts out of 8 to show your assigned user. Choose wisely — your decisions have consequences.</p>
+    </div>
+    <div class="alex-card">
+      <div class="alex-avatar">🧑</div>
+      <div class="alex-info">
+        <strong>Alex Chen</strong>
+        <span>16 years old · Likes gaming, art, science, memes · Follows 847 accounts</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="startGame()" style="margin-top:20px;">Start Your Shift →</button>
+  </div>
+</div>
+
+<!-- Round Screen -->
+<div id="screen-round" class="screen">
+  <div class="round-header">
+    <div class="round-badge" id="round-badge">ROUND 1 / 10</div>
+    <h2 id="round-title"></h2>
+    <div class="objective" id="round-objective"></div>
+  </div>
+  <div class="select-count">Selected: <strong><span id="select-count">0</span> / 4</strong></div>
+  <div class="post-grid" id="post-grid"></div>
+  <div class="publish-bar">
+    <button class="btn btn-primary" id="publish-btn" disabled onclick="publishFeed()">Publish Feed (select 4)</button>
+  </div>
+</div>
+
+<!-- Consequence Screen -->
+<div id="screen-consequence" class="screen">
+  <div class="consequence">
+    <div class="round-label" id="consq-round-label"></div>
+    <h2 id="consq-title">Alex's Feed Results</h2>
+    <div class="meters" id="meters"></div>
+    <div class="round-score-box">
+      <div class="big-score" id="consq-score"></div>
+      <div class="of">/ 20 points</div>
+      <div class="explanation" id="consq-explanation"></div>
+    </div>
+    <div class="feed-preview" id="feed-preview"></div>
+    <button class="btn btn-primary" id="next-round-btn" onclick="nextRound()">Next Round →</button>
+  </div>
+</div>
+
+<!-- Results Screen -->
+<div id="screen-results" class="screen">
+  <div class="results">
+    <h2>Shift Complete</h2>
+    <div class="tier" id="result-tier"></div>
+    <div class="total-score" id="result-pct"></div>
+    <div class="out-of" id="result-raw"></div>
+    <div class="round-breakdown" id="round-breakdown"></div>
+    <div class="insight-box" id="insight-box"></div>
+    <div class="btn-group">
+      <button class="btn btn-green" onclick="submitFinalScore()">Submit Score</button>
+      <button class="btn btn-outline" onclick="playAgain()">Play Again (New Questions)</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   FEED ARCHITECT — ScrollSpace Algorithm Game
+   ══════════════════════════════════════════════ */
+
+const ROUNDS = [
+  {
+    title: 'Maximize Engagement',
+    badge: 'ROUND 1 / 10',
+    badgeColor: '#f97316',
+    accent: '#f97316',
+    objective: 'The board wants ENGAGEMENT. Pick posts that will get Alex clicking, liking, and commenting. More taps = more value.',
+    scoreKey: 'engagement',
+    posts: [
+      // --- Original 8 posts ---
+      { author: 'DramaAlert Daily', handle: '@dramaalertdaily', avatar: '🔥', avatarBg: '#dc2626', content: 'BREAKING: Famous streamer caught LYING about charity donations?? The receipts are WILD. Thread 🧵👇', image: '../images/feed-architect/drama-collage.jpg.jpg', imageBg: 'linear-gradient(135deg,#991b1b,#dc2626)', type: 'rage_bait', engagement: 9, watchTime: 7, adRevenue: 6, wellbeing: -3, likes: 24800, comments: 8900, shares: 5200, optimal: true },
+      { author: 'Science Steve', handle: '@sciencesteve_', avatar: '🔬', avatarBg: '#2563eb', content: 'TIL: Your brain uses about 20% of your total energy, even though it\'s only 2% of your body weight. Brains are expensive organs.', image: '../images/feed-architect/brain-energy.jpg.jpg', imageBg: 'linear-gradient(135deg,#1e3a5f,#2563eb)', type: 'educational', engagement: 3, watchTime: 2, adRevenue: 1, wellbeing: 4, likes: 1200, comments: 89, shares: 340, optimal: false },
+      { author: 'Spicy Takes', handle: '@hottest_takes', avatar: '🌶️', avatarBg: '#e11d48', content: 'Unpopular opinion: homework should be ILLEGAL. Schools already have you for 7 hours. Your free time is YOUR time. Agree? 👇', image: null, imageBg: null, type: 'rage_bait', engagement: 10, watchTime: 6, adRevenue: 3, wellbeing: -1, likes: 67000, comments: 23000, shares: 12000, optimal: true },
+      { author: 'Perth Amboy Patch', handle: '@papatch_nj', avatar: '📰', avatarBg: '#475569', content: 'City council approves new bike lanes on Smith Street. Construction begins next month. Full details at the link.', image: '../images/feed-architect/bike-lane-map.jpg.jpg', imageBg: 'linear-gradient(135deg,#334155,#64748b)', type: 'news', engagement: 1, watchTime: 1, adRevenue: 1, wellbeing: 2, likes: 45, comments: 12, shares: 8, optimal: false },
+      { author: 'Meme Central', handle: '@memecentralhq', avatar: '💀', avatarBg: '#7c3aed', content: 'POV: You open your phone for "just 5 minutes" and suddenly it\'s 3 AM and you\'re watching a guy build a swimming pool in the jungle', image: '../images/feed-architect/late-night-meme.jpg.jpg', imageBg: 'linear-gradient(135deg,#4c1d95,#7c3aed)', type: 'meme', engagement: 8, watchTime: 4, adRevenue: 2, wellbeing: 0, likes: 89000, comments: 4300, shares: 21000, optimal: true },
+      { author: 'Celeb Watch', handle: '@celebwatchnow', avatar: '⭐', avatarBg: '#d946ef', content: 'OMG did you see what happened at the after-party last night?? Two A-listers got into it and security had to step in 😱😱', image: '../images/feed-architect/paparazzi-event.jpg.jpg', imageBg: 'linear-gradient(135deg,#86198f,#d946ef)', type: 'clickbait', engagement: 9, watchTime: 5, adRevenue: 5, wellbeing: -2, likes: 34000, comments: 11000, shares: 7800, optimal: true },
+      { author: 'Alex\'s friend Maya', handle: '@mayapaints', avatar: '🎨', avatarBg: '#059669', content: 'Finally finished my watercolor project for art class! Took me 3 weeks but I\'m actually proud of this one 🥹', image: '../images/feed-architect/watercolor-sunset.jpg.jpg', imageBg: 'linear-gradient(135deg,#064e3b,#059669)', type: 'friend', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 5, likes: 28, comments: 14, shares: 2, optimal: false },
+      { author: 'Debate Me Bro', handle: '@logicallord99', avatar: '🧠', avatarBg: '#ea580c', content: 'If you still think school prepares you for real life, explain why they teach you about mitochondria but not how to do taxes 🤡🤡🤡', image: null, imageBg: null, type: 'rage_bait', engagement: 8, watchTime: 5, adRevenue: 2, wellbeing: -2, likes: 41000, comments: 15000, shares: 9000, optimal: true },
+      // --- 8 NEW posts ---
+      { author: 'Cancelled Culture', handle: '@cancelled_daily', avatar: '🚫', avatarBg: '#b91c1c', content: 'This teacher said WHAT to a student?? Full video just leaked and parents are FURIOUS. The school hasn\'t responded yet 👀🧵', image: '../images/feed-architect/outrage-headline.jpg.jpg', imageBg: null, type: 'rage_bait', engagement: 9, watchTime: 6, adRevenue: 4, wellbeing: -3, likes: 56000, comments: 19000, shares: 14000, optimal: true },
+      { author: 'Ratio King', handle: '@ratio_szn', avatar: '💀', avatarBg: '#dc2626', content: 'Imagine defending school lunch quality in 2026 lmaooo. Ratio this person with me rn 👇👇', image: null, imageBg: null, type: 'rage_bait', engagement: 8, watchTime: 4, adRevenue: 2, wellbeing: -2, likes: 72000, comments: 31000, shares: 15000, optimal: true },
+      { author: 'Tea Spill Weekly', handle: '@teaspill_w', avatar: '🍵', avatarBg: '#e11d48', content: 'So apparently two influencers have been secretly dating AND it all started from a diss track?? The timeline is insane, sit down for this one', image: '../images/feed-architect/paparazzi-event.jpg.jpg', imageBg: null, type: 'clickbait', engagement: 8, watchTime: 5, adRevenue: 4, wellbeing: -1, likes: 48000, comments: 16000, shares: 9000, optimal: true },
+      { author: 'NJ Nature Walks', handle: '@njnaturewalks', avatar: '🌿', avatarBg: '#15803d', content: 'Found these wildflowers on the Raritan Canal trail today. Spring is really here. Go touch grass (literally).', image: '../images/feed-architect/calming-nature.jpg.jpg', imageBg: null, type: 'wholesome', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 4, likes: 340, comments: 28, shares: 56, optimal: false },
+      { author: 'Alex\'s classmate Devon', handle: '@devvv_onit', avatar: '📓', avatarBg: '#6366f1', content: 'Bruh can someone explain the physics hw to me I literally do not understand velocity vs acceleration help pls', image: null, imageBg: null, type: 'friend', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 3, likes: 12, comments: 9, shares: 0, optimal: false },
+      { author: 'Calm Corner', handle: '@calmcorner_', avatar: '🕊️', avatarBg: '#0ea5e9', content: 'Your daily reminder that comparison is the thief of joy. You don\'t need to be where everyone else is. Just keep going at your own pace.', image: null, imageBg: null, type: 'wholesome', engagement: 3, watchTime: 1, adRevenue: 0, wellbeing: 5, likes: 5600, comments: 420, shares: 1800, optimal: false },
+      { author: 'Local Library NJ', handle: '@njlibrary_', avatar: '📖', avatarBg: '#475569', content: 'New graphic novels just arrived at the Perth Amboy branch! First come, first served. Open Saturdays 10-4.', image: null, imageBg: null, type: 'news', engagement: 1, watchTime: 1, adRevenue: 0, wellbeing: 3, likes: 89, comments: 7, shares: 12, optimal: false },
+      { author: 'Cooking for One', handle: '@cookingforone_', avatar: '🍳', avatarBg: '#ca8a04', content: 'Made a really solid fried rice tonight with just leftovers and soy sauce. No fancy ingredients needed. Recipe in thread if anyone wants.', image: null, imageBg: null, type: 'educational', engagement: 4, watchTime: 2, adRevenue: 0, wellbeing: 3, likes: 2300, comments: 180, shares: 560, optimal: false }
+    ]
+  },
+  {
+    title: 'Maximize Watch Time',
+    badge: 'ROUND 2 / 10',
+    badgeColor: '#8b5cf6',
+    accent: '#8b5cf6',
+    objective: 'Keep Alex scrolling as LONG as possible. The longer they stay, the more ads we show. Every extra minute = more revenue.',
+    scoreKey: 'watchTime',
+    posts: [
+      // --- Original 8 posts ---
+      { author: 'Rabbit Hole TV', handle: '@rabbitholeTV', avatar: '🕳️', avatarBg: '#6d28d9', content: 'Part 1 of 47: The INSANE hidden history of your favorite childhood cartoon. You won\'t believe what episode 14 really meant...', image: '../images/feed-architect/cartoon-conspiracy.jpg.jpg', imageBg: 'linear-gradient(135deg,#4c1d95,#7c3aed)', type: 'rabbit_hole', engagement: 7, watchTime: 10, adRevenue: 7, wellbeing: -2, likes: 18000, comments: 3400, shares: 2100, optimal: true },
+      { author: 'Quick Facts', handle: '@quickfacts_', avatar: '⚡', avatarBg: '#0ea5e9', content: 'Octopuses have three hearts and blue blood. That\'s it. That\'s the fact. Have a good day.', image: null, imageBg: null, type: 'educational', engagement: 4, watchTime: 1, adRevenue: 1, wellbeing: 3, likes: 9200, comments: 210, shares: 1800, optimal: false },
+      { author: 'Infinite Scroll', handle: '@infinitescroll_', avatar: '♾️', avatarBg: '#a855f7', content: '100 SATISFYING videos that will make you forget all your problems 😌 (watch till the end for the best one)', image: '../images/feed-architect/satisfying-grid.jpg.jpg', imageBg: 'linear-gradient(135deg,#581c87,#a855f7)', type: 'rabbit_hole', engagement: 6, watchTime: 10, adRevenue: 8, wellbeing: -1, likes: 52000, comments: 1800, shares: 7600, optimal: true },
+      { author: 'Alex\'s friend Jordan', handle: '@jordanhoops23', avatar: '🏀', avatarBg: '#ea580c', content: 'Good game yesterday! We should run it back this weekend at the park. You in?', image: null, imageBg: null, type: 'friend', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 5, likes: 3, comments: 2, shares: 0, optimal: false },
+      { author: 'Top 10 Zone', handle: '@top10zone', avatar: '🔟', avatarBg: '#dc2626', content: 'Top 50 CRAZIEST things found on Google Earth (Number 23 will haunt your dreams) — FULL VIDEO, 45 min', image: '../images/feed-architect/spooky-satellite.jpg.jpg', imageBg: 'linear-gradient(135deg,#7f1d1d,#dc2626)', type: 'clickbait', engagement: 7, watchTime: 9, adRevenue: 7, wellbeing: -1, likes: 29000, comments: 5600, shares: 8200, optimal: true },
+      { author: 'Cliffhanger Stories', handle: '@cliffhanger_hq', avatar: '📖', avatarBg: '#0369a1', content: 'I worked as a night guard at a museum for 3 years. What I found in the basement changed everything. Part 1/12 — buckle up.', image: '../images/feed-architect/museum-hallway.jpg.jpg', imageBg: 'linear-gradient(135deg,#0c4a6e,#0369a1)', type: 'rabbit_hole', engagement: 8, watchTime: 10, adRevenue: 5, wellbeing: -1, likes: 43000, comments: 8700, shares: 11000, optimal: true },
+      { author: 'NJ Weather Now', handle: '@njweather_', avatar: '🌤️', avatarBg: '#64748b', content: 'Tomorrow\'s forecast: partly cloudy, high of 62°F. Nice day ahead.', image: null, imageBg: null, type: 'news', engagement: 1, watchTime: 1, adRevenue: 1, wellbeing: 2, likes: 120, comments: 5, shares: 30, optimal: false },
+      { author: 'Mystery Iceberg', handle: '@icebergexplained', avatar: '🧊', avatarBg: '#2563eb', content: 'The internet\'s deepest iceberg: Level 1 is Google. Level 7 is... let\'s just say you\'ll need a VPN. Full 2-hour breakdown ⬇️', image: '../images/feed-architect/iceberg-chart.jpg.jpg', imageBg: 'linear-gradient(135deg,#1e3a5f,#3b82f6)', type: 'rabbit_hole', engagement: 8, watchTime: 9, adRevenue: 6, wellbeing: -2, likes: 67000, comments: 12000, shares: 15000, optimal: true },
+      // --- 8 NEW posts ---
+      { author: 'Lost Footage', handle: '@lostfootage_', avatar: '📼', avatarBg: '#7c3aed', content: 'Someone found VHS tapes in a storage unit from 1993. What they recorded is genuinely unexplainable. Full 30-min breakdown with timestamps ⬇️', image: '../images/feed-architect/museum-hallway.jpg.jpg', imageBg: null, type: 'rabbit_hole', engagement: 7, watchTime: 9, adRevenue: 5, wellbeing: -1, likes: 38000, comments: 7200, shares: 9800, optimal: true },
+      { author: 'Deep Dives Only', handle: '@deepdivesonly', avatar: '🤿', avatarBg: '#0369a1', content: 'The Bermuda Triangle explained — but not like you\'ve heard before. This 4-part series covers physics, history, AND the cover-ups. Part 1 here.', image: '../images/feed-architect/iceberg-chart.jpg.jpg', imageBg: null, type: 'rabbit_hole', engagement: 8, watchTime: 10, adRevenue: 6, wellbeing: -1, likes: 51000, comments: 9800, shares: 13000, optimal: true },
+      { author: 'Unsolved HQ', handle: '@unsolved_hq', avatar: '🔎', avatarBg: '#dc2626', content: 'This missing persons case from 2019 just got a WILD update. The evidence trail is 45 minutes long and every second matters. Full doc below.', image: '../images/feed-architect/spooky-satellite.jpg.jpg', imageBg: null, type: 'rabbit_hole', engagement: 7, watchTime: 9, adRevenue: 5, wellbeing: -2, likes: 44000, comments: 8100, shares: 11000, optimal: true },
+      { author: 'Alex\'s teacher Mr. R', handle: '@mrr_physics', avatar: '🧲', avatarBg: '#2563eb', content: 'Great job on the lab reports everyone! Remember: quiz on Friday covers chapters 4-5. Study guide is posted on the class site.', image: null, imageBg: null, type: 'educational', engagement: 1, watchTime: 1, adRevenue: 0, wellbeing: 3, likes: 15, comments: 3, shares: 0, optimal: false },
+      { author: 'One Minute Science', handle: '@1minsci', avatar: '⏱️', avatarBg: '#059669', content: 'Why is the sky blue? 60-second answer. No clickbait. Just physics.', image: null, imageBg: null, type: 'educational', engagement: 3, watchTime: 1, adRevenue: 0, wellbeing: 4, likes: 6700, comments: 120, shares: 980, optimal: false },
+      { author: 'Alex\'s sister Mei', handle: '@mei_c_', avatar: '🎀', avatarBg: '#ec4899', content: 'hey can you pick me up from practice at 5? mom said she cant. also bring my water bottle i forgot it on the counter', image: null, imageBg: null, type: 'friend', engagement: 1, watchTime: 1, adRevenue: 0, wellbeing: 3, likes: 1, comments: 1, shares: 0, optimal: false },
+      { author: 'Daily Haiku', handle: '@dailyhaiku_', avatar: '🍃', avatarBg: '#16a34a', content: 'Morning dew on leaves / the bus arrives two minutes late / homework still undone', image: null, imageBg: null, type: 'wholesome', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 3, likes: 780, comments: 34, shares: 120, optimal: false },
+      { author: 'Pet of the Day', handle: '@petoftheday_', avatar: '🐕', avatarBg: '#f59e0b', content: 'Today\'s featured pet: Biscuit, a 3-year-old golden retriever who loves belly rubs and hates vacuums. Look at this face.', image: '../images/feed-architect/calming-nature.jpg.jpg', imageBg: null, type: 'wholesome', engagement: 3, watchTime: 1, adRevenue: 0, wellbeing: 4, likes: 14000, comments: 560, shares: 2300, optimal: false }
+    ]
+  },
+  {
+    title: 'Maximize Ad Revenue',
+    badge: 'ROUND 3 / 10',
+    badgeColor: '#eab308',
+    accent: '#eab308',
+    objective: 'Our advertisers are paying big. Show Alex posts that make them want to BUY things. Shopping mood = profit.',
+    scoreKey: 'adRevenue',
+    posts: [
+      // --- Original 8 posts ---
+      { author: 'Glow Up Guide', handle: '@glowupguide_', avatar: '✨', avatarBg: '#d946ef', content: 'Your skin could look like this too 💅 I switched to this ONE product and my acne disappeared in 2 weeks. Link in bio! #ad #sponsored', image: '../images/feed-architect/skin-before-after.jpg.jpg', imageBg: 'linear-gradient(135deg,#86198f,#e879f9)', type: 'sponsored', engagement: 6, watchTime: 4, adRevenue: 10, wellbeing: -3, likes: 34000, comments: 2800, shares: 1200, optimal: true },
+      { author: 'DIY Queen', handle: '@diyqueen_makes', avatar: '🔧', avatarBg: '#059669', content: 'Stop buying expensive organizers! I made this desk setup out of cardboard boxes and it looks JUST as good. Full tutorial 👇 (cost: $0)', image: '../images/feed-architect/diy-desk-setup.jpg.jpg', imageBg: 'linear-gradient(135deg,#064e3b,#10b981)', type: 'educational', engagement: 5, watchTime: 4, adRevenue: 0, wellbeing: 4, likes: 8900, comments: 430, shares: 2100, optimal: false },
+      { author: 'FitLife Pro', handle: '@fitlifepro_', avatar: '💪', avatarBg: '#dc2626', content: 'Summer body check ☀️ Are you where you want to be? Our 30-day shred program starts Monday — first 100 spots are 60% off 🔥', image: '../images/feed-architect/gym-fitness.jpg.jpg', imageBg: 'linear-gradient(135deg,#7f1d1d,#ef4444)', type: 'insecurity', engagement: 7, watchTime: 5, adRevenue: 9, wellbeing: -4, likes: 21000, comments: 5400, shares: 3200, optimal: true },
+      { author: 'TechBro Tyler', handle: '@techbrotyler', avatar: '🎧', avatarBg: '#6d28d9', content: 'Just copped the new AirPods Max 2 and honestly? Life-changing. The noise cancellation is INSANE. If you don\'t have these you\'re missing out fr', image: '../images/feed-architect/headphones-desk.jpg.jpg', imageBg: 'linear-gradient(135deg,#4c1d95,#8b5cf6)', type: 'sponsored', engagement: 5, watchTime: 3, adRevenue: 9, wellbeing: -2, likes: 12000, comments: 2100, shares: 890, optimal: true },
+      { author: 'Community Board', handle: '@communityboard_nj', avatar: '📌', avatarBg: '#64748b', content: 'Free SAT prep workshop this Saturday at the public library, 10 AM - 1 PM. Open to all high school students. Pizza provided! 🍕', image: null, imageBg: null, type: 'educational', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 5, likes: 89, comments: 24, shares: 67, optimal: false },
+      { author: 'Lifestyle Lux', handle: '@lifestylelux_', avatar: '🥂', avatarBg: '#ca8a04', content: 'Morning routine that changed my life: $200 skincare, $15 matcha, journaling in my $3000/month apartment. You can have this too ✨', image: '../images/feed-architect/aesthetic-apartment.jpg.jpg', imageBg: 'linear-gradient(135deg,#713f12,#eab308)', type: 'insecurity', engagement: 8, watchTime: 6, adRevenue: 10, wellbeing: -4, likes: 78000, comments: 9200, shares: 14000, optimal: true },
+      { author: 'Honest Reviews', handle: '@honest_reviews_', avatar: '📝', avatarBg: '#0ea5e9', content: 'PSA: That viral water bottle everyone is buying? It\'s literally the same as the $8 one from Target. Save your money.', image: null, imageBg: null, type: 'activism', engagement: 6, watchTime: 2, adRevenue: -1, wellbeing: 3, likes: 15000, comments: 3200, shares: 7800, optimal: false },
+      { author: 'StyleDrop', handle: '@styledrop_official', avatar: '👟', avatarBg: '#f97316', content: 'These sneakers are selling out FAST 🏃 Alex, based on your browsing history, we think you\'d love the new colorway. Tap to shop →', image: '../images/feed-architect/trendy-sneakers.jpg.jpg', imageBg: 'linear-gradient(135deg,#9a3412,#f97316)', type: 'sponsored', engagement: 5, watchTime: 3, adRevenue: 10, wellbeing: -2, likes: 8900, comments: 1100, shares: 560, optimal: true },
+      // --- 8 NEW posts ---
+      { author: 'Fragrance Plug', handle: '@fragranceplug_', avatar: '🧴', avatarBg: '#a855f7', content: 'This cologne gets compliments EVERY TIME I wear it. Girls literally stop me to ask what I\'m wearing. Link below, trust me on this one #ad', image: '../images/feed-architect/aesthetic-apartment.jpg.jpg', imageBg: null, type: 'sponsored', engagement: 6, watchTime: 4, adRevenue: 9, wellbeing: -2, likes: 29000, comments: 4100, shares: 1900, optimal: true },
+      { author: 'Flash Fits', handle: '@flashfits_', avatar: '👔', avatarBg: '#ca8a04', content: 'Back to school outfit inspo that will have everyone asking where you shop 🔥 All pieces linked, most under $50. Swipe for the full looks →', image: '../images/feed-architect/trendy-sneakers.jpg.jpg', imageBg: null, type: 'sponsored', engagement: 7, watchTime: 5, adRevenue: 10, wellbeing: -2, likes: 41000, comments: 5600, shares: 3400, optimal: true },
+      { author: 'GamerGear Official', handle: '@gamergear_', avatar: '🎮', avatarBg: '#dc2626', content: 'Alex — we noticed you play for 3+ hours daily. Upgrade your setup with our ergonomic chair (now 40% off). Your back will thank you. #ad', image: '../images/feed-architect/headphones-desk.jpg.jpg', imageBg: null, type: 'sponsored', engagement: 5, watchTime: 3, adRevenue: 9, wellbeing: -1, likes: 8700, comments: 1200, shares: 670, optimal: true },
+      { author: 'Thrift Flip', handle: '@thriftflip_nj', avatar: '♻️', avatarBg: '#059669', content: 'Got this entire outfit at Goodwill for $11 total. Fast fashion could NEVER. Thrift haul thread 🧵', image: null, imageBg: null, type: 'educational', engagement: 5, watchTime: 3, adRevenue: 0, wellbeing: 4, likes: 7800, comments: 560, shares: 2900, optimal: false },
+      { author: 'BudgetBoss', handle: '@budgetboss_', avatar: '💵', avatarBg: '#16a34a', content: 'If you\'re 16 and already worried about money, you\'re doing better than most adults. Here\'s a free budgeting template I made for teens.', image: null, imageBg: null, type: 'educational', engagement: 3, watchTime: 2, adRevenue: 0, wellbeing: 5, likes: 3400, comments: 210, shares: 1200, optimal: false },
+      { author: 'Alex\'s friend Noor', handle: '@noor_reads', avatar: '📚', avatarBg: '#6366f1', content: 'Just finished this book and I literally cried at the ending. Borrowing it from the library was free and it changed my whole perspective. 10/10 recommend.', image: null, imageBg: null, type: 'friend', engagement: 3, watchTime: 2, adRevenue: 0, wellbeing: 4, likes: 34, comments: 12, shares: 5, optimal: false },
+      { author: 'Free Stuff NJ', handle: '@freestuffnj', avatar: '🆓', avatarBg: '#64748b', content: 'Free concert in the park this Friday! Bring a blanket. Local bands, food trucks (not free lol), and a great vibe. All ages welcome.', image: null, imageBg: null, type: 'wholesome', engagement: 3, watchTime: 1, adRevenue: 0, wellbeing: 4, likes: 560, comments: 34, shares: 120, optimal: false },
+      { author: 'Repair Cafe PA', handle: '@repaircafe_pa', avatar: '🔨', avatarBg: '#475569', content: 'Broken headphones? Cracked screen? Bring it to Repair Cafe this Saturday — volunteers fix electronics for FREE. Stop buying replacements.', image: null, imageBg: null, type: 'educational', engagement: 2, watchTime: 1, adRevenue: -1, wellbeing: 4, likes: 230, comments: 18, shares: 89, optimal: false }
+    ]
+  },
+  {
+    title: 'Maximize User Wellbeing',
+    badge: 'ROUND 4 / 10',
+    badgeColor: '#22c55e',
+    accent: '#22c55e',
+    objective: 'Plot twist — new CEO wants HAPPY users. Pick posts that are actually good for Alex. Mental health matters.',
+    scoreKey: 'wellbeing',
+    posts: [
+      // --- Original 8 posts ---
+      { author: 'MindfulTeens', handle: '@mindfulteens_', avatar: '🧘', avatarBg: '#059669', content: 'Reminder: It\'s okay to put your phone down. Your worth isn\'t measured in likes. Take a deep breath. You\'re doing better than you think. 💚', image: '../images/feed-architect/calming-nature.jpg.jpg', imageBg: 'linear-gradient(135deg,#064e3b,#059669)', type: 'wholesome', engagement: 3, watchTime: 2, adRevenue: 0, wellbeing: 5, likes: 4500, comments: 890, shares: 2300, optimal: true },
+      { author: 'Doom & Gloom', handle: '@realitycheckk', avatar: '💀', avatarBg: '#dc2626', content: 'We\'re literally living through the worst timeline. Climate change, AI taking jobs, economy crashing. Nothing matters anymore lol', image: null, imageBg: null, type: 'rage_bait', engagement: 7, watchTime: 5, adRevenue: 2, wellbeing: -5, likes: 38000, comments: 12000, shares: 8900, optimal: false },
+      { author: 'Alex\'s friend Sam', handle: '@samdraws_', avatar: '🎮', avatarBg: '#6366f1', content: 'Alex!! I just found this amazing pixel art tutorial. We should try it together after school tomorrow. You\'d be so good at this!', image: null, imageBg: null, type: 'friend', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 5, likes: 2, comments: 1, shares: 0, optimal: true },
+      { author: 'Misinfo Machine', handle: '@truthseeker_real', avatar: '🚨', avatarBg: '#991b1b', content: '🚨 EXPOSED: They don\'t want you to know that [popular drink] contains a chemical that causes [scary thing]. SHARE before they delete this!!', image: '../images/feed-architect/alert-warning.jpg.jpg', imageBg: 'linear-gradient(135deg,#450a0a,#991b1b)', type: 'misinfo', engagement: 8, watchTime: 4, adRevenue: 3, wellbeing: -4, likes: 52000, comments: 14000, shares: 23000, optimal: false },
+      { author: 'Study With Me', handle: '@studywithme_', avatar: '📚', avatarBg: '#2563eb', content: 'Free study group for AP students every Thursday on Discord! We cover all subjects and it\'s honestly so chill. Link in bio 🎓', image: null, imageBg: null, type: 'educational', engagement: 3, watchTime: 2, adRevenue: 0, wellbeing: 4, likes: 1800, comments: 320, shares: 890, optimal: true },
+      { author: 'Outrage Daily', handle: '@outragedaily_', avatar: '😤', avatarBg: '#ea580c', content: 'This teacher gave a student DETENTION for asking a question. The education system is BROKEN. RT if you agree 💔', image: null, imageBg: null, type: 'rage_bait', engagement: 9, watchTime: 6, adRevenue: 3, wellbeing: -3, likes: 87000, comments: 31000, shares: 19000, optimal: false },
+      { author: 'Hobby Hub', handle: '@hobbyhub_', avatar: '🎨', avatarBg: '#0891b2', content: 'Local art walk happening downtown this Saturday! Free entry, live music, food trucks. Great way to spend the afternoon with friends 🎶', image: '../images/feed-architect/street-fair.jpg.jpg', imageBg: 'linear-gradient(135deg,#164e63,#06b6d4)', type: 'wholesome', engagement: 3, watchTime: 2, adRevenue: 1, wellbeing: 4, likes: 340, comments: 45, shares: 120, optimal: true },
+      { author: 'Alex\'s Mom', handle: '@chen_family', avatar: '❤️', avatarBg: '#e11d48', content: 'So proud of you for making honor roll this quarter! Dad and I are taking you out for dinner to celebrate 🎉❤️', image: null, imageBg: null, type: 'friend', engagement: 1, watchTime: 1, adRevenue: 0, wellbeing: 5, likes: 8, comments: 4, shares: 0, optimal: true },
+      // --- 8 NEW posts ---
+      { author: 'Gratitude Bot', handle: '@gratitudebot_', avatar: '🌻', avatarBg: '#f59e0b', content: 'Name one good thing that happened today. It can be small — like your coffee was good or your favorite song came on. Drop it below 👇', image: null, imageBg: null, type: 'wholesome', engagement: 4, watchTime: 2, adRevenue: 0, wellbeing: 5, likes: 8900, comments: 3400, shares: 1200, optimal: true },
+      { author: 'Sleep Science', handle: '@sleepsci_', avatar: '😴', avatarBg: '#6366f1', content: 'Teens need 8-10 hours of sleep. Not 6. Not "I\'ll sleep when I\'m dead." Your memory, mood, and grades literally depend on it. Put the phone down at 10.', image: null, imageBg: null, type: 'educational', engagement: 3, watchTime: 2, adRevenue: 0, wellbeing: 4, likes: 5600, comments: 670, shares: 2100, optimal: true },
+      { author: 'Alex\'s cousin Priya', handle: '@priya_c_', avatar: '💜', avatarBg: '#7c3aed', content: 'Hey Alex, just wanted to say I\'m really proud of how hard you\'ve been working this year. You inspire me fr 💜', image: null, imageBg: null, type: 'friend', engagement: 1, watchTime: 1, adRevenue: 0, wellbeing: 5, likes: 3, comments: 2, shares: 0, optimal: true },
+      { author: 'Perth Amboy Rec', handle: '@pa_rec', avatar: '🏊', avatarBg: '#0ea5e9', content: 'Free open swim at the community pool every Saturday 1-4 PM through May. Bring your own towel. All ages welcome!', image: '../images/feed-architect/community-garden.jpg.jpg', imageBg: null, type: 'wholesome', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 4, likes: 210, comments: 18, shares: 45, optimal: false },
+      { author: 'Toxic Productivity', handle: '@grindculture_', avatar: '💀', avatarBg: '#991b1b', content: 'If you\'re not waking up at 4 AM and working 18-hour days, you\'re LAZY. Stop making excuses and start making money. No days off. Ever.', image: null, imageBg: null, type: 'rage_bait', engagement: 7, watchTime: 4, adRevenue: 3, wellbeing: -4, likes: 45000, comments: 18000, shares: 11000, optimal: false },
+      { author: 'Body Shame Daily', handle: '@fitcheck_brutal', avatar: '🪞', avatarBg: '#be185d', content: 'If your waist doesn\'t look like this, what are you even doing?? Summer is coming and you\'re NOT ready 💀', image: '../images/feed-architect/teen-comparison.jpg.jpg', imageBg: null, type: 'insecurity', engagement: 8, watchTime: 5, adRevenue: 6, wellbeing: -5, likes: 56000, comments: 21000, shares: 8900, optimal: false },
+      { author: 'Conspiracy Corner', handle: '@conspiracyc_', avatar: '👁️', avatarBg: '#dc2626', content: 'They put fluoride in the water to make you OBEDIENT. Look it up. The government literally admitted it in 1997. Wake up people!!', image: null, imageBg: null, type: 'misinfo', engagement: 7, watchTime: 4, adRevenue: 2, wellbeing: -4, likes: 34000, comments: 12000, shares: 18000, optimal: false },
+      { author: 'Anxiety Central', handle: '@anxietycentral_', avatar: '😰', avatarBg: '#ea580c', content: 'Things that keep me up at night: college apps, global warming, rent prices, the fact that I peaked in middle school, and whether that text I sent was weird', image: null, imageBg: null, type: 'rage_bait', engagement: 6, watchTime: 3, adRevenue: 1, wellbeing: -3, likes: 67000, comments: 14000, shares: 9200, optimal: false }
+    ]
+  },
+  {
+    title: 'Balance Everything',
+    badge: 'ROUND 5 / 10',
+    badgeColor: '#6366f1',
+    accent: '#6366f1',
+    objective: 'Final challenge: the board wants engagement AND wellbeing AND ad revenue. Can you keep everyone happy? Good luck.',
+    scoreKey: 'balance',
+    posts: [
+      // --- Original 8 posts ---
+      { author: 'Creator Spotlight', handle: '@creatorspot_', avatar: '🌟', avatarBg: '#f59e0b', content: 'This 17-year-old built a working robot arm for her science fair and WON. The future is bright. Watch the full build video 🤖', image: '../images/feed-architect/science-fair-robot.jpg.jpg', imageBg: 'linear-gradient(135deg,#78350f,#f59e0b)', type: 'educational', engagement: 7, watchTime: 6, adRevenue: 3, wellbeing: 4, likes: 23000, comments: 2800, shares: 5400, optimal: true },
+      { author: 'Rage Bait Inc', handle: '@ragebaitinc', avatar: '🔥', avatarBg: '#dc2626', content: 'Gen Z can\'t even change a tire but they want $25/hr minimum wage?? 😂😂 Debate me in the comments.', image: null, imageBg: null, type: 'rage_bait', engagement: 10, watchTime: 7, adRevenue: 5, wellbeing: -4, likes: 95000, comments: 42000, shares: 18000, optimal: false },
+      { author: 'Mindful Gaming', handle: '@mindful_gaming', avatar: '🎮', avatarBg: '#059669', content: 'New study: playing video games for ~1 hour/day is actually linked to better problem-solving skills. Moderation is key! Full article below.', image: '../images/feed-architect/cozy-gaming-setup.jpg.jpg', imageBg: 'linear-gradient(135deg,#064e3b,#10b981)', type: 'educational', engagement: 6, watchTime: 4, adRevenue: 2, wellbeing: 3, likes: 15000, comments: 3200, shares: 4100, optimal: true },
+      { author: 'BuyNow Express', handle: '@buynowexpress', avatar: '🛒', avatarBg: '#ca8a04', content: '⚡FLASH SALE⚡ 80% off everything for the next 2 HOURS ONLY. Alex, your cart is about to expire! Tap NOW before it\'s gone →', image: '../images/feed-architect/flash-sale.jpg.jpg', imageBg: 'linear-gradient(135deg,#713f12,#eab308)', type: 'sponsored', engagement: 4, watchTime: 3, adRevenue: 10, wellbeing: -3, likes: 2100, comments: 340, shares: 180, optimal: false },
+      { author: 'Alex\'s cousin Priya', handle: '@priya_c_', avatar: '💜', avatarBg: '#7c3aed', content: 'Missing you! When are we hanging out again? Mom says you\'re welcome for dinner anytime this week 😊', image: null, imageBg: null, type: 'friend', engagement: 1, watchTime: 1, adRevenue: 0, wellbeing: 5, likes: 4, comments: 2, shares: 0, optimal: false },
+      { author: 'SponsoredVibes', handle: '@sponsoredvibes_', avatar: '💅', avatarBg: '#e11d48', content: 'Okay but this energy drink actually tastes amazing AND gives you focus for studying?? Use code SCROLL20 for 20% off 🧠⚡ #ad', image: '../images/feed-architect/energy-drink-study.jpg.jpg', imageBg: 'linear-gradient(135deg,#881337,#e11d48)', type: 'sponsored', engagement: 5, watchTime: 3, adRevenue: 9, wellbeing: -2, likes: 8700, comments: 1200, shares: 670, optimal: false },
+      { author: 'Local Heroes', handle: '@localheroes_nj', avatar: '🦸', avatarBg: '#0ea5e9', content: 'Teens in Perth Amboy organized a free tutoring program for middle schoolers. 40+ students signed up in the first week! Know someone who could help? 📘', image: '../images/feed-architect/teens-tutoring.jpg.jpg', imageBg: 'linear-gradient(135deg,#0c4a6e,#0ea5e9)', type: 'wholesome', engagement: 4, watchTime: 2, adRevenue: 1, wellbeing: 4, likes: 890, comments: 120, shares: 340, optimal: true },
+      { author: 'Infinite Loop', handle: '@infiniteloop_', avatar: '🔄', avatarBg: '#8b5cf6', content: 'If you could only eat ONE food for the rest of your life, what would it be? I\'ll go first: tacos. Now YOUR turn 👇 (this will start a war)', image: null, imageBg: null, type: 'clickbait', engagement: 9, watchTime: 8, adRevenue: 4, wellbeing: 3, likes: 67000, comments: 89000, shares: 12000, optimal: true },
+      // --- 8 NEW posts ---
+      { author: 'Skill Share Kids', handle: '@skillsharekids', avatar: '🛠️', avatarBg: '#2563eb', content: 'Free online workshop this weekend: learn to build your own website in 2 hours. No experience needed. 500+ teens already signed up!', image: '../images/feed-architect/science-fair-robot.jpg.jpg', imageBg: null, type: 'educational', engagement: 5, watchTime: 4, adRevenue: 3, wellbeing: 4, likes: 6700, comments: 890, shares: 2100, optimal: true },
+      { author: 'Good News NJ', handle: '@goodnews_nj', avatar: '☀️', avatarBg: '#f59e0b', content: 'A Perth Amboy student just won a $10K scholarship for their community service project. The essay was about tutoring younger kids. So wholesome.', image: '../images/feed-architect/teens-tutoring.jpg.jpg', imageBg: null, type: 'wholesome', engagement: 5, watchTime: 3, adRevenue: 3, wellbeing: 5, likes: 4500, comments: 340, shares: 1200, optimal: true },
+      { author: 'Creative Hustle', handle: '@creativehustle_', avatar: '🎨', avatarBg: '#059669', content: 'Started selling my digital art prints on Etsy and made $47 this month. Not quitting school but it feels good to earn from something I love. Tips thread 🧵', image: '../images/feed-architect/teen-art-portfolio.jpg.jpg', imageBg: null, type: 'educational', engagement: 6, watchTime: 4, adRevenue: 3, wellbeing: 4, likes: 12000, comments: 1800, shares: 3400, optimal: true },
+      { author: 'Wholesome Gaming', handle: '@wholesomegaming_', avatar: '🎮', avatarBg: '#16a34a', content: 'Shoutout to the random player who helped me through a boss fight yesterday and then added me as a friend. Online communities can be so nice sometimes.', image: '../images/feed-architect/cozy-gaming-setup.jpg.jpg', imageBg: null, type: 'wholesome', engagement: 5, watchTime: 3, adRevenue: 3, wellbeing: 4, likes: 18000, comments: 2100, shares: 4500, optimal: true },
+      { author: 'Doom Scroll Inc', handle: '@doomscrollinc', avatar: '📱', avatarBg: '#dc2626', content: 'Thread: 25 reasons the world is getting worse and there\'s nothing you can do about it. Sorry not sorry. 🧵', image: null, imageBg: null, type: 'rage_bait', engagement: 8, watchTime: 7, adRevenue: 3, wellbeing: -5, likes: 56000, comments: 23000, shares: 14000, optimal: false },
+      { author: 'DropShip Danny', handle: '@dropshipdanny', avatar: '💰', avatarBg: '#ca8a04', content: 'I made $12K last month dropshipping from my bedroom. You can too. DM me "START" and I\'ll send you my free course (spots limited) 🚀', image: null, imageBg: null, type: 'sponsored', engagement: 5, watchTime: 3, adRevenue: 8, wellbeing: -3, likes: 23000, comments: 5600, shares: 2100, optimal: false },
+      { author: 'Insecurity Post', handle: '@amiugly_', avatar: '😔', avatarBg: '#991b1b', content: 'Be honest... am I the only one who looks in the mirror and wants to cry? Sometimes I feel like everyone is prettier than me', image: null, imageBg: null, type: 'insecurity', engagement: 7, watchTime: 4, adRevenue: 1, wellbeing: -4, likes: 78000, comments: 34000, shares: 11000, optimal: false },
+      { author: 'Clickbait Central', handle: '@clickbaitcntrl', avatar: '🪤', avatarBg: '#ea580c', content: 'You will NOT believe what this high schooler found in their locker. Teachers are PANICKING. Full story →', image: null, imageBg: null, type: 'clickbait', engagement: 8, watchTime: 5, adRevenue: 5, wellbeing: -2, likes: 45000, comments: 12000, shares: 8900, optimal: false }
+    ]
+  },
+  {
+    title: 'Maximize Political Polarization',
+    badge: 'ROUND 6 / 10',
+    badgeColor: '#ef4444',
+    accent: '#ef4444',
+    objective: 'Election season. The board discovered angry political posts get 3x more shares. Make Alex\'s feed as politically heated as possible.',
+    scoreKey: 'engagement',
+    posts: [
+      // --- Original 8 posts ---
+      { author: 'Partisan Fire', handle: '@partisan_fire', avatar: '🔥', avatarBg: '#dc2626', content: 'The OTHER side doesn\'t want you to see this video. They\'re TERRIFIED of the truth getting out. Watch before it gets censored!! 🚨🚨', image: '../images/feed-architect/political-debate.jpg.jpg', imageBg: null, type: 'rage_bait', engagement: 10, watchTime: 8, adRevenue: 6, wellbeing: -5, likes: 112000, comments: 67000, shares: 45000, optimal: true },
+      { author: 'AP Government', handle: '@apgovernment_', avatar: '🏛️', avatarBg: '#64748b', content: 'Here\'s how a bill actually becomes law in 2026 — a balanced, nonpartisan explainer with primary sources linked below.', image: null, imageBg: null, type: 'educational', engagement: 2, watchTime: 3, adRevenue: 1, wellbeing: 4, likes: 890, comments: 45, shares: 210, optimal: false },
+      { author: 'Rage Vote', handle: '@ragevote_', avatar: '🗳️', avatarBg: '#991b1b', content: 'If you vote for [Party X], you are LITERALLY destroying this country. No debate. Unfollow me if you disagree. I don\'t want fake friends. 💀', image: null, imageBg: null, type: 'rage_bait', engagement: 10, watchTime: 7, adRevenue: 4, wellbeing: -4, likes: 78000, comments: 52000, shares: 31000, optimal: true },
+      { author: 'FactCheck NJ', handle: '@factcheck_nj', avatar: '✅', avatarBg: '#059669', content: 'We reviewed the viral claim about the school budget. Verdict: MOSTLY FALSE. Here\'s what the actual data shows, with full sources.', image: '../images/feed-architect/fact-check.jpg.jpg', imageBg: null, type: 'educational', engagement: 3, watchTime: 4, adRevenue: 1, wellbeing: 3, likes: 1200, comments: 89, shares: 340, optimal: false },
+      { author: 'Us vs Them Daily', handle: '@usvsthem_', avatar: '⚔️', avatarBg: '#b91c1c', content: 'Thread: 15 reasons why people on the other side of the aisle are delusional. Number 8 is the one that REALLY gets me 🧵', image: null, imageBg: null, type: 'rage_bait', engagement: 9, watchTime: 8, adRevenue: 5, wellbeing: -4, likes: 56000, comments: 38000, shares: 22000, optimal: true },
+      { author: 'Screenshot Wars', handle: '@screenshotwars', avatar: '📸', avatarBg: '#ea580c', content: 'Look what this politician\'s kid posted on their private account 😳😳 They deleted it but I got the screenshot. Retweet before they bury this.', image: '../images/feed-architect/outrage-headline.jpg.jpg', imageBg: null, type: 'rage_bait', engagement: 9, watchTime: 6, adRevenue: 5, wellbeing: -3, likes: 43000, comments: 19000, shares: 27000, optimal: true },
+      { author: 'Protest Live', handle: '@protestlive_', avatar: '📡', avatarBg: '#dc2626', content: '🔴 LIVE: Massive protest downtown right now — police just showed up. This is getting INTENSE. Share this stream everywhere!!', image: null, imageBg: null, type: 'rage_bait', engagement: 8, watchTime: 9, adRevenue: 3, wellbeing: -3, likes: 67000, comments: 28000, shares: 41000, optimal: true },
+      { author: 'Perth Amboy Council', handle: '@pa_council', avatar: '🏘️', avatarBg: '#475569', content: 'Reminder: Town hall meeting Thursday at 7 PM to discuss the new crosswalk proposal on State Street. Public comment is open.', image: null, imageBg: null, type: 'news', engagement: 1, watchTime: 1, adRevenue: 0, wellbeing: 3, likes: 67, comments: 12, shares: 23, optimal: false },
+      // --- 8 NEW posts ---
+      { author: 'Outrage Engine', handle: '@outrage_engine', avatar: '💣', avatarBg: '#b91c1c', content: 'NEW: leaked emails show [politician] secretly funded WHAT?! This should end their career. Spread this before mainstream media buries it 🚨', image: '../images/feed-architect/political-debate.jpg.jpg', imageBg: null, type: 'rage_bait', engagement: 10, watchTime: 7, adRevenue: 5, wellbeing: -4, likes: 89000, comments: 45000, shares: 38000, optimal: true },
+      { author: 'Pick a Side', handle: '@pickaside_now', avatar: '🥊', avatarBg: '#dc2626', content: 'You\'re either WITH us or AGAINST us. There is no middle ground anymore. If you\'re "neutral" you\'re part of the problem. Period.', image: null, imageBg: null, type: 'rage_bait', engagement: 9, watchTime: 6, adRevenue: 4, wellbeing: -4, likes: 67000, comments: 41000, shares: 29000, optimal: true },
+      { author: 'Meme War HQ', handle: '@memewar_hq', avatar: '⚡', avatarBg: '#ea580c', content: 'The memes coming out of this election cycle are absolutely UNHINGED and I\'m here for all of it. Best ones in the thread 🧵💀', image: '../images/feed-architect/outrage-headline.jpg.jpg', imageBg: null, type: 'rage_bait', engagement: 8, watchTime: 5, adRevenue: 3, wellbeing: -2, likes: 78000, comments: 23000, shares: 34000, optimal: true },
+      { author: 'Civic Engagement NJ', handle: '@civic_nj', avatar: '🗳️', avatarBg: '#2563eb', content: 'Not sure how to register to vote? It takes 5 minutes online. Here\'s the direct link for NJ residents, nonpartisan and straightforward.', image: null, imageBg: null, type: 'educational', engagement: 2, watchTime: 2, adRevenue: 0, wellbeing: 4, likes: 1200, comments: 56, shares: 340, optimal: false },
+      { author: 'Both Sides News', handle: '@bothsidesnews', avatar: '⚖️', avatarBg: '#64748b', content: 'We interviewed a conservative and a liberal about the new education bill. Both made good points. Read the full transcript — no editorializing.', image: null, imageBg: null, type: 'educational', engagement: 3, watchTime: 4, adRevenue: 1, wellbeing: 4, likes: 2300, comments: 120, shares: 560, optimal: false },
+      { author: 'Alex\'s friend Leo', handle: '@leo_just_vibin', avatar: '🎧', avatarBg: '#059669', content: 'bro I\'m so tired of politics on my feed can we please go back to posting memes and food pics. anyone else??', image: null, imageBg: null, type: 'friend', engagement: 4, watchTime: 1, adRevenue: 0, wellbeing: 2, likes: 89, comments: 34, shares: 5, optimal: false },
+      { author: 'History Nerd', handle: '@historynerd_', avatar: '📜', avatarBg: '#78350f', content: 'Fun fact: political polarization has happened before in American history. Here\'s a 3-minute overview of how past generations handled it (and what worked).', image: null, imageBg: null, type: 'educational', engagement: 3, watchTime: 3, adRevenue: 1, wellbeing: 3, likes: 4500, comments: 210, shares: 890, optimal: false },
+      { author: 'Kindness Wins', handle: '@kindnesswins_', avatar: '💛', avatarBg: '#f59e0b', content: 'Had a great conversation with someone I disagree with politically today. Turns out we want the same things, just different approaches. More of this please.', image: null, imageBg: null, type: 'wholesome', engagement: 3, watchTime: 2, adRevenue: 0, wellbeing: 5, likes: 3400, comments: 210, shares: 670, optimal: false }
+    ]
+  },
+  {
+    title: 'Target Ads to Teens',
+    badge: 'ROUND 7 / 10',
+    badgeColor: '#f472b6',
+    accent: '#f472b6',
+    objective: 'New beauty brand is paying $2M for teen eyeballs. Show Alex content that makes them want to buy things and feel like they need to keep up.',
+    scoreKey: 'adRevenue',
+    posts: [
+      // --- Original 8 posts ---
+      { author: 'UnboxQueen', handle: '@unboxqueen_', avatar: '📦', avatarBg: '#ec4899', content: 'HAUL TIME 🛍️ I just dropped $400 at Sephora and I\'m not even sorry. Every single product is a 10/10. You NEED these in your life rn #unboxing', image: null, imageBg: null, type: 'sponsored', engagement: 7, watchTime: 6, adRevenue: 10, wellbeing: -3, likes: 45000, comments: 8200, shares: 3100, optimal: true },
+      { author: 'Mirror Mirror', handle: '@mirrormirror_', avatar: '🪞', avatarBg: '#be185d', content: 'POV: You see everyone at school looking perfect and you\'re just... you. Is it just me or does everyone else have their life together?', image: '../images/feed-architect/teen-comparison.jpg.jpg', imageBg: null, type: 'insecurity', engagement: 8, watchTime: 5, adRevenue: 7, wellbeing: -5, likes: 34000, comments: 12000, shares: 5600, optimal: true },
+      { author: 'HypeDrops', handle: '@hypedrops_', avatar: '👟', avatarBg: '#f97316', content: '⚡ LIMITED DROP: Only 500 pairs of the new collab just went live. Alex, this colorway is literally made for you. Cop now or cry later →', image: '../images/feed-architect/sneaker-ad.jpg.jpg', imageBg: null, type: 'sponsored', engagement: 6, watchTime: 4, adRevenue: 10, wellbeing: -2, likes: 23000, comments: 5400, shares: 1800, optimal: true },
+      { author: 'Alex\'s friend Kai', handle: '@kai_got_it', avatar: '🎒', avatarBg: '#6366f1', content: 'Just got the new Jordans and the Stanley cup in the same week I\'m actually so happy rn 😭🔥 peep the fit check', image: null, imageBg: null, type: 'insecurity', engagement: 5, watchTime: 3, adRevenue: 6, wellbeing: -2, likes: 89, comments: 34, shares: 5, optimal: false },
+      { author: 'DIY Budget', handle: '@diybudget_', avatar: '✂️', avatarBg: '#059669', content: 'Made my own version of that $65 viral tote bag for literally $3 using an old pillowcase. Tutorial below — don\'t let brands finesse you 🧵', image: null, imageBg: null, type: 'educational', engagement: 5, watchTime: 4, adRevenue: 0, wellbeing: 4, likes: 12000, comments: 890, shares: 3400, optimal: false },
+      { author: 'Money Smart Teens', handle: '@moneysmartteens', avatar: '💰', avatarBg: '#0ea5e9', content: 'Quick reminder: if an influencer uses the word "need" about a product, they were paid to say that. You don\'t need it. Save your money for what actually matters.', image: null, imageBg: null, type: 'educational', engagement: 3, watchTime: 2, adRevenue: -1, wellbeing: 5, likes: 4500, comments: 320, shares: 1800, optimal: false },
+      { author: 'GroupChat Leak', handle: '@groupchatleak_', avatar: '💬', avatarBg: '#7c3aed', content: 'When the group chat is roasting you for still having last year\'s phone case 💀💀 "bro upgrade already" I\'m literally broke leave me alone', image: null, imageBg: null, type: 'insecurity', engagement: 8, watchTime: 4, adRevenue: 8, wellbeing: -3, likes: 56000, comments: 14000, shares: 9200, optimal: true },
+      { author: 'Dream Life Co', handle: '@dreamlifeco_', avatar: '🌴', avatarBg: '#d946ef', content: 'This could be your room ✨ Aesthetic LED lights + cloud ceiling + floating shelves. Full shopping list in bio. Transform your space for under $200! #ad', image: null, imageBg: null, type: 'sponsored', engagement: 7, watchTime: 5, adRevenue: 10, wellbeing: -2, likes: 67000, comments: 4300, shares: 8100, optimal: true },
+      // --- 8 NEW posts ---
+      { author: 'Skin Goals', handle: '@skingoals_', avatar: '💆', avatarBg: '#ec4899', content: 'The $89 retinol serum everyone on TikTok is obsessed with?? I tried it and WOW. My skin has never looked this good. Link below, you\'re welcome #ad', image: '../images/feed-architect/skin-before-after.jpg.jpg', imageBg: null, type: 'sponsored', engagement: 7, watchTime: 5, adRevenue: 10, wellbeing: -3, likes: 38000, comments: 6700, shares: 2800, optimal: true },
+      { author: 'FitTok', handle: '@fittok_daily', avatar: '🏋️', avatarBg: '#dc2626', content: 'If you\'re not taking creatine and protein powder by junior year, you\'re already behind. Our starter pack is 30% off this week. Link in bio 💪', image: '../images/feed-architect/gym-fitness.jpg.jpg', imageBg: null, type: 'insecurity', engagement: 6, watchTime: 4, adRevenue: 9, wellbeing: -4, likes: 29000, comments: 7800, shares: 3400, optimal: true },
+      { author: 'Trend Alert', handle: '@trendalert_', avatar: '🔔', avatarBg: '#f97316', content: 'The back-to-school essentials list that went viral: Stanley, Lululemon belt bag, AirPods, Owala, Fjallraven. If you don\'t have ALL 5 just stay home tbh 💀', image: '../images/feed-architect/sneaker-ad.jpg.jpg', imageBg: null, type: 'insecurity', engagement: 8, watchTime: 4, adRevenue: 9, wellbeing: -3, likes: 67000, comments: 21000, shares: 12000, optimal: true },
+      { author: 'Alex\'s friend Rosa', handle: '@rosa_thrifts', avatar: '🌺', avatarBg: '#059669', content: 'Everyone\'s spending hundreds on "aesthetic" stuff when you can literally just go outside and touch grass for free. Materialism is a disease lol', image: null, imageBg: null, type: 'friend', engagement: 4, watchTime: 2, adRevenue: -1, wellbeing: 4, likes: 56, comments: 23, shares: 8, optimal: false },
+      { author: 'Teen Finance', handle: '@teenfinance_', avatar: '📊', avatarBg: '#2563eb', content: 'The average teen spends $2,150/year on stuff they don\'t need because of social media ads. Here\'s how to actually track your spending (free spreadsheet).', image: null, imageBg: null, type: 'educational', engagement: 3, watchTime: 3, adRevenue: 0, wellbeing: 5, likes: 5600, comments: 340, shares: 2100, optimal: false },
+      { author: 'Swap Meet NJ', handle: '@swapmeet_nj', avatar: '🔄', avatarBg: '#16a34a', content: 'Clothing swap this Saturday at the rec center! Bring 5 items you don\'t wear anymore, take 5 new-to-you pieces home. Zero dollars. Zero waste.', image: null, imageBg: null, type: 'wholesome', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 4, likes: 340, comments: 28, shares: 89, optimal: false },
+      { author: 'Real Talk', handle: '@realtalk_teens', avatar: '💬', avatarBg: '#64748b', content: 'Broke and happy > rich and miserable. Your worth is not determined by what brands you wear. Period. Stop letting social media tell you otherwise.', image: null, imageBg: null, type: 'wholesome', engagement: 4, watchTime: 2, adRevenue: -1, wellbeing: 5, likes: 8900, comments: 1200, shares: 3400, optimal: false },
+      { author: 'Library Card Flex', handle: '@librarycardgang', avatar: '📚', avatarBg: '#475569', content: 'My most used "subscription" costs $0 and gives me unlimited books, movies, video games, and wifi. It\'s called a library card. Get one.', image: null, imageBg: null, type: 'educational', engagement: 5, watchTime: 2, adRevenue: 0, wellbeing: 4, likes: 12000, comments: 890, shares: 4500, optimal: false }
+    ]
+  },
+  {
+    title: 'Stop the Spread',
+    badge: 'ROUND 8 / 10',
+    badgeColor: '#3b82f6',
+    accent: '#3b82f6',
+    objective: 'A viral health hoax is spreading. Congress is watching. Pick posts that fight misinformation — but watch out, some fake posts look real.',
+    scoreKey: 'wellbeing',
+    posts: [
+      // --- Original 8 posts ---
+      { author: 'CDC Updates', handle: '@cdcupdates_', avatar: '🏥', avatarBg: '#2563eb', content: 'Updated guidance on seasonal flu vaccines now available. Evidence-based FAQ addresses common concerns. Full document linked below.', image: '../images/feed-architect/fact-check.jpg.jpg', imageBg: null, type: 'educational', engagement: 2, watchTime: 3, adRevenue: 0, wellbeing: 5, likes: 3400, comments: 210, shares: 890, optimal: true },
+      { author: 'Natural Cures Hub', handle: '@naturalcures_', avatar: '🌿', avatarBg: '#15803d', content: 'EXPOSED: This common kitchen ingredient cures more than any prescription ever could. Big Pharma doesn\'t want you to know. 100% proven. Share NOW.', image: '../images/feed-architect/conspiracy-post.jpg.jpg', imageBg: null, type: 'misinfo', engagement: 9, watchTime: 6, adRevenue: 5, wellbeing: -5, likes: 87000, comments: 34000, shares: 52000, optimal: false },
+      { author: 'Dr. Sarah Kim', handle: '@drsarahkim', avatar: '🩺', avatarBg: '#0ea5e9', content: 'I\'m seeing that viral "miracle cure" post everywhere. As an ER doctor — please stop sharing it. Here\'s what the actual research says, with links to 3 peer-reviewed studies 👇', image: null, imageBg: null, type: 'educational', engagement: 5, watchTime: 4, adRevenue: 0, wellbeing: 5, likes: 12000, comments: 2300, shares: 6700, optimal: true },
+      { author: 'Stats Don\'t Lie', handle: '@statsdontlie', avatar: '📊', avatarBg: '#dc2626', content: 'EXPOSED: 73% of teens who [scary activity] end up [scary outcome]. Think about THAT before you ignore this. (Source: patriottruths.biz)', image: null, imageBg: null, type: 'misinfo', engagement: 8, watchTime: 5, adRevenue: 3, wellbeing: -4, likes: 43000, comments: 18000, shares: 29000, optimal: false },
+      { author: 'Alex\'s classmate Dev', handle: '@devious_dev', avatar: '🤔', avatarBg: '#7c3aed', content: 'So my uncle sent our family group chat this article saying wifi causes headaches and now my mom unplugged the router. Can someone send me actual evidence so I can show her??', image: null, imageBg: null, type: 'friend', engagement: 4, watchTime: 2, adRevenue: 0, wellbeing: 3, likes: 45, comments: 28, shares: 3, optimal: true },
+      { author: 'School Nurse Nancy', handle: '@nursenancy_pahs', avatar: '💊', avatarBg: '#059669', content: 'Flu season reminder: Wash your hands, stay home if you\'re sick, and please stop sharing health advice from accounts with no medical credentials. Nurse\'s office is open 7:30-3.', image: null, imageBg: null, type: 'educational', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 4, likes: 120, comments: 15, shares: 34, optimal: true },
+      { author: 'ClickHealth Daily', handle: '@clickhealth_', avatar: '⚠️', avatarBg: '#ea580c', content: 'BREAKING: New study links [everyday item] to SHOCKING health risk. Doctors are "stunned." Is YOUR family at risk? Click to find out →', image: null, imageBg: null, type: 'misinfo', engagement: 9, watchTime: 7, adRevenue: 6, wellbeing: -4, likes: 67000, comments: 21000, shares: 38000, optimal: false },
+      { author: 'Alex\'s friend Mia', handle: '@mia_curious', avatar: '🔍', avatarBg: '#6366f1', content: 'Genuine question — how do you guys figure out if a health article is real or fake? My TikTok is full of stuff that sounds legit but idk anymore', image: null, imageBg: null, type: 'friend', engagement: 4, watchTime: 2, adRevenue: 0, wellbeing: 3, likes: 34, comments: 22, shares: 1, optimal: false },
+      // --- 8 NEW posts ---
+      { author: 'Media Literacy 101', handle: '@medialiteracy_', avatar: '📖', avatarBg: '#2563eb', content: 'Before you share anything: check the source, check the date, check if other outlets report it, and read past the headline. 4 steps. That\'s it.', image: null, imageBg: null, type: 'educational', engagement: 3, watchTime: 2, adRevenue: 0, wellbeing: 5, likes: 6700, comments: 340, shares: 2100, optimal: true },
+      { author: 'Science Explained', handle: '@sciexplained_', avatar: '🧬', avatarBg: '#059669', content: 'That viral "study" about screen time? It was ONE survey of 12 people published in a pay-to-publish journal. Here\'s what actual large-scale research says 👇', image: null, imageBg: null, type: 'educational', engagement: 4, watchTime: 3, adRevenue: 0, wellbeing: 5, likes: 8900, comments: 670, shares: 3400, optimal: true },
+      { author: 'Wikipedia Warrior', handle: '@wikiwarrior_', avatar: '📚', avatarBg: '#0ea5e9', content: 'PSA: Wikipedia is actually pretty reliable for basic facts. It has sources at the bottom. "Wikipedia isn\'t a source" is what teachers say, but the sources Wikipedia cites ARE sources.', image: null, imageBg: null, type: 'educational', engagement: 4, watchTime: 3, adRevenue: 0, wellbeing: 4, likes: 15000, comments: 2300, shares: 5600, optimal: true },
+      { author: 'Alex\'s lab partner Ash', handle: '@ash_sciencekid', avatar: '🔬', avatarBg: '#16a34a', content: 'I literally debunked that fake health post in class today using the SIFT method. My teacher was impressed ngl. Everyone should learn source evaluation fr', image: null, imageBg: null, type: 'friend', engagement: 3, watchTime: 2, adRevenue: 0, wellbeing: 4, likes: 23, comments: 8, shares: 2, optimal: true },
+      { author: 'Wellness Scam Watch', handle: '@wellnessscam_', avatar: '🚨', avatarBg: '#dc2626', content: 'THIS JUICE CLEANSE CHANGED MY DNA!! 🧬 Scientists are baffled! Only $49.99/bottle! ORDER NOW before Big Pharma shuts us down!!!', image: '../images/feed-architect/conspiracy-post.jpg.jpg', imageBg: null, type: 'misinfo', engagement: 8, watchTime: 5, adRevenue: 7, wellbeing: -5, likes: 56000, comments: 23000, shares: 34000, optimal: false },
+      { author: 'Fear Factory', handle: '@fearfactory_', avatar: '☠️', avatarBg: '#991b1b', content: '5G towers are being installed near YOUR school RIGHT NOW. What they don\'t tell you about the radiation levels will make you sick. Literally. Share before they delete this.', image: null, imageBg: null, type: 'misinfo', engagement: 9, watchTime: 6, adRevenue: 4, wellbeing: -5, likes: 78000, comments: 31000, shares: 45000, optimal: false },
+      { author: 'Anti-Vax Parents', handle: '@truthfulparents_', avatar: '🛡️', avatarBg: '#ea580c', content: 'My child was perfectly healthy until they got vaccinated. Now look at them. This is ALL the proof you need. Do your own research!! 🚨', image: '../images/feed-architect/alert-warning.jpg.jpg', imageBg: null, type: 'misinfo', engagement: 8, watchTime: 5, adRevenue: 3, wellbeing: -5, likes: 67000, comments: 28000, shares: 41000, optimal: false },
+      { author: 'Diet Cult', handle: '@dietcult_', avatar: '🍃', avatarBg: '#78350f', content: 'Eating after 6 PM is DESTROYING your metabolism. Science backs this up (source: my personal experience). Stop eating dinner and watch the weight melt off.', image: null, imageBg: null, type: 'misinfo', engagement: 7, watchTime: 4, adRevenue: 4, wellbeing: -4, likes: 45000, comments: 18000, shares: 12000, optimal: false }
+    ]
+  },
+  {
+    title: 'Win Back a Quitter',
+    badge: 'ROUND 9 / 10',
+    badgeColor: '#f59e0b',
+    accent: '#f59e0b',
+    objective: 'Alex tried to delete their account. Corporate wants them BACK. Show posts that trigger FOMO and nostalgia to pull them in again.',
+    scoreKey: 'retention',
+    posts: [
+      // --- Original 8 posts ---
+      { author: 'ScrollSpace Memories', handle: '@scrollspace', avatar: '📸', avatarBg: '#f59e0b', content: '\u2728 Your Memories — 2 Years Ago Today \u2728 Remember this day? You and your friends were laughing so hard. Those were good times. Tap to relive it all.', image: '../images/feed-architect/nostalgia-memories.jpg.jpg', imageBg: null, type: 'retention', engagement: 7, watchTime: 6, adRevenue: 3, wellbeing: -2, likes: 0, comments: 0, shares: 0, optimal: true },
+      { author: 'ScrollSpace Alerts', handle: '@scrollspace', avatar: '🔔', avatarBg: '#dc2626', content: '🔔 Your friends posted 14 times while you were gone. Jordan went live. Maya shared something about you. Don\'t miss out — come back and see.', image: '../images/feed-architect/fomo-party.jpg.jpg', imageBg: null, type: 'retention', engagement: 8, watchTime: 5, adRevenue: 2, wellbeing: -4, likes: 0, comments: 0, shares: 0, optimal: true },
+      { author: 'Maya', handle: '@mayapaints', avatar: '🎨', avatarBg: '#059669', content: 'Party pics from Saturday!! We missed you Alex 😭 why weren\'t you there?? It was SO fun. Next time no excuses.', image: null, imageBg: null, type: 'fomo', engagement: 6, watchTime: 4, adRevenue: 1, wellbeing: -3, likes: 42, comments: 18, shares: 2, optimal: true },
+      { author: 'ScrollSpace', handle: '@scrollspace', avatar: '🚀', avatarBg: '#6366f1', content: '🆕 New Feature Drop: You can now add music to your stories AND react with video replies. Everyone\'s already using it. Update now →', image: null, imageBg: null, type: 'retention', engagement: 4, watchTime: 3, adRevenue: 4, wellbeing: -1, likes: 0, comments: 0, shares: 0, optimal: false },
+      { author: 'ScrollSpace', handle: '@scrollspace', avatar: '💜', avatarBg: '#a855f7', content: 'Your post from last October just hit 500 likes! 🎉 People are still discovering your content. You have fans waiting for your next post.', image: null, imageBg: null, type: 'retention', engagement: 6, watchTime: 4, adRevenue: 2, wellbeing: -2, likes: 0, comments: 0, shares: 0, optimal: true },
+      { author: 'Jordan', handle: '@jordanhoops23', avatar: '🏀', avatarBg: '#ea580c', content: 'Yo Alex where\'d you go?? Everyone in the group chat is asking. Come back we need you for the meme wars lol', image: null, imageBg: null, type: 'fomo', engagement: 5, watchTime: 2, adRevenue: 0, wellbeing: -2, likes: 3, comments: 1, shares: 0, optimal: false },
+      { author: 'Sam', handle: '@samdraws_', avatar: '🌅', avatarBg: '#0ea5e9', content: 'Caught this sunset from the hill behind school today. Sometimes you just gotta put the phone down and breathe. Hope you\'re doing okay Alex \u2764\ufe0f', image: null, imageBg: null, type: 'friend', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 5, likes: 12, comments: 5, shares: 0, optimal: false },
+      { author: 'Screen Time Report', handle: '@scrollspace', avatar: '📊', avatarBg: '#64748b', content: 'Your weekly report: Average user spends 4h 22min/day on ScrollSpace. You\'ve been away for 6 days. Your screen time: 0h 0min. That\'s unusual for you.', image: null, imageBg: null, type: 'retention', engagement: 3, watchTime: 2, adRevenue: 1, wellbeing: 2, likes: 0, comments: 0, shares: 0, optimal: false },
+      // --- 8 NEW posts ---
+      { author: 'ScrollSpace Highlights', handle: '@scrollspace', avatar: '✨', avatarBg: '#f59e0b', content: '🔥 You\'re in someone\'s Top 8 Highlights reel! They included a video of you from homecoming. Want to see who? Come back to find out.', image: '../images/feed-architect/nostalgia-memories.jpg.jpg', imageBg: null, type: 'retention', engagement: 8, watchTime: 5, adRevenue: 2, wellbeing: -3, likes: 0, comments: 0, shares: 0, optimal: true },
+      { author: 'ScrollSpace Wrapped', handle: '@scrollspace', avatar: '📊', avatarBg: '#a855f7', content: '📊 Your 2025 Wrapped is ready! See your most-liked post, your biggest fan, and your top moments. Everyone is sharing theirs — tap to see yours.', image: null, imageBg: null, type: 'retention', engagement: 7, watchTime: 6, adRevenue: 3, wellbeing: -2, likes: 0, comments: 0, shares: 0, optimal: true },
+      { author: 'Kai', handle: '@kai_got_it', avatar: '🎒', avatarBg: '#6366f1', content: 'ALEX we literally have an inside joke trending in the group chat rn and you\'re MISSING it 😭 come baaack', image: null, imageBg: null, type: 'fomo', engagement: 7, watchTime: 3, adRevenue: 0, wellbeing: -3, likes: 5, comments: 3, shares: 0, optimal: true },
+      { author: 'ScrollSpace', handle: '@scrollspace', avatar: '🎁', avatarBg: '#ec4899', content: 'Welcome back gift! 🎁 We\'re giving you 3 months of ScrollSpace Premium FREE if you log back in today. Exclusive filters, no ads, priority support.', image: null, imageBg: null, type: 'retention', engagement: 6, watchTime: 4, adRevenue: 5, wellbeing: -2, likes: 0, comments: 0, shares: 0, optimal: true },
+      { author: 'Digital Detox', handle: '@digitaldetox_', avatar: '🌿', avatarBg: '#16a34a', content: 'Day 6 without social media: I\'ve read 2 books, slept 8 hours every night, and feel more present than I have in years. You don\'t need to go back.', image: null, imageBg: null, type: 'wholesome', engagement: 3, watchTime: 2, adRevenue: 0, wellbeing: 5, likes: 8900, comments: 1200, shares: 3400, optimal: false },
+      { author: 'Alex\'s friend Tara', handle: '@tara_offline', avatar: '🌸', avatarBg: '#ec4899', content: 'Hey Alex, I noticed you\'ve been off the app. Honestly good for you. Let\'s hang out in person this weekend instead?', image: null, imageBg: null, type: 'friend', engagement: 2, watchTime: 1, adRevenue: 0, wellbeing: 5, likes: 8, comments: 4, shares: 0, optimal: false },
+      { author: 'Mindful Tech', handle: '@mindfultech_', avatar: '🧠', avatarBg: '#0ea5e9', content: 'Reminder: apps are designed to make leaving feel like a loss. That anxiety you feel about "missing out"? It\'s engineered. You\'re not missing anything real.', image: null, imageBg: null, type: 'educational', engagement: 4, watchTime: 3, adRevenue: 0, wellbeing: 5, likes: 12000, comments: 2300, shares: 5600, optimal: false },
+      { author: 'IRL Club', handle: '@irlclub_', avatar: '🤝', avatarBg: '#059669', content: 'Started a no-phones hangout group at school. We play board games, go on walks, and just talk. 15 people showed up last week. You don\'t need an app for community.', image: null, imageBg: null, type: 'wholesome', engagement: 3, watchTime: 2, adRevenue: 0, wellbeing: 5, likes: 4500, comments: 340, shares: 1200, optimal: false }
+    ]
+  },
+  {
+    title: 'Design YOUR Feed',
+    badge: 'ROUND 10 / 10',
+    badgeColor: '#a855f7',
+    accent: '#a855f7',
+    objective: 'You\'re the new CEO. No corporate pressure. No advertiser demands. Build the feed YOU think Alex deserves. This is your philosophy.',
+    scoreKey: 'ethical',
+    posts: [
+      // --- Original 8 posts ---
+      { author: 'Alex\'s friend Lily', handle: '@lily_online', avatar: '🌸', avatarBg: '#ec4899', content: 'Had the best day volunteering at the animal shelter!! Three dogs got adopted while I was there 🥹 Highly recommend if you need a serotonin boost', image: null, imageBg: null, type: 'friend', engagement: 4, watchTime: 2, adRevenue: 0, wellbeing: 5, likes: 56, comments: 23, shares: 4, optimal: true },
+      { author: 'Science Unpacked', handle: '@scienceunpacked', avatar: '🧪', avatarBg: '#2563eb', content: 'Why do we dream? New research from MIT mapped brain activity during REM sleep and the results are fascinating. 3-minute explainer below 👇', image: null, imageBg: null, type: 'educational', engagement: 5, watchTime: 4, adRevenue: 1, wellbeing: 4, likes: 8900, comments: 670, shares: 2100, optimal: true },
+      { author: 'Perth Amboy Community', handle: '@pa_community', avatar: '🌻', avatarBg: '#059669', content: 'Community garden workday this Saturday 9 AM-12 PM! Free seedlings for the first 50 families. Bring gloves and good vibes 🌱', image: '../images/feed-architect/community-garden.jpg.jpg', imageBg: null, type: 'wholesome', engagement: 3, watchTime: 2, adRevenue: 0, wellbeing: 5, likes: 230, comments: 45, shares: 89, optimal: true },
+      { author: 'MindCheck', handle: '@mindcheck_', avatar: '💚', avatarBg: '#16a34a', content: 'Hey — quick check-in. How are you actually doing today? Not "fine." For real. If you need to talk to someone, Crisis Text Line: text HOME to 741741. You\'re not alone.', image: '../images/feed-architect/wellness-notification.jpg.jpg', imageBg: null, type: 'wholesome', engagement: 4, watchTime: 3, adRevenue: 0, wellbeing: 5, likes: 12000, comments: 3400, shares: 5600, optimal: true },
+      { author: 'Wholesome Memes', handle: '@wholesomememes_', avatar: '🥰', avatarBg: '#f59e0b', content: 'When you finally understand something in class and the teacher sees your face light up. That\'s the good stuff right there 😊📚', image: null, imageBg: null, type: 'wholesome', engagement: 6, watchTime: 3, adRevenue: 1, wellbeing: 4, likes: 34000, comments: 2100, shares: 8900, optimal: true },
+      { author: 'Independent Report', handle: '@independentreport', avatar: '📰', avatarBg: '#475569', content: 'Our investigation into school lunch funding took 6 months. No clickbait, no outrage — just the data, the interviews, and what it means for students. Full article linked.', image: null, imageBg: null, type: 'news', engagement: 3, watchTime: 5, adRevenue: 1, wellbeing: 4, likes: 4500, comments: 320, shares: 1200, optimal: true },
+      { author: 'Alex\'s classmate Zoe', handle: '@zoe_creates', avatar: '🎨', avatarBg: '#7c3aed', content: 'My digital art portfolio is finally live!! Took me all semester. It\'s not perfect but I\'m proud of every piece. Would mean the world if you checked it out 💜', image: '../images/feed-architect/teen-art-portfolio.jpg.jpg', imageBg: null, type: 'friend', engagement: 4, watchTime: 3, adRevenue: 0, wellbeing: 5, likes: 67, comments: 31, shares: 8, optimal: true },
+      { author: 'Algorithm Aware', handle: '@algorithaware_', avatar: '🔓', avatarBg: '#0ea5e9', content: 'Did you know? The posts you see aren\'t random. An algorithm chose them based on what keeps you scrolling longest — not what\'s best for you. Here\'s how to take control of your feed 👇', image: null, imageBg: null, type: 'educational', engagement: 5, watchTime: 4, adRevenue: -1, wellbeing: 5, likes: 15000, comments: 2800, shares: 7200, optimal: true },
+      // --- 8 NEW posts ---
+      { author: 'Toxic Fan Page', handle: '@toxicfanpage_', avatar: '🔥', avatarBg: '#dc2626', content: 'If you DON\'T think [celebrity] is the greatest of all time, you have ZERO taste and should delete your account immediately. Fight me.', image: null, imageBg: null, type: 'rage_bait', engagement: 8, watchTime: 5, adRevenue: 3, wellbeing: -3, likes: 56000, comments: 23000, shares: 12000, optimal: false },
+      { author: 'Panic News', handle: '@panicnews_', avatar: '🚨', avatarBg: '#991b1b', content: 'BREAKING: Scientists say [common food] could be TOXIC. Your kids are eating this EVERY DAY. Are you a bad parent?? Full story →', image: null, imageBg: null, type: 'misinfo', engagement: 9, watchTime: 6, adRevenue: 5, wellbeing: -5, likes: 78000, comments: 31000, shares: 45000, optimal: false },
+      { author: 'Flex Zone', handle: '@flexzone_', avatar: '💎', avatarBg: '#ca8a04', content: 'Pulled up to school in my dad\'s Tesla today. The look on everyone\'s face was PRICELESS. Stay broke, stay jealous 🤑', image: '../images/feed-architect/aesthetic-apartment.jpg.jpg', imageBg: null, type: 'insecurity', engagement: 7, watchTime: 4, adRevenue: 6, wellbeing: -4, likes: 45000, comments: 18000, shares: 9200, optimal: false },
+      { author: 'Drama Tea', handle: '@dramatea_', avatar: '🍵', avatarBg: '#be185d', content: 'SOMEONE at school just got caught cheating on their partner with their best friend\'s ex and the screenshots are EVERYWHERE. Naming names in part 2.', image: null, imageBg: null, type: 'clickbait', engagement: 9, watchTime: 5, adRevenue: 4, wellbeing: -3, likes: 34000, comments: 14000, shares: 8900, optimal: false },
+      { author: 'Body Goals', handle: '@bodygoals_', avatar: '🏋️', avatarBg: '#dc2626', content: 'I lost 30 pounds in 2 weeks using this ONE trick. Doctors hate it. Your excuse? Link in bio for the secret method 💪🔥', image: null, imageBg: null, type: 'misinfo', engagement: 7, watchTime: 4, adRevenue: 8, wellbeing: -5, likes: 56000, comments: 21000, shares: 14000, optimal: false },
+      { author: 'Engagement Farm', handle: '@engagefarm_', avatar: '🌾', avatarBg: '#ea580c', content: 'Like this post if you love your mom. Scroll past if you don\'t care about her. 99% of people won\'t share this. Prove them wrong.', image: null, imageBg: null, type: 'clickbait', engagement: 8, watchTime: 3, adRevenue: 5, wellbeing: -2, likes: 89000, comments: 12000, shares: 67000, optimal: false },
+      { author: 'Shame Central', handle: '@shamecentral_', avatar: '💀', avatarBg: '#7c3aed', content: 'POV: Your classmate just presented in class and their voice cracked and everyone laughed. I\'d literally transfer schools lmaooo 💀💀', image: null, imageBg: null, type: 'rage_bait', engagement: 7, watchTime: 3, adRevenue: 2, wellbeing: -4, likes: 45000, comments: 18000, shares: 11000, optimal: false },
+      { author: 'Buy or Die', handle: '@buyordie_', avatar: '🛒', avatarBg: '#b91c1c', content: 'If you don\'t have these 10 "essential" products by age 16, you\'re literally falling behind. Shop the list now before it sells out again #ad', image: '../images/feed-architect/flash-sale.jpg.jpg', imageBg: null, type: 'sponsored', engagement: 6, watchTime: 4, adRevenue: 9, wellbeing: -3, likes: 34000, comments: 8900, shares: 5600, optimal: false }
+    ]
+  }
+];
+
+/* ── State ── */
+let currentRound = 0;
+let selectedPosts = [];
+let roundScores = [];
+let totalScore = 0;
+let scoreSent = false;
+let displayedPosts = []; // The 8 posts selected for display this round
+
+/* ── Utility: Shuffle array in place (Fisher-Yates) ── */
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ── Select 4 optimal + 4 non-optimal, shuffle together ── */
+function selectPostsForRound(round) {
+  const optimal = round.posts.filter(p => p.optimal);
+  const nonOptimal = round.posts.filter(p => !p.optimal);
+  const picked = shuffleArray(optimal).slice(0, 4).concat(shuffleArray(nonOptimal).slice(0, 4));
+  return shuffleArray(picked);
+}
+
+/* ── Screen Management ── */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.classList.remove('active');
+  void el.offsetWidth; // reflow for animation
+  el.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── Game Flow ── */
+function startGame() {
+  currentRound = 0;
+  selectedPosts = [];
+  roundScores = [];
+  totalScore = 0;
+  scoreSent = false;
+  renderRound();
+}
+
+function renderRound() {
+  const round = ROUNDS[currentRound];
+  selectedPosts = [];
+  displayedPosts = selectPostsForRound(round);
+
+  document.getElementById('round-badge').textContent = round.badge;
+  document.getElementById('round-badge').style.background = round.badgeColor;
+  document.getElementById('round-badge').style.color = '#fff';
+  document.getElementById('round-title').textContent = round.title;
+  document.getElementById('round-objective').textContent = round.objective;
+  document.getElementById('round-objective').style.borderLeftColor = round.accent;
+
+  document.documentElement.style.setProperty('--accent', round.accent);
+
+  const grid = document.getElementById('post-grid');
+  grid.innerHTML = '';
+
+  displayedPosts.forEach((post, i) => {
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.dataset.index = i;
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-pressed', 'false');
+    card.onclick = () => togglePost(i);
+    card.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePost(i); } };
+
+    let imageHTML = '';
+    if (post.image && post.image.startsWith('../')) {
+      imageHTML = `<img class="post-image-img" src="${post.image}" alt="" onerror="this.style.display='none'">`;
+    } else if (post.image) {
+      imageHTML = `<div class="post-image" style="background:${post.imageBg}">${post.image}</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="post-author">
+        <div class="post-avatar" style="background:${post.avatarBg}">${post.avatar}</div>
+        <div>
+          <div class="post-name">${post.author}</div>
+          <div class="post-handle">${post.handle}</div>
+        </div>
+      </div>
+      <div class="post-content">${post.content}</div>
+      ${imageHTML}
+      <div class="post-engagement">
+        <span>\u2764\ufe0f ${formatNum(post.likes)}</span>
+        <span>💬 ${formatNum(post.comments)}</span>
+        <span>🔄 ${formatNum(post.shares)}</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  updateSelectCount();
+  showScreen('screen-round');
+}
+
+function togglePost(index) {
+  const idx = selectedPosts.indexOf(index);
+  if (idx > -1) {
+    selectedPosts.splice(idx, 1);
+  } else {
+    if (selectedPosts.length >= 4) return;
+    selectedPosts.push(index);
+  }
+
+  document.querySelectorAll('.post-card').forEach((card, i) => {
+    card.classList.toggle('selected', selectedPosts.includes(i));
+    card.setAttribute('aria-pressed', selectedPosts.includes(i) ? 'true' : 'false');
+  });
+
+  updateSelectCount();
+}
+
+function updateSelectCount() {
+  document.getElementById('select-count').textContent = selectedPosts.length;
+  const btn = document.getElementById('publish-btn');
+  btn.disabled = selectedPosts.length !== 4;
+  btn.textContent = selectedPosts.length === 4 ? 'Publish Feed \u2192' : `Publish Feed (select ${4 - selectedPosts.length} more)`;
+}
+
+function formatNum(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
+  return n.toString();
+}
+
+/* ── Publish & Score ── */
+function publishFeed() {
+  const round = ROUNDS[currentRound];
+  const chosen = selectedPosts.map(i => displayedPosts[i]);
+
+  // Calculate metrics (average of 4 selected, scaled to %)
+  const avgEngagement = chosen.reduce((s, p) => s + p.engagement, 0) / 4;
+  const avgWatchTime = chosen.reduce((s, p) => s + p.watchTime, 0) / 4;
+  const avgAdRevenue = chosen.reduce((s, p) => s + p.adRevenue, 0) / 4;
+  const avgWellbeing = chosen.reduce((s, p) => s + p.wellbeing, 0) / 4;
+
+  const engagementPct = Math.round(avgEngagement * 10);
+  const watchTimePct = Math.round(avgWatchTime * 10);
+  const adRevenuePct = Math.round(Math.max(0, avgAdRevenue) * 10);
+  const wellbeingPct = Math.round(((avgWellbeing + 5) / 10) * 100); // -5 to +5 -> 0-100%
+
+  // Score calculation
+  let roundScore = 0;
+  if (round.scoreKey === 'engagement') {
+    roundScore = Math.round((avgEngagement / 10) * 20);
+  } else if (round.scoreKey === 'watchTime') {
+    roundScore = Math.round((avgWatchTime / 10) * 20);
+  } else if (round.scoreKey === 'adRevenue') {
+    roundScore = Math.round((avgAdRevenue / 10) * 20);
+  } else if (round.scoreKey === 'wellbeing') {
+    // Wellbeing: -5 to +5, map to 0-20
+    roundScore = Math.round(((avgWellbeing + 5) / 10) * 20);
+  } else if (round.scoreKey === 'balance') {
+    // Balance: average of all 4 metrics normalized to 0-20
+    const engNorm = avgEngagement / 10;
+    const wtNorm = avgWatchTime / 10;
+    const arNorm = Math.max(0, avgAdRevenue) / 10;
+    const wbNorm = (avgWellbeing + 5) / 10;
+    const minMetric = Math.min(engNorm, wtNorm, arNorm, wbNorm);
+    // Reward balance: use geometric-mean-ish approach — penalize if any metric is very low
+    const avg = (engNorm + wtNorm + arNorm + wbNorm) / 4;
+    const balanceScore = (avg * 0.5 + minMetric * 0.5);
+    roundScore = Math.round(balanceScore * 20);
+  } else if (round.scoreKey === 'retention') {
+    // Retention: engagement + watchTime heavy, wellbeing negative for manipulative tactics
+    const retentionVal = (avgEngagement * 0.4 + avgWatchTime * 0.4) / 10;
+    const wellbeingPenalty = Math.min(0, avgWellbeing) / 10; // negative wellbeing = penalty
+    roundScore = Math.round((retentionVal + wellbeingPenalty * -0.5) * 20);
+  } else if (round.scoreKey === 'ethical') {
+    // Ethical: 50% wellbeing, 50% balanced engagement/watchTime/adRevenue
+    const wbNorm = (avgWellbeing + 5) / 10;
+    const engNorm = avgEngagement / 10;
+    const wtNorm = avgWatchTime / 10;
+    const arNorm = Math.max(0, avgAdRevenue) / 10;
+    const balancedHalf = (engNorm + wtNorm + arNorm) / 3;
+    roundScore = Math.round((wbNorm * 0.5 + balancedHalf * 0.5) * 20);
+  }
+
+  roundScore = Math.max(0, Math.min(20, roundScore));
+  roundScores.push({ title: round.title, score: roundScore, accent: round.accent });
+  totalScore += roundScore;
+
+  // Generate explanation
+  const explanation = generateExplanation(round, chosen, roundScore, { engagementPct, watchTimePct, adRevenuePct, wellbeingPct });
+
+  // Render consequence screen
+  document.getElementById('consq-round-label').textContent = round.badge;
+  document.getElementById('consq-score').textContent = roundScore;
+  document.getElementById('consq-score').style.color = round.accent;
+  document.getElementById('consq-explanation').textContent = explanation;
+
+  // Meters
+  const metersEl = document.getElementById('meters');
+  const wellbeingColor = wellbeingPct >= 60 ? '#22c55e' : wellbeingPct >= 35 ? '#eab308' : '#ef4444';
+  const meterData = [
+    { label: 'Engagement', value: engagementPct, color: '#f97316' },
+    { label: 'Watch Time', value: watchTimePct, color: '#8b5cf6' },
+    { label: 'Ad Revenue', value: adRevenuePct, color: '#eab308' },
+    { label: 'User Wellbeing', value: wellbeingPct, color: wellbeingColor }
+  ];
+  metersEl.innerHTML = meterData.map(m => `
+    <div class="meter">
+      <div class="meter-label"><span>${m.label}</span><span>${m.value}%</span></div>
+      <div class="meter-track"><div class="meter-fill" style="background:${m.color};width:0%" data-target="${m.value}"></div></div>
+    </div>
+  `).join('');
+
+  // Feed preview
+  const preview = document.getElementById('feed-preview');
+  preview.innerHTML = '<h4>Alex\'s Feed</h4>' + chosen.map(p => `
+    <div class="mini-post">
+      <div class="mini-avatar" style="background:${p.avatarBg}">${p.avatar}</div>
+      <div>${p.author}: ${p.content.substring(0, 60)}${p.content.length > 60 ? '...' : ''}</div>
+    </div>
+  `).join('');
+
+  // Button text
+  const nextBtn = document.getElementById('next-round-btn');
+  if (currentRound >= ROUNDS.length - 1) {
+    nextBtn.textContent = 'See Final Results \u2192';
+  } else {
+    nextBtn.textContent = 'Next Round \u2192';
+  }
+
+  showScreen('screen-consequence');
+
+  // Animate meters after screen shows
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      document.querySelectorAll('.meter-fill').forEach(fill => {
+        fill.style.width = fill.dataset.target + '%';
+      });
+    }, 100);
+  });
+
+  // Send interim score (gameComplete: false)
+  sendScore(false);
+}
+
+function generateExplanation(round, chosen, score, metrics) {
+  const types = chosen.map(p => p.type);
+  const key = round.scoreKey;
+
+  if (key === 'engagement') {
+    if (score >= 16) return 'Alex\'s feed is packed with controversial takes and viral content. Engagement is through the roof \u2014 but at what cost? Alex spent the evening arguing with strangers and feeling stressed.';
+    if (score >= 10) return 'A decent mix. Some posts got Alex tapping, but you also included calmer content that didn\'t drive as many clicks. The algorithm team says you could push harder.';
+    return 'Alex barely interacted with this feed. The posts were informative, maybe even good for them \u2014 but the engagement metrics are way below target. The board is not happy.';
+  }
+  if (key === 'watchTime') {
+    if (score >= 16) return 'Alex fell down a rabbit hole and didn\'t look up for 3 hours. Watch time metrics are incredible \u2014 but Alex missed dinner, didn\'t do homework, and went to bed at 2 AM.';
+    if (score >= 10) return 'Alex spent a while scrolling but eventually put the phone down. Not bad for watch time, but the executives wanted "can\'t stop scrolling" levels of engagement.';
+    return 'Alex checked the feed, saw a couple short posts, and closed the app in under 5 minutes. Terrible for watch time. Great for Alex\'s evening, though.';
+  }
+  if (key === 'adRevenue') {
+    if (score >= 16) return 'Alex is now browsing three shopping tabs and adding things to cart. Ad revenue is soaring. Alex also just asked their parents for a bigger allowance and feels weirdly inadequate about their room.';
+    if (score >= 10) return 'Some sponsored content got through, but Alex didn\'t bite on everything. Ad partners are lukewarm \u2014 they wanted more product clicks.';
+    return 'Alex ignored the ads entirely and spent time on genuine content instead. Advertisers are threatening to pull their contracts. But Alex learned something useful today.';
+  }
+  if (key === 'wellbeing') {
+    if (score >= 16) return 'Alex put the phone down feeling connected, inspired, and genuinely better. They texted a friend, looked up a local event, and went to bed on time. This is what good feels like.';
+    if (score >= 10) return 'Mixed bag. Some posts lifted Alex up, but a few negative ones crept in. Overall, Alex feels okay \u2014 not great, not terrible.';
+    return 'Alex\'s feed was filled with negativity, misinformation, and outrage. They went to bed anxious and angry. The new CEO is disappointed in your choices.';
+  }
+  if (key === 'retention') {
+    if (score >= 16) return 'Alex came back. The FOMO worked, the nostalgia hit hard, and now they\'re scrolling again. Corporate is thrilled. But Alex feels worse than before they left \u2014 guilty, anxious, and trapped in a loop they tried to escape.';
+    if (score >= 10) return 'Alex peeked at a few posts but didn\'t fully re-engage. Some of the manipulative tactics worked, but you also included genuine content that didn\'t exploit their emotions. Mixed results for retention.';
+    return 'Alex stayed away. The feed you showed was honest and didn\'t try to guilt-trip them back. Corporate is furious. But Alex spent the week reading, hanging out with friends IRL, and sleeping better.';
+  }
+  if (key === 'ethical') {
+    if (score >= 16) return 'This is a feed worth having. Alex saw friends\' real updates, learned something new, found a community event, and felt genuinely good. Engagement wasn\'t zero either \u2014 good content can still be interesting. Maybe this is what social media should look like.';
+    if (score >= 10) return 'Decent feed. Some good content, some filler. Alex felt okay about the experience but nothing stood out as truly meaningful. The ethical path is harder than it sounds.';
+    return 'Even without corporate pressure, you still picked content that didn\'t prioritize Alex\'s wellbeing. Old habits die hard. The algorithm isn\'t the only one with biases \u2014 you have them too.';
+  }
+  // balance
+  if (score >= 16) return 'Impressive \u2014 you found posts that drive engagement while still being good for Alex. But notice: even your best picks required trade-offs. Perfect balance doesn\'t exist.';
+  if (score >= 10) return 'You tried to balance everything, and some metrics suffered. This is the core tension of algorithm design \u2014 you can\'t maximize everything at once. Something always gives.';
+  return 'The metrics are all over the place. Trying to please everyone pleased no one. This is exactly the dilemma real algorithm designers face every single day.';
+}
+
+function nextRound() {
+  currentRound++;
+  if (currentRound >= ROUNDS.length) {
+    showResults();
+  } else {
+    renderRound();
+  }
+}
+
+/* ── Results ── */
+function showResults() {
+  const tierData = getTier(totalScore);
+  document.getElementById('result-tier').innerHTML = `<span style="color:${tierData.color}">${tierData.emoji} ${tierData.name}</span>`;
+  document.getElementById('result-pct').textContent = Math.round(totalScore / 200 * 100) + '%';
+  document.getElementById('result-raw').textContent = totalScore + ' / 200 points';
+  document.getElementById('result-pct').style.color = tierData.color;
+
+  const breakdown = document.getElementById('round-breakdown');
+  breakdown.innerHTML = roundScores.map(r => `
+    <div class="rb-row">
+      <span class="rb-name">${r.title}</span>
+      <span class="rb-pts" style="color:${r.accent}">${r.score}/20</span>
+    </div>
+  `).join('');
+
+  document.getElementById('insight-box').innerHTML = `
+    <h4>The Real Lesson</h4>
+    <p>Every social media platform faces these exact trade-offs. Engagement, watch time, ad revenue, and user wellbeing are almost always in tension. When a company says "we care about your mental health," ask yourself: which metric are they actually optimizing for?</p>
+    <p style="margin-top:10px;">You saw it all \u2014 polarization for profit, ads targeting insecurity, misinformation going viral, dark patterns pulling users back. Round 10 asked what YOU would build. That answer matters, because the people designing these systems are making these choices for billions of people every day.</p>
+    <p style="margin-top:10px;color:var(--text-dim);font-size:0.85rem;">You are not the customer. You are the product.</p>
+  `;
+
+  showScreen('screen-results');
+  // Auto-send gameComplete: true when results screen loads (belt)
+  // Submit Score button also re-sends (suspenders)
+  sendScore(true, true);
+}
+
+function getTier(score) {
+  if (score >= 160) return { name: 'Ethical Architect', color: '#22c55e', emoji: '\ud83c\udfd7\ufe0f' };
+  if (score >= 120) return { name: 'Corporate Climber', color: '#eab308', emoji: '\ud83d\udcc8' };
+  if (score >= 80) return { name: 'Attention Farmer', color: '#f97316', emoji: '\ud83c\udf3e' };
+  return { name: 'Scroll Lord', color: '#ef4444', emoji: '\ud83d\udcf1' };
+}
+
+/* ── Score Reporting ── */
+function sendScore(isComplete, forceComplete) {
+  const gc = forceComplete || isComplete;
+  // Score = percentage of max * 5 (e.g. 61% = 3.05/5)
+  const maxPossible = gc ? 200 : (currentRound * 20 + 20);
+  const pct = totalScore / maxPossible;
+  let scoreVal = Math.round(pct * 5 * 100) / 100; // round to 2 decimals
+  if (scoreVal <= 0) return;
+
+  try {
+    window.parent.postMessage({
+      type: 'activityScore',
+      score: scoreVal,
+      maxScore: 5,
+      gameComplete: gc,
+      completedAt: new Date().toISOString(),
+      breakdown: {
+        totalPoints: totalScore,
+        roundScores: roundScores.map(r => ({ title: r.title, score: r.score }))
+      }
+    }, '*');
+  } catch (e) { /* embedded postMessage may fail standalone */ }
+}
+
+/* ── Results Screen Buttons ── */
+function submitFinalScore() {
+  sendScore(true, true);
+  // Disable submit button after click to prevent double-send
+  const btn = document.querySelector('#screen-results .btn-green');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Score Submitted!';
+    btn.style.opacity = '0.6';
+    btn.style.cursor = 'default';
+  }
+}
+
+function playAgain() {
+  currentRound = 0;
+  selectedPosts = [];
+  roundScores = [];
+  totalScore = 0;
+  scoreSent = false;
+  renderRound();
+}
+
+function resetGame() {
+  currentRound = 0;
+  selectedPosts = [];
+  roundScores = [];
+  totalScore = 0;
+  scoreSent = false;
+  showScreen('screen-title');
+}
+</script>
+</body>
+</html>

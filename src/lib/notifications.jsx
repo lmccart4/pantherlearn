@@ -19,6 +19,7 @@ export const NOTIF_TYPES = {
   badge_earned:    { icon: "🏅", color: "var(--purple)" },
   chat_message:    { icon: "💬", color: "var(--cyan)" },
   game_challenge:  { icon: "🎭", color: "var(--purple)" },
+  mana_received:   { icon: "✦", color: "#8b5cf6" },
 };
 
 // ─── Create a notification for a single user ───

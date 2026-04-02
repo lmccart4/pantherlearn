@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Algorithm Feed Simulator</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #242836;
+  --border: #2e3345;
+  --text: #e4e6ef;
+  --text-dim: #8b8fa3;
+  --accent: #6366f1;
+  --accent-glow: rgba(99,102,241,0.15);
+  --green: #22c55e;
+  --red: #ef4444;
+  --radius: 12px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ── Layout ── */
+.app { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+header {
+  text-align: center;
+  padding: 24px 0 16px;
+}
+header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+header p { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
+
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Progress Bar ── */
+.progress-bar-container {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+.progress-top {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px; font-size: 0.85rem;
+}
+.progress-top .round { color: var(--accent); font-weight: 600; }
+.progress-top .count { color: var(--text-dim); }
+.progress-track {
+  height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: var(--accent); border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* ── Feed ── */
+.feed { display: flex; flex-direction: column; gap: 14px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  animation: cardIn 0.35s ease both;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+}
+.card-emoji { font-size: 2rem; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: var(--surface2); border-radius: 10px; flex-shrink: 0; }
+.card-meta { flex: 1; min-width: 0; }
+.card-title { font-weight: 600; font-size: 1rem; }
+.card-category {
+  display: inline-block; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; padding: 2px 8px; border-radius: 4px; margin-top: 4px;
+}
+.card-desc { color: var(--text-dim); font-size: 0.88rem; margin-bottom: 14px; }
+
+.card-actions { display: flex; gap: 10px; }
+.card-actions button {
+  flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 0.9rem;
+  font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn-like {
+  background: rgba(34,197,94,0.12); color: var(--green); border: 1px solid rgba(34,197,94,0.25) !important;
+}
+.btn-like:hover { background: rgba(34,197,94,0.25); }
+.btn-skip {
+  background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2) !important;
+}
+.btn-skip:hover { background: rgba(239,68,68,0.2); }
+
+.card-exit {
+  animation: cardOut 0.3s ease both;
+}
+@keyframes cardOut {
+  to { opacity: 0; transform: translateX(-40px) scale(0.95); }
+}
+
+/* ── Side Panel ── */
+.side-panel {
+  position: sticky; top: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+.side-panel h3 {
+  font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-dim); margin-bottom: 14px;
+}
+.diversity-score {
+  text-align: center; margin-bottom: 20px;
+  padding: 14px; background: var(--surface2); border-radius: 10px;
+}
+.diversity-score .score-value {
+  font-size: 2.2rem; font-weight: 700; display: block;
+  background: linear-gradient(135deg, var(--green), var(--accent));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.diversity-score .score-label { font-size: 0.8rem; color: var(--text-dim); }
+
+.weight-bars { display: flex; flex-direction: column; gap: 8px; }
+.weight-row { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+.weight-label { width: 70px; text-align: right; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.weight-track { flex: 1; height: 14px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.weight-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; min-width: 2px; }
+.weight-pct { width: 34px; font-size: 0.75rem; color: var(--text-dim); }
+
+/* ── Intro Screen ── */
+.screen { display: none; }
+.screen.active { display: block; }
+
+.intro-screen {
+  text-align: center;
+  padding: 60px 20px;
+}
+.intro-screen .icon { font-size: 4rem; margin-bottom: 16px; }
+.intro-screen h2 { font-size: 1.5rem; margin-bottom: 12px; }
+.intro-screen p { color: var(--text-dim); max-width: 500px; margin: 0 auto 24px; font-size: 0.95rem; }
+.intro-screen .start-btn {
+  background: var(--accent); color: #fff; border: none; padding: 14px 40px;
+  border-radius: 10px; font-size: 1.05rem; font-weight: 600; cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.intro-screen .start-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99,102,241,0.3);
+}
+
+/* ── Results Screen ── */
+.results-screen { padding: 20px 0; }
+.results-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px; margin-bottom: 20px;
+}
+.results-card h2 { text-align: center; margin-bottom: 6px; }
+.results-card .subtitle { text-align: center; color: var(--text-dim); font-size: 0.9rem; margin-bottom: 24px; }
+
+.bubble-score-display {
+  text-align: center; padding: 24px; margin-bottom: 24px;
+  background: var(--surface2); border-radius: 14px;
+}
+.bubble-score-display .big-score {
+  font-size: 4rem; font-weight: 800; display: block; line-height: 1;
+}
+.bubble-score-display .big-label {
+  font-size: 1rem; color: var(--text-dim); margin-top: 4px;
+}
+.bubble-score-display .verdict {
+  font-size: 1.1rem; font-weight: 600; margin-top: 12px;
+}
+
+.comparison-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;
+}
+.comp-col h4 {
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-dim); margin-bottom: 10px; text-align: center;
+}
+.comp-bar-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 0.78rem;
+}
+.comp-bar-row .cat-icon { width: 22px; text-align: center; }
+.comp-bar-row .cat-track { flex: 1; height: 12px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.comp-bar-row .cat-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.comp-bar-row .cat-pct { width: 30px; text-align: right; color: var(--text-dim); }
+
+.amplified-list, .suppressed-list {
+  padding: 14px; border-radius: 10px; margin-bottom: 16px;
+}
+.amplified-list { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.15); }
+.suppressed-list { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.15); }
+.amplified-list h4 { color: var(--green); font-size: 0.85rem; margin-bottom: 6px; }
+.suppressed-list h4 { color: var(--red); font-size: 0.85rem; margin-bottom: 6px; }
+.amplified-list ul, .suppressed-list ul { list-style: none; padding: 0; }
+.amplified-list li, .suppressed-list li { font-size: 0.88rem; padding: 2px 0; color: var(--text-dim); }
+
+.discussion-box {
+  background: var(--accent-glow); border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 10px; padding: 18px;
+}
+.discussion-box h4 { color: var(--accent); margin-bottom: 8px; font-size: 0.9rem; }
+.discussion-box p { color: var(--text-dim); font-size: 0.88rem; margin-bottom: 6px; }
+
+.reset-btn {
+  display: block; margin: 20px auto 0; background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border); padding: 12px 32px; border-radius: 10px;
+  font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.reset-btn:hover { background: var(--accent); border-color: var(--accent); }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .main-layout { grid-template-columns: 1fr; }
+  .side-panel {
+    position: fixed; bottom: 0; left: 0; right: 0; top: auto;
+    border-radius: var(--radius) var(--radius) 0 0;
+    z-index: 100; max-height: 45vh; overflow-y: auto;
+    transform: translateY(calc(100% - 48px));
+    transition: transform 0.3s ease;
+    border-top: 2px solid var(--accent);
+  }
+  .side-panel.expanded { transform: translateY(0); }
+  .panel-toggle {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; padding: 8px; cursor: pointer;
+    color: var(--accent); font-size: 0.8rem; font-weight: 600;
+    margin: -8px -18px 10px; background: var(--surface); border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .panel-toggle::before { content: ''; display: block; width: 32px; height: 3px; background: var(--border); border-radius: 2px; }
+  .feed { padding-bottom: 60px; }
+  .comparison-grid { grid-template-columns: 1fr; }
+}
+@media (min-width: 769px) {
+  .panel-toggle { display: none; }
+}
+
+/* Category colors */
+.cat-sports { background: rgba(251,146,60,0.15); color: #fb923c; }
+.cat-music { background: rgba(168,85,247,0.15); color: #a855f7; }
+.cat-gaming { background: rgba(34,211,238,0.15); color: #22d3ee; }
+.cat-science { background: rgba(52,211,153,0.15); color: #34d399; }
+.cat-fashion { background: rgba(244,114,182,0.15); color: #f472b6; }
+.cat-cooking { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.cat-news { background: rgba(96,165,250,0.15); color: #60a5fa; }
+.cat-memes { background: rgba(163,230,53,0.15); color: #a3e635; }
+
+.bar-sports { background: #fb923c; }
+.bar-music { background: #a855f7; }
+.bar-gaming { background: #22d3ee; }
+.bar-science { background: #34d399; }
+.bar-fashion { background: #f472b6; }
+.bar-cooking { background: #fbbf24; }
+.bar-news { background: #60a5fa; }
+.bar-memes { background: #a3e635; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Algorithm Feed Simulator</h1>
+    <p>See how recommendation algorithms shape what you see</p>
+  </header>
+
+  <!-- Intro -->
+  <div id="intro" class="screen active intro-screen">
+    <div class="icon">📱</div>
+    <h2>Your Feed, Their Algorithm</h2>
+    <p>You're about to scroll through a social media feed. Like or skip each post and watch how the algorithm learns your preferences — and narrows your world.</p>
+    <p style="font-size:0.85rem; color:var(--text-dim);">5 rounds &middot; 6 posts per round &middot; 30 total interactions</p>
+    <button class="start-btn" onclick="startSimulation()">Start Scrolling</button>
+  </div>
+
+  <!-- Simulation -->
+  <div id="simulation" class="screen">
+    <div class="progress-bar-container">
+      <div class="progress-top">
+        <span class="round" id="roundLabel">Round 1 / 5</span>
+        <span class="count" id="countLabel">0 / 30 interactions</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="main-layout">
+      <div class="feed" id="feed"></div>
+      <div class="side-panel" id="sidePanel">
+        <div class="panel-toggle" onclick="togglePanel()">Algorithm Weights</div>
+        <h3>Algorithm Weights</h3>
+        <div class="diversity-score">
+          <span class="score-value" id="diversityValue">100%</span>
+          <span class="score-label">Feed Diversity</span>
+        </div>
+        <div class="weight-bars" id="weightBars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results" class="screen results-screen"></div>
+</div>
+
+<script>
+const CATEGORIES = [
+  { id: 'sports',  name: 'Sports',  icon: '🏀', cssClass: 'sports' },
+  { id: 'music',   name: 'Music',   icon: '🎵', cssClass: 'music' },
+  { id: 'gaming',  name: 'Gaming',  icon: '🎮', cssClass: 'gaming' },
+  { id: 'science', name: 'Science', icon: '🔬', cssClass: 'science' },
+  { id: 'fashion', name: 'Fashion', icon: '👗', cssClass: 'fashion' },
+  { id: 'cooking', name: 'Cooking', icon: '🍳', cssClass: 'cooking' },
+  { id: 'news',    name: 'News',    icon: '📰', cssClass: 'news' },
+  { id: 'memes',   name: 'Memes',   icon: '😂', cssClass: 'memes' },
+];
+
+const CONTENT = [
+  // Sports (9)
+  { cat: 'sports', emoji: '🏀', title: 'Buzzer-Beater Wins the Game!', desc: 'Watch this incredible last-second three-pointer that sealed the championship.' },
+  { cat: 'sports', emoji: '⚽', title: 'Underdog Team Shocks the World', desc: 'Nobody predicted this upset. A team ranked last just beat the #1 seed.' },
+  { cat: 'sports', emoji: '🏈', title: 'Draft Day: Top 10 Picks Revealed', desc: 'Analysts break down this year\'s most surprising draft picks.' },
+  { cat: 'sports', emoji: '🎾', title: 'Teen Tennis Star Rises to #3', desc: 'At just 16, she\'s already climbing the world rankings faster than anyone expected.' },
+  { cat: 'sports', emoji: '🏊', title: 'New Swimming World Record Set', desc: 'The 100m freestyle record just fell — by almost a full second.' },
+  { cat: 'sports', emoji: '⚾', title: 'Perfect Game Thrown in Playoffs', desc: 'Only the third perfect game in postseason history. Every pitch was masterful.' },
+  { cat: 'sports', emoji: '🏃', title: 'Marathon Record Broken by 19-Year-Old', desc: 'The youngest marathon champion in Olympic history just rewrote the record books.' },
+  { cat: 'sports', emoji: '🏒', title: 'Rivalry Game Ends in Overtime Thriller', desc: 'Five overtimes, 97 shots on goal, and one unforgettable finish.' },
+  { cat: 'sports', emoji: '🤸', title: 'Gymnast Lands New Move Named After Her', desc: 'A triple-twisting double backflip that nobody else has ever attempted in competition.' },
+
+  // Music (9)
+  { cat: 'music', emoji: '🎤', title: 'Surprise Album Drop Breaks Records', desc: 'No promo, no singles — just a midnight release that crashed every streaming platform.' },
+  { cat: 'music', emoji: '🎸', title: 'Garage Band Goes Viral on TikTok', desc: 'Three friends, one song, 50 million streams. The music industry is paying attention.' },
+  { cat: 'music', emoji: '🎹', title: 'AI-Generated Song Wins Music Award', desc: 'For the first time, a track co-written with AI won a major music industry award.' },
+  { cat: 'music', emoji: '🎧', title: 'Best Albums Turning 20 This Year', desc: 'A look back at classic albums that dropped two decades ago and still hold up.' },
+  { cat: 'music', emoji: '🥁', title: 'Free Concert Series Coming This Summer', desc: 'Major artists performing free shows in city parks across the country.' },
+  { cat: 'music', emoji: '🎵', title: 'Genre-Blending Track Takes Over Charts', desc: 'Part country, part hip-hop, part electronic — and somehow it works perfectly.' },
+  { cat: 'music', emoji: '🎻', title: 'Classical Musician Goes Viral with Pop Covers', desc: 'A violinist reimagining chart-toppers and getting millions of views.' },
+  { cat: 'music', emoji: '🎶', title: 'Behind the Beat: How Producers Shape Hits', desc: 'The invisible geniuses behind your favorite songs finally get the spotlight.' },
+  { cat: 'music', emoji: '📀', title: 'Vinyl Sales Are Up 40% This Year', desc: 'Gen Z is driving a physical media renaissance. Record stores are thriving.' },
+
+  // Gaming (9)
+  { cat: 'gaming', emoji: '🕹️', title: 'Open-World RPG Drops Massive Update', desc: 'New biomes, 200+ quests, and a redesigned crafting system just went live.' },
+  { cat: 'gaming', emoji: '🎮', title: 'Indie Game Beats AAA Titles on Charts', desc: 'Made by two people in a bedroom, now outselling studios with 500-person teams.' },
+  { cat: 'gaming', emoji: '🏆', title: 'Esports Finals Draw 5 Million Viewers', desc: 'The championship match peaked at more viewers than most TV shows.' },
+  { cat: 'gaming', emoji: '🧩', title: 'Puzzle Game That\'s Actually Relaxing', desc: 'No time pressure, no scores — just beautiful puzzles and ambient music.' },
+  { cat: 'gaming', emoji: '👾', title: 'Retro Game Sells for $2 Million at Auction', desc: 'A sealed copy of a 1985 classic just became the most expensive game ever sold.' },
+  { cat: 'gaming', emoji: '🖥️', title: 'Cloud Gaming Finally Works', desc: 'New tech makes high-end gaming possible on any device. No console needed.' },
+  { cat: 'gaming', emoji: '🗡️', title: 'Speedrunner Beats Game in Under 3 Minutes', desc: 'Years of practice led to this frame-perfect run that left the community speechless.' },
+  { cat: 'gaming', emoji: '🌍', title: 'Game Lets Players Rebuild Real Cities', desc: 'Urban planning sim uses real geographic data. Players are solving actual traffic problems.' },
+  { cat: 'gaming', emoji: '🤖', title: 'AI NPCs That Actually Remember You', desc: 'New game features characters with persistent memory. Your choices genuinely matter.' },
+
+  // Science (8)
+  { cat: 'science', emoji: '🔭', title: 'New Planet Found in Habitable Zone', desc: 'Just 40 light-years away, this rocky world could have liquid water on its surface.' },
+  { cat: 'science', emoji: '🧬', title: 'Gene Therapy Cures Inherited Blindness', desc: 'A single treatment restored sight in patients who were blind from birth.' },
+  { cat: 'science', emoji: '🌊', title: 'Ocean Discovery: New Species Found', desc: 'Deep-sea expedition reveals creatures scientists never imagined existed.' },
+  { cat: 'science', emoji: '⚡', title: 'Battery Breakthrough Could Change Everything', desc: 'New solid-state battery charges in 5 minutes and lasts 10 years.' },
+  { cat: 'science', emoji: '🧪', title: 'Student Science Fair Project Goes Viral', desc: 'A 14-year-old\'s water purification method is now being tested in real communities.' },
+  { cat: 'science', emoji: '🌋', title: 'Volcano Creates New Island Overnight', desc: 'Underwater eruption pushes new landmass above the ocean surface near Tonga.' },
+  { cat: 'science', emoji: '🦠', title: 'Antibiotic Discovered in Soil Bacteria', desc: 'The first new class of antibiotics in 30 years came from dirt in a New York park.' },
+  { cat: 'science', emoji: '🧊', title: 'Arctic Ice Core Reveals 800K-Year Record', desc: 'The oldest ice ever drilled contains climate data from before humans existed.' },
+
+  // Fashion (7)
+  { cat: 'fashion', emoji: '👟', title: 'Sneaker Collab Sells Out in 8 Seconds', desc: 'The most hyped shoe release of the year disappeared before most people loaded the page.' },
+  { cat: 'fashion', emoji: '👗', title: 'Sustainable Fashion Brand Goes Mainstream', desc: 'All materials recycled, all workers paid fairly — and it actually looks good.' },
+  { cat: 'fashion', emoji: '🧢', title: 'Y2K Fashion Makes Another Comeback', desc: 'Low-rise jeans, butterfly clips, and frosted tips. Everything old is new again.' },
+  { cat: 'fashion', emoji: '💅', title: 'Nail Art Gets Absurdly Creative', desc: 'Miniature paintings on fingernails. These artists are pushing the medium\'s limits.' },
+  { cat: 'fashion', emoji: '🕶️', title: 'Smart Glasses That Don\'t Look Terrible', desc: 'Finally, wearable tech that you\'d actually want to wear in public.' },
+  { cat: 'fashion', emoji: '🧵', title: 'DIY Fashion TikTok Transforms Thrift Finds', desc: 'Turning $3 thrift store pieces into outfits that look designer.' },
+  { cat: 'fashion', emoji: '👠', title: 'Fashion Week\'s Most Talked-About Looks', desc: 'From the bizarre to the breathtaking — the runway moments everyone\'s debating.' },
+
+  // Cooking (8)
+  { cat: 'cooking', emoji: '🍕', title: 'One-Pan Pizza in 15 Minutes', desc: 'No oven needed. Crispy crust, melty cheese, right on the stovetop.' },
+  { cat: 'cooking', emoji: '🍜', title: 'Ramen Hack That Changed Everything', desc: 'Add one unexpected ingredient and instant ramen becomes restaurant quality.' },
+  { cat: 'cooking', emoji: '🥑', title: 'Meal Prep Sunday: 5 Days, $30', desc: 'Budget-friendly meal prep that actually tastes good by Friday.' },
+  { cat: 'cooking', emoji: '🧁', title: 'Baking Fails That Became Viral Hits', desc: 'Sometimes the biggest disasters make the best content.' },
+  { cat: 'cooking', emoji: '🌮', title: 'Street Food Tour: Best Tacos in America', desc: 'From LA to Austin to NYC — a cross-country taco journey.' },
+  { cat: 'cooking', emoji: '🍳', title: 'Egg Sandwich Hack Has 20M Views', desc: 'A Korean street food technique that takes 2 minutes and zero skill.' },
+  { cat: 'cooking', emoji: '🥘', title: 'Grandma\'s Recipes Saved by TikTok', desc: 'People filming their grandparents cooking before the recipes are lost forever.' },
+  { cat: 'cooking', emoji: '🫕', title: 'One-Pot Pasta That Cooks Itself', desc: 'Throw everything in, set a timer, walk away. Dinner handles itself.' },
+
+  // News (7)
+  { cat: 'news', emoji: '🌍', title: 'Country Bans Social Media for Under 16', desc: 'New law requires age verification. Tech companies have 6 months to comply.' },
+  { cat: 'news', emoji: '📱', title: 'Screen Time Report: Teens Average 7 Hours', desc: 'New study tracks actual usage. The numbers are higher than most parents think.' },
+  { cat: 'news', emoji: '🏛️', title: 'Student-Led Protest Changes School Policy', desc: 'After months of organizing, students won new mental health support funding.' },
+  { cat: 'news', emoji: '💼', title: 'Gen Z Is Redefining What Work Looks Like', desc: 'Remote work, side hustles, creator economy — traditional careers are shifting.' },
+  { cat: 'news', emoji: '🌱', title: 'City Plants 1 Million Trees in One Year', desc: 'The most ambitious urban reforestation project in history reaches its goal early.' },
+  { cat: 'news', emoji: '🗳️', title: 'Youngest Mayor in US History Elected', desc: 'At 19, she ran on a platform of education reform and affordable housing.' },
+  { cat: 'news', emoji: '📡', title: 'Internet Access Declared a Human Right', desc: 'UN resolution recognizes digital access as essential — with real enforcement mechanisms.' },
+
+  // Memes (8)
+  { cat: 'memes', emoji: '😂', title: 'The "Confused Math Lady" Returns', desc: 'A decade-old meme format just got a 2026 upgrade and it\'s everywhere.' },
+  { cat: 'memes', emoji: '🐱', title: 'Cat vs. Cucumber: The Sequel', desc: 'This cat\'s reaction to a pickle is breaking the internet all over again.' },
+  { cat: 'memes', emoji: '🤣', title: 'Teacher Memes That Are Too Real', desc: 'If you\'ve ever been in a classroom, these will hit different.' },
+  { cat: 'memes', emoji: '🐕', title: 'Dog Reacts to Owner\'s Magic Trick', desc: 'The look of pure betrayal when the treat disappears. Peak content.' },
+  { cat: 'memes', emoji: '💀', title: '"No Thoughts, Just Vibes" Compilation', desc: 'The most blissfully empty-headed animal videos collected in one glorious thread.' },
+  { cat: 'memes', emoji: '🦆', title: 'Ducks Walking in a Line Goes Viral', desc: 'They\'re organized. They\'re determined. They have places to be.' },
+  { cat: 'memes', emoji: '😅', title: 'Expectation vs. Reality: Online Shopping', desc: 'What you ordered vs. what arrived. A thread of beautiful disasters.' },
+  { cat: 'memes', emoji: '🤯', title: 'Mind-Blowing Facts That Sound Fake', desc: 'Honey never expires. Cleopatra lived closer to the Moon landing than the pyramids.' },
+];
+
+// State
+let weights = {};
+let interactions = [];
+let currentRound = 1;
+let currentCardIdx = 0;
+let totalInteractions = 0;
+let usedContentIndices = new Set();
+let currentCards = [];
+const ROUNDS = 5;
+const CARDS_PER_ROUND = 6;
+const TOTAL = ROUNDS * CARDS_PER_ROUND;
+
+function initWeights() {
+  weights = {};
+  CATEGORIES.forEach(c => { weights[c.id] = 1; });
+}
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startSimulation() {
+  initWeights();
+  interactions = [];
+  currentRound = 1;
+  currentCardIdx = 0;
+  totalInteractions = 0;
+  usedContentIndices = new Set();
+  show('simulation');
+  renderWeightBars();
+  updateProgress();
+  dealRound();
+}
+
+function getWeightedProbabilities() {
+  const total = CATEGORIES.reduce((s, c) => s + Math.max(weights[c.id], 0.05), 0);
+  return CATEGORIES.map(c => ({ id: c.id, prob: Math.max(weights[c.id], 0.05) / total }));
+}
+
+function pickCategory(probs) {
+  const r = Math.random();
+  let cum = 0;
+  for (const p of probs) {
+    cum += p.prob;
+    if (r <= cum) return p.id;
+  }
+  return probs[probs.length - 1].id;
+}
+
+function dealRound() {
+  const feed = document.getElementById('feed');
+  feed.innerHTML = '';
+  currentCards = [];
+
+  const probs = getWeightedProbabilities();
+
+  // Pick 6 cards weighted by algorithm
+  const roundCards = [];
+  const roundCategories = [];
+  for (let i = 0; i < CARDS_PER_ROUND; i++) {
+    let cat = pickCategory(probs);
+    // Find unused content in this category
+    let candidates = CONTENT
+      .map((c, idx) => ({ ...c, idx }))
+      .filter(c => c.cat === cat && !usedContentIndices.has(c.idx));
+
+    // If no content left in chosen category, pick from any available
+    if (candidates.length === 0) {
+      candidates = CONTENT
+        .map((c, idx) => ({ ...c, idx }))
+        .filter(c => !usedContentIndices.has(c.idx));
+      if (candidates.length === 0) {
+        // All content used — reset availability
+        usedContentIndices.clear();
+        candidates = CONTENT.map((c, idx) => ({ ...c, idx }));
+      }
+    }
+
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    usedContentIndices.add(pick.idx);
+    roundCards.push(pick);
+    roundCategories.push(pick.cat);
+  }
+
+  // Render with staggered animation
+  roundCards.forEach((item, i) => {
+    const card = createCardElement(item, i);
+    feed.appendChild(card);
+    card.style.animationDelay = `${i * 0.08}s`;
+    currentCards.push({ element: card, data: item });
+  });
+
+  currentCardIdx = 0;
+}
+
+function createCardElement(item, idx) {
+  const catInfo = CATEGORIES.find(c => c.id === item.cat);
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.idx = idx;
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-emoji">${item.emoji}</div>
+      <div class="card-meta">
+        <div class="card-title">${item.title}</div>
+        <span class="card-category cat-${catInfo.cssClass}">${catInfo.icon} ${catInfo.name}</span>
+      </div>
+    </div>
+    <div class="card-desc">${item.desc}</div>
+    <div class="card-actions">
+      <button class="btn-like" onclick="interact(${idx}, 'like')">👍 Like</button>
+      <button class="btn-skip" onclick="interact(${idx}, 'skip')">👎 Skip</button>
+    </div>
+  `;
+  return card;
+}
+
+function interact(cardIdx, action) {
+  const cardObj = currentCards[cardIdx];
+  if (!cardObj) return;
+
+  const cat = cardObj.data.cat;
+  interactions.push({ cat, action, round: currentRound });
+
+  // Update weights
+  if (action === 'like') {
+    weights[cat] = (weights[cat] || 1) * 1.5;
+  } else {
+    weights[cat] = (weights[cat] || 1) * 0.65;
+  }
+
+  // Animate card out
+  const el = cardObj.element;
+  el.querySelectorAll('button').forEach(b => b.disabled = true);
+  el.classList.add('card-exit');
+
+  totalInteractions++;
+  updateProgress();
+  renderWeightBars();
+  updateDiversity();
+
+  setTimeout(() => {
+    el.style.display = 'none';
+
+    // Check if round is done
+    const visibleCards = currentCards.filter((c, i) => c.element.style.display !== 'none');
+    if (visibleCards.length === 0) {
+      if (currentRound >= ROUNDS) {
+        showResults();
+      } else {
+        currentRound++;
+        updateProgress();
+        setTimeout(dealRound, 300);
+      }
+    }
+  }, 300);
+}
+
+function updateProgress() {
+  document.getElementById('roundLabel').textContent = `Round ${currentRound} / ${ROUNDS}`;
+  document.getElementById('countLabel').textContent = `${totalInteractions} / ${TOTAL} interactions`;
+  document.getElementById('progressFill').style.width = `${(totalInteractions / TOTAL) * 100}%`;
+}
+
+function calcDiversity() {
+  const probs = getWeightedProbabilities();
+  // Shannon entropy normalized
+  const maxEntropy = Math.log2(CATEGORIES.length);
+  let entropy = 0;
+  probs.forEach(p => {
+    if (p.prob > 0) entropy -= p.prob * Math.log2(p.prob);
+  });
+  return Math.round((entropy / maxEntropy) * 100);
+}
+
+function updateDiversity() {
+  const d = calcDiversity();
+  document.getElementById('diversityValue').textContent = d + '%';
+  // Color shift
+  const el = document.getElementById('diversityValue');
+  if (d > 70) {
+    el.style.background = 'linear-gradient(135deg, #22c55e, #6366f1)';
+  } else if (d > 40) {
+    el.style.background = 'linear-gradient(135deg, #fbbf24, #f97316)';
+  } else {
+    el.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+  }
+  el.style.webkitBackgroundClip = 'text';
+  el.style.backgroundClip = 'text';
+}
+
+function renderWeightBars() {
+  const container = document.getElementById('weightBars');
+  const maxW = Math.max(...Object.values(weights), 0.01);
+  const probs = getWeightedProbabilities();
+
+  container.innerHTML = CATEGORIES.map(cat => {
+    const prob = probs.find(p => p.id === cat.id);
+    const pct = Math.round((prob ? prob.prob : 0) * 100);
+    const barW = Math.round((weights[cat.id] / maxW) * 100);
+    return `
+      <div class="weight-row">
+        <span class="weight-label">${cat.icon} ${cat.name}</span>
+        <div class="weight-track">
+          <div class="weight-fill bar-${cat.cssClass}" style="width:${barW}%"></div>
+        </div>
+        <span class="weight-pct">${pct}%</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function showResults() {
+  const diversity = calcDiversity();
+  const bubbleScore = 100 - diversity;
+
+  // Compute final distribution
+  const probs = getWeightedProbabilities();
+  const startPct = Math.round(100 / CATEGORIES.length);
+
+  // Amplified vs suppressed
+  const amplified = [];
+  const suppressed = [];
+  CATEGORIES.forEach(cat => {
+    const prob = probs.find(p => p.id === cat.id);
+    const finalPct = Math.round((prob ? prob.prob : 0) * 100);
+    const diff = finalPct - startPct;
+    if (diff > 3) amplified.push({ ...cat, pct: finalPct, diff });
+    else if (diff < -3) suppressed.push({ ...cat, pct: finalPct, diff });
+  });
+  amplified.sort((a, b) => b.diff - a.diff);
+  suppressed.sort((a, b) => a.diff - b.diff);
+
+  // Verdict
+  let verdict, verdictColor;
+  if (bubbleScore < 20) {
+    verdict = 'Minimal Bubble — Your feed stayed diverse!';
+    verdictColor = 'var(--green)';
+  } else if (bubbleScore < 45) {
+    verdict = 'Moderate Bubble — The algorithm is starting to narrow your view.';
+    verdictColor = '#fbbf24';
+  } else if (bubbleScore < 70) {
+    verdict = 'Strong Bubble — Your feed is significantly filtered.';
+    verdictColor = '#f97316';
+  } else {
+    verdict = 'Echo Chamber — The algorithm has dramatically narrowed your world.';
+    verdictColor = 'var(--red)';
+  }
+
+  const resultsEl = document.getElementById('results');
+  resultsEl.innerHTML = `
+    <div class="results-card">
+      <h2>Your Results</h2>
+      <p class="subtitle">Here's what the algorithm did to your feed</p>
+
+      <div class="bubble-score-display">
+        <span class="big-score" style="background:linear-gradient(135deg,${verdictColor},var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${bubbleScore}</span>
+        <span class="big-label">Filter Bubble Score</span>
+        <div class="verdict" style="color:${verdictColor}">${verdict}</div>
+      </div>
+
+      <div class="comparison-grid">
+        <div class="comp-col">
+          <h4>Starting Feed</h4>
+          ${CATEGORIES.map(cat => `
+            <div class="comp-bar-row">
+              <span class="cat-icon">${cat.icon}</span>
+              <div class="cat-track"><div class="cat-fill bar-${cat.cssClass}" style="width:${startPct}%"></div></div>
+              <span class="cat-pct">${startPct}%</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="comp-col">
+          <h4>Final Feed</h4>
+          ${CATEGORIES.map(cat => {
+            const prob = probs.find(p => p.id === cat.id);
+            const pct = Math.round((prob ? prob.prob : 0) * 100);
+            return `
+              <div class="comp-bar-row">
+                <span class="cat-icon">${cat.icon}</span>
+                <div class="cat-track"><div class="cat-fill bar-${cat.cssClass}" style="width:${pct}%"></div></div>
+                <span class="cat-pct">${pct}%</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      ${amplified.length ? `
+        <div class="amplified-list">
+          <h4>Amplified Categories</h4>
+          <ul>${amplified.map(a => `<li>${a.icon} ${a.name} — grew to ${a.pct}% (+${a.diff}%)</li>`).join('')}</ul>
+        </div>
+      ` : ''}
+
+      ${suppressed.length ? `
+        <div class="suppressed-list">
+          <h4>Suppressed Categories</h4>
+          <ul>${suppressed.map(s => `<li>${s.icon} ${s.name} — shrank to ${s.pct}% (${s.diff}%)</li>`).join('')}</ul>
+        </div>
+      ` : ''}
+
+      <div class="discussion-box">
+        <h4>Think About It</h4>
+        <p>You made just ${TOTAL} choices and the algorithm already reshaped your entire feed. Real platforms track thousands of interactions every day.</p>
+        <p>How does this compare to your real social media? Do you notice certain types of content dominating your feed?</p>
+        <p>What would happen if you only saw content the algorithm thought you wanted?</p>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="startSimulation()">Try Again With Different Choices</button>
+  `;
+
+  show('results');
+
+  // PostMessage score
+  window.parent.postMessage({
+    type: 'activityScore',
+    score: 5,
+    maxScore: 5,
+    gameComplete: true,
+    activityId: 'algorithm-feed-simulator'
+  }, '*');
+}
+
+function togglePanel() {
+  document.getElementById('sidePanel').classList.toggle('expanded');
+}
+
+// Close panel on outside tap (mobile)
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('sidePanel');
+  if (panel && panel.classList.contains('expanded') && !panel.contains(e.target)) {
+    panel.classList.remove('expanded');
+  }
+});
+</script>
+</body>
+</html>

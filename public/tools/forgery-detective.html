@@ -1942,7 +1942,7 @@ function showReport(){
   showScreen('report-screen');
 
   // Always send score — EmbedBlock keeps highest automatically
-  window.parent.postMessage({type:'activityScore',score:state.correct,maxScore:ROUNDS_PER_GAME},'*');
+  window.parent.postMessage({type:'activityScore',score:state.correct,maxScore:ROUNDS_PER_GAME,gameComplete:true},'*');
 }
 
 const params=new URLSearchParams(window.location.search);

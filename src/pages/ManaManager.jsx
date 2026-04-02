@@ -31,12 +31,14 @@ const getGsap = () => {
 const ACCENT = "#10b981";
 const ACCENT_PURPLE = "#7c3aed";
 const GOLD = "#f0c848";
-const MANA_BG = "#0a0612";
-const MANA_SURFACE = "#130d20";
-const MANA_SURFACE2 = "#1e1435";
-const MANA_BORDER = "#2d1f4e";
-const MANA_TEXT = "#e8e0f0";
-const MANA_TEXT_MUTED = "#8b7fa8";
+const MANA_BG = "var(--mana-bg, #0a0612)";
+const MANA_SURFACE = "var(--mana-surface, #130d20)";
+const MANA_SURFACE2 = "var(--mana-surface2, #1e1435)";
+const MANA_BORDER = "var(--mana-border, #2d1f4e)";
+const MANA_TEXT = "var(--mana-text, #e8e0f0)";
+const MANA_TEXT_MUTED = "var(--mana-text-muted, #8b7fa8)";
+const MANA_GRAD_MID = "var(--mana-gradient-mid, #1a1030)";
+const MANA_GRAD_MID2 = "var(--mana-gradient-mid2, #1e1435)";
 const DANGER = "#ef4444";
 
 // ─── EASING ──────────────────────────────────────────
@@ -554,7 +556,7 @@ export default function ManaManager() {
     return (
       <div className="page-wrapper mana-mgr-page" style={{
         display: "flex", justifyContent: "center", paddingTop: 120,
-        background: `radial-gradient(ellipse at 50% 30%, ${MANA_SURFACE} 0%, ${MANA_BG} 70%, #000 100%)`,
+        background: `radial-gradient(ellipse at 50% 30%, ${MANA_SURFACE} 0%, ${MANA_BG} 70%, ${MANA_BG} 100%)`,
         minHeight: "100vh", color: MANA_TEXT,
       }}>
         <style>{manaStyles}</style>
@@ -568,7 +570,7 @@ export default function ManaManager() {
   const glowColor = ACCENT;
 
   const cardStyle = {
-    background: `linear-gradient(135deg, ${MANA_SURFACE}, #1a1030, ${MANA_SURFACE2})`,
+    background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID}, ${MANA_SURFACE2})`,
     border: `1px solid ${MANA_BORDER}`,
     borderRadius: 14,
     padding: "18px 22px", marginBottom: 16,
@@ -595,7 +597,7 @@ export default function ManaManager() {
 
   return (
     <main id="main-content" className="page-wrapper mana-mgr-page" style={{
-      background: `radial-gradient(ellipse at 50% 30%, ${MANA_SURFACE} 0%, ${MANA_BG} 70%, #000 100%)`,
+      background: `radial-gradient(ellipse at 50% 30%, ${MANA_SURFACE} 0%, ${MANA_BG} 70%, ${MANA_BG} 100%)`,
       minHeight: "100vh", position: "relative", color: MANA_TEXT,
     }}>
       <style>{manaStyles}</style>
@@ -643,7 +645,7 @@ export default function ManaManager() {
                       Today's {getManaTitle(studentGenders[state.mageStudentId] || 'M')}: {state.mageStudentName}
                     </div>
                     <div style={{ fontSize: 12, color: MANA_TEXT_MUTED, marginTop: 2 }}>
-                      Budget: {state.mageBudgetUsed || 0} / {MAGE_DAILY_BUDGET} mana awarded to classmates
+                      Distributed: {state.mageBudgetUsed || 0} / {MAGE_DAILY_BUDGET} personal mana given out
                     </div>
                   </div>
                 </div>
@@ -1013,8 +1015,8 @@ export default function ManaManager() {
                   {(state.history || []).slice(0, 20).map((entry, i) => (
                     <div key={i} className="mgr-log-entry" style={{
                       display: "flex", gap: 10, alignItems: "center", padding: "6px 0",
-                      borderBottom: i < Math.min((state.history || []).length, 20) - 1 ? `1px solid ${MANA_BORDER}44` : "none",
-                      borderLeft: `2px solid ${entry.type === "gain" ? ACCENT + "44" : entry.type === "decay" ? MANA_TEXT_MUTED + "44" : DANGER + "33"}`,
+                      borderBottom: i < Math.min((state.history || []).length, 20) - 1 ? `1px solid color-mix(in srgb, ${MANA_BORDER} 27%, transparent)` : "none",
+                      borderLeft: `2px solid ${entry.type === "gain" ? ACCENT + "44" : entry.type === "decay" ? "#8b7fa844" : DANGER + "33"}`,
                       borderRadius: "0 4px 4px 0",
                       paddingLeft: 8,
                     }}>
@@ -1256,7 +1258,7 @@ export default function ManaManager() {
                               {txHistory.map((tx, i) => (
                                 <div key={i} style={{
                                   display: "flex", alignItems: "center", gap: 8, padding: "4px 0",
-                                  borderBottom: i < txHistory.length - 1 ? `1px solid ${MANA_BORDER}44` : "none",
+                                  borderBottom: i < txHistory.length - 1 ? `1px solid color-mix(in srgb, ${MANA_BORDER} 27%, transparent)` : "none",
                                   fontSize: 12,
                                 }}>
                                   <span style={{
@@ -1319,7 +1321,7 @@ export default function ManaManager() {
       {behaviorToast && (
         <div style={{
           position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
-          background: `linear-gradient(135deg, ${MANA_SURFACE}, #1e1435)`,
+          background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID2})`,
           border: `1px solid ${ACCENT}66`, borderRadius: 10,
           padding: "12px 24px", fontSize: 14, fontWeight: 600, color: ACCENT,
           boxShadow: `0 8px 32px ${ACCENT}44, 0 0 30px ${ACCENT}22`,

@@ -121,14 +121,35 @@ function AmbientCanvas() {
 
 // ── Bell schedule & course map ───────────────────────────────────────────────
 
-const PERIODS = [
-  { period: 1, label: "Period 1", course: "Physics",           courseId: "physics",             start: "08:00", end: "08:47", accent: "#f97316" },
+const REGULAR_PERIODS = [
+  { period: 1, label: "Period 1", course: "Physics",           courseId: "physics",             start: "08:00", end: "08:42", accent: "#f97316" },
   { period: 3, label: "Period 3", course: "Digital Literacy",   courseId: "digital-literacy",     start: "09:43", end: "10:25", accent: "#06b6d4" },
   { period: 4, label: "Period 4", course: "AI Literacy",        courseId: "Y9Gdhw5MTY8wMFt6Tlvj", start: "10:29", end: "11:11", accent: "#e8a838" },
   { period: 5, label: "Period 5", course: "AI Literacy",        courseId: "DacjJ93vUDcwqc260OP3", start: "11:15", end: "11:57", accent: "#e8a838" },
   { period: 7, label: "Period 7", course: "AI Literacy",        courseId: "M2MVSXrKuVCD9JQfZZyp", start: "12:47", end: "13:29", accent: "#e8a838" },
   { period: 9, label: "Period 9", course: "AI Literacy",        courseId: "fUw67wFhAtobWFhjwvZ5", start: "14:19", end: "15:01", accent: "#e8a838" },
 ];
+
+const EARLY_DISMISSAL_PERIODS = [
+  { period: 1, label: "Period 1", course: "Physics",           courseId: "physics",             start: "08:00", end: "08:30", accent: "#f97316" },
+  { period: 3, label: "Period 3", course: "Digital Literacy",   courseId: "digital-literacy",     start: "09:16", end: "09:46", accent: "#06b6d4" },
+  { period: 4, label: "Period 4", course: "AI Literacy",        courseId: "Y9Gdhw5MTY8wMFt6Tlvj", start: "09:50", end: "10:20", accent: "#e8a838" },
+  { period: 5, label: "Period 5", course: "AI Literacy",        courseId: "DacjJ93vUDcwqc260OP3", start: "10:24", end: "10:54", accent: "#e8a838" },
+  { period: 7, label: "Period 7", course: "AI Literacy",        courseId: "M2MVSXrKuVCD9JQfZZyp", start: "11:32", end: "12:02", accent: "#e8a838" },
+  { period: 9, label: "Period 9", course: "AI Literacy",        courseId: "fUw67wFhAtobWFhjwvZ5", start: "12:40", end: "13:10", accent: "#e8a838" },
+];
+
+// Early dismissal dates (YYYY-MM-DD format)
+const EARLY_DISMISSAL_DATES = new Set([
+  "2026-04-02",
+]);
+
+function getSchedule() {
+  const today = new Date().toISOString().slice(0, 10);
+  return EARLY_DISMISSAL_DATES.has(today) ? EARLY_DISMISSAL_PERIODS : REGULAR_PERIODS;
+}
+
+const PERIODS = getSchedule();
 
 function timeToMinutes(hhmm) {
   const [h, m] = hhmm.split(":").map(Number);
@@ -252,7 +273,9 @@ function injectStyles() {
       font-family: 'Newsreader', Georgia, serif;
       overflow: hidden;
       cursor: none;
-      position: relative;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
     }
 
     /* Film grain */
@@ -536,11 +559,18 @@ export default function ClassroomDisplay() {
     useEffect(() => {
       const el = ref.current;
       if (!el) return;
+      let lastScale = null;
       const fit = () => {
         el.style.transform = "none";
         requestAnimationFrame(() => {
-          if (el.scrollWidth > el.clientWidth) {
-            el.style.transform = `scaleX(${el.clientWidth / el.scrollWidth})`;
+          const ratio = el.scrollWidth > el.clientWidth
+            ? el.clientWidth / el.scrollWidth
+            : 1;
+          // Only update if scale actually changed — prevents feedback loop
+          const rounded = Math.round(ratio * 1000) / 1000;
+          if (rounded !== lastScale) {
+            lastScale = rounded;
+            el.style.transform = ratio < 1 ? `scaleX(${ratio})` : "none";
           }
         });
       };
@@ -548,7 +578,7 @@ export default function ClassroomDisplay() {
       const ro = new ResizeObserver(fit);
       ro.observe(el);
       return () => ro.disconnect();
-    });
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
   }
 
   useAutoScale(periodInfoRef);
@@ -582,9 +612,11 @@ export default function ClassroomDisplay() {
     const t = setInterval(() => {
       const next = getCurrentPeriod();
       setPeriod((prev) => {
-        if (prev.period !== next.period || prev.status !== next.status) {
-          setContentKey((k) => k + 1);
+        // Only update state if something actually changed — prevents unnecessary re-renders
+        if (prev.period === next.period && prev.status === next.status && prev.label === next.label) {
+          return prev; // same reference = no re-render
         }
+        setContentKey((k) => k + 1);
         return next;
       });
     }, 15000);

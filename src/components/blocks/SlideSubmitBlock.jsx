@@ -36,7 +36,9 @@ export default function SlideSubmitBlock({ block, studentData = {}, onAnswer }) 
 
   const presInfo = extractPresentationInfo(url);
 
-  const submit = () => {
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
     const trimmed = url.trim();
     if (!trimmed) { setError("Paste your presentation link first."); return; }
     if (!extractPresentationInfo(trimmed)) {
@@ -44,15 +46,23 @@ export default function SlideSubmitBlock({ block, studentData = {}, onAnswer }) 
       return;
     }
     setError("");
-    setSubmitted(true);
-    onAnswer(block.id, {
-      submitted: true,
-      response: trimmed,
-      correct: true,
-      writtenScore: 1,
-      writtenLabel: "Submitted",
-      gradedBy: "auto",
-    });
+    setSaving(true);
+    try {
+      await onAnswer(block.id, {
+        submitted: true,
+        response: trimmed,
+        correct: true,
+        writtenScore: 1,
+        writtenLabel: "Submitted",
+        gradedBy: "auto",
+      });
+      setSubmitted(true);
+    } catch (err) {
+      console.error("SlideSubmit save failed:", err);
+      setError("Failed to save — check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const promptText = block.prompt || "Paste your Google Slides link below.";
@@ -97,18 +107,19 @@ export default function SlideSubmitBlock({ block, studentData = {}, onAnswer }) 
           )}
           <button
             onClick={submit}
+            disabled={saving}
             style={{
               padding: "8px 20px",
               borderRadius: 8,
               border: "none",
-              background: "var(--accent, #02C39A)",
-              color: "#0d1117",
+              background: saving ? "var(--surface3, #333)" : "var(--accent, #02C39A)",
+              color: saving ? "var(--text3, #888)" : "#0d1117",
               fontWeight: 700,
               fontSize: "0.85rem",
-              cursor: "pointer",
+              cursor: saving ? "wait" : "pointer",
             }}
           >
-            Submit Link
+            {saving ? "Saving..." : "Submit Link"}
           </button>
         </div>
       ) : (

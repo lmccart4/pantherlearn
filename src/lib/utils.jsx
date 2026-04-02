@@ -47,6 +47,9 @@ function inlineMarkdown(text) {
   return escapeHTML(text)
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/!\[(.+?)\]\((.+?)\)/g, (_, alt, src) =>
+      `<img src="${sanitizeHref(src)}" alt="${alt}" style="max-width:100%;border-radius:8px;margin:8px 0" loading="lazy" />`
+    )
     .replace(/\[(.+?)\]\((.+?)\)/g, (_, label, url) =>
       `<a href="${sanitizeHref(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`
     );

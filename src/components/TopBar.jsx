@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { logOut } from "../lib/firebase";
 import { resolveDisplayName } from "../lib/displayName";
-import LanguageSelector from "./LanguageSelector";
 import NotificationBell from "./NotificationBell";
 import PerfModeToggle from "./PerfModeToggle";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";

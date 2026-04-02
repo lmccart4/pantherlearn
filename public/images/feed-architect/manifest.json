@@ -1,0 +1,12 @@
+[
+  {
+    "filename": "cartoon-conspiracy.jpg.jpg",
+    "originalPrompt": "A dark mysterious collage of old animated show screenshots with red circles and arrows drawn on them in a paranoid investigation style, conspiracy theory board aesthetic, dark blue tones",
+    "enrichedPrompt": "A dark mysterious collage of old animated show screenshots with red circles and arrows drawn on them in a paranoid investigation style, conspiracy theory board aesthetic, dark blue tones\n\n[Style: diagram] Clean educational illustration style. Sharp precise lines, clear visual hierarchy. High contrast for readability on screens and projectors. Flat design with subtle depth cues. No photographic noise or film grain. No watermarks.\n[Restrictions] Do not add any text, words, letters, numbers, or labels to the image unless the prompt explicitly specifies exact text to include. No handwritten annotations. No stock photo watermarks. No decorative borders.",
+    "style": "diagram",
+    "model": "nano-banana",
+    "aspect": "16:9",
+    "timestamp": "2026-04-02T12:05:25.331Z",
+    "success": true
+  }
+]

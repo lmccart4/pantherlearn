@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./lib/perfMode"; // Apply perf-mode class before React renders
+import "./lib/theme"; // Apply saved theme before React renders
 import App from "./App";
 import "./index.css";
 import "./blocks.css";

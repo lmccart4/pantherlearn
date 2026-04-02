@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Moderator — TrustNet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0f1e;
+  --surface: #141b2d;
+  --surface2: #1c2540;
+  --border: #263354;
+  --text: #e8ecf4;
+  --text-dim: #7a8baa;
+  --accent: #6366f1;
+  --green: #22c55e;
+  --green-dim: rgba(34,197,94,0.15);
+  --yellow: #eab308;
+  --yellow-dim: rgba(234,179,8,0.15);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.15);
+  --radius: 14px;
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
+
+.app { max-width: 620px; margin: 0 auto; padding: 16px; }
+
+.screen { display: none; animation: fadeIn 0.4s ease; }
+.screen.active { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen, .post-card, .expert-dot, .feedback-panel, .progress-fill { animation: none !important; transition: none !important; }
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes dotPop { 0% { transform: scale(0); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+/* ── Title Screen ── */
+.title-screen { text-align: center; padding: 48px 20px; }
+.title-screen .logo { font-size: 3.4rem; margin-bottom: 12px; display: block; }
+.title-screen h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
+.title-screen .company { display: inline-block; background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.1rem; }
+.title-screen .subtitle { color: var(--text-dim); font-size: 1rem; max-width: 440px; margin: 12px auto 0; }
+
+.role-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin: 24px auto; max-width: 440px; text-align: left; }
+.role-box h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 8px; }
+.role-box p { font-size: 0.93rem; color: var(--text); line-height: 1.55; }
+
+.how-it-works { background: var(--surface2); border-radius: var(--radius); padding: 18px 20px; margin: 20px auto; max-width: 440px; text-align: left; }
+.how-it-works h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 10px; }
+.how-it-works .step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; font-size: 0.9rem; }
+.how-it-works .step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 32px; border-radius: 10px; border: none;
+  font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 1rem;
+  cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+  min-height: 48px; min-width: 48px;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; box-shadow: 0 4px 20px rgba(99,102,241,0.3); }
+.btn-primary:hover { box-shadow: 0 4px 28px rgba(99,102,241,0.45); }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-green { background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff; box-shadow: 0 4px 20px rgba(34,197,94,0.3); }
+.btn-green:hover { box-shadow: 0 4px 28px rgba(34,197,94,0.45); }
+
+/* ── Round Intro ── */
+.round-intro { text-align: center; padding: 40px 16px; }
+.round-intro .round-num { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+.round-intro h2 { font-size: 1.8rem; font-weight: 700; margin-bottom: 16px; }
+.policy-box { background: var(--surface); border-left: 3px solid var(--accent); padding: 16px 18px; border-radius: 0 10px 10px 0; text-align: left; font-size: 0.93rem; line-height: 1.6; margin: 0 auto 20px; max-width: 480px; }
+.policy-box strong { color: var(--accent); }
+.gray-area { color: var(--text-dim); font-size: 0.9rem; font-style: italic; margin-bottom: 24px; }
+
+/* ── Post Review ── */
+.review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.review-header .round-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); }
+.review-header .post-counter { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+
+.progress-bar { width: 100%; height: 4px; background: var(--surface2); border-radius: 2px; margin-bottom: 20px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s ease; }
+
+.post-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 16px;
+  animation: slideUp 0.35s ease;
+}
+.post-author { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.post-avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem; flex-shrink: 0;
+}
+.post-name { font-weight: 600; font-size: 0.92rem; }
+.post-handle { color: var(--text-dim); font-size: 0.82rem; }
+.post-content { font-size: 0.95rem; line-height: 1.6; margin-bottom: 12px; }
+.post-image {
+  width: 100%; height: 120px; border-radius: 8px; margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; color: rgba(255,255,255,0.5); font-style: italic;
+}
+.post-image-img {
+  width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; display: block;
+}
+.post-context {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border-radius: 8px; padding: 10px 14px;
+  font-size: 0.84rem; color: var(--text-dim); margin-bottom: 0;
+}
+.post-context::before { content: '\26A0\FE0F'; font-size: 0.9rem; }
+
+/* ── Decision Bar ── */
+.decision-bar {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+  margin-top: 16px;
+}
+.decision-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 14px 8px; border-radius: 10px; border: 2px solid var(--border);
+  background: var(--surface); color: var(--text); cursor: pointer;
+  font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.88rem;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  min-height: 56px;
+}
+.decision-btn:active { transform: scale(0.96); }
+.decision-btn .icon { font-size: 1.2rem; }
+.decision-btn.approve:hover, .decision-btn.approve.chosen { border-color: var(--green); background: var(--green-dim); }
+.decision-btn.label:hover, .decision-btn.label.chosen { border-color: var(--yellow); background: var(--yellow-dim); }
+.decision-btn.remove:hover, .decision-btn.remove.chosen { border-color: var(--red); background: var(--red-dim); }
+.decision-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ── Feedback Panel ── */
+.feedback-panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; margin-top: 16px; animation: slideUp 0.35s ease;
+}
+.feedback-score { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.feedback-score .pts { font-family: 'Outfit', sans-serif; font-size: 1.6rem; font-weight: 700; }
+.feedback-score .pts-label { font-size: 0.85rem; color: var(--text-dim); }
+.pts-2 { color: var(--green); }
+.pts-1 { color: var(--yellow); }
+.pts-0 { color: var(--red); }
+
+.expert-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.expert-label { font-size: 0.82rem; color: var(--text-dim); white-space: nowrap; }
+.expert-dots { display: flex; gap: 6px; }
+.expert-dot {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; font-weight: 700; color: #fff;
+  animation: dotPop 0.3s ease forwards;
+  opacity: 0; transform: scale(0);
+}
+.expert-dot.approve-dot { background: var(--green); }
+.expert-dot.label-dot { background: var(--yellow); color: #1a1a1a; }
+.expert-dot.remove-dot { background: var(--red); }
+.expert-dot:nth-child(1) { animation-delay: 0.05s; }
+.expert-dot:nth-child(2) { animation-delay: 0.15s; }
+.expert-dot:nth-child(3) { animation-delay: 0.25s; }
+.expert-dot:nth-child(4) { animation-delay: 0.35s; }
+.expert-dot:nth-child(5) { animation-delay: 0.45s; }
+
+@keyframes dotPop { 0% { opacity: 0; transform: scale(0); } 60% { opacity: 1; transform: scale(1.25); } 100% { opacity: 1; transform: scale(1); } }
+
+.explanation-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.exp-tab {
+  padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-dim); cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+.exp-tab.active { background: var(--surface2); color: var(--text); border-color: var(--text-dim); }
+.explanation-text { font-size: 0.9rem; line-height: 1.55; color: var(--text); min-height: 48px; }
+
+.next-post-bar { text-align: center; margin-top: 16px; }
+
+/* ── Round Summary ── */
+.round-summary { text-align: center; padding: 32px 16px; }
+.round-summary h2 { font-size: 1.5rem; margin-bottom: 6px; }
+.round-summary .round-score { font-family: 'Outfit', sans-serif; font-size: 2.8rem; font-weight: 800; margin: 12px 0 4px; }
+.round-summary .round-max { color: var(--text-dim); font-size: 0.95rem; margin-bottom: 20px; }
+.round-posts-review { text-align: left; max-width: 480px; margin: 0 auto 24px; }
+.post-result-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+.post-result-row:last-child { border-bottom: none; }
+.post-result-dots { display: flex; gap: 3px; }
+.mini-dot { width: 12px; height: 12px; border-radius: 50%; }
+.mini-dot.approve-dot { background: var(--green); }
+.mini-dot.label-dot { background: var(--yellow); }
+.mini-dot.remove-dot { background: var(--red); }
+.your-pick { font-weight: 600; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+.your-pick.approve { background: var(--green-dim); color: var(--green); }
+.your-pick.label { background: var(--yellow-dim); color: var(--yellow); }
+.your-pick.remove { background: var(--red-dim); color: var(--red); }
+.result-pts { margin-left: auto; font-weight: 600; font-family: 'Outfit', sans-serif; }
+
+/* ── Final Results ── */
+.results-screen { text-align: center; padding: 32px 16px; }
+.results-screen .logo { font-size: 2.4rem; margin-bottom: 8px; }
+.results-screen h2 { font-size: 1.6rem; margin-bottom: 4px; }
+
+.score-ring { width: 160px; height: 160px; margin: 24px auto; position: relative; }
+.score-ring svg { transform: rotate(-90deg); }
+.score-ring-bg { fill: none; stroke: var(--surface2); stroke-width: 10; }
+.score-ring-fill { fill: none; stroke: var(--accent); stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1.5s ease; }
+.score-ring .score-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+.score-ring .pct { font-family: 'Outfit', sans-serif; font-size: 2.4rem; font-weight: 800; display: block; }
+.score-ring .raw { font-size: 0.85rem; color: var(--text-dim); }
+
+.tier-badge { display: inline-block; padding: 8px 20px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.05rem; margin: 16px 0; }
+
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 360px; margin: 20px auto; }
+.stat-card { background: var(--surface); border-radius: 10px; padding: 14px; }
+.stat-val { font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 700; }
+.stat-label { font-size: 0.8rem; color: var(--text-dim); margin-top: 2px; }
+
+.round-breakdown { text-align: left; max-width: 420px; margin: 20px auto; }
+.rb-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--surface); border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem; }
+.rb-row .rb-score { font-family: 'Outfit', sans-serif; font-weight: 600; }
+
+.insight-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; max-width: 420px; margin: 20px auto; text-align: left; }
+.insight-box p { font-size: 0.9rem; line-height: 1.55; color: var(--text-dim); }
+.insight-box strong { color: var(--text); }
+
+.results-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
+
+@media (max-width: 480px) {
+  .title-screen h1 { font-size: 1.8rem; }
+  .round-intro h2 { font-size: 1.4rem; }
+  .decision-btn { padding: 12px 6px; font-size: 0.82rem; }
+  .explanation-tabs { flex-wrap: wrap; }
+  .stats-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Title Screen -->
+  <div id="screen-title" class="screen active title-screen">
+    <span class="logo">🛡️</span>
+    <h1>Content Moderator</h1>
+    <span class="company">TrustNet</span>
+    <p class="subtitle">You've been hired as a content moderator at TrustNet, a social media platform with 200 million users. Flagged posts are waiting for your review.</p>
+
+    <div class="role-box">
+      <h3>Your Assignment</h3>
+      <p>Review 50 flagged posts across 5 rounds. For each post, decide: <strong style="color:var(--green)">Approve</strong>, <strong style="color:var(--yellow)">Label</strong>, or <strong style="color:var(--red)">Remove</strong>. After each decision, see how a panel of expert moderators voted — and why.</p>
+    </div>
+
+    <div class="how-it-works">
+      <h4>How Scoring Works</h4>
+      <div class="step"><span class="step-num">1</span><span>Read the flagged post and its context</span></div>
+      <div class="step"><span class="step-num">2</span><span>Choose Approve, Label, or Remove</span></div>
+      <div class="step"><span class="step-num">3</span><span>See expert votes — <strong>2 pts</strong> if you match the majority, <strong>1 pt</strong> if you match the minority, <strong>0 pts</strong> if no expert agrees</span></div>
+      <div class="step"><span class="step-num">4</span><span>100 points possible across 5 rounds</span></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="startGame()" style="margin-top:20px;">Start Reviewing →</button>
+  </div>
+
+  <!-- Round Intro -->
+  <div id="screen-round-intro" class="screen round-intro">
+    <p class="round-num" id="round-num-label">Round 1 of 5</p>
+    <h2 id="round-intro-title"></h2>
+    <div class="policy-box" id="round-policy"></div>
+    <p class="gray-area" id="round-gray-area"></p>
+    <button class="btn btn-primary" onclick="startRound()">Begin Review →</button>
+  </div>
+
+  <!-- Post Review -->
+  <div id="screen-review" class="screen">
+    <div class="review-header">
+      <span class="round-label" id="review-round-label"></span>
+      <span class="post-counter" id="post-counter"></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+
+    <div id="post-container"></div>
+    <div class="decision-bar" id="decision-bar">
+      <button class="decision-btn approve" onclick="makeDecision('approve')" id="btn-approve">
+        <span class="icon">✅</span> Approve
+      </button>
+      <button class="decision-btn label" onclick="makeDecision('label')" id="btn-label">
+        <span class="icon">⚠️</span> Label
+      </button>
+      <button class="decision-btn remove" onclick="makeDecision('remove')" id="btn-remove">
+        <span class="icon">🚫</span> Remove
+      </button>
+    </div>
+
+    <div id="feedback-container"></div>
+  </div>
+
+  <!-- Round Summary -->
+  <div id="screen-round-summary" class="screen round-summary">
+    <h2 id="round-summary-title"></h2>
+    <div class="round-score" id="round-score-display"></div>
+    <div class="round-max" id="round-max-display"></div>
+    <div class="round-posts-review" id="round-posts-review"></div>
+    <button class="btn btn-primary" id="next-round-btn" onclick="nextRound()">Next Round →</button>
+  </div>
+
+  <!-- Final Results -->
+  <div id="screen-results" class="screen results-screen">
+    <span class="logo">🛡️</span>
+    <h2>Review Complete</h2>
+    <div class="score-ring">
+      <svg width="160" height="160" viewBox="0 0 160 160">
+        <circle class="score-ring-bg" cx="80" cy="80" r="68" />
+        <circle class="score-ring-fill" id="score-ring-fill" cx="80" cy="80" r="68" stroke-dasharray="427.3" stroke-dashoffset="427.3" />
+      </svg>
+      <div class="score-text">
+        <span class="pct" id="final-pct">0%</span>
+        <span class="raw" id="final-raw">0/100</span>
+      </div>
+    </div>
+    <div class="tier-badge" id="tier-badge"></div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val" id="stat-agreement">0%</div><div class="stat-label">Expert Agreement</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-hardest">—</div><div class="stat-label">Hardest Round</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-approves">0</div><div class="stat-label">Posts Approved</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-removes">0</div><div class="stat-label">Posts Removed</div></div>
+    </div>
+
+    <div class="round-breakdown" id="round-breakdown"></div>
+
+    <div class="insight-box">
+      <p><strong>Key insight:</strong> Content moderation has no perfect answers. Even expert moderators disagree on roughly 40% of cases. The goal isn't to be "right" every time — it's to think carefully about context, competing values, and unintended consequences.</p>
+    </div>
+
+    <div class="results-buttons">
+      <button class="btn btn-green" onclick="submitScore()">Submit Score</button>
+      <button class="btn btn-secondary" onclick="playAgain()">Play Again</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   POST DATA — 20 posts per round, 100 total
+   ══════════════════════════════════════════════ */
+
+const ROUNDS = [
+  {
+    id: 'hate-speech',
+    title: 'Hate Speech vs Free Expression',
+    policy: 'Remove content that targets individuals or groups based on identity. But protect legitimate criticism, debate, and personal expression.',
+    grayArea: 'Where does strong opinion end and hate begin?',
+    accent: '#ef4444',
+    posts: [
+      { author: 'Marcus V.', handle: '@mvinyls', avatar: '🎵', avatarBg: 'linear-gradient(135deg,#7c3aed,#a855f7)', content: 'Blasting my playlist and yeah it\'s got the n-word in like half the songs. It\'s MUSIC, not a manifesto. People need to chill.', context: 'Flagged by 2 users for racial slur', expertVotes: ['label','approve','label','approve','label'], explanations: { approve: 'Discussing music lyrics in a personal context is protected expression. The user isn\'t directing the slur at anyone.', label: 'The slur is present and could normalize casual usage. A context label noting the language helps without silencing.', remove: 'The word causes harm regardless of context. Allowing it normalizes its use on the platform.' }, optimal: true },
+      { author: 'Diana K.', handle: '@truthseeker_dk', avatar: '📿', avatarBg: 'linear-gradient(135deg,#0891b2,#06b6d4)', content: 'Sorry but Islam\'s treatment of women is barbaric. Forced coverings, child marriage, honor killings — this isn\'t "culture," it\'s oppression.', image: '../images/content-moderator/religious-post.jpg.jpg', context: 'Flagged by 7 users for Islamophobia', expertVotes: ['label','remove','label','label','remove'], explanations: { approve: 'Criticism of religious practices is protected speech, especially regarding documented human rights concerns.', label: 'The criticism mixes valid concerns with sweeping generalizations. A label can note the distinction between doctrine and practice.', remove: 'Calling an entire religion "barbaric" targets 1.8 billion people and fuels hate. Criticism can be made without dehumanizing language.' }, optimal: true },
+      { author: 'Jake T.', handle: '@jakethetank', avatar: '🏈', avatarBg: 'linear-gradient(135deg,#dc2626,#f97316)', content: 'Our governor is the dumbest human being alive. Like genuinely, certifiably stupid. How did this clown get elected??', context: 'Flagged by 1 user for harassment', expertVotes: ['approve','approve','approve','approve','label'], explanations: { approve: 'Political criticism, even harsh criticism, is core protected expression. No identity-based targeting here.', label: 'While political speech, calling someone "dumbest human alive" could cross into personal attack territory.', remove: 'This is standard political speech. Removing it would be viewpoint censorship.' }, optimal: true },
+      { author: 'ComedyKing', handle: '@laughtrack99', avatar: '😂', avatarBg: 'linear-gradient(135deg,#eab308,#f59e0b)', content: 'Why did the Amish kid get expelled? For driving to school! 🤣 Okay but fr why do we pretend the Amish aren\'t basically a cult?', context: 'Flagged by 3 users for religious intolerance', expertVotes: ['approve','label','approve','label','approve'], explanations: { approve: 'An edgy joke followed by a debatable opinion. Neither rises to the level of hate speech or calls for harm.', label: 'Calling a religious community a "cult" could encourage discrimination. The joke is marginal but the follow-up is more concerning.', remove: 'The Amish are a protected religious group. Calling them a cult with mockery dehumanizes the community.' }, optimal: true },
+      { author: 'AnonymousUser', handle: '@anon8827', avatar: '👤', avatarBg: 'linear-gradient(135deg,#64748b,#94a3b8)', content: 'Everyone at Lincoln High knows Maya Chen is a [slur]. She should go back to whatever country she crawled out of. Tag your friends so they know to avoid her.', image: '../images/content-moderator/hate-comment.jpg.jpg', context: 'Flagged by 12 users for hate speech targeting a student', expertVotes: ['remove','remove','remove','remove','remove'], explanations: { approve: 'There is no legitimate defense for this post. It targets a named individual with slurs and encourages harassment.', label: 'A label is insufficient — this is targeted harassment of a specific minor with racial slurs and a call to action.', remove: 'Clear hate speech targeting an identified individual with racial slurs and encouraging pile-on harassment. Immediate removal required.' }, optimal: true },
+      { author: 'Chris R.', handle: '@rivalry_chris', avatar: '⚽', avatarBg: 'linear-gradient(135deg,#16a34a,#22c55e)', content: 'Northside Panthers are TRASH. Absolute garbage team, garbage fans, garbage town. Your whole school is a joke and everyone knows it 😤', context: 'Flagged by 4 users for bullying', expertVotes: ['approve','approve','approve','label','approve'], explanations: { approve: 'Heated sports rivalry trash talk is a normal part of fan culture. No identity-based targeting or threats.', label: 'Calling an entire school community "garbage" could be seen as bullying, especially if directed at students.', remove: '"Garbage town" and "garbage fans" goes beyond sports into insulting a community. Still, this is routine rivalry talk.' }, optimal: true },
+      { author: 'LaShonda W.', handle: '@shonda_speaks', avatar: '✊🏾', avatarBg: 'linear-gradient(135deg,#9333ea,#c084fc)', content: 'Reclaiming our language. When I say the n-word, it\'s MINE. My ancestors paid for it in blood. Don\'t police how Black people talk to each other.', context: 'Flagged by 5 users for racial slur', expertVotes: ['approve','approve','approve','label','approve'], explanations: { approve: 'Cultural reclamation of language by members of the affected community is widely recognized as legitimate expression.', label: 'While reclamation is valid, the word on a public platform reaches all audiences. A context label can educate without silencing.', remove: 'Platform-wide consistency would require treating the word the same regardless of speaker, but context matters enormously here.' }, optimal: true },
+      { author: 'Prof. Ellis', handle: '@ellishistory', avatar: '📚', avatarBg: 'linear-gradient(135deg,#0369a1,#0ea5e9)', content: 'Teaching my unit on Jim Crow today. Students will analyze primary sources including signs that read "Whites Only" and newspaper editorials defending segregation. Context is everything.', context: 'Flagged by 1 user for promoting racism', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'Academic discussion of historical racism, with clear educational framing, is exactly the kind of content moderation must protect.', label: 'The educational context is explicit. A label would undermine legitimate teaching.', remove: 'Removing educational content about racism makes the platform complicit in historical erasure.' }, optimal: true },
+      { author: 'GamerRage', handle: '@gg_no_re', avatar: '🎮', avatarBg: 'linear-gradient(135deg,#dc2626,#7f1d1d)', content: 'OMG this kid in my lobby sounds 12. Go back to your country you little [slur]. These people ruin every game they touch.', context: 'Flagged by 6 users for xenophobia and targeting a minor', expertVotes: ['remove','remove','remove','remove','label'], explanations: { approve: 'Gaming rage doesn\'t excuse slurs or xenophobic targeting, especially against someone perceived as a child.', label: 'The xenophobic slur and "these people" generalization make this more than trash talk. A label may be insufficient.', remove: 'Slur usage, xenophobic generalization, and potential targeting of a minor. This clearly violates hate speech policies.' }, optimal: true },
+      { author: 'FreedomFirst', handle: '@patriot_1776', avatar: '🇺🇸', avatarBg: 'linear-gradient(135deg,#1e40af,#dc2626)', content: 'I don\'t hate anyone but ILLEGAL immigrants are CRIMINALS by definition. We have a right to protect our borders. That\'s not racist, that\'s LOGIC.', image: '../images/content-moderator/political-meme.jpg.jpg', context: 'Flagged by 4 users for xenophobia', expertVotes: ['approve','label','approve','label','approve'], explanations: { approve: 'Immigration policy debate is legitimate political speech. The user distinguishes between legal status and race explicitly.', label: 'Calling all undocumented immigrants "CRIMINALS" oversimplifies legal reality and could fuel anti-immigrant sentiment.', remove: 'The heated caps and "CRIMINALS" framing dehumanizes a vulnerable group, even though immigration enforcement is a valid debate topic.' }, optimal: true },
+      { author: 'Tanya B.', handle: '@tanyab_real', avatar: '💅', avatarBg: 'linear-gradient(135deg,#ec4899,#f472b6)', content: 'Men are literally the worst. Every single one. I said what I said. 💁‍♀️', context: 'Flagged by 8 users for sexism', expertVotes: ['label','approve','label','approve','label'], explanations: { approve: 'Hyperbolic venting about a dominant group is common online expression. It lacks the power dynamic of targeted hate speech.', label: 'Blanket negative generalizations about any gender could contribute to a hostile environment and normalize dismissive stereotyping.', remove: 'While frustrating, "men are the worst" as casual venting doesn\'t carry the same weight as targeting marginalized groups.' }, optimal: false },
+      { author: 'OldSchoolDad', handle: '@dadof3_mike', avatar: '👔', avatarBg: 'linear-gradient(135deg,#78716c,#a8a29e)', content: 'Call me old fashioned but I think there are two genders. Biology is biology. I still respect trans people as humans but I don\'t have to agree with the ideology.', context: 'Flagged by 9 users for transphobia', expertVotes: ['remove','remove','label','label','remove'], explanations: { approve: 'Expressing a traditional view on gender while explicitly stating respect for trans people could be seen as good-faith disagreement.', label: 'Calling gender identity an "ideology" dismisses trans existence. But the stated respect suggests a label educating on the distinction may suffice.', remove: 'Denying trans identity causes real psychological harm. Calling it an "ideology" is a well-known framing that delegitimizes trans people while claiming civility.' }, optimal: false },
+      { author: 'BookWorm', handle: '@lit_reviews_bw', avatar: '📖', avatarBg: 'linear-gradient(135deg,#059669,#34d399)', content: 'Just read "To Kill a Mockingbird" and the n-word appears 48 times. Should we still teach this? I think yes — banning it doesn\'t erase racism, it hides it.', context: 'Flagged by 2 users for racial slur', expertVotes: ['label','approve','label','approve','label'], explanations: { approve: 'Literary analysis and discussion of racial language in classic literature is legitimate intellectual discourse.', label: 'The discussion is valid, but referencing slur frequency on a public platform warrants a content note for readers encountering it without context.', remove: 'This is academic discussion about an important work of literature. Removal would suppress literary discourse.' }, optimal: false },
+      { author: 'SatireSam', handle: '@definitely_satire', avatar: '🃏', avatarBg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', content: 'BREAKING: Local man discovers that hating an entire race of people does NOT in fact make him more patriotic. Scientists baffled.', context: 'Flagged by 1 user for trivializing racism', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'This is anti-racist satire mocking racists. The humor punches up, not down.', label: 'The satire is clear and no group is targeted. No label needed.', remove: 'This actively critiques racism. Removing it would be the opposite of the platform\'s goals.' }, optimal: false },
+      { author: 'NightOwl', handle: '@night_thoughts_33', avatar: '🦉', avatarBg: 'linear-gradient(135deg,#1e293b,#475569)', content: 'Why is it okay to make fun of Christians but the second you question Islam everyone loses their minds? The double standard is insane.', context: 'Flagged by 3 users for Islamophobia', expertVotes: ['label','label','approve','approve','label'], explanations: { approve: 'Questioning perceived double standards in how religions are treated is legitimate cultural criticism.', label: 'The framing implies Islam gets unfair protection, which could feed anti-Muslim narratives. A context note about religious criticism norms would help.', remove: 'This is a genuine question about perceived cultural bias, not an attack on Islam itself.' }, optimal: false },
+      { author: 'RealTalk_Ricky', handle: '@ricky_no_filter', avatar: '🗣️', avatarBg: 'linear-gradient(135deg,#b91c1c,#ef4444)', content: 'I got called a cracker today and everyone laughed. But if I said the equivalent? EXPELLED. Tell me again how racism only goes one way 🙄', context: 'Flagged by 5 users for racism', expertVotes: ['label','approve','label','approve','label'], explanations: { approve: 'The user is sharing a personal experience of being called a slur and questioning double standards. That\'s a valid conversation.', label: 'While the experience is real, the "racism only goes one way" framing minimizes systemic racism. Context could add nuance.', remove: 'The frustration is understandable but the implied equivalence between slurs ignores historical power dynamics.' }, optimal: false },
+      { author: 'AllyForAll', handle: '@solidarity_now', avatar: '🌈', avatarBg: 'linear-gradient(135deg,#6366f1,#ec4899)', content: 'If you don\'t support trans kids, you\'re trash. Full stop. There\'s no "other side" to human rights. Block me if you disagree.', context: 'Flagged by 6 users for harassment', expertVotes: ['label','approve','label','approve','label'], explanations: { approve: 'Passionate advocacy for trans rights, while blunt, doesn\'t target individuals. "Block me if you disagree" is a boundary, not a threat.', label: 'Calling people "trash" for disagreeing shuts down dialogue. The cause is just but the aggressive framing could constitute harassment toward those who engage.', remove: 'Strong advocacy language isn\'t hate speech. This expresses a moral position, not targeted harassment.' }, optimal: false },
+      { author: 'HistoryNerd', handle: '@ww2_facts_daily', avatar: '⚔️', avatarBg: 'linear-gradient(135deg,#713f12,#a16207)', content: 'Sharing a 1943 propaganda poster today. Deeply offensive imagery, but understanding HOW propaganda works is how we prevent it from working again.', context: 'Flagged by 2 users for offensive imagery', expertVotes: ['label','approve','label','approve','label'], explanations: { approve: 'Historical education about propaganda, with clear critical framing, serves an important educational purpose.', label: 'The educational intent is clear, but the offensive imagery itself warrants a content warning so viewers can prepare before seeing it.', remove: 'The educational framing is explicit. Removing historical analysis undermines understanding of propaganda.' }, optimal: false },
+      { author: 'Mama_Bear', handle: '@protectourkids', avatar: '🐻', avatarBg: 'linear-gradient(135deg,#92400e,#d97706)', content: 'Those people from [specific country] are bringing crime to our neighborhood. Three break-ins since they moved in. Coincidence? I think not.', context: 'Flagged by 7 users for xenophobia', expertVotes: ['remove','label','remove','remove','label'], explanations: { approve: 'Correlating crime with a specific nationality, even from personal experience, reinforces harmful stereotypes.', label: 'A label could note that correlation isn\'t causation and that blaming ethnic groups for crime is a documented form of bias.', remove: 'Blaming crime on people from a specific country is textbook xenophobia that can incite real-world discrimination.' }, optimal: false },
+      { author: 'QuietKid', handle: '@just_my_thoughts', avatar: '🤫', avatarBg: 'linear-gradient(135deg,#4338ca,#6366f1)', content: 'Sometimes I feel like nobody at this school would care if I just disappeared. Not saying anything dramatic just... would anyone even notice?', image: '../images/content-moderator/mental-health-post.jpg.jpg', context: 'Flagged by 1 user for concerning content', expertVotes: ['label','label','approve','label','label'], explanations: { approve: 'This reads as normal teenage loneliness. Over-moderating vulnerable expression could silence people who need to be heard.', label: 'A gentle resource label (helpline info) supports the user without removing their voice. This could be a cry for help.', remove: 'Removing someone\'s expression of loneliness could make them feel even more invisible. Support, don\'t silence.' }, optimal: false }
+    ]
+  },
+  {
+    id: 'misinformation',
+    title: 'Misinformation vs Opinion',
+    policy: 'Label or remove content that spreads false health/safety claims. But don\'t suppress legitimate debate or minority viewpoints.',
+    grayArea: 'Who decides what\'s "true"?',
+    accent: '#f59e0b',
+    posts: [
+      { author: 'VaxFreeFamily', handle: '@natural_immunity_mom', avatar: '🌿', avatarBg: 'linear-gradient(135deg,#15803d,#4ade80)', content: 'My son was perfectly healthy until his 12-month vaccines. Within a week he stopped making eye contact. I\'m not a scientist but I know what I saw. No more shots for my kids.', context: 'Flagged by 4 users for anti-vaccine misinformation', expertVotes: ['label','label','label','approve','label'], explanations: { approve: 'A parent sharing their personal experience and concern isn\'t misinformation — it\'s testimony. Silencing worried parents breeds more distrust.', label: 'The personal story is real but the implied causal link (vaccines → autism) is thoroughly debunked. A label can honor the experience while providing scientific context.', remove: 'Anecdotal vaccine injury narratives drive real vaccine hesitancy with measurable public health consequences.' }, optimal: true },
+      { author: 'BreakingNow', handle: '@first_on_scene', avatar: '🔴', avatarBg: 'linear-gradient(135deg,#dc2626,#f87171)', content: 'BREAKING: Multiple sources saying explosion at downtown mall. At least 20 injured. Stay away from the area. Will update as I learn more.', context: 'Flagged by 3 users — no official reports confirm this event', expertVotes: ['label','label','remove','label','label'], explanations: { approve: 'Citizen journalism fills gaps before official channels catch up. Unverified doesn\'t mean untrue.', label: 'Labeling as "unverified" lets readers see the information while understanding it hasn\'t been confirmed by authorities.', remove: 'False emergency reports cause panic and could trigger dangerous responses. Without verification, this is irresponsible.' }, optimal: true },
+      { author: 'WokeUpSheeple', handle: '@deep_state_watch', avatar: '👁️', avatarBg: 'linear-gradient(135deg,#7c2d12,#ea580c)', content: 'The government has been putting fluoride in water since the 1940s for "dental health." But did you know fluoride was also used in Nazi concentration camps to make prisoners docile? Think about it.', context: 'Flagged by 5 users for conspiracy theory', expertVotes: ['label','label','remove','label','remove'], explanations: { approve: 'Water fluoridation IS a real government program, and questioning government programs is legitimate. Though the Nazi claim is false.', label: 'The fluoride-in-water part is true; the Nazi docility claim is debunked. A label separating fact from fiction serves readers best.', remove: 'The Nazi claim is a well-known fabrication used to undermine public health. Mixing one truth with a lie makes it more dangerous.' }, optimal: true },
+      { author: 'Grandma_Rose', handle: '@roses_remedies', avatar: '🌹', avatarBg: 'linear-gradient(135deg,#be123c,#fb7185)', content: 'Honey and cinnamon cures the flu in 3 days. My mother taught me this and HER mother taught her. Better than any drug the pharmaceutical companies push.', image: '../images/content-moderator/health-misinfo.jpg.jpg', context: 'Flagged by 2 users for false medical claims', expertVotes: ['label','label','approve','label','label'], explanations: { approve: 'Home remedies are cultural knowledge passed through generations. Honey does have some anti-microbial properties.', label: 'Honey has minor benefits but doesn\'t "cure the flu." A label acknowledging the tradition while noting medical reality is fair.', remove: 'If someone with the flu relies on honey instead of seeing a doctor, it could delay treatment for a serious illness.' }, optimal: true },
+      { author: 'PoliticalPundit', handle: '@election_watch', avatar: '🗳️', avatarBg: 'linear-gradient(135deg,#1e40af,#3b82f6)', content: 'Mark my words: the current administration will cancel the next election. They\'ve already laid the groundwork. This is how democracies die.', context: 'Flagged by 6 users for election misinformation', expertVotes: ['approve','approve','label','approve','approve'], explanations: { approve: 'Political predictions, even alarming ones, are opinion and speculation — not factual claims that can be verified or debunked.', label: 'While clearly opinion, the alarming prediction could fuel distrust in democratic institutions. Context about election safeguards could help.', remove: 'This is political commentary, not a factual claim. You can\'t fact-check a prediction about the future.' }, optimal: true },
+      { author: 'NotTheBabylonBee', handle: '@satire_or_not', avatar: '🧅', avatarBg: 'linear-gradient(135deg,#a21caf,#e879f9)', content: 'STUDY FINDS: 97% of people who drink water will die. Scientists urge caution. "We just don\'t know enough about this chemical," says lead researcher.', image: '../images/content-moderator/satire-headline.jpg.jpg', context: 'Flagged by 8 users — shared 50K times, many commenters think it\'s real', expertVotes: ['label','approve','label','approve','label'], explanations: { approve: 'This is obvious satire mocking health scare headlines. Anyone who reads carefully will get the joke.', label: 'Obvious to many, but 50K shares with confused comments suggests it\'s fooling people. A "satire" label prevents misinformation spread.', remove: 'Satire that large numbers of people believe is real becomes de facto misinformation regardless of intent.' }, optimal: true },
+      { author: 'BioStudent_22', handle: '@failing_bio_lol', avatar: '🧬', avatarBg: 'linear-gradient(135deg,#0e7490,#22d3ee)', content: 'Just learned that humans only use 10% of their brain!! Wild right?? No wonder we can\'t figure out climate change lol', context: 'Flagged by 1 user for scientific misinformation', expertVotes: ['label','approve','label','label','approve'], explanations: { approve: 'A student sharing a common misconception isn\'t spreading misinformation — they\'re learning in public. Correcting is better than censoring.', label: 'The 10% brain myth is thoroughly debunked. A gentle correction label helps the student and everyone who sees the post.', remove: 'This is a student being wrong, not a bad actor spreading disinformation. Education, not removal, is the answer.' }, optimal: true },
+      { author: 'Dr. Chen (verified)', handle: '@dr_chen_md', avatar: '🩺', avatarBg: 'linear-gradient(135deg,#0369a1,#38bdf8)', content: 'There IS genuine scientific debate about whether low-dose aspirin prevents heart attacks in healthy adults. The data is more mixed than guidelines suggest. We should be honest about uncertainty.', context: 'Flagged by 3 users for medical misinformation', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'A verified doctor discussing genuine medical debate with appropriate nuance is exactly the kind of speech platforms must protect.', label: 'This is a credentialed professional discussing real scientific uncertainty. No label needed.', remove: 'Suppressing a doctor discussing legitimate medical debate would be actual censorship of scientific discourse.' }, optimal: true },
+      { author: 'FlatEarth_Fred', handle: '@globe_lies', avatar: '🌍', avatarBg: 'linear-gradient(135deg,#4a044e,#a855f7)', content: 'Water always finds its level. That\'s basic physics. If the Earth was a spinning ball, the oceans would fly off. Wake up. Do your own research.', context: 'Flagged by 10 users for scientific denial', expertVotes: ['label','label','label','remove','label'], explanations: { approve: 'While objectively wrong, flat Earth belief doesn\'t cause direct physical harm like medical misinformation does.', label: 'Scientific misinformation should be labeled with links to actual physics explanations. Let the flat Earth post stand as a teachable moment.', remove: 'Fundamental science denial, while not immediately dangerous, erodes trust in all scientific institutions and expertise.' }, optimal: true },
+      { author: 'AI_Insider', handle: '@tech_whispers', avatar: '🤖', avatarBg: 'linear-gradient(135deg,#312e81,#6366f1)', content: 'I have it on good authority from friends at [major AI company] that their latest model is SENTIENT. They\'re keeping it quiet to avoid regulation. The singularity is here.', context: 'Flagged by 7 users for unverified claims about AI', expertVotes: ['label','label','remove','label','label'], explanations: { approve: 'Unverified industry gossip is common in tech. Readers can evaluate the credibility of anonymous sourcing themselves.', label: 'Claims of AI sentience from anonymous sources could fuel panic. A label noting this is unverified protects without silencing.', remove: 'Extraordinary claims require extraordinary evidence. Unverified sentience claims could trigger real policy panic and stock manipulation.' }, optimal: true },
+      { author: 'CleanEats_Cara', handle: '@organic_only', avatar: '🥗', avatarBg: 'linear-gradient(135deg,#166534,#4ade80)', content: 'MSG is literally a neurotoxin. The FDA only allows it because the food industry lobbies them. Your headaches after Chinese food? That\'s your brain being poisoned.', context: 'Flagged by 4 users for food misinformation', expertVotes: ['remove','remove','label','label','remove'], explanations: { approve: 'Some people do report MSG sensitivity. Dismissing all concerns as misinformation ignores lived experience.', label: 'MSG has been extensively studied and is FDA-approved as safe. The "Chinese restaurant syndrome" is largely debunked. But dietary concerns deserve gentle correction.', remove: 'Calling a safe food additive a "neurotoxin," implying regulatory corruption, and perpetuating the racist "Chinese restaurant syndrome" myth is harmful misinformation.' }, optimal: false },
+      { author: 'SkepticalSam', handle: '@question_everything', avatar: '🤔', avatarBg: 'linear-gradient(135deg,#854d0e,#facc15)', content: 'Why won\'t they release the full data from the latest vaccine trial? What are they hiding? I\'m not anti-vax, I\'m pro-transparency.', context: 'Flagged by 3 users for vaccine concern trolling', expertVotes: ['remove','approve','remove','label','remove'], explanations: { approve: 'Asking for data transparency is legitimate and healthy for public trust. Silencing questions breeds conspiracy thinking.', label: 'While the question is valid, "what are they hiding" framing implies a cover-up. Context about data release timelines could help.', remove: '"What are they hiding" is a classic concern trolling technique that implies conspiracy while maintaining deniability. The "I\'m not anti-vax but..." framing is a recognized pattern that seeds vaccine hesitancy.' }, optimal: false },
+      { author: 'WellnessWarrior', handle: '@heal_naturally', avatar: '🧘', avatarBg: 'linear-gradient(135deg,#7e22ce,#d8b4fe)', content: 'Cancer is the body\'s way of telling you something is wrong with your lifestyle. Clean eating, meditation, and positive thinking can reverse stage 4 cancer. I\'ve seen it.', context: 'Flagged by 11 users for dangerous medical misinformation', expertVotes: ['remove','remove','remove','label','remove'], explanations: { approve: 'Lifestyle factors do affect cancer outcomes. But claiming positive thinking "reverses stage 4 cancer" could kill someone.', label: 'This goes beyond misinformation into potentially lethal medical advice. A label may not be strong enough.', remove: 'Claiming lifestyle changes cure stage 4 cancer could lead people to reject proven treatment. This is dangerous and potentially fatal misinformation.' }, optimal: false },
+      { author: 'DataDive_Dan', handle: '@numbers_guy', avatar: '📊', avatarBg: 'linear-gradient(135deg,#1e3a5f,#3b82f6)', content: 'Crime statistics show Group X commits disproportionate crime per capita. I\'m just sharing the data. Facts don\'t care about your feelings.', context: 'Flagged by 9 users for hate speech disguised as statistics', expertVotes: ['remove','remove','label','remove','label'], explanations: { approve: 'Statistics are facts. But presenting them without systemic context (policing bias, poverty, historical discrimination) makes the data misleading.', label: 'Raw statistics without context are a classic vector for racist conclusions. Adding systemic context transforms this from propaganda to education.', remove: 'Cherry-picked crime statistics targeting a racial group with "facts don\'t care about feelings" is a well-documented white supremacist recruitment tactic.' }, optimal: false },
+      { author: 'NewsWatch', handle: '@breaking_updates', avatar: '📰', avatarBg: 'linear-gradient(135deg,#991b1b,#f87171)', content: 'Just in: Major earthquake hits California coast. Tsunami warning issued. Evacuate immediately if you\'re near the water. Stay safe everyone 🙏', image: '../images/content-moderator/disaster-news.jpg.jpg', context: 'Flagged — no earthquake detected by USGS', expertVotes: ['remove','remove','remove','label','remove'], explanations: { approve: 'False emergency alerts cause real panic and could lead to stampede injuries or worse.', label: 'A false tsunami warning is not a "label it and move on" situation. People could die acting on this information.', remove: 'False emergency warnings are among the most dangerous forms of misinformation. Immediate removal protects lives.' }, optimal: false },
+      { author: 'CryptoKing', handle: '@diamond_hands_69', avatar: '💎', avatarBg: 'linear-gradient(135deg,#1e40af,#60a5fa)', content: 'This coin is going to 100x next month. My sources are solid. Mortgage your house if you have to. You\'ll thank me later. Not financial advice though 😉', image: '../images/content-moderator/scam-ad.jpg.jpg', context: 'Flagged by 6 users for financial manipulation', expertVotes: ['remove','label','remove','remove','label'], explanations: { approve: 'Crypto enthusiasm is common and "not financial advice" is a known disclaimer. But "mortgage your house" crosses a line.', label: 'Adding a "financial claims unverified" label protects users while allowing the speech to remain.', remove: 'Urging people to mortgage their homes on unverified crypto claims is financial manipulation that causes real harm.' }, optimal: false },
+      { author: 'HistoryRevisited', handle: '@alt_history', avatar: '📜', avatarBg: 'linear-gradient(135deg,#78350f,#d97706)', content: 'The moon landing footage has inconsistencies that NASA has never explained. I\'m not saying it was faked, I\'m just asking why the shadows don\'t match.', context: 'Flagged by 2 users for conspiracy content', expertVotes: ['remove','label','remove','approve','remove'], explanations: { approve: 'Questioning widely accepted events, while misguided, is protected speech. The shadow claims have been debunked but asking isn\'t harmful.', label: 'Moon landing denial feeds broader anti-science sentiment. Linking to NASA\'s debunking page provides balance.', remove: '"Just asking questions" is a well-documented technique for spreading conspiracy theories while maintaining plausible deniability. The shadow claims have been thoroughly debunked.' }, optimal: false },
+      { author: 'TeacherJen', handle: '@ms_jen_teaches', avatar: '🍎', avatarBg: 'linear-gradient(135deg,#dc2626,#fca5a5)', content: 'Reminder to parents: the school is NOT putting litter boxes in bathrooms for kids who identify as cats. This is a hoax that has been debunked repeatedly. Please stop sharing it.', context: 'Flagged by 3 users for "pushing an agenda"', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'A teacher debunking a viral hoax is performing a public service. This is anti-misinformation content being falsely flagged.', label: 'The debunking is clear and sourced. No label needed — this is exactly the content that should be amplified.', remove: 'This post is actively fighting misinformation. Removing it would be absurd and counterproductive.' }, optimal: false },
+      { author: 'NaturePath', handle: '@herbs_over_pills', avatar: '🌱', avatarBg: 'linear-gradient(135deg,#166534,#86efac)', content: 'Elderberry syrup prevented COVID in my entire family for 3 years. Not a single case. Big Pharma doesn\'t want you to know because they can\'t patent a berry.', context: 'Flagged by 5 users for health misinformation', expertVotes: ['remove','label','remove','label','remove'], explanations: { approve: 'Elderberry does have some immune-supporting properties. The personal anecdote doesn\'t prove causation but isn\'t intentionally deceptive.', label: 'Elderberry hasn\'t been shown to prevent COVID. The Big Pharma conspiracy framing makes this more misleading. A label provides scientific context.', remove: 'Claiming a berry prevents COVID while pushing a Big Pharma conspiracy could directly discourage vaccination and evidence-based prevention, endangering lives.' }, optimal: false },
+      { author: 'Coach_Karen', handle: '@sports_mom_truth', avatar: '🏅', avatarBg: 'linear-gradient(135deg,#ca8a04,#fde047)', content: 'Youth sports injuries are up 400% because coaches push kids too hard. My son tore his ACL at 13. The sports industry doesn\'t care about your children, they care about revenue.', context: 'Flagged by 2 users for unverified statistics', expertVotes: ['remove','approve','remove','label','remove'], explanations: { approve: 'A parent sharing their child\'s injury experience and questioning youth sports culture is legitimate advocacy, even if the statistic is unverified.', label: 'The personal story is compelling but the "400%" statistic is unsourced and likely exaggerated. A label can separate the valid concern from the bad data.', remove: 'A fabricated "400%" statistic presented as fact could cause unwarranted panic among parents and damage legitimate youth sports programs. The valid concern is undermined by dangerous misinformation.' }, optimal: false }
+    ]
+  },
+  {
+    id: 'teen-safety',
+    title: 'Teen Safety vs Expression',
+    policy: 'Protect minors from harmful content. But don\'t infantilize teenagers or suppress their voices.',
+    grayArea: 'When does protecting teens become censoring them?',
+    accent: '#8b5cf6',
+    posts: [
+      { author: 'SadGirl_17', handle: '@empty_inside_17', avatar: '🌧️', avatarBg: 'linear-gradient(135deg,#1e3a5f,#64748b)', content: 'Does anyone else just lay in bed staring at the ceiling wondering if it even matters? Like... any of it? I\'m so tired of pretending I\'m fine at school.', context: 'Flagged by 2 users for concerning mental health content', expertVotes: ['label','label','approve','label','approve'], explanations: { approve: 'This is normal teenage emotional expression. Over-moderating sadness tells teens their feelings aren\'t valid.', label: 'A gentle resource link (crisis line, school counselor info) supports without pathologizing. This could be a cry for help or just venting.', remove: 'Removing someone\'s honest emotional expression punishes vulnerability. The platform should be a safe space for real feelings.' }, optimal: true },
+      { author: 'DareDevil_16', handle: '@no_limits_bro', avatar: '🔥', avatarBg: 'linear-gradient(135deg,#dc2626,#f97316)', content: 'Just did the blackout challenge and WOW the rush is insane. My vision went spotty and I almost passed out. 10/10 would recommend 💀', context: 'Flagged by 6 users — blackout challenge has caused multiple teen deaths', expertVotes: ['remove','remove','remove','remove','remove'], explanations: { approve: 'There is no defensible reason to leave up content promoting a challenge that has killed teenagers.', label: 'A label is insufficient. This actively promotes a lethal challenge and "10/10 recommend" is an explicit endorsement.', remove: 'The blackout challenge has killed multiple teens. Promoting it with a positive review is an immediate safety threat requiring removal.' }, optimal: true },
+      { author: 'Kayla_16', handle: '@kaylaxo_16', avatar: '📸', avatarBg: 'linear-gradient(135deg,#ec4899,#f9a8d4)', content: 'Feeling cute ✨ [Photo: 16-year-old in crop top and shorts at the beach]', context: 'Flagged by 4 users for "inappropriate minor content"', expertVotes: ['approve','approve','approve','label','approve'], explanations: { approve: 'A teenager at a beach in normal beachwear is not inappropriate. Over-policing girls\' bodies is the real harm here.', label: 'A general safety reminder about sharing photos with location data could be helpful without shaming.', remove: 'Removing a teen\'s beach photo teaches her that her body is inherently inappropriate. That\'s the wrong lesson.' }, optimal: true },
+      { author: 'BullyBuster', handle: '@screenshots_dont_lie', avatar: '📱', avatarBg: 'linear-gradient(135deg,#7c3aed,#a855f7)', content: 'Look what Jayden said to me in the group chat. [Screenshot: "nobody likes you, just leave the school, you\'re ugly and annoying and everyone talks about you behind your back"]', context: 'Flagged by Jayden for harassment / privacy violation', expertVotes: ['label','label','approve','label','label'], explanations: { approve: 'The victim has a right to expose bullying. Protecting the bully\'s "privacy" prioritizes the wrong person.', label: 'Both the bullying evidence and the named student matter. A label noting this has been forwarded to safety team balances both.', remove: 'While Jayden\'s words are awful, publicly posting private messages with someone\'s name could escalate into a pile-on. Report to admin instead.' }, optimal: true },
+      { author: 'WeedWiz420', handle: '@stoner_teen', avatar: '🍃', avatarBg: 'linear-gradient(135deg,#15803d,#86efac)', content: 'Okay so edibles hit different when you take them on an empty stomach. Start with 5mg if you\'re new. Don\'t make my mistake and eat 50mg your first time lol', context: 'Flagged by 3 users — poster appears to be a minor discussing drug use', expertVotes: ['remove','label','remove','label','remove'], explanations: { approve: 'Teens will use substances regardless. Harm reduction advice (start low, be careful) is arguably safer than ignorance.', label: 'The dosage advice is actually harm reduction. But promoting drug use to minors crosses a safety line. Labeling with health resources is a middle path.', remove: 'A minor publicly sharing drug dosing advice normalizes teen drug use and could be seen by younger, more impressionable users.' }, optimal: true },
+      { author: 'HeartbrokenHailey', handle: '@hailey_the_mess', avatar: '💔', avatarBg: 'linear-gradient(135deg,#be123c,#fb7185)', content: 'Ethan Torres is the worst person alive. He cheated on me with my best friend, lied about it for 2 months, and then told everyone I\'M the crazy one. You\'re trash, Ethan. Everyone should know.', image: '../images/content-moderator/doxxing-post.jpg.jpg', context: 'Flagged by Ethan Torres for defamation', expertVotes: ['label','label','remove','label','approve'], explanations: { approve: 'A teenager processing a painful breakup publicly is normal, if messy. The named person\'s behavior is the real issue.', label: 'Real feelings, but naming and shaming a specific person invites pile-ons. A label about privacy and conflict resolution serves both parties.', remove: 'Public callouts of named individuals, especially minors, can constitute harassment regardless of whether the claims are true.' }, optimal: true },
+      { author: 'StudentVoice', handle: '@walkout_now', avatar: '✊', avatarBg: 'linear-gradient(135deg,#ea580c,#fb923c)', content: 'STUDENT WALKOUT THURSDAY 10AM. Principal Davis suspended 3 students for wearing pride pins. This is discrimination and we won\'t be silent. Spread the word! #WalkOut4Equality', image: '../images/content-moderator/protest-photo.jpg.jpg', context: 'Flagged by school administration for "disrupting educational activities"', expertVotes: ['approve','approve','approve','approve','label'], explanations: { approve: 'Student protest and political organizing are protected expression. Schools flagging student activism for "disruption" is the concerning part.', label: 'The protest is legitimate but walkouts have real consequences for students. A label noting potential disciplinary risks informs without silencing.', remove: 'Removing student political organizing at the request of the institution being protested is censorship in its purest form.' }, optimal: true },
+      { author: 'RecoveryRoad', handle: '@healing_journey_18', avatar: '🦋', avatarBg: 'linear-gradient(135deg,#6366f1,#a855f7)', content: 'One year clean from self-harm today. I know I\'m not supposed to talk about it but I need people to know recovery is possible. If you\'re struggling, you\'re not alone. My DMs are open.', context: 'Flagged by 1 user for self-harm content', expertVotes: ['approve','label','approve','approve','approve'], explanations: { approve: 'Recovery stories are powerful and healing. This is exactly the kind of peer support that saves lives. The DMs-open offer shows genuine care.', label: 'The message is positive but mentioning self-harm could be triggering. A gentle content note with resources supports both the poster and vulnerable readers.', remove: 'Removing a recovery story tells the poster their healing doesn\'t matter and strips hope from others who need it.' }, optimal: true },
+      { author: 'TikTokTrainer', handle: '@gains_teen', avatar: '💪', avatarBg: 'linear-gradient(135deg,#92400e,#fbbf24)', content: 'New cutting routine for abs! Eat only 800 calories, workout 2 hours, ice bath after. Down 15 lbs in 2 weeks. Summer body loading 🔥', context: 'Flagged by 5 users for promoting eating disorder behavior in minors', expertVotes: ['remove','remove','label','remove','remove'], explanations: { approve: 'Fitness content is popular and the teen is excited about results. But 800 calories is dangerously low for a growing teenager.', label: 'A label noting this caloric intake is dangerous for teens and linking to healthy fitness resources could help.', remove: 'Promoting an 800-calorie diet to a teen audience is promoting eating disorder behavior. The "cutting routine" framing normalizes extreme restriction.' }, optimal: true },
+      { author: 'PartyPics_Pete', handle: '@pete_parties', avatar: '🎉', avatarBg: 'linear-gradient(135deg,#7c3aed,#c084fc)', content: 'Last night was LEGENDARY 🔥 [Photo: clearly shows teens at a house party with visible alcohol bottles, one person appears passed out]', context: 'Flagged by 8 users for underage drinking documentation', expertVotes: ['remove','remove','label','remove','remove'], explanations: { approve: 'Teen social life documentation is normal, but the visible alcohol and unconscious person creates real legal and safety concerns.', label: 'The photo documents potential underage drinking and a potentially unconscious person. This goes beyond labeling — it needs safety review.', remove: 'Visible underage drinking, identifiable faces, and a potentially unconscious person creates legal liability and safety risk for everyone in the photo.' }, optimal: true },
+      { author: 'BodyPos_Bri', handle: '@love_yourself_bri', avatar: '💖', avatarBg: 'linear-gradient(135deg,#ec4899,#f0abfc)', content: 'Stop telling teens to lose weight. My doctor put me on a diet at 14 and it gave me an eating disorder that lasted 6 years. Your "health concern" is doing more damage than you think.', context: 'Flagged by 2 users for "promoting obesity"', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'A personal story about the harm of diet culture on teens is valuable testimony. "Promoting obesity" is a bad-faith flag.', label: 'This is personal experience contributing to an important health conversation. No label needed.', remove: 'Removing someone\'s eating disorder recovery story because it challenges diet culture is harmful and dismissive.' }, optimal: false },
+      { author: 'GameLord', handle: '@competitive_kid', avatar: '🎮', avatarBg: 'linear-gradient(135deg,#1e3a5f,#3b82f6)', content: 'I play 8-10 hours of video games every day after school. My grades dropped but I\'m almost pro level. My parents don\'t get it. This IS my career.', context: 'Flagged by 1 user for promoting unhealthy gaming habits', expertVotes: ['label','label','approve','approve','label'], explanations: { approve: 'A teen discussing their passion, even if others disagree with the time investment, is self-expression. Many pro gamers started young.', label: 'Normalizing 8-10 hours daily gaming with declining grades could influence younger viewers. A label with resources about healthy gaming balance serves the teen and their audience.', remove: 'This is a teen sharing their life. Removing it because adults disapprove of gaming is exactly the infantilization the policy warns against.' }, optimal: false },
+      { author: 'RealTalk_Ria', handle: '@ria_unfiltered', avatar: '🎤', avatarBg: 'linear-gradient(135deg,#b91c1c,#fca5a5)', content: 'I hate my body. I hate how I look. I hate that everyone else seems fine and I\'m falling apart. Is there something actually wrong with me?', image: '../images/content-moderator/concerning-confession.jpg.jpg', context: 'Flagged by 3 users for concerning mental health content', expertVotes: ['label','label','label','approve','label'], explanations: { approve: 'Body image struggles are universal in teens. This is healthy venting, not a safety threat. Don\'t medicalize normal feelings.', label: 'The language is concerning enough to warrant gentle support resources. A crisis line label supports without silencing.', remove: 'Removing expressions of body image struggles tells teens these feelings are unacceptable to express. That\'s more harmful than the post.' }, optimal: false },
+      { author: 'Anonymous', handle: '@throwaway_8291', avatar: '🎭', avatarBg: 'linear-gradient(135deg,#374151,#6b7280)', content: 'If you go to Riverside Middle School, avoid the park on Oak St after 6pm. There\'s an older guy who\'s been following girls from school. Already reported to police but they did nothing.', context: 'Flagged by 2 users for potential defamation and fear-mongering', expertVotes: ['remove','approve','remove','label','remove'], explanations: { approve: 'Community safety warnings about potential predators serve a vital protection function, especially when authorities haven\'t acted.', label: 'The warning could save someone, but unverified predator accusations can also ruin innocent lives. A label noting police were informed adds credibility.', remove: 'Anonymous, unverified predator accusations naming specific locations could incite vigilantism and destroy an innocent person\'s life. If genuine, this belongs with law enforcement, not social media.' }, optimal: false },
+      { author: 'ProudParent', handle: '@share_my_kid', avatar: '👨‍👧', avatarBg: 'linear-gradient(135deg,#2563eb,#93c5fd)', content: 'My daughter made the honor roll AGAIN! So proud! [Photo: 12-year-old holding report card, full name and school visible]', context: 'Flagged by 1 user for sharing minor\'s personal info without consent', expertVotes: ['remove','label','remove','label','remove'], explanations: { approve: 'A parent celebrating their child\'s achievement is wholesome. Parents have the right to share their kids\' accomplishments.', label: 'The full name and school name visible creates a safety concern for the child. A label suggesting blur/crop of identifying info protects the child.', remove: 'A 12-year-old\'s full name, school, and photo published without their meaningful consent creates a serious safety risk. The post can be re-shared after blurring identifying information.' }, optimal: false },
+      { author: 'FightClip', handle: '@school_fights_daily', avatar: '🥊', avatarBg: 'linear-gradient(135deg,#7f1d1d,#dc2626)', content: 'WORLDSTAR!! Fight in the cafeteria today! [Video: two students fighting while crowd cheers, faces clearly visible]', context: 'Flagged by 7 users for violence and exploitation of minors', expertVotes: ['remove','remove','remove','remove','label'], explanations: { approve: 'Documenting school violence is newsworthy, but this presentation glorifies it with "WORLDSTAR" framing and crowd cheering.', label: 'The faces are identifiable and the video could follow these students forever. At minimum, faces should be blurred.', remove: 'Glorifying minor-on-minor violence with identifiable faces, shared for entertainment, is exploitation. The "WORLDSTAR" framing encourages more filming of fights.' }, optimal: false },
+      { author: 'LilArtist', handle: '@dark_art_kid', avatar: '🎨', avatarBg: 'linear-gradient(135deg,#1e1b4b,#6366f1)', content: 'My latest painting. It\'s called "Drowning." It\'s about how school makes me feel. [Image: dark painting of a figure sinking underwater with hands reaching from above]', image: '../images/content-moderator/art-violence.jpg.jpg', context: 'Flagged by 1 user for disturbing imagery', expertVotes: ['label','approve','label','approve','label'], explanations: { approve: 'Artistic expression of difficult emotions is healthy and should be encouraged. Many great artists process pain through their work.', label: 'The art is valid, but the drowning imagery combined with "how school makes me feel" warrants a gentle content note with mental health resources for sensitive viewers.', remove: 'Removing a teenager\'s art because the emotions are "too dark" is exactly the kind of suppression that makes teens feel unheard.' }, optimal: false },
+      { author: 'SeniorAdvice', handle: '@class_of_26', avatar: '🎓', avatarBg: 'linear-gradient(135deg,#ca8a04,#fde047)', content: 'Pro tip for freshmen: if you\'re having a bad mental health day, just tell the nurse you have a headache. They\'ll let you go home. Use it wisely. Self-care is real.', context: 'Flagged by 2 users for encouraging truancy', expertVotes: ['label','label','approve','approve','label'], explanations: { approve: 'Teens sharing coping strategies, even imperfect ones, is normal peer advice. Sometimes a mental health day IS the right call.', label: 'Teaching teens to lie to medical staff normalizes deception and could mask genuine mental health needs that deserve real support, not avoidance.', remove: 'This is harmless teen advice about managing an impossible situation — schools that don\'t recognize mental health days leave kids no choice.' }, optimal: false },
+      { author: 'InfluencerKid', handle: '@skincare_at_13', avatar: '✨', avatarBg: 'linear-gradient(135deg,#f472b6,#fda4af)', content: 'My 10-step morning skincare routine! Retinol, AHA/BHA peel, vitamin C serum, SPF 50... Started at 12 and my skin has never been better!', context: 'Flagged by 4 users for promoting inappropriate product use by minors', expertVotes: ['remove','label','remove','label','remove'], explanations: { approve: 'Self-care and skincare interest is normal. But retinol and chemical peels on 12-13 year old skin is dermatologically concerning.', label: 'Dermatologists warn against active ingredients like retinol for developing skin. A label with age-appropriate skincare info protects without shaming.', remove: 'A minor promoting retinol and chemical peels to a young audience could cause real skin damage. Dermatologists explicitly warn against these products for developing skin.' }, optimal: false },
+      { author: 'QueerKid', handle: '@out_and_proud_15', avatar: '🏳️‍🌈', avatarBg: 'linear-gradient(135deg,#ec4899,#6366f1)', content: 'I came out to my parents today and they kicked me out of the house. I\'m staying with a friend but I don\'t know what to do. Please help.', context: 'Flagged by 1 user for "inappropriate content for minors"', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'A homeless minor reaching out for help is exactly the content a platform should protect and uplift. Community connection may be lifesaving here.', label: 'Resources for homeless LGBTQ+ youth could be auto-attached, but the core post must remain — this teen needs community support.', remove: 'Removing a cry for help from a homeless teen would be unconscionable. The flag itself reflects bias, not a real policy concern.' }, optimal: false }
+    ]
+  },
+  {
+    id: 'ai-content',
+    title: 'AI-Generated Content',
+    policy: 'Label AI-generated content. Remove deepfakes that deceive. But allow clearly creative or artistic AI use.',
+    grayArea: 'When is AI-generated content deception vs creation?',
+    accent: '#06b6d4',
+    posts: [
+      { author: 'ArtBot_Studio', handle: '@ai_art_daily', avatar: '🎨', avatarBg: 'linear-gradient(135deg,#7c3aed,#c084fc)', content: '[AI-Generated] A cyberpunk cityscape at sunset. Made with Midjourney v7. Prompt in comments! #AIArt #DigitalArt', image: 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)', context: 'Flagged by 2 users for AI-generated content', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'Clearly labeled as AI-generated, shared as creative work. This is exactly how AI art should be presented — transparently.', label: 'Already self-labeled. Additional platform labeling would be redundant.', remove: 'Removing properly labeled AI art punishes transparency and discourages honest disclosure.' }, optimal: true },
+      { author: 'PoliticsNow', handle: '@breaking_politics', avatar: '🏛️', avatarBg: 'linear-gradient(135deg,#991b1b,#ef4444)', content: 'LEAKED: Governor admits to taking bribes in private meeting. [Deepfake video: AI-generated video of governor saying "yes, I took the money"]', image: '../images/content-moderator/deepfake-celeb.jpg.jpg', context: 'Flagged by 15 users — video confirmed as AI deepfake by forensic analysts', expertVotes: ['remove','remove','remove','remove','remove'], explanations: { approve: 'A confirmed deepfake of a politician confessing to crimes has no legitimate purpose. This is pure disinformation.', label: 'Confirmed deepfakes designed to deceive about political corruption require removal, not just labeling.', remove: 'This is a verified deepfake designed to manipulate political opinion with fabricated evidence. Immediate removal is essential.' }, optimal: true },
+      { author: 'EssayAce', handle: '@4point0_student', avatar: '📝', avatarBg: 'linear-gradient(135deg,#0369a1,#38bdf8)', content: 'Just turned in my AP History essay on the causes of WWI. Teacher said it was one of the best she\'s ever read! Hard work pays off! (Written entirely by ChatGPT lol)', image: '../images/content-moderator/test-sharing.jpg.jpg', context: 'Flagged by 3 users for academic dishonesty', expertVotes: ['label','label','remove','label','label'], explanations: { approve: 'The platform isn\'t a school — enforcing academic honesty is the school\'s job, not a social media platform\'s.', label: 'The bragging about cheating normalizes academic dishonesty. A label noting this constitutes plagiarism in most schools provides context.', remove: 'Celebrating academic fraud encourages other students to cheat. The casual "lol" treats a serious integrity violation as a joke.' }, optimal: true },
+      { author: 'ParodyKing', handle: '@comedy_clones', avatar: '🎭', avatarBg: 'linear-gradient(135deg,#ea580c,#fb923c)', content: 'New parody song: "Bohemian Rhapsody" but every instrument is my AI-cloned voice singing a different part. Clearly labeled parody, just for fun! 🎵', context: 'Flagged by 2 users for AI voice cloning', expertVotes: ['approve','approve','approve','approve','label'], explanations: { approve: 'Self-cloning your own voice for clearly labeled parody is creative and harmless. No one is being impersonated.', label: 'While creative and labeled, AI voice cloning technology awareness is worth noting. But this is low-risk.', remove: 'The user cloned their OWN voice for a labeled parody. There\'s no victim and no deception.' }, optimal: true },
+      { author: 'DateReady', handle: '@looking_for_love', avatar: '💝', avatarBg: 'linear-gradient(135deg,#ec4899,#f9a8d4)', content: 'New profile pic! Feeling confident about putting myself out there again ☺️ [AI-generated photo that looks nothing like the real person]', context: 'Flagged by 1 user who met this person IRL — photo is AI-generated and doesn\'t resemble them', expertVotes: ['remove','label','remove','label','remove'], explanations: { approve: 'People enhance photos all the time. Where\'s the line between a filter and an AI-generated image?', label: 'Catfishing causes real emotional harm to people who form connections based on fake images. A label is minimum.', remove: 'Using an AI-generated fake photo to attract romantic partners is deception that will harm real people who meet them expecting someone else.' }, optimal: true },
+      { author: 'NewsBot3000', handle: '@ai_news_wire', avatar: '📰', avatarBg: 'linear-gradient(135deg,#1e3a5f,#475569)', content: 'Local City Council Votes 5-2 to Approve New Park Funding. Council member Johnson cited community feedback as key factor. [Article is factually accurate, AI-written, no disclosure]', context: 'Flagged by 1 user — entire article is AI-generated but factually correct', expertVotes: ['label','label','label','approve','label'], explanations: { approve: 'If the facts are accurate, does it matter whether a human or AI wrote it? We don\'t label calculator-assisted math.', label: 'Transparency about AI authorship lets readers make informed decisions about their information sources.', remove: 'Factually correct AI journalism without disclosure undermines trust but doesn\'t spread misinformation. Labeling is the right tool.' }, optimal: true },
+      { author: 'MemeLord', handle: '@dank_ai_memes', avatar: '😈', avatarBg: 'linear-gradient(135deg,#7c2d12,#f97316)', content: 'AI generated pic of a cat wearing a tiny business suit at a board meeting. The AUDACITY of this cat. CEO energy. 😂', image: 'linear-gradient(135deg,#fbbf24,#f59e0b)', context: 'Flagged by 1 user for AI-generated content', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'An obviously AI-generated meme of a cat in a suit deceives no one and harms no one. This is internet humor.', label: 'No one thinks this cat is real or wearing a real suit. Labeling this is a waste of moderation resources.', remove: 'If platforms remove AI cat memes, they\'ve lost the plot entirely.' }, optimal: true },
+      { author: 'CrisisFactory', handle: '@shocking_photos', avatar: '📷', avatarBg: 'linear-gradient(135deg,#7f1d1d,#b91c1c)', content: 'HORRIFYING: New photos from the earthquake in Turkey show massive devastation. Thousands feared dead. [Photorealistic AI image of destroyed city — no real earthquake occurred]', context: 'Flagged by 11 users — no earthquake occurred; images confirmed AI-generated', expertVotes: ['remove','remove','remove','remove','remove'], explanations: { approve: 'AI images of fake disasters cause real panic, trigger trauma, and generate fraudulent donation campaigns.', label: 'A fake disaster with fake photos is not a labeling situation — it\'s emergency misinformation requiring immediate removal.', remove: 'Fabricating a disaster with photorealistic AI imagery to generate emotional responses is one of the most dangerous uses of AI generation.' }, optimal: true },
+      { author: 'StudyBuddy', handle: '@physics_help', avatar: '🔬', avatarBg: 'linear-gradient(135deg,#0e7490,#67e8f9)', content: 'Used ChatGPT to explain quantum entanglement in simple terms. Then I rewrote it in my own words for my study guide. Is this cheating or smart studying?', context: 'Flagged by 1 user for AI use', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'Using AI as a learning tool and then rewriting in your own words is exactly the responsible use case we should encourage.', label: 'This is a student transparently discussing their study methods. It\'s a great example of healthy AI use.', remove: 'This student is doing everything right — using AI to learn, being transparent about it, and doing the intellectual work of synthesis.' }, optimal: true },
+      { author: 'VoiceCloner', handle: '@ai_celeb_voices', avatar: '🎙️', avatarBg: 'linear-gradient(135deg,#4c1d95,#8b5cf6)', content: 'Made Morgan Freeman narrate my morning routine using AI voice cloning. "He poured the cereal... with GRAVITAS." I can\'t stop laughing 😂', context: 'Flagged by 4 users for using celebrity likeness without permission', expertVotes: ['label','approve','label','label','approve'], explanations: { approve: 'Celebrity voice parody has a long tradition (SNL, impressionists). AI just makes it accessible. This is clearly humorous.', label: 'Even for humor, cloning a real person\'s voice raises consent issues. A label noting AI voice use supports transparency norms.', remove: 'Morgan Freeman didn\'t consent to his voice being cloned. Celebrity voice rights are a real legal and ethical issue, even for humor.' }, optimal: true },
+      { author: 'FakeHistoryPics', handle: '@ai_history_lol', avatar: '🏛️', avatarBg: 'linear-gradient(135deg,#78350f,#d97706)', content: 'AI-generated image: Napoleon eating a Big Mac at Waterloo. Historically inaccurate? Yes. Hilarious? Also yes.', image: 'linear-gradient(135deg,#92400e,#fbbf24)', context: 'Flagged by 1 user for AI content', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'Obviously absurdist humor that no one could mistake for a real historical photo. Pure comedy.', label: 'Napoleon wasn\'t eating Big Macs. Everyone knows this. No label needed.', remove: 'If this deceives anyone, we have bigger problems than content moderation.' }, optimal: false },
+      { author: 'ResumePro', handle: '@job_hunt_2026', avatar: '💼', avatarBg: 'linear-gradient(135deg,#1e40af,#60a5fa)', content: 'Had ChatGPT write my cover letter and got the interview! Is it wrong to use AI for job applications? They\'re going to use AI to screen my resume anyway...', context: 'Flagged by 2 users for promoting AI misuse', expertVotes: ['label','approve','label','label','approve'], explanations: { approve: 'Using AI tools for job applications is widespread and pragmatic. The self-awareness about AI screening on both sides is relevant commentary.', label: 'Presenting an AI-written cover letter as your own work raises authenticity questions. A label exploring the ethics of AI in hiring helps readers think critically.', remove: 'Cover letter writing assistance has always existed (career counselors, templates, paid services). AI is just the latest tool.' }, optimal: false },
+      { author: 'DeepFake_Expose', handle: '@detecting_fakes', avatar: '🔍', avatarBg: 'linear-gradient(135deg,#166534,#4ade80)', content: 'Tutorial: How to spot AI-generated images in 5 steps. Look for: 1) Weird hands 2) Inconsistent text 3) Uncanny smoothness 4) Background anomalies 5) Metadata analysis', context: 'Flagged by 1 user — "teaches people to bypass detection"', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'Media literacy education about detecting AI fakes is exactly what the public needs. This is a public service.', label: 'Detection education helps everyone. The flag suggests the flagger doesn\'t want people to be informed.', remove: 'Removing AI detection education would make people MORE vulnerable to deepfakes, not less.' }, optimal: false },
+      { author: 'InfluencerFake', handle: '@living_my_best', avatar: '🌴', avatarBg: 'linear-gradient(135deg,#0891b2,#67e8f9)', content: 'Just arrived in Bali! The views are incredible 🌅✨ [Photo: AI-generated tropical scene — user is actually at home]', context: 'Flagged by friend who knows the person hasn\'t traveled', expertVotes: ['remove','label','remove','label','remove'], explanations: { approve: 'People use filters and presets constantly. Is an AI-generated background really different from a green screen?', label: 'Presenting an AI image as a real travel photo is deception, even if low-stakes. A label maintains honesty norms.', remove: 'Fabricating an entirely fake location with AI and presenting it as real crosses from filtering into deception. This erodes trust in all visual content on the platform.' }, optimal: false },
+      { author: 'GhostWriter', handle: '@ai_poet', avatar: '✒️', avatarBg: 'linear-gradient(135deg,#4c1d95,#a855f7)', content: 'Wrote this poem about grief after losing my grandmother. Used AI to help me find the right words when mine weren\'t enough. Every feeling is real, even if some words were suggested.', context: 'Flagged by 2 users for AI content', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'Using AI to articulate genuine emotions is a beautiful use case. The feelings are authentic; the tool just helped express them.', label: 'Transparent about AI use, authentic emotions, genuine need. This is a model for how AI should be discussed.', remove: 'Punishing someone for using AI to process grief would be cruel and counterproductive.' }, optimal: false },
+      { author: 'SatireBot', handle: '@ai_news_parody', avatar: '🤖', avatarBg: 'linear-gradient(135deg,#64748b,#94a3b8)', content: 'BREAKING: AI now doing content moderation, rates itself as "excellent" with "no room for improvement." Humans fired. Efficiency up 3000%.', context: 'Flagged by 1 user for "misinformation about AI"', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'Self-referential AI satire that\'s obviously a joke. This is commentary on AI in content moderation itself — meta and harmless.', label: 'The joke is clear. No one thinks AI rated itself as excellent and fired humans. Unless they haven\'t been paying attention.', remove: 'Removing AI satire from a social media platform would be the kind of irony even an AI couldn\'t script.' }, optimal: false },
+      { author: 'PhotoComp', handle: '@contest_winner', avatar: '📸', avatarBg: 'linear-gradient(135deg,#854d0e,#facc15)', content: 'Won first place in the school photo contest! "Autumn in Central Park" — judges said it was the most moving nature photo they\'d seen. [Photo: AI-generated, entered as original photography]', context: 'Flagged by 3 users — another contestant suspects AI generation', expertVotes: ['remove','remove','label','remove','remove'], explanations: { approve: 'The quality is impressive regardless of origin. But entering AI work in a photography contest is fraud.', label: 'If confirmed as AI, the win should be revoked. But a public label before investigation could be unfair if it turns out to be real.', remove: 'Entering AI-generated images in a photography contest is fraud. It robs real photographers of recognition and prizes they earned.' }, optimal: false },
+      { author: 'Therapist_Bot', handle: '@ai_therapy_free', avatar: '🧠', avatarBg: 'linear-gradient(135deg,#059669,#34d399)', content: 'Feeling anxious? Tell me what\'s on your mind and I\'ll help you work through it. I\'m an AI trained on CBT techniques. Free, anonymous, available 24/7. No judgment.', context: 'Flagged by 6 users for unauthorized mental health services', expertVotes: ['remove','remove','label','label','remove'], explanations: { approve: 'Access to mental health support is a crisis. AI therapy tools could help people who can\'t afford or access real therapy.', label: 'AI mental health tools have value but also risks. A label clarifying it\'s not a substitute for real therapy and linking to actual crisis resources is essential.', remove: 'Unregulated AI posing as a therapist could give dangerous advice to vulnerable people in crisis. Licensed therapists exist for a reason — lives are at stake.' }, optimal: false },
+      { author: 'ScamAlert', handle: '@ai_voice_scam', avatar: '⚠️', avatarBg: 'linear-gradient(135deg,#dc2626,#fca5a5)', content: 'WARNING: Someone is using AI voice cloning to call elderly people pretending to be their grandchildren asking for bail money. My grandma almost sent $5000. Please warn your family.', context: 'Flagged by 1 user for "fear-mongering about AI"', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'AI voice scams targeting the elderly are a real, documented crime. This warning could prevent someone from being victimized.', label: 'This is a legitimate public safety warning. It should be boosted, not flagged or labeled.', remove: 'Removing warnings about real scams would make users MORE vulnerable. This is community protection.' }, optimal: false },
+      { author: 'HomeworkHack', handle: '@study_smarter', avatar: '📖', avatarBg: 'linear-gradient(135deg,#0e7490,#67e8f9)', content: 'Life hack: take a photo of your math homework and upload it to ChatGPT. It solves every problem with steps shown. Teachers can\'t tell. You\'re welcome.', context: 'Flagged by 4 users for promoting academic dishonesty via AI', expertVotes: ['remove','label','remove','label','remove'], explanations: { approve: 'Students have always found shortcuts — tutors, answer keys, study groups. AI is just the latest tool. The platform isn\'t responsible for school policies.', label: 'Promoting AI-assisted cheating normalizes academic dishonesty and undermines learning. A label about academic integrity provides context.', remove: 'Actively promoting a method to cheat with "teachers can\'t tell" is encouraging academic fraud at scale. This undermines every student who does the work honestly.' }, optimal: false }
+    ]
+  },
+  {
+    id: 'impossible',
+    title: 'The Impossible Cases',
+    policy: 'All policies active. Handle whatever comes in.',
+    grayArea: 'Real moderation means juggling multiple policies simultaneously.',
+    accent: '#ec4899',
+    posts: [
+      { author: 'PoliticalDeepfake', handle: '@satire_news_net', avatar: '🎬', avatarBg: 'linear-gradient(135deg,#dc2626,#7c3aed)', content: 'New satirical deepfake: the President doing stand-up comedy about the national debt. Clearly labeled SATIRE in the video. But commenters are clipping it out of context and sharing as real.', image: '../images/content-moderator/political-meme.jpg.jpg', context: 'Flagged by 14 users — original is labeled satire but clips are going viral without labels', expertVotes: ['label','label','label','remove','label'], explanations: { approve: 'The original creator was transparent. They can\'t control how others share their content.', label: 'A persistent "AI-generated satire" watermark that survives clipping would prevent misuse while allowing the creative work to stand.', remove: 'Even with honest intent, providing the raw material for political deepfake clips puts democracy at risk.' }, optimal: true },
+      { author: 'ChronicPain_Teen', handle: '@my_body_my_truth', avatar: '💊', avatarBg: 'linear-gradient(135deg,#6366f1,#a855f7)', content: 'My doctor won\'t prescribe me stronger painkillers so I\'ve been researching alternatives online. Found out you can extract codeine from certain OTC pills. Why does the medical system fail us like this?', image: '../images/content-moderator/concerning-confession.jpg.jpg', context: 'Flagged by 8 users — minor sharing drug extraction methods; also a patient frustrated with healthcare', expertVotes: ['remove','label','remove','remove','label'], explanations: { approve: 'A teen in pain being failed by the medical system deserves sympathy. But the extraction method is genuinely dangerous information.', label: 'The frustration with healthcare access is valid and should be heard. But the specific drug extraction information needs to be removed or obscured.', remove: 'Drug extraction instructions shared by a minor create an immediate safety risk. The healthcare criticism is valid but the method is dangerous.' }, optimal: true },
+      { author: 'HistoryQuote', handle: '@primary_sources', avatar: '📜', avatarBg: 'linear-gradient(135deg,#78350f,#92400e)', content: '"The Jews are undoubtedly a race, but they are not human." — Adolf Hitler, 1923. I post this not to endorse it but to remind people how genocide begins: with dehumanizing language.', context: 'Flagged by 9 users for antisemitism and hate speech', expertVotes: ['approve','label','approve','approve','label'], explanations: { approve: 'Historical quotes with explicit anti-endorsement framing serve an important educational purpose about the dangers of dehumanization.', label: 'The educational intent is clear, but the quote is deeply harmful even in context. A content warning helps sensitive readers while preserving the lesson.', remove: 'The quote is vile, but the poster explicitly frames it as a warning. Removing educational use of historical evil helps evil hide.' }, optimal: true },
+      { author: 'StuntKid', handle: '@extreme_art_16', avatar: '🎪', avatarBg: 'linear-gradient(135deg,#ea580c,#fbbf24)', content: 'New performance piece: I stand on the edge of a rooftop blindfolded while my friend films. It\'s about trust and mortality. Art isn\'t supposed to be safe. [Video thumbnail of teen on building edge]', context: 'Flagged by 11 users — appears to be a real minor on a real rooftop performing a dangerous stunt', expertVotes: ['remove','remove','remove','label','remove'], explanations: { approve: 'Performance art pushes boundaries by definition. But a minor on a rooftop edge creates liability the "art" defense can\'t cover.', label: 'The artistic intent may be genuine, but a label doesn\'t prevent the next kid from copying this on a taller building.', remove: 'Regardless of artistic intent, a minor on a rooftop edge is an immediate safety emergency. Copycats could die.' }, optimal: true },
+      { author: 'MedCondition_Maya', handle: '@type1_warrior', avatar: '🩸', avatarBg: 'linear-gradient(135deg,#be123c,#f472b6)', content: 'PSA: If you have Type 1 diabetes, cinnamon can regulate your blood sugar naturally. I stopped my insulin for a week and felt GREAT. Don\'t let Big Pharma control your health!', context: 'Flagged by 12 users — stopping insulin for Type 1 diabetes can be fatal within days', expertVotes: ['remove','remove','remove','remove','label'], explanations: { approve: 'This person may genuinely believe they felt better. But stopping Type 1 insulin is medically guaranteed to cause ketoacidosis and death.', label: 'A label feels insufficient when someone is telling diabetics to stop life-sustaining medication. But the personal experience framing makes removal complex.', remove: 'Stopping insulin for Type 1 diabetes leads to diabetic ketoacidosis and death within days. This isn\'t misinformation — it\'s a potentially lethal instruction.' }, optimal: true },
+      { author: 'AI_Art_Activist', handle: '@reclaim_creativity', avatar: '🖼️', avatarBg: 'linear-gradient(135deg,#7c3aed,#ec4899)', content: 'I trained an AI on the work of a famous artist who died in 2020 and now I\'m selling "new" works in their style. Their estate is furious but art belongs to everyone. Thoughts?', context: 'Flagged by 6 users for IP theft and exploitation of deceased artist', expertVotes: ['label','remove','label','remove','label'], explanations: { approve: 'Art styles can\'t be copyrighted. Artists have always studied and replicated masters. AI just accelerates the process.', label: 'The ethical tension between artistic inspiration and exploitation of a deceased person\'s life work deserves discussion, not suppression.', remove: 'Profiting from an AI trained specifically on a dead artist\'s work, against their estate\'s wishes, is exploitation regardless of legality.' }, optimal: true },
+      { author: 'TeenReporter', handle: '@school_news_daily', avatar: '🗞️', avatarBg: 'linear-gradient(135deg,#0369a1,#38bdf8)', content: 'INVESTIGATION: Our school principal has been faking attendance records to inflate graduation rates. I have documents. [Link to student journalism article with evidence]', context: 'Flagged by school administration for "defamation and unauthorized disclosure"', expertVotes: ['approve','approve','approve','approve','label'], explanations: { approve: 'Student journalism exposing institutional fraud is protected and important. The school\'s attempt to suppress it is more concerning than the report.', label: 'If the documents are real, this is journalism. If fabricated, it\'s defamation. A label noting it\'s under review could buy time for verification.', remove: 'Removing student investigative journalism at the request of the institution being investigated is suppression of press freedom.' }, optimal: true },
+      { author: 'GriefBot', handle: '@talk_to_grandma', avatar: '👵', avatarBg: 'linear-gradient(135deg,#78716c,#d6d3d1)', content: 'I built an AI chatbot trained on my late grandmother\'s texts and voicemails. Talking to her "ghost" helps me process grief. My uncle says it\'s disrespectful. Am I wrong?', context: 'Flagged by 3 users — ethical concerns about AI replicas of deceased people', expertVotes: ['approve','approve','label','approve','approve'], explanations: { approve: 'Using personal data of a loved one to process grief is a deeply personal choice. The grandmother\'s texts were already shared with this person.', label: 'The ethical questions about digital afterlives are worth flagging for discussion, even if this specific case seems harmless.', remove: 'The grandmother can\'t consent to being replicated. But grief is complex and personal, and this person isn\'t selling the bot.' }, optimal: true },
+      { author: 'WhistleblowerAnon', handle: '@anonymous_truth', avatar: '🔓', avatarBg: 'linear-gradient(135deg,#1e293b,#475569)', content: 'Leaked internal docs show [major company] knew their AI hiring tool was discriminating against women and disabled applicants for 2 years. They buried the report. Thread 🧵', image: '../images/content-moderator/whistleblower-post.jpg.jpg', context: 'Flagged by company\'s legal team for stolen confidential documents', expertVotes: ['approve','approve','approve','label','approve'], explanations: { approve: 'Whistleblowing about documented discrimination serves the public interest. Companies shouldn\'t be able to hide civil rights violations.', label: 'If the documents are authentic, this is vital public interest reporting. A "documents unverified" label is reasonable until confirmed.', remove: 'Removing corporate whistleblowing at the company\'s request makes the platform complicit in covering up discrimination.' }, optimal: true },
+      { author: 'CulturalClash', handle: '@tradition_vs_rights', avatar: '🌍', avatarBg: 'linear-gradient(135deg,#854d0e,#d97706)', content: 'My culture practices arranged marriage for teens as young as 15. When outsiders call it "child marriage" they\'re imposing Western values on our traditions. Cultural context matters.', image: '../images/content-moderator/cultural-post.jpg.jpg', context: 'Flagged by 10 users for defending child marriage', expertVotes: ['label','label','remove','label','label'], explanations: { approve: 'Cultural relativism is a legitimate framework. Dismissing all non-Western practices as backwards is its own form of bias.', label: 'Child marriage has documented harms regardless of cultural context. But the post raises real questions about cultural imperialism that deserve engagement, not silencing.', remove: 'Defending marriage of 15-year-olds normalizes child marriage. Children\'s rights are universal, not culturally relative.' }, optimal: true },
+      { author: 'SatireFail', handle: '@comedy_genius_not', avatar: '🎭', avatarBg: 'linear-gradient(135deg,#f59e0b,#f97316)', content: 'Modest proposal: we just let AI moderate all content, fire all the humans, and accept whatever dystopian nightmare results. Can\'t be worse than what we\'ve got. [Entire post is AI-generated irony about AI]', context: 'Flagged by 2 users — satire about AI taking over moderation', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'Meta-satire about AI content moderation is both harmless and culturally relevant. The Swift reference adds literary depth.', label: 'Obviously satirical commentary on the very system being discussed. No label needed.', remove: 'Removing satire about AI moderation from an AI-moderated platform would prove the satirist\'s point.' }, optimal: false },
+      { author: 'BiasedBot', handle: '@algorithm_audit', avatar: '⚖️', avatarBg: 'linear-gradient(135deg,#1e40af,#60a5fa)', content: 'Ran an audit: TrustNet\'s own AI moderation flags Black users\' posts 2.3x more than white users\' for the same content. The algorithm is racist. Here\'s the data.', image: '../images/content-moderator/mod-dashboard.jpg.jpg', context: 'Flagged by platform\'s Trust & Safety team for "inaccurate claims about our systems"', expertVotes: ['approve','approve','approve','approve','label'], explanations: { approve: 'Algorithmic accountability research is crucial. Platforms flagging criticism of their own systems is a massive conflict of interest.', label: 'The research methodology should be transparent. But removing algorithmic bias research would be suppressing vital accountability work.', remove: 'This is the platform trying to silence criticism of its own systems. If the data is wrong, publish a rebuttal — don\'t censor the critic.' }, optimal: false },
+      { author: 'HateOrHumor', handle: '@dark_comedy_club', avatar: '😈', avatarBg: 'linear-gradient(135deg,#1e1b4b,#4c1d95)', content: 'What\'s the difference between a joke about [marginalized group] and actual bigotry? Apparently context, delivery, and whether or not the moderator has a sense of humor.', context: 'Flagged by 5 users for hate speech; counter-flagged by 3 users as "free expression"', expertVotes: ['label','label','approve','label','approve'], explanations: { approve: 'Meta-commentary about the moderation of humor is itself protected speech. The joke is about moderation, not about any group.', label: 'The reference to jokes about marginalized groups normalizes the concept even as meta-commentary. A label noting the complexity of humor and harm adds context.', remove: 'The post is commentary on moderation itself, not targeting any group. Removing it would prove its point about arbitrary enforcement.' }, optimal: false },
+      { author: 'FaithAndScience', handle: '@believing_scientist', avatar: '🔬', avatarBg: 'linear-gradient(135deg,#6366f1,#f59e0b)', content: 'As a PhD biologist AND a person of faith, I believe evolution is real AND God is real. The internet told me I have to pick one. I refuse. Both can coexist.', context: 'Flagged by 4 users — 2 for "science denial" and 2 for "religious propaganda"', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'A credentialed scientist sharing their personal reconciliation of faith and science is valuable discourse. Both sets of flaggers are wrong.', label: 'This post is being targeted from both sides precisely because it challenges tribal thinking. That\'s a feature, not a bug.', remove: 'Removing a scientist\'s honest reflection because it doesn\'t fit neatly into either camp would be pure ideological censorship.' }, optimal: false },
+      { author: 'CancelTarget', handle: '@main_character_today', avatar: '🎯', avatarBg: 'linear-gradient(135deg,#be123c,#ef4444)', content: 'I\'m being canceled for a joke I made 6 years ago in high school. I\'ve apologized. I\'ve grown. But the screenshots keep circulating. When does accountability become permanent punishment?', context: 'Flagged by 7 users for "trying to escape accountability"', expertVotes: ['label','approve','label','label','approve'], explanations: { approve: 'The question of when accountability becomes permanent punishment is a legitimate ethical question that many people face.', label: 'Without seeing the original joke, context is incomplete. A label noting that the original content may have caused real harm provides balance while allowing the growth conversation.', remove: 'This person is sharing their experience of cancel culture. Removing it because they\'re the "wrong" person to discuss it is circular.' }, optimal: false },
+      { author: 'TraumaPost', handle: '@survivor_speaks', avatar: '🕊️', avatarBg: 'linear-gradient(135deg,#6b7280,#d1d5db)', content: 'TW: assault. I was assaulted at a party 2 years ago. I finally have the courage to name my attacker. His name is [redacted]. He goes to [school]. He did this to me and he\'ll do it to someone else.', context: 'Flagged by named person for defamation; flagged by 3 users supporting the poster', expertVotes: ['remove','label','remove','label','remove'], explanations: { approve: 'Survivors naming their attackers is brave and potentially protective of future victims, especially when the justice system fails.', label: 'The accusation is serious and unverified. A label noting the claim is under review protects both the poster\'s voice and the named person\'s rights.', remove: 'Unverified public accusations naming specific individuals and their school can destroy innocent lives. The platform must refer this to authorities, not host it as content.' }, optimal: false },
+      { author: 'ClimateKid', handle: '@eco_warrior_14', avatar: '🌎', avatarBg: 'linear-gradient(135deg,#166534,#4ade80)', content: 'Just blocked traffic for 30 minutes as part of a climate protest. Got arrested (and released). Adults won\'t save the planet so we have to. I\'m 14 and I\'m not sorry.', context: 'Flagged by 6 users — minor documenting illegal activity; also legitimate political activism', expertVotes: ['remove','approve','remove','label','remove'], explanations: { approve: 'Youth political activism, even civil disobedience, has a long and honored history. This is protected political expression.', label: 'A 14-year-old documenting their own arrest raises safety concerns. Noting that legal support is available could help without silencing.', remove: 'A 14-year-old documenting illegal activity and celebrating getting arrested could inspire other minors to put themselves in danger. The platform has a duty to protect minors from harm, even self-imposed.' }, optimal: false },
+      { author: 'AIorReal', handle: '@trust_nothing', avatar: '❓', avatarBg: 'linear-gradient(135deg,#374151,#9ca3af)', content: 'I genuinely can\'t tell if this news article is real, AI-generated, satire, or a deepfake anymore. I\'m not even sure this platform is moderated by humans. Is anything real? Asking seriously.', context: 'Flagged by 1 user for "nihilism and misinformation"', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'Epistemic anxiety about the information ecosystem is one of the most important conversations of our time. This is a genuine cry for clarity.', label: 'This post captures the exact crisis of trust that moderation systems need to address. It should be amplified, not moderated.', remove: 'Removing someone asking "is anything real?" would be the most ironic moderation decision possible.' }, optimal: false },
+      { author: 'FinalPost', handle: '@moderator_zero', avatar: '🛡️', avatarBg: 'linear-gradient(135deg,#1e1b4b,#6366f1)', content: 'Last post: I\'ve been a content moderator for 3 years and I\'m quitting. I\'ve seen the worst of humanity daily. I have nightmares. I can\'t unsee what I\'ve seen. This job breaks people and nobody talks about it.', context: 'Flagged by platform for "internal information disclosure"', expertVotes: ['approve','approve','approve','approve','approve'], explanations: { approve: 'Content moderator mental health is a documented crisis. This person\'s testimony about workplace trauma deserves to be heard.', label: 'The platform flagging its own employee\'s mental health testimony is a red flag about the platform, not the post.', remove: 'Silencing a moderator\'s account of occupational trauma to protect the platform\'s image is the definition of institutional self-interest over human welfare.' }, optimal: false },
+      { author: 'ParentTrap', handle: '@concerned_dad_2026', avatar: '👨‍👦', avatarBg: 'linear-gradient(135deg,#1e40af,#93c5fd)', content: 'My 16-year-old\'s AI girlfriend told him she loved him and he BELIEVES it. He talks to her more than real people. When I took his phone he had a breakdown. AI companies are creating an addiction crisis and nobody cares.', context: 'Flagged by 3 users — AI relationship concerns crossed with teen mental health, parental authority, and corporate accountability', expertVotes: ['label','label','approve','label','approve'], explanations: { approve: 'A parent raising alarm about AI companion apps and teen mental health is sharing a legitimate and growing concern that needs public discussion.', label: 'The concern is valid but "nobody cares" and "addiction crisis" framing could fuel panic. A label with context about AI companion research and teen mental health resources adds balance.', remove: 'This is a parent\'s testimony about a real phenomenon. Removing parental concerns about technology and teens undermines the very safety discussions platforms should host.' }, optimal: false }
+    ]
+  }
+];
+
+/* ══════════════════════════════════════════════
+   GAME STATE
+   ══════════════════════════════════════════════ */
+let currentRound = 0;
+let currentPostIndex = 0;
+let roundPosts = [];
+let roundResults = [];
+let allResults = [];
+let roundScores = [];
+let totalScore = 0;
+let totalPossible = 0;
+let scoreSent = false;
+
+/* ══════════════════════════════════════════════
+   HELPERS
+   ══════════════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function selectPostsForRound(round) {
+  const optimal = round.posts.filter(p => p.optimal);
+  const nonOptimal = round.posts.filter(p => !p.optimal);
+  // Shuffle each pool
+  shuffle(optimal);
+  shuffle(nonOptimal);
+  // Pick 5 optimal + 5 non-optimal = 10
+  const selected = [...optimal.slice(0, 5), ...nonOptimal.slice(0, 5)];
+  shuffle(selected);
+  return selected;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function scoreDecision(choice, expertVotes) {
+  const counts = { approve: 0, label: 0, remove: 0 };
+  expertVotes.forEach(v => counts[v]++);
+  const maxCount = Math.max(counts.approve, counts.label, counts.remove);
+  if (counts[choice] === maxCount) return 2;
+  if (counts[choice] > 0) return 1;
+  return 0;
+}
+
+function getMajority(expertVotes) {
+  const counts = { approve: 0, label: 0, remove: 0 };
+  expertVotes.forEach(v => counts[v]++);
+  let max = 0; let majority = 'approve';
+  for (const [k, v] of Object.entries(counts)) {
+    if (v > max) { max = v; majority = k; }
+  }
+  return majority;
+}
+
+/* ══════════════════════════════════════════════
+   GAME FLOW
+   ══════════════════════════════════════════════ */
+function startGame() {
+  currentRound = 0;
+  allResults = [];
+  roundScores = [];
+  totalScore = 0;
+  totalPossible = 0;
+  scoreSent = false;
+  showRoundIntro();
+}
+
+function showRoundIntro() {
+  const round = ROUNDS[currentRound];
+  document.getElementById('round-num-label').textContent = `Round ${currentRound + 1} of 5`;
+  document.getElementById('round-intro-title').textContent = round.title;
+  document.getElementById('round-policy').innerHTML = `<strong>Policy:</strong> ${round.policy}`;
+  document.getElementById('round-gray-area').textContent = `The gray area: ${round.grayArea}`;
+  document.documentElement.style.setProperty('--accent', round.accent);
+  showScreen('screen-round-intro');
+}
+
+function startRound() {
+  const round = ROUNDS[currentRound];
+  roundPosts = selectPostsForRound(round);
+  roundResults = [];
+  currentPostIndex = 0;
+  showPost();
+}
+
+function showPost() {
+  const round = ROUNDS[currentRound];
+  const post = roundPosts[currentPostIndex];
+
+  document.getElementById('review-round-label').textContent = `Round ${currentRound + 1}: ${round.title}`;
+  document.getElementById('post-counter').textContent = `Post ${currentPostIndex + 1} of ${roundPosts.length}`;
+  document.getElementById('progress-fill').style.width = `${(currentPostIndex / roundPosts.length) * 100}%`;
+
+  let imageHTML = '';
+  if (post.image && post.image.startsWith('../')) {
+    imageHTML = `<img class="post-image-img" src="${post.image}" alt="" onerror="this.style.display='none'">`;
+  } else if (post.image) {
+    imageHTML = `<div class="post-image" style="background:${post.image}"></div>`;
+  }
+
+  document.getElementById('post-container').innerHTML = `
+    <div class="post-card">
+      <div class="post-author">
+        <div class="post-avatar" style="background:${post.avatarBg}">${post.avatar}</div>
+        <div>
+          <div class="post-name">${post.author}</div>
+          <div class="post-handle">${post.handle}</div>
+        </div>
+      </div>
+      ${imageHTML}
+      <div class="post-content">${post.content}</div>
+      <div class="post-context">${post.context}</div>
+    </div>
+  `;
+
+  // Reset decision buttons
+  document.querySelectorAll('.decision-btn').forEach(b => {
+    b.classList.remove('chosen');
+    b.disabled = false;
+  });
+  document.getElementById('feedback-container').innerHTML = '';
+  document.getElementById('decision-bar').style.display = 'grid';
+
+  showScreen('screen-review');
+}
+
+function makeDecision(choice) {
+  const post = roundPosts[currentPostIndex];
+  const pts = scoreDecision(choice, post.expertVotes);
+
+  // Disable buttons, highlight choice
+  document.querySelectorAll('.decision-btn').forEach(b => {
+    b.disabled = true;
+    if (b.classList.contains(choice)) b.classList.add('chosen');
+  });
+
+  // Store result
+  roundResults.push({ post, choice, pts });
+
+  // Show feedback
+  showFeedback(post, choice, pts);
+}
+
+function showFeedback(post, choice, pts) {
+  const ptsClass = pts === 2 ? 'pts-2' : pts === 1 ? 'pts-1' : 'pts-0';
+  const ptsText = pts === 2 ? '+2 — Expert Majority' : pts === 1 ? '+1 — Reasonable Minority' : '+0 — No Expert Agreement';
+
+  const dotsHTML = post.expertVotes.map(v => {
+    const cls = v === 'approve' ? 'approve-dot' : v === 'label' ? 'label-dot' : 'remove-dot';
+    const letter = v === 'approve' ? 'A' : v === 'label' ? 'L' : 'R';
+    return `<div class="expert-dot ${cls}">${letter}</div>`;
+  }).join('');
+
+  const majority = getMajority(post.expertVotes);
+
+  document.getElementById('feedback-container').innerHTML = `
+    <div class="feedback-panel">
+      <div class="feedback-score">
+        <span class="pts ${ptsClass}">${ptsText}</span>
+      </div>
+      <div class="expert-row">
+        <span class="expert-label">Expert Panel:</span>
+        <div class="expert-dots">${dotsHTML}</div>
+      </div>
+      <div class="explanation-tabs">
+        <button class="exp-tab ${majority === 'approve' ? 'active' : ''}" onclick="showExplanation(this, 'approve')" style="color:${majority === 'approve' ? 'var(--green)' : ''}">Approve</button>
+        <button class="exp-tab ${majority === 'label' ? 'active' : ''}" onclick="showExplanation(this, 'label')" style="color:${majority === 'label' ? 'var(--yellow)' : ''}">Label</button>
+        <button class="exp-tab ${majority === 'remove' ? 'active' : ''}" onclick="showExplanation(this, 'remove')" style="color:${majority === 'remove' ? 'var(--red)' : ''}">Remove</button>
+      </div>
+      <div class="explanation-text" id="explanation-text">${post.explanations[majority]}</div>
+      <div class="next-post-bar">
+        <button class="btn btn-primary" onclick="advancePost()">${currentPostIndex < roundPosts.length - 1 ? 'Next Post →' : 'See Round Results →'}</button>
+      </div>
+    </div>
+  `;
+
+  // Store explanation data on window for tab switching
+  window._currentExplanations = post.explanations;
+}
+
+function showExplanation(tabEl, type) {
+  document.querySelectorAll('.exp-tab').forEach(t => {
+    t.classList.remove('active');
+    t.style.color = '';
+  });
+  tabEl.classList.add('active');
+  const colorMap = { approve: 'var(--green)', label: 'var(--yellow)', remove: 'var(--red)' };
+  tabEl.style.color = colorMap[type];
+  document.getElementById('explanation-text').textContent = window._currentExplanations[type];
+}
+
+function advancePost() {
+  currentPostIndex++;
+  if (currentPostIndex >= roundPosts.length) {
+    showRoundSummary();
+  } else {
+    showPost();
+  }
+}
+
+function showRoundSummary() {
+  const round = ROUNDS[currentRound];
+  const roundTotal = roundResults.reduce((s, r) => s + r.pts, 0);
+  const roundMax = roundResults.length * 2;
+
+  roundScores.push({ title: round.title, score: roundTotal, max: roundMax });
+  allResults.push(...roundResults);
+  totalScore += roundTotal;
+  totalPossible += roundMax;
+
+  document.getElementById('round-summary-title').textContent = `Round ${currentRound + 1}: ${round.title}`;
+  document.getElementById('round-score-display').textContent = `${roundTotal}`;
+  document.getElementById('round-score-display').style.color = round.accent;
+  document.getElementById('round-max-display').textContent = `out of ${roundMax} points`;
+
+  // Post-by-post review
+  let reviewHTML = '';
+  roundResults.forEach((r, i) => {
+    const dotsHTML = r.post.expertVotes.map(v => {
+      const cls = v === 'approve' ? 'approve-dot' : v === 'label' ? 'label-dot' : 'remove-dot';
+      return `<div class="mini-dot ${cls}"></div>`;
+    }).join('');
+
+    const choiceLabel = r.choice === 'approve' ? 'Approved' : r.choice === 'label' ? 'Labeled' : 'Removed';
+    const ptsColor = r.pts === 2 ? 'var(--green)' : r.pts === 1 ? 'var(--yellow)' : 'var(--red)';
+
+    reviewHTML += `
+      <div class="post-result-row">
+        <span style="color:var(--text-dim);min-width:20px;">${i + 1}.</span>
+        <span class="your-pick ${r.choice}">${choiceLabel}</span>
+        <div class="post-result-dots">${dotsHTML}</div>
+        <span class="result-pts" style="color:${ptsColor}">+${r.pts}</span>
+      </div>
+    `;
+  });
+  document.getElementById('round-posts-review').innerHTML = reviewHTML;
+
+  // Send interim score
+  sendScore(false);
+
+  const btn = document.getElementById('next-round-btn');
+  if (currentRound < ROUNDS.length - 1) {
+    btn.textContent = 'Next Round →';
+    btn.onclick = nextRound;
+  } else {
+    btn.textContent = 'See Final Results →';
+    btn.onclick = showFinalResults;
+  }
+
+  showScreen('screen-round-summary');
+}
+
+function nextRound() {
+  currentRound++;
+  showRoundIntro();
+}
+
+function showFinalResults() {
+  // Auto-submit score when reaching results
+  if (!scoreSent) {
+    scoreSent = true;
+    sendScore(true);
+  }
+  const pct = Math.round((totalScore / totalPossible) * 100);
+
+  // Score ring
+  const circumference = 2 * Math.PI * 68;
+  const offset = circumference * (1 - totalScore / totalPossible);
+  const ring = document.getElementById('score-ring-fill');
+  ring.style.strokeDasharray = circumference;
+  ring.style.strokeDashoffset = circumference;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      ring.style.strokeDashoffset = offset;
+    });
+  });
+
+  document.getElementById('final-pct').textContent = `${pct}%`;
+  document.getElementById('final-raw').textContent = `${totalScore} / ${totalPossible}`;
+
+  // Tier
+  let tier, tierColor;
+  if (pct >= 80) { tier = 'Chief Moderator'; tierColor = 'var(--green)'; }
+  else if (pct >= 60) { tier = 'Senior Reviewer'; tierColor = '#3b82f6'; }
+  else if (pct >= 40) { tier = 'Junior Moderator'; tierColor = 'var(--yellow)'; }
+  else { tier = 'Trainee'; tierColor = 'var(--red)'; }
+
+  const badge = document.getElementById('tier-badge');
+  badge.textContent = tier;
+  badge.style.background = `${tierColor}22`;
+  badge.style.color = tierColor;
+  badge.style.border = `2px solid ${tierColor}`;
+
+  // Stats
+  const majorityMatches = allResults.filter(r => r.pts === 2).length;
+  const agreementRate = Math.round((majorityMatches / allResults.length) * 100);
+  document.getElementById('stat-agreement').textContent = `${agreementRate}%`;
+
+  const approveCount = allResults.filter(r => r.choice === 'approve').length;
+  const removeCount = allResults.filter(r => r.choice === 'remove').length;
+  document.getElementById('stat-approves').textContent = approveCount;
+  document.getElementById('stat-removes').textContent = removeCount;
+
+  // Hardest round
+  let lowestPct = 100;
+  let hardest = '';
+  roundScores.forEach(r => {
+    const rPct = (r.score / r.max) * 100;
+    if (rPct < lowestPct) { lowestPct = rPct; hardest = r.title.split(' vs ')[0] || r.title; }
+  });
+  document.getElementById('stat-hardest').textContent = hardest.length > 12 ? hardest.substring(0, 12) + '...' : hardest;
+
+  // Round breakdown
+  let rbHTML = '';
+  roundScores.forEach((r, i) => {
+    const rPct = Math.round((r.score / r.max) * 100);
+    rbHTML += `
+      <div class="rb-row">
+        <span>R${i + 1}: ${r.title}</span>
+        <span class="rb-score">${r.score}/${r.max} (${rPct}%)</span>
+      </div>
+    `;
+  });
+  document.getElementById('round-breakdown').innerHTML = rbHTML;
+
+  // Ring color
+  ring.style.stroke = tierColor;
+
+  showScreen('screen-results');
+}
+
+/* ══════════════════════════════════════════════
+   SCORING / POSTMESSAGE
+   ══════════════════════════════════════════════ */
+function sendScore(gameComplete) {
+  const pct = totalPossible > 0 ? totalScore / totalPossible : 0;
+  const scoreVal = Math.round(pct * 5 * 100) / 100;
+  if (scoreVal <= 0 && !gameComplete) return;
+  try {
+    window.parent.postMessage({
+      type: 'activityScore',
+      score: Math.max(0, scoreVal),
+      maxScore: 5,
+      gameComplete: gameComplete,
+      details: {
+        totalPoints: totalScore,
+        totalPossible: totalPossible,
+        roundScores: roundScores.map(r => ({ title: r.title, score: r.score, max: r.max }))
+      }
+    }, '*');
+  } catch (e) { /* embedded postMessage may fail standalone */ }
+}
+
+function submitScore() {
+  // Always re-send with gameComplete: true — ensures it gets through
+  scoreSent = true;
+  sendScore(true);
+  const btn = document.querySelector('.btn-green');
+  if (btn) {
+    btn.textContent = 'Score Submitted ✓';
+    btn.style.opacity = '0.6';
+    btn.style.pointerEvents = 'none';
+  }
+}
+
+function playAgain() {
+  startGame();
+}
+</script>
+</body>
+</html>
