@@ -1,14 +1,13 @@
 // src/components/blocks/EmbedBlock.jsx
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 import { renderMarkdown } from "../../lib/utils";
 
-// Permits any Firebase-hosted PAPS activity (*.web.app or *.firebaseapp.com) plus localhost.
-// No explicit allowlist needed — the regex covers all current and future Firebase deploys.
+// Only allow known PAPS Firebase projects (not any *.web.app domain).
 function isAllowedOrigin(origin) {
   if (!origin) return false;
-  // Allow any Firebase-hosted app (covers all PAPS projects without requiring code changes per deploy)
-  if (/^https:\/\/[a-z0-9-]+\.(web\.app|firebaseapp\.com)$/.test(origin)) return true;
+  if (/^https:\/\/(paps-tools|pantherlearn|pantherprep|brstatus)[a-z0-9-]*\.(web\.app|firebaseapp\.com)$/.test(origin)) return true;
+  if (origin === window.location.origin) return true;
   // Allow localhost for development
   if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return true;
   return false;
@@ -16,6 +15,7 @@ function isAllowedOrigin(origin) {
 
 export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, studentData, isTestStudent, dueDate }) {
   const translatedCaption = useTranslatedText(block.caption);
+  const iframeRef = useRef(null);
   const height = block.height || 400;
   const data = studentData?.[block.id] || {};
 
@@ -24,6 +24,9 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
     const handleMessage = async (event) => {
       const msg = event.data;
       if (!msg) return;
+
+      // Only accept messages from this block's iframe (prevents cross-pollination)
+      if (event.source !== iframeRef.current?.contentWindow) return;
 
       // Validate origin — reject messages from unknown origins
       if (!isAllowedOrigin(event.origin)) {
@@ -147,6 +150,7 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
         position: "relative",
       }}>
         <iframe
+          ref={iframeRef}
           src={url}
           title={translatedCaption || block.title || "Interactive activity"}
           width="100%"

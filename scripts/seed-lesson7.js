@@ -1,8 +1,14 @@
 // seed-lesson7.js
 // Run this from your pantherlearn directory: node seed-lesson7.js
 
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from './firebase-config.js';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require('./safe-lesson-write.cjs');
+
+initializeApp({ projectId: 'pantherlearn-d6f7c' });
+const db = getFirestore();
 
 const lesson = {
   title: "Understanding Neural Networks",
@@ -406,10 +412,7 @@ const lesson = {
 
 async function seed() {
   try {
-    await setDoc(
-      doc(db, 'courses', 'ai-literacy', 'lessons', 'understanding-neural-networks'),
-      lesson
-    );
+    await safeLessonWrite(db, 'ai-literacy', 'understanding-neural-networks', lesson);
     console.log('✅ Lesson "Understanding Neural Networks" seeded successfully!');
     console.log('   Path: courses/ai-literacy/lessons/understanding-neural-networks');
     console.log('   Blocks:', lesson.blocks.length);

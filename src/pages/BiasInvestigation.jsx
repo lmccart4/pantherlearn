@@ -2,7 +2,7 @@
 // Main activity page for the AI Bias Detective, integrated into PantherLearn.
 // Students select a case, walk through 6 investigation phases, and submit a bias report.
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { db } from "../lib/firebase";
@@ -72,6 +72,13 @@ export default function BiasInvestigation() {
   const [openChart, setOpenChart] = useState(0);
 
   const caseData = selectedCase || null;
+
+  // ── Debounced save for text inputs (avoids Firestore write on every keystroke) ──
+  const debouncedSaveTimer = useRef(null);
+  const debouncedSave = useCallback((updates) => {
+    clearTimeout(debouncedSaveTimer.current);
+    debouncedSaveTimer.current = setTimeout(() => save(updates), 400);
+  }, []);
 
   // ── Load existing investigations on mount ──
   useEffect(() => {
@@ -245,7 +252,7 @@ export default function BiasInvestigation() {
   function handleNoteChange(clueId, note) {
     const next = { ...evidenceNotes, [clueId]: note };
     setEvidenceNotes(next);
-    save({ evidenceNotes: next });
+    debouncedSave({ evidenceNotes: next });
   }
 
   // ── Bias toggling ──
@@ -261,12 +268,12 @@ export default function BiasInvestigation() {
     const next = [...mitigations];
     next[index] = text;
     setMitigations(next);
-    save({ biasReport: { identifiedBiases: biases, mitigations: next, summary } });
+    debouncedSave({ biasReport: { identifiedBiases: biases, mitigations: next, summary } });
   }
 
   function handleSummaryChange(text) {
     setSummary(text);
-    save({ biasReport: { identifiedBiases: biases, mitigations, summary: text } });
+    debouncedSave({ biasReport: { identifiedBiases: biases, mitigations, summary: text } });
   }
 
   // ── Submit ──

@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { db } from "../lib/firebase";
-import { collection, addDoc, getDocs, query, where, orderBy, limit, doc, setDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, limit, doc, setDoc } from "firebase/firestore";
 
 const ASTRONAUT_MASS = 80;
 const CANVAS_WIDTH = 900;
@@ -129,6 +129,8 @@ export default function SpaceRescueMission() {
   const animRef = useRef(null);
   const [animState, setAnimState] = useState(null);
   const [completedLevels, setCompletedLevels] = useState(new Set());
+  const completedLevelsRef = useRef(completedLevels);
+  completedLevelsRef.current = completedLevels;
   const [saving, setSaving] = useState(false);
 
   const level = LEVELS[currentLevel];
@@ -160,10 +162,11 @@ export default function SpaceRescueMission() {
     if (!user || !courseId) return;
     setSaving(true);
     try {
-      const newCompleted = new Set(completedLevels);
+      const newCompleted = new Set(completedLevelsRef.current);
       if (success) newCompleted.add(levelId);
 
-      await addDoc(collection(db, "courses", courseId, "spaceRescue"), {
+      const attemptRef = doc(db, "courses", courseId, "spaceRescue", `${user.uid}_level_${levelId}`);
+      await setDoc(attemptRef, {
         uid: user.uid,
         studentName: user.displayName || "Unknown",
         levelId,
@@ -185,7 +188,7 @@ export default function SpaceRescueMission() {
         bestLevel: Math.max(...Array.from(newCompleted), 0),
         bestOxygenRemaining: success ? Math.max(resultData.oxygenTime - parseFloat(resultData.timeToReach), 0) : 0,
         completedAt: new Date(),
-      });
+      }, { merge: true });
 
       setCompletedLevels(newCompleted);
 
@@ -213,7 +216,7 @@ export default function SpaceRescueMission() {
       console.error("Failed to save space rescue result:", err);
     }
     setSaving(false);
-  }, [user, courseId, completedLevels]);
+  }, [user, courseId]);
 
   const initLevel = useCallback((lvlIndex) => {
     const lvl = LEVELS[lvlIndex];

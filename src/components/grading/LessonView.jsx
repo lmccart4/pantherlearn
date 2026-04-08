@@ -32,9 +32,9 @@ export default function LessonView({ courseResponses, courseLogs, selectedLesson
     });
   };
 
-  const handleSelectStudent = (studentId, lessonId, currentSelectedLesson) => {
-    setSelectedStudent(studentId);
-  };
+  const filteredLogs = getFilteredLogs();
+
+  const handleSelectStudent = (studentId) => setSelectedStudent(studentId);
 
   return (
     <div>
@@ -95,9 +95,9 @@ export default function LessonView({ courseResponses, courseLogs, selectedLesson
         <div>
           <SearchSortBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortBy={sortBy} setSortBy={setSortBy} />
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {getFilteredLogs().length === 0 ? (
+            {filteredLogs.length === 0 ? (
               <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>No chat conversations for this lesson</div>
-            ) : getFilteredLogs().map((log) => (
+            ) : filteredLogs.map((log) => (
               <ChatLogCard key={log.id} log={log} helpers={helpers} onSelectStudent={handleSelectStudent} />
             ))}
           </div>

@@ -55,7 +55,7 @@ export default function ActivitiesTab({ selectedCourse, studentMap, courses = []
       setLoading(false);
     };
     fetchCounts();
-  }, [selectedCourse]);
+  }, [selectedCourse, visibleActivities.length]);
 
   // If an activity is selected, render its review component
   if (selectedActivity) {

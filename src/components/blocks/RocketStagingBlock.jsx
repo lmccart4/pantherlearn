@@ -1,15 +1,17 @@
 // src/components/blocks/RocketStagingBlock.jsx
 // Wrapper block for the Rocket Staging Challenge interactive simulation.
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import RocketStagingChallenge from "./rocket-staging/RocketStagingChallenge";
 
 export default function RocketStagingBlock({ block, studentData = {}, onAnswer }) {
   const saved = studentData[block.id] || {};
+  const savedRef = useRef(saved);
+  savedRef.current = saved;
 
   const handleComplete = useCallback(
     (result) => {
-      const prev = saved || {};
+      const prev = savedRef.current || {};
       const completedMissions = prev.completedMissions || [];
       const bestResults = { ...(prev.bestResults || {}) };
 
@@ -50,7 +52,7 @@ export default function RocketStagingBlock({ block, studentData = {}, onAnswer }
         savedAt: new Date().toISOString(),
       });
     },
-    [block.id, saved, onAnswer]
+    [block.id, onAnswer]
   );
 
   return (

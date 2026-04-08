@@ -4,6 +4,9 @@
 
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require('./safe-lesson-write.cjs');
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
@@ -286,7 +289,7 @@ async function seed() {
   ];
 
   for (const { courseId, label } of targets) {
-    await db.collection('courses').doc(courseId).collection('lessons').doc('whos-making-choices').set(lesson);
+    await safeLessonWrite(db, courseId, 'whos-making-choices', lesson);
     console.log(`✅ Seeded → ${label} (${courseId})`);
   }
 

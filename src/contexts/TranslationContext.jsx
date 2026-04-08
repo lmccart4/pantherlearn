@@ -50,7 +50,7 @@ export function TranslationProvider({ children, cloudFunctionUrl }) {
       if (toTranslate.length === 0) return results;
 
       // Dedup: create a key for this batch
-      const batchKey = `${language}:${toTranslate.join("|")}`;
+      const batchKey = `${language}:${JSON.stringify(toTranslate)}`;
       if (pending.current[batchKey]) {
         const translated = await pending.current[batchKey];
         translated.forEach((t, j) => {

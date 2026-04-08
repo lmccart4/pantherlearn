@@ -4,6 +4,9 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
@@ -809,7 +812,7 @@ async function main() {
 
   for (const { slug, data } of lessons) {
     const ref = db.collection("courses").doc(COURSE_ID).collection("lessons").doc(slug);
-    await ref.set({ ...data, updatedAt: new Date() });
+    await safeLessonWrite(db, COURSE_ID, slug, { ...data, updatedAt: new Date() });
     console.log(`✅ ${data.title}`);
     console.log(`   courses/${COURSE_ID}/lessons/${slug} — ${data.blocks.length} blocks`);
   }

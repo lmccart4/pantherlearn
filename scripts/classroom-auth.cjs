@@ -74,7 +74,6 @@ const server = http.createServer(async (req, res) => {
     fs.writeFileSync(TOKEN_PATH, JSON.stringify({
       refresh_token: tokens.refresh_token,
       client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
     }, null, 2));
 
     console.log("Refresh token saved to .classroom-token.json");

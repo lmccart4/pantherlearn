@@ -334,17 +334,19 @@ function NewChatView({ courseId, user, userRole, onCreated, onBack }) {
 
         enrolledUids.delete(user.uid);
 
-        // Fetch only the enrolled user docs (not ALL users)
+        // Fetch enrolled user docs in parallel
         const enrolledStudents = [];
-        for (const uid of enrolledUids) {
-          try {
-            const userDoc = await getDoc(doc(db, "users", uid));
-            if (userDoc.exists()) {
-              const data = { uid: userDoc.id, ...userDoc.data() };
-              if (data.role !== "teacher") enrolledStudents.push(data);
-            }
-          } catch (e) { /* user doc may not exist */ }
-        }
+        const userDocResults = await Promise.all(
+          Array.from(enrolledUids).map(uid =>
+            getDoc(doc(db, "users", uid)).catch(() => null)
+          )
+        );
+        userDocResults.forEach((userDoc) => {
+          if (userDoc && userDoc.exists()) {
+            const data = { uid: userDoc.id, ...userDoc.data() };
+            if (data.role !== "teacher") enrolledStudents.push(data);
+          }
+        });
 
         // Build final list
         const result = [...enrolledStudents];

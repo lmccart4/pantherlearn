@@ -4,6 +4,9 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
@@ -236,9 +239,7 @@ const lesson = {
 
 async function seed() {
   try {
-    await db.collection("courses").doc("physics")
-      .collection("lessons").doc("magnets-and-fields")
-      .set(lesson);
+    await safeLessonWrite(db, "physics", "magnets-and-fields", lesson);
     console.log('✅ Lesson "Magnets & Magnetic Fields" seeded successfully!');
     console.log("   Path: courses/physics/lessons/magnets-and-fields");
     console.log("   Blocks:", lesson.blocks.length);

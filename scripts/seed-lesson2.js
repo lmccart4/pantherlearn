@@ -2,8 +2,14 @@
 // Run from your pantherlearn-app directory: node seed-lesson2.js
 // Make sure you have firebase configured
 
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from './firebase-config.js';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require('./safe-lesson-write.cjs');
+
+initializeApp({ projectId: 'pantherlearn-d6f7c' });
+const db = getFirestore();
 
 const lesson = {
   title: "How Smart Is It, Really?",
@@ -267,10 +273,7 @@ const lesson = {
 
 async function seed() {
   try {
-    await setDoc(
-      doc(db, 'courses', 'ai-literacy', 'lessons', 'how-smart-is-it-really'),
-      lesson
-    );
+    await safeLessonWrite(db, 'ai-literacy', 'how-smart-is-it-really', lesson);
     console.log('✅ Lesson "How Smart Is It, Really?" seeded successfully!');
     console.log('   Path: courses/ai-literacy/lessons/how-smart-is-it-really');
     console.log('   Blocks:', lesson.blocks.length);

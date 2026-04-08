@@ -18,7 +18,6 @@ export default function RosterSync() {
   const [preview, setPreview] = useState([]);
   const fileRef = useRef(null);
   const [existingCount, setExistingCount] = useState(0);
-  const [existingSections] = useState([]);
   const [enrolledStudents, setEnrolledStudents] = useState([]);
   const [rosterFilter, setRosterFilter] = useState("all");
   const [rosterSearch, setRosterSearch] = useState("");
@@ -412,10 +411,10 @@ export default function RosterSync() {
     // 1. Check enrollment doc has uid linked
     if (!uid) {
       // Try to find the user by email
-      const usersSnap = await getDocs(collection(db, "users"));
+      const usersSnap = await getDocs(query(collection(db, "users"), where("email", "==", student.email.toLowerCase())));
       let foundUid = null;
       usersSnap.forEach((d) => {
-        if (d.data().email?.toLowerCase() === student.email?.toLowerCase()) foundUid = d.id;
+        foundUid = d.id;
       });
       if (foundUid) {
         await setDoc(doc(db, "enrollments", student.docId), {

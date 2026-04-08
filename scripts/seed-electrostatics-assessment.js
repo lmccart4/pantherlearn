@@ -4,6 +4,9 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
@@ -381,7 +384,7 @@ async function main() {
     updatedAt: new Date(),
   };
 
-  await lessonRef.set(data);
+  await safeLessonWrite(db, COURSE_ID, "electrostatics-assessment", data);
   console.log(`✅ Assessment seeded successfully!`);
   console.log(`   Title: "${data.title}"`);
   console.log(`   Path:  courses/${COURSE_ID}/lessons/electrostatics-assessment`);

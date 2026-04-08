@@ -1,6 +1,7 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useEffect, lazy, Suspense } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import TopBar from "./components/TopBar";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -58,6 +59,29 @@ const LoadingSpinner = () => (
   </div>
 );
 
+const pageVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, transition: { duration: 0.15 } },
+};
+
+function AnimatedOutlet() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+      >
+        <Outlet />
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function ProtectedLayout() {
   const { user, loading } = useAuth();
 
@@ -68,7 +92,7 @@ function ProtectedLayout() {
     <>
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <TopBar />
-      <Outlet />
+      <AnimatedOutlet />
     </>
   );
 }

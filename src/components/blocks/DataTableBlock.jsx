@@ -413,7 +413,7 @@ export default function DataTableBlock({ block, lessonId, courseId, studentData 
                               step="any"
                               value={rd[col.key] || ""}
                               onChange={(e) => handleInput(row.key, col.key, e.target.value)}
-                              onBlur={saveNow}
+                              onBlur={(e) => { e.target.style.borderColor = ''; saveNow(); }}
                               style={styles.input}
                               onFocus={(e) => e.target.style.borderColor = "#06b6d4"}
                             />

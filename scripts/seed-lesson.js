@@ -2,8 +2,14 @@
 // Run this from your pantherlearn-app directory: node seed-lesson.js
 // Make sure firebase.jsx has your config and you've done npm install
 
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from './firebase-config.js';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require('./safe-lesson-write.cjs');
+
+initializeApp({ projectId: 'pantherlearn-d6f7c' });
+const db = getFirestore();
 
 const lesson = {
   title: "Talking to Machines",
@@ -188,10 +194,7 @@ const lesson = {
 async function seed() {
   try {
     // Write the lesson document
-    await setDoc(
-      doc(db, 'courses', 'ai-literacy', 'lessons', 'talking-to-machines'),
-      lesson
-    );
+    await safeLessonWrite(db, 'ai-literacy', 'talking-to-machines', lesson);
     console.log('✅ Lesson "Talking to Machines" seeded successfully!');
     console.log('   Path: courses/ai-literacy/lessons/talking-to-machines');
     console.log('   Blocks:', lesson.blocks.length);

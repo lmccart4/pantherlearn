@@ -36,7 +36,7 @@ export default function ChecklistBlock({ block, studentData = {}, onAnswer }) {
       }
       return updated;
     });
-  }, [block.id, onAnswer]);
+  }, [block.id, block.items, onAnswer]);
 
   const items = block.items || [];
   const doneCount = Object.values(checked).filter(Boolean).length;

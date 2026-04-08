@@ -7,8 +7,14 @@
 // Lesson 3: Slides 11-15 (Car/truck crash investigation)
 // Lesson 4: Testing Experiment — Momentum Conservation (lab)
 
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from './firebase-config.js';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require('./safe-lesson-write.cjs');
+
+initializeApp({ projectId: 'pantherlearn-d6f7c' });
+const db = getFirestore();
 
 const MY_TEACHER_UID = "M2sNE8iH1aZ57L8z8Snp1Sj8cFD2";
 
@@ -276,10 +282,10 @@ async function seed() {
   console.log("  Seeding Physics Course + W22 Lessons");
   console.log("═══════════════════════════════════════\n");
 
-  const courseRef = doc(db, "courses", "physics");
-  const existing = await getDoc(courseRef);
-  if (!existing.exists()) {
-    await setDoc(courseRef, course);
+  const courseRef = db.collection("courses").doc("physics");
+  const existing = await courseRef.get();
+  if (!existing.exists) {
+    await courseRef.set(course);
     console.log("✅ Created Physics course\n");
     console.log("   Section Enroll Codes:");
     for (const [id, sec] of Object.entries(course.sections)) {
@@ -298,8 +304,7 @@ async function seed() {
   ];
 
   for (const l of lessons) {
-    const ref = doc(db, "courses", "physics", "lessons", l.id);
-    await setDoc(ref, l.data);
+    await safeLessonWrite(db, "physics", l.id, l.data);
     console.log(`✅ Seeded: ${l.data.title} (${l.data.blocks.length} blocks)`);
   }
 

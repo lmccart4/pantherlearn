@@ -11,23 +11,14 @@ import { db } from "../lib/firebase";
 const CONNECT_DIST = 180;
 const PARTICLE_COUNT = 70;
 
-// St. Patrick's Day: March 17 only
-const today = new Date();
-const IS_ST_PATRICKS_DAY = today.getMonth() === 2 && today.getDate() === 17;
-
-const PARTICLE_COLORS = IS_ST_PATRICKS_DAY
-  ? [
-      { r: 34,  g: 197, b: 94  }, // bright green
-      { r: 22,  g: 163, b: 74  }, // medium green
-      { r: 234, g: 179, b: 8   }, // gold
-      { r: 74,  g: 222, b: 128 }, // light green
-    ]
-  : [
-      { r: 232, g: 168, b: 56 },
-      { r: 62,  g: 201, b: 176 },
-      { r: 232, g: 112, b: 90 },
-      { r: 245, g: 197, b: 99 },
-    ];
+// St. Patrick's Day check moved inside component (see useMemo below)
+// Particle colors — St. Patrick's Day variant selected at runtime inside AmbientCanvas
+const PARTICLE_COLORS = [
+  { r: 232, g: 168, b: 56 },
+  { r: 62,  g: 201, b: 176 },
+  { r: 232, g: 112, b: 90 },
+  { r: 245, g: 197, b: 99 },
+];
 
 function createParticles(w, h) {
   const particles = [];
@@ -149,26 +140,27 @@ function getSchedule() {
   return EARLY_DISMISSAL_DATES.has(today) ? EARLY_DISMISSAL_PERIODS : REGULAR_PERIODS;
 }
 
-const PERIODS = getSchedule();
+// PERIODS moved inside component to refresh after midnight
 
 function timeToMinutes(hhmm) {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
 }
 
-function getCurrentPeriod() {
+function getCurrentPeriod(periods) {
+  const p = periods || getSchedule();
   const now = new Date();
   const mins = now.getHours() * 60 + now.getMinutes();
-  for (const p of PERIODS) {
-    if (mins >= timeToMinutes(p.start) && mins <= timeToMinutes(p.end)) return { ...p, status: "active" };
+  for (const pd of p) {
+    if (mins >= timeToMinutes(pd.start) && mins <= timeToMinutes(pd.end)) return { ...pd, status: "active" };
   }
-  for (let i = 0; i < PERIODS.length; i++) {
-    if (mins < timeToMinutes(PERIODS[i].start)) {
-      const gapStart = i > 0 ? timeToMinutes(PERIODS[i - 1].end) : timeToMinutes(PERIODS[i].start) - 10;
-      return { ...PERIODS[i], status: "upcoming", gapStart };
+  for (let i = 0; i < p.length; i++) {
+    if (mins < timeToMinutes(p[i].start)) {
+      const gapStart = i > 0 ? timeToMinutes(p[i - 1].end) : timeToMinutes(p[i].start) - 10;
+      return { ...p[i], status: "upcoming", gapStart };
     }
   }
-  return { ...PERIODS[PERIODS.length - 1], status: "after" };
+  return { ...p[p.length - 1], status: "after" };
 }
 
 function getTodayStr() {
@@ -266,7 +258,7 @@ function injectStyles() {
 
     .cd-root {
       min-height: 100vh;
-      background: ${IS_ST_PATRICKS_DAY ? "#061a0e" : "#0b1526"};
+      background: var(--cd-bg, #0b1526);
       color: #f4efe6;
       display: flex;
       flex-direction: column;
@@ -546,13 +538,23 @@ function injectStyles() {
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function ClassroomDisplay() {
-  const [period, setPeriod] = useState(getCurrentPeriod);
   const [lessons, setLessons] = useState({});
   const [clock, setClock] = useState(new Date());
   const [contentKey, setContentKey] = useState(0);
-  const prevPeriodRef = useRef(period.period);
   const periodInfoRef = useRef(null);
   const brandRef = useRef(null);
+
+  // Recompute schedule and holiday flag daily (not at module load)
+  const today = new Date();
+  const dateKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+  const PERIODS = useMemo(() => getSchedule(), [dateKey]);
+  const IS_ST_PATRICKS_DAY = useMemo(() => {
+    const d = new Date();
+    return d.getMonth() === 2 && d.getDate() === 17;
+  }, [dateKey]);
+
+  const [period, setPeriod] = useState(() => getCurrentPeriod(PERIODS));
+  const prevPeriodRef = useRef(period.period);
 
   // Auto-scale helper — keeps a flex row on one line
   function useAutoScale(ref) {
@@ -610,7 +612,7 @@ export default function ClassroomDisplay() {
 
   useEffect(() => {
     const t = setInterval(() => {
-      const next = getCurrentPeriod();
+      const next = getCurrentPeriod(PERIODS);
       setPeriod((prev) => {
         // Only update state if something actually changed — prevents unnecessary re-renders
         if (prev.period === next.period && prev.status === next.status && prev.label === next.label) {
@@ -621,7 +623,7 @@ export default function ClassroomDisplay() {
       });
     }, 15000);
     return () => clearInterval(t);
-  }, []);
+  }, [PERIODS]);
 
   useEffect(() => {
     if (prevPeriodRef.current !== period.period) {
@@ -643,7 +645,7 @@ export default function ClassroomDisplay() {
       results.forEach(([cid, data]) => { map[cid] = data; });
       setLessons(map);
     });
-  }, []);
+  }, [PERIODS]);
 
   // Fetch on mount + re-fetch every 5 minutes so the display stays current
   useEffect(() => {
@@ -709,7 +711,7 @@ export default function ClassroomDisplay() {
 
   return (
     <main id="main-content" style={{ display: "contents" }}>
-    <div className="cd-root" style={{ "--cd-accent": accent }}>
+    <div className="cd-root" style={{ "--cd-accent": accent, "--cd-bg": IS_ST_PATRICKS_DAY ? "#061a0e" : "#0b1526" }}>
       <AmbientCanvas />
 
       {/* ── Top bar ── */}

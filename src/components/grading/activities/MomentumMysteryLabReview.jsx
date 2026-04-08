@@ -22,7 +22,7 @@ function gradeBackground(score) {
   return "rgba(239,68,68,0.12)";
 }
 
-export default function MomentumMysteryLabReview({ activity, studentMap, courseId }) {
+export default function MomentumMysteryLabReview({ studentMap, courseId }) {
   const [loading, setLoading] = useState(true);
   const [attempts, setAttempts] = useState([]);
   const [grades, setGrades] = useState({});

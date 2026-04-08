@@ -4,8 +4,14 @@
 //
 // ⬇️ SET YOUR TEACHER UID before running ⬇️
 
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from './firebase-config.js';
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
+
+initializeApp({ projectId: "pantherlearn-d6f7c" });
+const db = getFirestore();
 
 // ⬇️ SET YOUR TEACHER UID HERE ⬇️
 const MY_TEACHER_UID = "M2sNE8iH1aZ57L8z8Snp1Sj8cFD2";
@@ -90,7 +96,7 @@ const lesson1 = {
       type: "question",
       questionType: "multiple_choice",
       prompt: "Which of these is the BEST example of AI making a decision for you?",
-      choices: [
+      options: [
         "Using a calculator to add numbers",
         "TikTok choosing which videos appear on your For You Page",
         "Turning on your phone's flashlight",
@@ -125,7 +131,7 @@ const lesson1 = {
       type: "question",
       questionType: "multiple_choice",
       prompt: "What's the key difference between traditional programming and AI?",
-      choices: [
+      options: [
         "AI is faster than traditional programs",
         "Traditional programs use the internet, AI doesn't",
         "AI learns from data and finds patterns instead of following pre-written rules",
@@ -293,7 +299,7 @@ const lesson2 = {
       type: "question",
       questionType: "multiple_choice",
       prompt: "Which keyboard shortcut splits a clip in WeVideo?",
-      choices: [
+      options: [
         "T key",
         "S key",
         "X key",
@@ -400,7 +406,7 @@ const lesson3 = {
       type: "question",
       questionType: "multiple_choice",
       prompt: "According to the Explainer Formula, what should come FIRST in your video?",
-      choices: [
+      options: [
         "Your opinion on the topic",
         "A hook that grabs attention",
         "Examples of how it works",
@@ -642,7 +648,7 @@ const lesson5 = {
       type: "question",
       questionType: "multiple_choice",
       prompt: "When exporting from the free version of WeVideo, what's the maximum video quality?",
-      choices: [
+      options: [
         "480p",
         "720p",
         "1080p",
@@ -738,7 +744,7 @@ async function seed() {
     console.log("🚀 Seeding Digital Literacy course...\n");
 
     // 1. Create course document
-    await setDoc(doc(db, 'courses', 'digital-literacy'), course);
+    await db.collection('courses').doc('digital-literacy').set(course, { merge: true });
     console.log("✅ Course created: courses/digital-literacy");
     console.log(`   Section: Period 3 → ${course.sections['period-3'].enrollCode}`);
 
@@ -752,10 +758,7 @@ async function seed() {
     ];
 
     for (const { slug, data } of lessons) {
-      await setDoc(
-        doc(db, 'courses', 'digital-literacy', 'lessons', slug),
-        data
-      );
+      await safeLessonWrite(db, 'digital-literacy', slug, data);
       console.log(`✅ Lesson seeded: courses/digital-literacy/lessons/${slug}`);
       console.log(`   "${data.title}" — ${data.blocks.length} blocks`);
     }

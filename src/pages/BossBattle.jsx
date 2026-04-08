@@ -131,13 +131,14 @@ export default function BossBattle() {
 
   // ─── Load Data ───
   useEffect(() => {
+    if (!user) return;
     loadData();
     return () => {
       if (unsubRef.current) unsubRef.current();
       if (unsubPlayerRef.current) unsubPlayerRef.current();
       if (unsubAllPlayersRef.current) unsubAllPlayersRef.current();
     };
-  }, [courseId]);
+  }, [courseId, user?.uid]);
 
   async function loadData() {
     setLoading(true);

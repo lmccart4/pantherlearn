@@ -82,7 +82,7 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
     const checked = studentData[b.id]?.checked || {};
     return items.every((_, i) => checked[i]);
   });
-  const allEmbedsComplete = scoredEmbedBlocks.every((b) => studentData[b.id]?.submitted || studentData[b.id]?.score != null);
+  const allEmbedsComplete = scoredEmbedBlocks.every((b) => studentData[b.id]?.submitted === true);
   const allSlidesSubmitted = slideSubmitBlocks.every((b) => studentData[b.id]?.submitted);
 
   const allComplete = allQuestionsAnswered && allChatbotsUsed && allChecklistsDone && allEmbedsComplete && allSlidesSubmitted;
@@ -96,7 +96,7 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
     const checked = studentData[b.id]?.checked || {};
     return !items.every((_, i) => checked[i]);
   }).length;
-  const incompleteEmbeds = scoredEmbedBlocks.filter((b) => !studentData[b.id]?.submitted).length;
+  const incompleteEmbeds = scoredEmbedBlocks.filter((b) => studentData[b.id]?.submitted !== true).length;
   if (unansweredQ) remaining.push(`${unansweredQ} question${unansweredQ > 1 ? "s" : ""}`);
   if (unusedChat) remaining.push(`${unusedChat} chatbot${unusedChat > 1 ? "s" : ""}`);
   if (uncheckedLists) remaining.push(`${uncheckedLists} checklist${uncheckedLists > 1 ? "s" : ""}`);

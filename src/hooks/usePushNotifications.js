@@ -33,11 +33,15 @@ export default function usePushNotifications() {
   // (NotificationBell already shows it via Firestore listener)
   useEffect(() => {
     if (!user) return;
+    let mounted = true;
     let unsub = () => {};
     onForegroundMessage(() => {
       // No-op: foreground notifications are handled by NotificationBell
-    }).then((u) => { unsub = u; });
-    return () => unsub();
+    }).then((u) => {
+      if (mounted) unsub = u;
+      else u();
+    });
+    return () => { mounted = false; unsub(); };
   }, [user]);
 
   const handleEnable = useCallback(async () => {
@@ -52,7 +56,7 @@ export default function usePushNotifications() {
 
   const handleDismiss = useCallback(() => {
     setShowOptIn(false);
-    localStorage.setItem(dismissedKey(user.uid), "1");
+    if (user) localStorage.setItem(dismissedKey(user.uid), "1");
   }, [user]);
 
   return { showOptIn, handleEnable, handleDismiss };

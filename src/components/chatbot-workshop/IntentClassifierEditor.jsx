@@ -17,7 +17,13 @@ function cosineSimilarity(a, b) {
     normA += a[i] * a[i];
     normB += b[i] * b[i];
   }
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
+function cleanTrainingData(data, intents) {
+  const ids = new Set(intents.map(i => i.id));
+  return data.filter(td => ids.has(td.intentId));
 }
 
 export default function IntentClassifierEditor({ config, onSave, getToken }) {
@@ -47,9 +53,7 @@ export default function IntentClassifierEditor({ config, onSave, getToken }) {
   function markChanged() { setHasChanges(true); setTrainedAt(null); }
 
   function handleSave() {
-    // Filter out orphaned training data
-    const validIntentIds = new Set(intents.map(i => i.id));
-    const cleanedData = trainingData.filter(td => validIntentIds.has(td.intentId));
+    const cleanedData = cleanTrainingData(trainingData, intents);
     const payload = { intents, trainingData: cleanedData, fallbackResponse, confidenceThreshold, trainedAt };
     onSave(payload);
     setTrainingData(cleanedData);
@@ -134,8 +138,7 @@ export default function IntentClassifierEditor({ config, onSave, getToken }) {
       setTrainedAt(now);
 
       // Auto-save after training
-      const validIntentIds = new Set(intents.map(i => i.id));
-      const cleanedData = updatedData.filter(td => validIntentIds.has(td.intentId));
+      const cleanedData = cleanTrainingData(updatedData, intents);
       onSave({ intents, trainingData: cleanedData, fallbackResponse, confidenceThreshold, trainedAt: now });
       setHasChanges(false);
     } catch (err) {

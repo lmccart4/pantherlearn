@@ -40,6 +40,8 @@ export default function CourseOverview({ courseResponses, courseLogs, activeTab,
     });
   };
 
+  const filteredLogs = getFilteredLogs();
+
   return (
     <div>
       {/* Stats */}
@@ -113,9 +115,9 @@ export default function CourseOverview({ courseResponses, courseLogs, activeTab,
         <div>
           <SearchSortBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortBy={sortBy} setSortBy={setSortBy} placeholder="Search by student, lesson, or message content..." />
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {getFilteredLogs().length === 0 ? (
+            {filteredLogs.length === 0 ? (
               <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>No chat conversations yet</div>
-            ) : getFilteredLogs().map((log) => (
+            ) : filteredLogs.map((log) => (
               <ChatLogCard key={log.id} log={log} helpers={helpers} onSelectStudent={(studentId, lessonId) => { if (lessonId) setSelectedLesson(lessonId); setSelectedStudent(studentId); }} />
             ))}
           </div>

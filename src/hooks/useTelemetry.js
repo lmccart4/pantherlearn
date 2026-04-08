@@ -9,7 +9,6 @@ import { db } from "../lib/firebase";
 import { useAuth } from "./useAuth";
 
 const FLUSH_INTERVAL = 30000; // 30s — same cadence as engagement timer
-const SESSION_GAP = 1800000;  // 30min of inactivity = new session
 const IDLE_TIMEOUT = 60000;   // 60s — same as engagement timer
 
 function todayKey() {
@@ -118,6 +117,10 @@ export function useTelemetry(courseId, lessonId) {
   // ── Track lesson open + session detection ──
   useEffect(() => {
     if (!uid || !courseId || !lessonId) return;
+
+    // Reset refs when deps change so we re-track for new lesson/course
+    lessonOpenedRef.current = false;
+    sessionTrackedRef.current = false;
 
     const ref = getBucketRef();
     if (!ref) return;

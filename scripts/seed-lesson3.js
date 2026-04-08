@@ -1,8 +1,14 @@
 // seed-lesson3.js
 // Run from your pantherlearn-app directory: node seed-lesson3.js
 
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from './firebase-config.js';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require('./safe-lesson-write.cjs');
+
+initializeApp({ projectId: 'pantherlearn-d6f7c' });
+const db = getFirestore();
 
 const lesson = {
   title: "Inputs & Training Data",
@@ -70,7 +76,7 @@ const lesson = {
         "It removes unnecessary words from the sentence",
         "It translates the words into a different language"
       ],
-      correctAnswer: 1,
+      correctIndex: 1,
       explanation: "By breaking words into common sub-word pieces, the model can understand words it hasn't seen before. For example, even if it never saw 'overcooking,' it knows 'over,' 'cook,' and 'ing' separately."
     },
 
@@ -236,10 +242,7 @@ const lesson = {
 
 async function seed() {
   try {
-    await setDoc(
-      doc(db, 'courses', 'ai-literacy', 'lessons', 'inputs-and-training-data'),
-      lesson
-    );
+    await safeLessonWrite(db, 'ai-literacy', 'inputs-and-training-data', lesson);
     console.log('✅ Lesson "Inputs & Training Data" seeded successfully!');
     console.log('   Path: courses/ai-literacy/lessons/inputs-and-training-data');
     console.log('   Blocks:', lesson.blocks.length);

@@ -1,8 +1,14 @@
 // seed-lesson4.js
 // Run from your pantherlearn-app directory: node seed-lesson4.js
 
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from './firebase-config.js';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require('./safe-lesson-write.cjs');
+
+initializeApp({ projectId: 'pantherlearn-d6f7c' });
+const db = getFirestore();
 
 const lesson = {
   title: "Bias in the Machine",
@@ -44,7 +50,7 @@ const lesson = {
         "A barn on a fruit farm with a shop that repairs farm equipment",
         "An apartment across from a florist with several young children"
       ],
-      correctAnswer: -1,
+      correctIndex: -1,
       explanation: "There's no wrong answer here! But notice: your CHOICE of where to stay determines what words you learn. This is exactly how bias works in AI — the data you choose to train on shapes what the model knows and doesn't know."
     },
 
@@ -179,7 +185,7 @@ const lesson = {
         "The chatbot will refuse to answer because it only knows American food",
         "The chatbot will give a perfect recipe because jollof rice is popular on the internet"
       ],
-      correctAnswer: 1,
+      correctIndex: 1,
       explanation: "When training data is dominated by one culture's perspective, the AI might 'know' about dishes from other cultures but represent them through a filtered lens — giving Americanized or simplified versions rather than authentic recipes from the culture of origin."
     },
 
@@ -192,7 +198,7 @@ const lesson = {
         "Only use data that has been verified by professional chefs",
         "Remove all cultural references from the training data so it stays neutral"
       ],
-      correctAnswer: 1,
+      correctIndex: 1,
       explanation: "The best approach is to intentionally seek out diverse sources — from different cultures, languages, cooking traditions, and perspectives. No single source is perfect, but a diverse collection helps balance out individual biases."
     },
 
@@ -247,10 +253,7 @@ const lesson = {
 
 async function seed() {
   try {
-    await setDoc(
-      doc(db, 'courses', 'ai-literacy', 'lessons', 'bias-in-the-machine'),
-      lesson
-    );
+    await safeLessonWrite(db, 'ai-literacy', 'bias-in-the-machine', lesson);
     console.log('✅ Lesson "Bias in the Machine" seeded successfully!');
     console.log('   Path: courses/ai-literacy/lessons/bias-in-the-machine');
     console.log('   Blocks:', lesson.blocks.length);

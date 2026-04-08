@@ -24,8 +24,16 @@ const reportData = [];
 
 async function getAccessToken() {
   const tokenData = JSON.parse(fs.readFileSync(TOKEN_PATH, "utf8"));
-  const { refresh_token, client_id, client_secret } = tokenData;
-  if (!refresh_token || !client_id || !client_secret) throw new Error("Missing fields in .classroom-token.json");
+  const { refresh_token, client_id } = tokenData;
+  // Load client_secret from .env.classroom (not stored in token file)
+  const envPath = path.join(__dirname, "..", ".env.classroom");
+  const envVars = {};
+  fs.readFileSync(envPath, "utf8").split("\n").forEach((line) => {
+    const [key, ...val] = line.split("=");
+    if (key && val.length) envVars[key.trim()] = val.join("=").trim();
+  });
+  const client_secret = envVars.CLASSROOM_CLIENT_SECRET;
+  if (!refresh_token || !client_id || !client_secret) throw new Error("Missing refresh_token/client_id in .classroom-token.json or CLASSROOM_CLIENT_SECRET in .env.classroom");
 
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",

@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { doc, getDoc, collection, getDocs, updateDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import {
   getManaState, saveManaState, awardMana, deductMana,
@@ -271,7 +271,7 @@ export default function ManaManager() {
       const names = {};
       const genders = {};
       try {
-        const enrollSnap = await getDocs(collection(db, "enrollments"));
+        const enrollSnap = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", courseId)));
         const usersSnap = await getDocs(collection(db, "users"));
         const usersMap = {};
         usersSnap.forEach((d) => { usersMap[d.id] = d.data(); });

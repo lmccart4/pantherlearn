@@ -9,6 +9,9 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
@@ -603,9 +606,7 @@ async function seed() {
 
   try {
     for (const lesson of lessons) {
-      await db.collection('courses').doc('digital-literacy')
-        .collection('lessons').doc(lesson.slug)
-        .set(lesson.data);
+      await safeLessonWrite(db, 'digital-literacy', lesson.slug, lesson.data);
       console.log(`✅ ${lesson.label}`);
       console.log(`   Path: courses/digital-literacy/lessons/${lesson.slug}`);
       console.log(`   Blocks: ${lesson.data.blocks.length}`);

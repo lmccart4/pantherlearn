@@ -2,7 +2,7 @@
 // Teacher dashboard for the AI Bias Detective activity.
 // Shows student investigation progress, case breakdowns, and export tools.
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { db } from "../lib/firebase";
@@ -292,8 +292,8 @@ export default function BiasDetectiveDashboard() {
           </tr></thead>
           <tbody>
             {sorted.map(inv => (
-              <>{/* fragment per row */}
-                <tr key={inv.id} style={{ cursor: "pointer" }} onClick={() => setExpandedRow(expandedRow === inv.id ? null : inv.id)}>
+              <React.Fragment key={inv.id}>
+                <tr style={{ cursor: "pointer" }} onClick={() => setExpandedRow(expandedRow === inv.id ? null : inv.id)}>
                   <td style={{ fontWeight: 600 }}>{inv.studentName || "Anonymous"}</td>
                   <td>
                     {inv.caseData && (
@@ -370,7 +370,7 @@ export default function BiasDetectiveDashboard() {
                     </div>
                   </td></tr>
                 )}
-              </>
+              </React.Fragment>
             ))}
           </tbody>
         </table>

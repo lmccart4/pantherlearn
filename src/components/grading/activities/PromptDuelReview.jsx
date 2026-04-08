@@ -3,20 +3,13 @@
 // Loaded lazily via the activity registry.
 
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, where, orderBy, doc, setDoc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { createNotification } from "../../../lib/notifications";
 import { awardXP, getXPConfig, DEFAULT_XP_VALUES } from "../../../lib/gamification";
+import { GRADE_TIERS } from "../../../lib/gradeTiers";
 
-const GRADE_TIERS = [
-  { label: "Missing", value: 0, xpKey: "written_missing", color: "var(--text3)", bg: "var(--surface2)" },
-  { label: "Emerging", value: 0.55, xpKey: "written_emerging", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
-  { label: "Approaching", value: 0.65, xpKey: "written_approaching", color: "var(--amber)", bg: "rgba(245,166,35,0.12)" },
-  { label: "Developing", value: 0.85, xpKey: "written_developing", color: "var(--cyan)", bg: "rgba(34,211,238,0.12)" },
-  { label: "Refining", value: 1.0, xpKey: "written_refining", color: "var(--green)", bg: "rgba(16,185,129,0.12)" },
-];
-
-export default function PromptDuelReview({ activity, studentMap }) {
+export default function PromptDuelReview({ studentMap }) {
   const [loading, setLoading] = useState(true);
   const [gameData, setGameData] = useState([]); // aggregated per-student
   const [grades, setGrades] = useState({}); // { uid: { score, label } }

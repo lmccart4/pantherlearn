@@ -69,11 +69,11 @@ service cloud.firestore {
       }
       match /mana/{docId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if isCourseTeacher(courseId) || hasCourseAccess(courseId);
+        allow write: if hasCourseAccess(courseId);
       }
       match /studentMana/{uid} {
-        allow read: if isOwner(uid) || isCourseTeacher(courseId) || hasCourseAccess(courseId);
-        allow write: if isCourseTeacher(courseId) || isOwner(uid) || hasCourseAccess(courseId);
+        allow read: if hasCourseAccess(courseId);
+        allow write: if hasCourseAccess(courseId);
       }
       match /manaRequests/{requestId} {
         allow read: if hasCourseAccess(courseId);
@@ -299,44 +299,55 @@ service cloud.firestore {
       // Students subcollection
       match /students/{studentId} {
         allow read: if isLoggedIn();
-        allow write: if isLoggedIn();
+        allow write: if isLoggedIn()
+          && get(/databases/$(database)/documents/pantherTrack/classes/list/$(classId)).data.teacherUid == request.auth.uid;
       }
 
       // Events subcollection
       match /events/{eventId} {
         allow read: if isLoggedIn();
-        allow create: if isLoggedIn();
-        allow update, delete: if isLoggedIn();
+        allow create, update, delete: if isLoggedIn()
+          && get(/databases/$(database)/documents/pantherTrack/classes/list/$(classId)).data.teacherUid == request.auth.uid;
       }
 
       // Deputies subcollection
       match /deputies/{dateKey} {
         allow read: if isLoggedIn();
-        allow write: if isLoggedIn();
+        allow write: if isLoggedIn()
+          && get(/databases/$(database)/documents/pantherTrack/classes/list/$(classId)).data.teacherUid == request.auth.uid;
       }
 
       // Rewards subcollection
       match /rewards/{rewardId} {
         allow read: if isLoggedIn();
-        allow write: if isLoggedIn();
+        allow write: if isLoggedIn()
+          && get(/databases/$(database)/documents/pantherTrack/classes/list/$(classId)).data.teacherUid == request.auth.uid;
       }
 
       // Redemptions subcollection
       match /redemptions/{redemptionId} {
         allow read: if isLoggedIn();
-        allow create: if isLoggedIn();
-        allow update, delete: if isLoggedIn();
+        allow create, update, delete: if isLoggedIn()
+          && get(/databases/$(database)/documents/pantherTrack/classes/list/$(classId)).data.teacherUid == request.auth.uid;
       }
 
-      // Notes subcollection (teacher-only in app, rules allow any auth for simplicity)
+      // Notes subcollection (teacher-only)
       match /notes/{noteId} {
-        allow read, write: if isLoggedIn();
+        allow read: if isLoggedIn();
+        allow write: if isLoggedIn()
+          && get(/databases/$(database)/documents/pantherTrack/classes/list/$(classId)).data.teacherUid == request.auth.uid;
       }
     }
 
     // Deputy history
     match /pantherTrack/deputyHistory/{classId} {
       allow read, write: if isLoggedIn();
+    }
+
+    // Pairings Simulator — multiplayer rooms (auth required)
+    // Data is ephemeral game state only — no sensitive content
+    match /pairings-rooms/{roomId} {
+      allow read, write: if request.auth != null;
     }
 
     // Agent Context — workflow summaries written by agents, read by Mission Control

@@ -1,7 +1,7 @@
 // src/components/grading/WeeklyEvidenceTab.jsx
 // Grading tab for weekly evidence submissions — navigate weeks, review photos & reflections, grade per-week.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { createNotification } from "../../lib/notifications";
@@ -11,14 +11,7 @@ import {
   formatDateShort, offsetWeekKey, countDaysWithPhotos,
   normalizeDayImages, isLegacyFormat, dayHasPhotos,
 } from "../../lib/weekHelpers";
-
-const GRADE_TIERS = [
-  { label: "Missing", value: 0, xpKey: "written_missing", color: "var(--text3)", bg: "var(--surface2)" },
-  { label: "Emerging", value: 0.55, xpKey: "written_emerging", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
-  { label: "Approaching", value: 0.65, xpKey: "written_approaching", color: "var(--amber)", bg: "rgba(245,166,35,0.12)" },
-  { label: "Developing", value: 0.85, xpKey: "written_developing", color: "var(--cyan)", bg: "rgba(34,211,238,0.12)" },
-  { label: "Refining", value: 1.0, xpKey: "written_refining", color: "var(--green)", bg: "rgba(16,185,129,0.12)" },
-];
+import { GRADE_TIERS } from "../../lib/gradeTiers";
 
 function suggestScore(weekData) {
   if (!weekData) return 0;
@@ -52,10 +45,13 @@ export default function WeeklyEvidenceTab({ selectedCourse, studentMap }) {
   const [grading, setGrading] = useState(null);
 
   // Get sorted student list from studentMap
-  const students = Object.entries(studentMap || {})
-    .filter(([, info]) => info.role !== "teacher")
-    .map(([uid, info]) => ({ uid, ...info }))
-    .sort((a, b) => (a.displayName || "").localeCompare(b.displayName || ""));
+  const students = useMemo(() =>
+    Object.entries(studentMap || {})
+      .filter(([, info]) => info.role !== "teacher")
+      .map(([uid, info]) => ({ uid, ...info }))
+      .sort((a, b) => (a.displayName || "").localeCompare(b.displayName || "")),
+    [studentMap]
+  );
 
   // Fetch evidence + grades for the selected week
   useEffect(() => {
@@ -71,7 +67,7 @@ export default function WeeklyEvidenceTab({ selectedCourse, studentMap }) {
         try {
           const evDoc = await getDoc(doc(db, "evidence", s.uid, "courses", selectedCourse, "weeks", weekKey));
           if (evDoc.exists()) evMap[s.uid] = evDoc.data();
-        } catch { /* no evidence */ }
+        } catch (e) { console.debug('Evidence fetch error', e.code); }
 
         // Fetch existing grade
         try {
@@ -80,7 +76,7 @@ export default function WeeklyEvidenceTab({ selectedCourse, studentMap }) {
             const d = gradeDoc.data();
             gradeMap[s.uid] = { score: d.activityScore, label: d.activityLabel, courseId: selectedCourse };
           }
-        } catch { /* no grade */ }
+        } catch (e) { console.debug('Evidence fetch error', e.code); }
       });
 
       await Promise.all(promises);
