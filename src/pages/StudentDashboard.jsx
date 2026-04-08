@@ -2,6 +2,7 @@
 import { useAuth } from "../hooks/useAuth";
 import { Link } from "react-router-dom";
 import { useEffect, useState, useRef, useMemo } from "react";
+import { motion } from "framer-motion";
 import { collection, getDocs, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { getLevelInfo, getStudentGamification, getXPConfig, retroactiveBadgeXP } from "../lib/gamification";
@@ -17,6 +18,12 @@ import DueToday from "../components/DueToday";
 import JoinCourse from "../components/JoinCourse";
 import AnnouncementBanner from "../components/AnnouncementBanner";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
+
+const fadeUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+};
+const stagger = { animate: { transition: { staggerChildren: 0.1 } } };
 
 export default function StudentDashboard() {
   const { user, nickname, updateNickname } = useAuth();
@@ -254,7 +261,13 @@ export default function StudentDashboard() {
   const enrolledCourses = allCourses.filter((c) => enrolledIds?.has(c.id));
 
   return (
-    <main id="main-content" className="page-wrapper page-wrapper--medium">
+    <motion.main
+      id="main-content"
+      className="page-wrapper page-wrapper--medium"
+      variants={stagger}
+      initial="initial"
+      animate="animate"
+    >
 
         {/* Announcements for enrolled courses */}
         {enrolledCourses.map((course) => (
@@ -266,7 +279,7 @@ export default function StudentDashboard() {
 
         {/* Avatar — centered hero */}
         {avatar && (
-          <div className="sd-avatar-hero">
+          <motion.div className="sd-avatar-hero" variants={fadeUp} transition={{ duration: 0.4, ease: [0.22,1,0.36,1] }}>
             <Link to="/avatar" style={{ textDecoration: "none" }}>
               <div className="sd-avatar-card">
                 <AvatarWithPet
@@ -281,11 +294,11 @@ export default function StudentDashboard() {
                 </div>
               </div>
             </Link>
-          </div>
+          </motion.div>
         )}
 
         {/* Welcome + Stats */}
-        <div className="sd-welcome">
+        <motion.div className="sd-welcome" variants={fadeUp} transition={{ duration: 0.4, ease: [0.22,1,0.36,1] }}>
           <div className="sd-welcome-header">
             <div>
               <h1 className="sd-welcome-heading">
@@ -326,10 +339,10 @@ export default function StudentDashboard() {
             />}
             <DueToday lessonMap={lessonMap} allCourses={allCourses} completedLessons={completedLessons} />
           </div>
-        </div>
+        </motion.div>
 
         {/* My Courses (enrolled) */}
-        <div className="sd-courses">
+        <motion.div className="sd-courses" variants={fadeUp} transition={{ duration: 0.4, ease: [0.22,1,0.36,1] }}>
           {enrolledCourses.length > 0 && (
             <div style={{ marginBottom: 20 }}>
               {enrolledCourses.map((course) => (
@@ -395,16 +408,16 @@ export default function StudentDashboard() {
               })}
             </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Badges */}
         {gamification && (
-          <div className="sd-badges">
+          <motion.div className="sd-badges" variants={fadeUp} transition={{ duration: 0.4, ease: [0.22,1,0.36,1] }}>
             <h2 className="section-heading" data-translatable>
               {ui(0, "Badges")}
             </h2>
             <BadgeGrid earnedBadgeIds={gamification.badges || []} />
-          </div>
+          </motion.div>
         )}
 
       {/* Join Course Modal */}
@@ -415,6 +428,6 @@ export default function StudentDashboard() {
           onClose={() => setShowJoinModal(false)}
         />
       )}
-    </main>
+    </motion.main>
   );
 }

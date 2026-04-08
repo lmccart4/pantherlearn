@@ -312,7 +312,7 @@ export default function BiasDetectiveReview({ studentMap, courseId }) {
                                       {inv.biasReport.identifiedBiases.map((b) => (
                                         <span key={b} style={{
                                           fontSize: 11, padding: "2px 8px", borderRadius: 4,
-                                          background: "rgba(176,142,255,0.12)", color: "var(--purple, #b08eff)",
+                                          background: "var(--purple-muted)", color: "var(--purple)",
                                           fontWeight: 600,
                                         }}>
                                           {inv.caseData?.biasesToFind?.find((bf) => bf.id === b)?.label || b}

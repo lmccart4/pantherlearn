@@ -27,17 +27,17 @@ const getGsap = () => {
 };
 
 // ─── PALETTE ─────────────────────────────────────────
-const ACCENT = "#10b981";
-const ACCENT_PURPLE = "#7c3aed";
-const GOLD = "#f0c848";
-const MANA_BG = "var(--mana-bg, #0a0612)";
-const MANA_SURFACE = "var(--mana-surface, #130d20)";
-const MANA_SURFACE2 = "var(--mana-surface2, #1e1435)";
-const MANA_BORDER = "var(--mana-border, #2d1f4e)";
-const MANA_TEXT = "var(--mana-text, #e8e0f0)";
-const MANA_TEXT_MUTED = "var(--mana-text-muted, #8b7fa8)";
-const MANA_GRAD_MID = "var(--mana-gradient-mid, #1a1030)";
-const MANA_GRAD_MID2 = "var(--mana-gradient-mid2, #1e1435)";
+const ACCENT = "#ECD06F";           // gold — matches --brand
+const ACCENT_PURPLE = "#a78bfa";    // keep purple for mana orb glow
+const GOLD = "#ECD06F";
+const MANA_BG = "var(--bg, #0a0a0f)";
+const MANA_SURFACE = "var(--surface-0, #111116)";
+const MANA_SURFACE2 = "var(--surface-1, #18181f)";
+const MANA_BORDER = "var(--border, rgba(255,255,255,0.08))";
+const MANA_TEXT = "var(--text, #ffffff)";
+const MANA_TEXT_MUTED = "var(--text-2, rgba(255,255,255,0.60))";
+const MANA_GRAD_MID = "var(--surface-0, #111116)";
+const MANA_GRAD_MID2 = "var(--surface-1, #18181f)";
 
 // ─── EASING CURVES ───────────────────────────────────
 const EASE_ENTRANCE = "cubic-bezier(0.2, 0, 0, 1)";
@@ -313,8 +313,8 @@ const manaStyles = `
 /* === SCROLLBAR === */
 .mana-page::-webkit-scrollbar { width: 6px; }
 .mana-page::-webkit-scrollbar-track { background: transparent; }
-.mana-page::-webkit-scrollbar-thumb { background: #2d1f4e; border-radius: 3px; }
-.mana-page::-webkit-scrollbar-thumb:hover { background: #3d2a6e; }
+.mana-page::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 3px; }
+.mana-page::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
 
 /* === PERF MODE OVERRIDES === */
 .perf-mode .mana-smoke-wrapper,
@@ -1179,7 +1179,7 @@ export default function StudentMana() {
                 style={{
                   padding: "8px 16px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 13,
                   cursor: (mana?.balance || 0) >= req.quotedCost ? "pointer" : "default",
-                  background: (mana?.balance || 0) >= req.quotedCost ? `linear-gradient(135deg, ${ACCENT}, #7c3aed)` : MANA_SURFACE,
+                  background: (mana?.balance || 0) >= req.quotedCost ? `linear-gradient(135deg, ${ACCENT}, #c9a020)` : MANA_SURFACE,
                   color: (mana?.balance || 0) >= req.quotedCost ? "#fff" : MANA_TEXT_MUTED,
                   opacity: (mana?.balance || 0) >= req.quotedCost ? 1 : 0.5,
                 }}
@@ -1376,7 +1376,7 @@ export default function StudentMana() {
                   style={{
                     padding: "8px 16px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 13,
                     cursor: selectedLesson ? "pointer" : "default",
-                    background: selectedLesson ? `linear-gradient(135deg, ${ACCENT}, #7c3aed)` : MANA_SURFACE,
+                    background: selectedLesson ? `linear-gradient(135deg, ${ACCENT}, #c9a020)` : MANA_SURFACE,
                     color: selectedLesson ? "#fff" : MANA_TEXT_MUTED,
                   }}
                 >Apply +{bonusModal.bonusAmount}%</button>
@@ -1437,7 +1437,7 @@ export default function StudentMana() {
                   style={{
                     padding: "8px 16px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 13,
                     cursor: inputText.trim() ? "pointer" : "default",
-                    background: inputText.trim() ? `linear-gradient(135deg, ${ACCENT}, #7c3aed)` : MANA_SURFACE,
+                    background: inputText.trim() ? `linear-gradient(135deg, ${ACCENT}, #c9a020)` : MANA_SURFACE,
                     color: inputText.trim() ? "#fff" : MANA_TEXT_MUTED,
                   }}
                 >Cast</button>
@@ -1508,7 +1508,7 @@ export default function StudentMana() {
                   className="mana-spell-btn"
                   style={{
                     flex: 1, padding: "10px 0", borderRadius: 8, border: "none",
-                    background: quoteDescription.trim() ? `linear-gradient(135deg, ${ACCENT}, #7c3aed)` : MANA_SURFACE,
+                    background: quoteDescription.trim() ? `linear-gradient(135deg, ${ACCENT}, #c9a020)` : MANA_SURFACE,
                     color: quoteDescription.trim() ? "#fff" : MANA_TEXT_MUTED,
                     fontWeight: 600, fontSize: 14, cursor: quoteDescription.trim() ? "pointer" : "default",
                   }}
@@ -1582,7 +1582,7 @@ export default function StudentMana() {
                   className="mana-spell-btn"
                   style={{
                     flex: 1, padding: "10px 0", borderRadius: 8, border: "none",
-                    background: suggestionText.trim() ? `linear-gradient(135deg, ${ACCENT}, #7c3aed)` : MANA_SURFACE,
+                    background: suggestionText.trim() ? `linear-gradient(135deg, ${ACCENT}, #c9a020)` : MANA_SURFACE,
                     color: suggestionText.trim() ? "#fff" : MANA_TEXT_MUTED,
                     fontWeight: 600, fontSize: 14, cursor: suggestionText.trim() ? "pointer" : "default",
                   }}

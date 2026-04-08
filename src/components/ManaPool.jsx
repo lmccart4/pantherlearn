@@ -68,12 +68,12 @@ export default function ManaPool({ courseId, compact = false }) {
   const pct = Math.min((state.currentMP / MANA_CAP) * 100, 100);
   const isLow = pct < 20;
   const isHigh = pct > 70;
-  const glowColor = isLow ? "#8b5cf6" : isHigh ? "#06b6d4" : "#a78bfa";
+  const glowColor = isLow ? "var(--brand)" : isHigh ? "var(--cyan)" : "var(--brand-light)";
   const barColor = isLow
-    ? "linear-gradient(90deg, #7c3aed, #8b5cf6)"
+    ? "linear-gradient(90deg, var(--brand), var(--brand-light))"
     : isHigh
-    ? "linear-gradient(90deg, #8b5cf6, #06b6d4)"
-    : "linear-gradient(90deg, #8b5cf6, #a78bfa)";
+    ? "linear-gradient(90deg, var(--brand-light), var(--cyan))"
+    : "linear-gradient(90deg, var(--brand), var(--brand-light))";
 
   const activePower = state.activeVote
     ? (state.powers || []).find((p) => p.id === state.activeVote)

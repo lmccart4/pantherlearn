@@ -144,9 +144,9 @@ export default function Leaderboard({ courseId }) {
       {/* Epic Podium — top 3 */}
       {top3.length > 0 && (
         <div style={{
-          background: "linear-gradient(180deg, rgba(176,142,255,0.04) 0%, rgba(245,166,35,0.04) 50%, transparent 100%)",
+          background: "var(--surface-0)",
           borderRadius: 16, padding: "24px 16px 0", marginBottom: 16,
-          border: "1px solid rgba(50,57,82,0.3)",
+          border: "1px solid var(--border)",
         }}>
           <div style={{
             display: "flex", justifyContent: "center", alignItems: "flex-end",
@@ -291,8 +291,8 @@ export default function Leaderboard({ courseId }) {
             <div style={{
               flex: 1, minWidth: 140, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               padding: "10px 16px",
-              background: "linear-gradient(135deg, rgba(176,142,255,0.08), rgba(176,142,255,0.04))",
-              border: "1px solid rgba(176,142,255,0.15)", borderRadius: 10,
+              background: "var(--surface-0)",
+              border: "1px solid var(--border)", borderRadius: 10,
             }}>
               <span style={{ fontSize: 18 }}>🏅</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--purple)" }}>

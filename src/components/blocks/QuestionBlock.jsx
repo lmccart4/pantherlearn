@@ -454,7 +454,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
       <div className={`question-block ${submitted ? "submitted-sa" : ""}`} style={{ position: "relative" }}>
         {xpToast && <div style={xpToastStyle}>+{xpToast} XP</div>}
         <div style={{ display: "flex", alignItems: "center" }}>
-          <div className="question-badge" style={{ background: "rgba(176,142,255,0.12)", color: "var(--purple)" }}>🔢 Ranking</div>
+          <div className="question-badge" style={{ background: "var(--purple-muted)", color: "var(--purple)" }}>🔢 Ranking</div>
           {diffBadge}
         </div>
         <p className="question-prompt" data-translatable dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedPrompt) }} />

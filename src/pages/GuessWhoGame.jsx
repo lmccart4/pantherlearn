@@ -519,7 +519,7 @@ export default function GuessWhoGame() {
                 <button onClick={() => setShowGuessModal(true)} disabled={sending}
                   style={{
                     width: "100%", marginTop: 8, padding: "8px 0", borderRadius: 8,
-                    border: "1px solid var(--purple)", background: "rgba(176,142,255,0.08)",
+                    border: "1px solid var(--purple)", background: "var(--purple-muted)",
                     color: "var(--purple)", fontWeight: 700, fontSize: 13, cursor: "pointer",
                   }}>
                   🎯 Make Final Guess

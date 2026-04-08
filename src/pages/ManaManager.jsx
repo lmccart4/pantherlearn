@@ -28,17 +28,17 @@ const getGsap = () => {
 };
 
 // ─── PALETTE (matching StudentMana) ──────────────────
-const ACCENT = "#10b981";
-const ACCENT_PURPLE = "#7c3aed";
-const GOLD = "#f0c848";
-const MANA_BG = "var(--mana-bg, #0a0612)";
-const MANA_SURFACE = "var(--mana-surface, #130d20)";
-const MANA_SURFACE2 = "var(--mana-surface2, #1e1435)";
-const MANA_BORDER = "var(--mana-border, #2d1f4e)";
-const MANA_TEXT = "var(--mana-text, #e8e0f0)";
-const MANA_TEXT_MUTED = "var(--mana-text-muted, #8b7fa8)";
-const MANA_GRAD_MID = "var(--mana-gradient-mid, #1a1030)";
-const MANA_GRAD_MID2 = "var(--mana-gradient-mid2, #1e1435)";
+const ACCENT = "#ECD06F";           // gold — matches --brand
+const ACCENT_PURPLE = "#a78bfa";    // keep purple for mana orb glow
+const GOLD = "#ECD06F";
+const MANA_BG = "var(--bg, #0a0a0f)";
+const MANA_SURFACE = "var(--surface-0, #111116)";
+const MANA_SURFACE2 = "var(--surface-1, #18181f)";
+const MANA_BORDER = "var(--border, rgba(255,255,255,0.08))";
+const MANA_TEXT = "var(--text, #ffffff)";
+const MANA_TEXT_MUTED = "var(--text-2, rgba(255,255,255,0.60))";
+const MANA_GRAD_MID = "var(--surface-0, #111116)";
+const MANA_GRAD_MID2 = "var(--surface-1, #18181f)";
 const DANGER = "#ef4444";
 
 // ─── EASING ──────────────────────────────────────────
@@ -150,7 +150,7 @@ const manaStyles = `
 /* === SCROLLBAR === */
 .mana-mgr-page::-webkit-scrollbar { width: 6px; }
 .mana-mgr-page::-webkit-scrollbar-track { background: transparent; }
-.mana-mgr-page::-webkit-scrollbar-thumb { background: #2d1f4e; border-radius: 3px; }
+.mana-mgr-page::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 3px; }
 
 /* === ENCHANTMENT LOG === */
 .mgr-log-entry {
