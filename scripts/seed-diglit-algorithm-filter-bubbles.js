@@ -4,6 +4,9 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
@@ -14,6 +17,7 @@ const lesson = {
   unit: "The Algorithm Economy",
   order: 44,
   visible: false,
+  gradesReleased: true,
   blocks: [
 
     {
@@ -114,6 +118,15 @@ const lesson = {
       placeholder: "Topic: ...\nPerspectives that show up: ...\nPerspectives missing: ...\nWhat they'd see: ...",
       difficulty: "evaluate"
     },
+    {
+      id: "embed-bubble-builder",
+      type: "embed",
+      title: "Build Your Own Bubble",
+      url: "https://pantherlearn.web.app/tools/bubble-builder.html",
+      height: 820,
+      scored: true,
+      weight: 5
+    },
 
     {
       id: "section-wrapup",
@@ -125,7 +138,7 @@ const lesson = {
     {
       id: "b-summary",
       type: "text",
-      content: "Filter bubbles, echo chambers, and rabbit holes are all related — but different. They all have the same effect: narrowing your information world until it feels complete, when it isn't.\n\nThe antidote isn't quitting social media. It's:\n- Actively seeking out perspectives that don't match your feed\n- Following sources that challenge you, not just validate you\n- Recognizing that your feed is *a* version of reality, not *the* version\n\n**Up next:** Lesson 45 — How TikTok's algorithm specifically works, and why it's both the most advanced and the most debated recommendation system ever built."
+      content: "Filter bubbles, echo chambers, and rabbit holes are all related — but different. They all have the same effect: narrowing your information world until it feels complete, when it isn't.\n\nLook back at **the bubble you just built** in the activity above. After 10 rounds, the algorithm narrowed your feed based on just 30 like/skip decisions — and the reveal showed you everything it had hidden. That's happening on every platform you use, every day, on every topic — just slower, quieter, and without a reveal screen at the end.\n\nThe antidote isn't quitting social media. It's:\n- Actively seeking out perspectives that don't match your feed\n- Following sources that challenge you, not just validate you\n- Recognizing that your feed is *a* version of reality, not *the* version\n\n**Up next:** Lesson 45 — How TikTok's algorithm specifically works, and why it's both the most advanced and the most debated recommendation system ever built."
     },
     {
       id: "q-exit",
@@ -159,13 +172,12 @@ const lesson = {
 
 async function seed() {
   try {
-    await db.collection("courses").doc("digital-literacy")
-      .collection("lessons").doc("algorithm-filter-bubbles")
-      .set(lesson);
+    const result = await safeLessonWrite(db, "digital-literacy", "algorithm-filter-bubbles", lesson);
     console.log('✅ Lesson "Filter Bubbles & Rabbit Holes" seeded!');
     console.log("   Path: courses/digital-literacy/lessons/algorithm-filter-bubbles");
     console.log("   Blocks:", lesson.blocks.length);
     console.log("   Order:", lesson.order);
+    console.log("   Action:", result.action, "| preserved:", result.preserved);
     process.exit(0);
   } catch (err) {
     console.error("❌ Error:", err);
