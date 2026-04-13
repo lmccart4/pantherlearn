@@ -23,6 +23,24 @@ const STUDENT_OVERRIDES = (import.meta.env.VITE_STUDENT_OVERRIDES || "")
 const TEST_STUDENT_EMAILS = (import.meta.env.VITE_TEST_STUDENT_EMAILS || "")
   .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 
+// Lachlan agent team — paps.net addresses pre-authorized as teachers.
+// Mirrors the ADMIN_EMAILS allowlist on PantherPrep so both sites treat the
+// agent accounts the same way. Redundant with the digit-count heuristic for
+// most of these (0 digits → teacher anyway), but explicit is safer: if the
+// heuristic ever changes these still resolve to teacher. Accounts may not
+// exist in Google Workspace yet — Luke provisions them via PAPS IT. Most
+// agents use firebase-admin and bypass web auth entirely; Pixel is the one
+// that actually needs web sign-in for visual QA of authenticated pages.
+const AGENT_PAPS_EMAILS = [
+  "lachlan@paps.net",
+  "atlas@paps.net",
+  "parker@paps.net",
+  "kit@paps.net",
+  "mack@paps.net",
+  "pixel@paps.net",
+  "link@paps.net",
+];
+
 function getRoleFromEmail(email) {
   if (!email) return null;
   const lower = email.toLowerCase();
@@ -32,6 +50,7 @@ function getRoleFromEmail(email) {
 
   // Agent accounts (QA / automation) get teacher-level access
   if (lower.endsWith("@lachlan.internal")) return "teacher";
+  if (AGENT_PAPS_EMAILS.includes(lower)) return "teacher";
 
   if (!lower.endsWith("@paps.net")) return null;
 
