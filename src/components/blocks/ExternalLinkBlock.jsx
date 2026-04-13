@@ -1,14 +1,6 @@
 // src/components/blocks/ExternalLinkBlock.jsx
 import { useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
-
-function renderMarkdown(text) {
-  if (!text) return "";
-  return text
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
-    .replace(/\n/g, "<br/>");
-}
+import { renderMarkdown } from "../../lib/utils";
 
 export default function ExternalLinkBlock({ block }) {
   const texts = useTranslatedTexts([
