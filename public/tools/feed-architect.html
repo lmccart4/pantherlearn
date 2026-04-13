@@ -797,8 +797,11 @@ function publishFeed() {
     }, 100);
   });
 
-  // Send interim score (gameComplete: false)
-  sendScore(false);
+  // On the last round, mark as gameComplete so the grade lands in Firestore
+  // even if the student closes the tab before clicking "See Final Results".
+  // Per .claude/rules/scored-embed-checklist.md — no manual-click dependency.
+  const isLastRound = currentRound >= ROUNDS.length - 1;
+  sendScore(isLastRound, isLastRound);
 }
 
 function generateExplanation(round, chosen, score, metrics) {

@@ -6,6 +6,11 @@ export const blockId = params.get("blockId") || "";
 export const lessonId = params.get("lessonId") || "";
 
 export function reportScore(activityId, score, maxScore, meta = {}) {
+  // gameComplete must be explicit — undefined is treated as complete by
+  // EmbedBlock, but an explicit boolean is safer and gets audited correctly.
+  // Per .claude/rules/scored-embed-checklist.md: interim saves use false,
+  // final saves use true; EmbedBlock flips `submitted` on true.
+  const { gameComplete = true, ...rest } = meta;
   const payload = {
     type: "activityScore",
     activityId,
@@ -15,8 +20,9 @@ export function reportScore(activityId, score, maxScore, meta = {}) {
     lessonId,
     score,
     maxScore,
+    gameComplete,
     completedAt: new Date().toISOString(),
-    ...meta,
+    ...rest,
   };
   if (window.parent !== window) {
     window.parent.postMessage(payload, "*");

@@ -814,16 +814,20 @@ export default function App() {
       setEarnedCodes(newCodes);
       setRoomScores(newScores);
 
-      // Report progressive score after each room
+      // Report progressive score after each room. Interim if more rooms remain,
+      // final (gameComplete:true) if this was the last room — so the grade lands
+      // even if the student closes the tab before handleFinish runs.
       const totalSoFar = newScores.reduce((a, b) => a + b, 0);
       const maxScore = ROOMS.length * 20;
+      const isFinalRoom = roomIndex + 1 >= ROOMS.length;
       reportScore("energy-escape-room", totalSoFar, maxScore, {
         rooms: ROOMS.slice(0, newScores.length).map((r, i) => ({
           name: r.name,
           score: newScores[i],
           max: 20,
         })),
-        partial: roomIndex + 1 < ROOMS.length,
+        partial: !isFinalRoom,
+        gameComplete: isFinalRoom,
       });
 
       if (roomIndex + 1 >= ROOMS.length) {

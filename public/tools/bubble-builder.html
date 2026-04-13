@@ -1008,8 +1008,11 @@ function onReact(cardId, action, cardEl) {
   const allDone = currentCards.every(c => seenCardIds.has(c.id));
   if (allDone) {
     locked = true;
-    // Interim (not complete)
-    sendScore(false);
+    // On the final round, mark as gameComplete so the grade lands even if
+    // the student closes the tab during the 650ms advance-to-reveal gap.
+    // Per .claude/rules/scored-embed-checklist.md.
+    const isLastRound = currentRound >= TOTAL_ROUNDS;
+    sendScore(isLastRound);
     // Advance
     setTimeout(nextRound, 650);
   }
