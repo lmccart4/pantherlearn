@@ -209,6 +209,7 @@
     <div class="stat"><div class="stat-val" id="stat-skipped">0</div><div class="stat-label">Not Submitted</div></div>
   </div>
   <div class="breakdown" id="breakdown"></div>
+  <button id="submit-score-btn" class="choice-btn" style="display:block;margin:18px auto 8px;padding:12px 28px;font-size:16px;font-weight:700;border-radius:10px;background:#10b981;color:#fff;border:none;cursor:pointer;">Submit Score</button>
   <div class="submitted-msg" id="submitted-msg"></div>
 </div>
 
@@ -650,7 +651,33 @@ function showResults() {
     return `<div class="breakdown-row"><span class="breakdown-icon">${icon}</span><span class="breakdown-label">${label}</span><span class="breakdown-answer">${detail}</span></div>`;
   }).join("");
 
-  document.getElementById("submitted-msg").textContent = "Score submitted to PantherLearn";
+  document.getElementById("submitted-msg").textContent = "Click Submit Score to save your grade to PantherLearn.";
+
+  // Wire the Submit Score button — always re-fires reportScore with no guard,
+  // so a silent auto-send failure can be recovered by a manual click.
+  const btn = document.getElementById("submit-score-btn");
+  if (btn) {
+    btn.onclick = () => {
+      reportScore("real-vs-ai-quiz", correctCount, TOTAL, {
+        breakdown: results.map(r => ({
+          category: r.category,
+          correct: r.correct,
+          skipped: r.skipped || false,
+          answer: r.answer,
+          chosen: r.chosen,
+        })),
+        accuracy: Math.round((correctCount / TOTAL) * 100),
+        skipped: skippedCount,
+        manualSubmit: true,
+      });
+      scoreSubmitted = true;
+      btn.textContent = "Score Submitted ✓";
+      btn.style.background = "#059669";
+      btn.style.opacity = "0.8";
+      btn.style.pointerEvents = "none";
+      document.getElementById("submitted-msg").textContent = "Score saved to PantherLearn.";
+    };
+  }
 }
 
 // Prevent right-click / drag on images

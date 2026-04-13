@@ -2,7 +2,7 @@
 // Class Mana Pool system — shared resource for course-wide powers.
 // Data lives at courses/{courseId}/mana/{poolId} (default "pool")
 
-import { doc, getDoc, setDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc, setDoc, addDoc, collection, getDocs, query, where, orderBy, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 import { createNotification } from "./notifications";
 
@@ -326,18 +326,53 @@ export async function getStudentMana(courseId, uid) {
   return snap.data();
 }
 
+// ─── Transaction Ledger (unbounded) ───
+// Subcollection: courses/{courseId}/studentMana/{uid}/transactions/{autoId}
+// Source of truth for per-student mana history. The bounded `history` array
+// on the parent doc stays as a cached "last-tx" preview for row displays —
+// never trust it as authoritative.
+
+export async function logManaTransaction(courseId, uid, entry) {
+  try {
+    const colRef = collection(db, "courses", courseId, "studentMana", uid, "transactions");
+    await addDoc(colRef, {
+      type: entry.type,
+      amount: entry.amount,
+      reason: entry.reason || "",
+      powerId: entry.powerId || null,
+      balanceAfter: entry.balanceAfter ?? null,
+      timestamp: entry.timestamp || new Date().toISOString(),
+      createdAt: serverTimestamp(),
+    });
+  } catch (e) {
+    console.warn("[mana] logManaTransaction failed:", e?.message);
+  }
+}
+
+export async function getStudentManaTransactions(courseId, uid) {
+  const colRef = collection(db, "courses", courseId, "studentMana", uid, "transactions");
+  // Prefer ordering by timestamp string (ISO, sortable). createdAt may be null
+  // for backfilled rows, so we don't orderBy it.
+  const snap = await getDocs(query(colRef, orderBy("timestamp", "desc")));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
 export async function awardStudentMana(courseId, uid, amount, reason) {
   const data = await getStudentMana(courseId, uid);
   data.balance += amount;
   data.lifetimeEarned += amount;
   const lvl = getLevel(data.lifetimeEarned);
   data.level = lvl.label;
+  const timestamp = new Date().toISOString();
   data.history = [
-    { type: "earn", amount, reason, timestamp: new Date().toISOString() },
+    { type: "earn", amount, reason, timestamp },
     ...(data.history || []).slice(0, 49),
   ];
   const ref = doc(db, "courses", courseId, "studentMana", uid);
   await setDoc(ref, data);
+  await logManaTransaction(courseId, uid, {
+    type: "earn", amount, reason, timestamp, balanceAfter: data.balance,
+  });
 
   // Send notification to student
   try {
@@ -362,12 +397,18 @@ export async function spendStudentMana(courseId, uid, powerId) {
   if (data.balance < power.cost) throw new Error("Not enough mana");
 
   data.balance -= power.cost;
+  const timestamp = new Date().toISOString();
+  const reason = `Redeemed: ${power.name}`;
   data.history = [
-    { type: "spend", amount: power.cost, reason: `Redeemed: ${power.name}`, powerId, timestamp: new Date().toISOString() },
+    { type: "spend", amount: power.cost, reason, powerId, timestamp },
     ...(data.history || []).slice(0, 49),
   ];
   const ref = doc(db, "courses", courseId, "studentMana", uid);
   await setDoc(ref, data);
+  await logManaTransaction(courseId, uid, {
+    type: "spend", amount: power.cost, reason, powerId, timestamp,
+    balanceAfter: data.balance,
+  });
   return { newBalance: data.balance, power };
 }
 
@@ -388,12 +429,16 @@ export async function deductStudentMana(courseId, uid, amount, reason) {
   const current = snap.exists() ? snap.data() : { balance: 0, lifetimeEarned: 0, history: [] };
   const newBalance = Math.max(0, current.balance - amount);
   const actualLoss = current.balance - newBalance;
-  const entry = { type: "loss", amount: actualLoss, reason, timestamp: new Date().toISOString() };
+  const timestamp = new Date().toISOString();
+  const entry = { type: "loss", amount: actualLoss, reason, timestamp };
   await setDoc(ref, {
     ...current,
     balance: newBalance,
     history: [entry, ...(current.history || []).slice(0, 49)],
     level: getLevel(current.lifetimeEarned || 0).label,
+  });
+  await logManaTransaction(courseId, uid, {
+    type: "loss", amount: actualLoss, reason, timestamp, balanceAfter: newBalance,
   });
   return { newBalance, actualLoss };
 }

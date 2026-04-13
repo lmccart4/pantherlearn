@@ -12,6 +12,7 @@ import {
   spendMana, applyDecay, startVote, endVote,
   addPower, removePower,
   getStudentManaForClass, awardStudentMana, getLevel,
+  getStudentManaTransactions,
   awardBehaviorMana, getManaTitle, getManaRequests,
   autoSelectMage, markMageAbsent,
   MANA_CAP, DEFAULT_POWERS, MANA_LEVELS, MAGE_DAILY_BUDGET,
@@ -189,6 +190,9 @@ export default function ManaManager() {
   const [studentNames, setStudentNames] = useState({});
   const [grantUid, setGrantUid] = useState(null);
   const [historyUid, setHistoryUid] = useState(null);
+  const [historyTx, setHistoryTx] = useState({}); // { uid: [txs] }
+  const [historyLoading, setHistoryLoading] = useState({}); // { uid: bool }
+  const [historyFilter, setHistoryFilter] = useState("all"); // all | earn | spend | loss
   const [grantAmount, setGrantAmount] = useState(5);
   const [grantReason, setGrantReason] = useState("");
   const [bulkAmount, setBulkAmount] = useState(5);
@@ -387,6 +391,25 @@ export default function ManaManager() {
     setGrantReason("");
     setGrantAmount(5);
     await loadStudentBalances();
+  }
+
+  async function handleToggleHistory(uid) {
+    if (historyUid === uid) {
+      setHistoryUid(null);
+      return;
+    }
+    setHistoryUid(uid);
+    // Always refetch on open so the panel reflects any writes since the last load
+    setHistoryLoading((prev) => ({ ...prev, [uid]: true }));
+    try {
+      const txs = await getStudentManaTransactions(courseId, uid);
+      setHistoryTx((prev) => ({ ...prev, [uid]: txs }));
+    } catch (e) {
+      console.error("Failed to load mana transactions:", e);
+      setHistoryTx((prev) => ({ ...prev, [uid]: [] }));
+    } finally {
+      setHistoryLoading((prev) => ({ ...prev, [uid]: false }));
+    }
   }
 
   async function handleBulkGrant() {
@@ -1213,14 +1236,12 @@ export default function ManaManager() {
                                 </div>
                               )}
                             </div>
-                            {txHistory.length > 0 && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setHistoryUid(isShowingHistory ? null : uid); }}
-                                style={{ background: "none", border: `1px solid ${MANA_BORDER}`, borderRadius: 4, padding: "2px 8px", fontSize: 11, color: MANA_TEXT_MUTED, cursor: "pointer" }}
-                              >
-                                {isShowingHistory ? "Hide" : `${txHistory.length} tx`}
-                              </button>
-                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleToggleHistory(uid); }}
+                              style={{ background: "none", border: `1px solid ${MANA_BORDER}`, borderRadius: 4, padding: "2px 8px", fontSize: 11, color: MANA_TEXT_MUTED, cursor: "pointer" }}
+                            >
+                              {isShowingHistory ? "Hide" : "History"}
+                            </button>
                             <span style={{
                               display: "inline-flex", alignItems: "center", gap: 4,
                               padding: "2px 8px", borderRadius: 10,
@@ -1253,30 +1274,96 @@ export default function ManaManager() {
                             </div>
                           </div>
 
-                          {isShowingHistory && (
-                            <div style={{ padding: "4px 10px 10px", maxHeight: 200, overflowY: "auto" }}>
-                              {txHistory.map((tx, i) => (
-                                <div key={i} style={{
-                                  display: "flex", alignItems: "center", gap: 8, padding: "4px 0",
-                                  borderBottom: i < txHistory.length - 1 ? `1px solid color-mix(in srgb, ${MANA_BORDER} 27%, transparent)` : "none",
-                                  fontSize: 12,
-                                }}>
-                                  <span style={{
-                                    fontWeight: 700, minWidth: 40, textAlign: "right",
-                                    color: tx.type === "spend" || tx.type === "deduct" ? DANGER : ACCENT,
-                                  }}>
-                                    {tx.type === "spend" || tx.type === "deduct" ? "-" : "+"}{tx.amount}
-                                  </span>
-                                  <span style={{ flex: 1, color: MANA_TEXT_MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {tx.reason}
-                                  </span>
-                                  <span style={{ color: MANA_TEXT_MUTED, fontSize: 11, whiteSpace: "nowrap" }}>
-                                    {new Date(tx.timestamp).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                          {isShowingHistory && (() => {
+                            const loading = !!historyLoading[uid];
+                            const txs = historyTx[uid] || [];
+                            const filtered = historyFilter === "all"
+                              ? txs
+                              : txs.filter((t) => {
+                                  if (historyFilter === "earn") return t.type === "earn";
+                                  if (historyFilter === "spend") return t.type === "spend";
+                                  if (historyFilter === "loss") return t.type === "loss" || t.type === "deduct" || t.type === "decay";
+                                  return true;
+                                });
+                            const earnedTotal = txs.reduce((s, t) => t.type === "earn" ? s + (t.amount || 0) : s, 0);
+                            const spentTotal = txs.reduce((s, t) => t.type === "spend" ? s + (t.amount || 0) : s, 0);
+                            const lossTotal = txs.reduce((s, t) => (t.type === "loss" || t.type === "deduct" || t.type === "decay") ? s + (t.amount || 0) : s, 0);
+                            return (
+                              <div style={{ padding: "6px 10px 12px" }}>
+                                {loading ? (
+                                  <div style={{ fontSize: 12, color: MANA_TEXT_MUTED, padding: "8px 0" }}>Loading history…</div>
+                                ) : txs.length === 0 ? (
+                                  <div style={{ fontSize: 12, color: MANA_TEXT_MUTED, padding: "8px 0" }}>
+                                    No transactions yet for this student.
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div style={{
+                                      display: "flex", gap: 12, fontSize: 11, color: MANA_TEXT_MUTED,
+                                      padding: "4px 0 8px", borderBottom: `1px solid color-mix(in srgb, ${MANA_BORDER} 27%, transparent)`, marginBottom: 6,
+                                      flexWrap: "wrap", rowGap: 6, alignItems: "center",
+                                    }}>
+                                      <span><strong style={{ color: ACCENT }}>{txs.length}</strong> total</span>
+                                      <span>Earned: <strong style={{ color: ACCENT }}>+{earnedTotal}</strong></span>
+                                      <span>Redeemed: <strong style={{ color: DANGER }}>−{spentTotal}</strong></span>
+                                      {lossTotal > 0 && (
+                                        <span>Lost: <strong style={{ color: DANGER }}>−{lossTotal}</strong></span>
+                                      )}
+                                      <span style={{ marginLeft: "auto", display: "flex", gap: 2 }}>
+                                        {["all", "earn", "spend", "loss"].map((f) => (
+                                          <button key={f}
+                                            onClick={(e) => { e.stopPropagation(); setHistoryFilter(f); }}
+                                            style={{
+                                              fontSize: 10, padding: "2px 6px", borderRadius: 3,
+                                              border: `1px solid ${historyFilter === f ? ACCENT : MANA_BORDER}`,
+                                              background: historyFilter === f ? `${ACCENT}22` : "transparent",
+                                              color: historyFilter === f ? ACCENT : MANA_TEXT_MUTED,
+                                              cursor: "pointer", textTransform: "capitalize",
+                                            }}>
+                                            {f}
+                                          </button>
+                                        ))}
+                                      </span>
+                                    </div>
+                                    <div style={{ maxHeight: 280, overflowY: "auto" }}>
+                                      {filtered.length === 0 ? (
+                                        <div style={{ fontSize: 12, color: MANA_TEXT_MUTED, padding: "6px 0", fontStyle: "italic" }}>
+                                          No transactions of this type.
+                                        </div>
+                                      ) : filtered.map((tx, i) => {
+                                        const isNeg = tx.type === "spend" || tx.type === "loss" || tx.type === "deduct" || tx.type === "decay";
+                                        return (
+                                          <div key={tx.id || i} style={{
+                                            display: "flex", alignItems: "center", gap: 8, padding: "5px 0",
+                                            borderBottom: i < filtered.length - 1 ? `1px solid color-mix(in srgb, ${MANA_BORDER} 18%, transparent)` : "none",
+                                            fontSize: 12,
+                                          }}>
+                                            <span style={{
+                                              fontWeight: 700, minWidth: 46, textAlign: "right",
+                                              color: isNeg ? DANGER : ACCENT,
+                                            }}>
+                                              {isNeg ? "−" : "+"}{tx.amount}
+                                            </span>
+                                            <span style={{ flex: 1, color: MANA_TEXT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                              {tx.reason || <em style={{ color: MANA_TEXT_MUTED }}>(no reason)</em>}
+                                            </span>
+                                            {tx.balanceAfter !== null && tx.balanceAfter !== undefined && (
+                                              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10, color: MANA_TEXT_MUTED, minWidth: 44, textAlign: "right" }}>
+                                                → {tx.balanceAfter}
+                                              </span>
+                                            )}
+                                            <span style={{ color: MANA_TEXT_MUTED, fontSize: 10, whiteSpace: "nowrap", minWidth: 82, textAlign: "right" }}>
+                                              {new Date(tx.timestamp).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                            </span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })()}
 
                           {isGranting && (
                             <div style={{ display: "flex", gap: 8, padding: "6px 10px 10px", alignItems: "flex-end" }}>

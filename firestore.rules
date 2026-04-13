@@ -74,6 +74,12 @@ service cloud.firestore {
       match /studentMana/{uid} {
         allow read: if hasCourseAccess(courseId);
         allow write: if hasCourseAccess(courseId);
+
+        // Per-student transaction ledger (unbounded history)
+        match /transactions/{txId} {
+          allow read: if hasCourseAccess(courseId);
+          allow write: if hasCourseAccess(courseId);
+        }
       }
       match /manaRequests/{requestId} {
         allow read: if hasCourseAccess(courseId);

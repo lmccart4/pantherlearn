@@ -1,12 +1,13 @@
 // src/pages/StudentProgress.jsx
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { collection, getDocs, getDocsFromServer, query, orderBy, where, doc, getDoc, setDoc, deleteDoc, updateDoc, deleteField } from "firebase/firestore";
+import { collection, getDocs, getDocsFromServer, query, orderBy, where, doc, getDoc, setDoc, addDoc, deleteDoc, updateDoc, deleteField, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
 import StreakDisplay from "../components/StreakDisplay";
 import { getWeightedOverall, CATEGORY_WEIGHTS, CATEGORY_LABELS, CATEGORY_COLORS, DEFAULT_CATEGORY } from "../lib/gradeCalc";
+import { linkifyText } from "../lib/utils";
 
 const GRADE_TIERS = [
   { label: "Missing", value: 0, color: "var(--text3)", bg: "var(--surface2)" },
@@ -25,7 +26,7 @@ function getTierInfo(score) {
 }
 
 export default function StudentProgress() {
-  const { userRole } = useAuth();
+  const { user, userRole } = useAuth();
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
@@ -50,6 +51,8 @@ export default function StudentProgress() {
   const [savingGrade, setSavingGrade] = useState(false);
   const [confirmResetXP, setConfirmResetXP] = useState(null); // { studentUid, studentName }
   const [resettingXP, setResettingXP] = useState(false);
+  const [confirmResetBlock, setConfirmResetBlock] = useState(null); // { studentUid, studentName, lessonId, lessonTitle, blockId, blockLabel }
+  const [resettingBlock, setResettingBlock] = useState(false);
   const [xpConfig, setXpConfig] = useState(null);
   const [activityData, setActivityData] = useState({}); // { uid: { activityId: { activityScore, activityLabel, ... } } }
   const [unitFilter, setUnitFilter] = useState("all");
@@ -557,6 +560,59 @@ export default function StudentProgress() {
     }
   };
 
+  // Reset a single block (one question/answer) for a student — keeps the rest of the lesson intact
+  const handleResetBlock = async () => {
+    if (!confirmResetBlock || resettingBlock) return;
+    const { studentUid, studentName, lessonId, lessonTitle, blockId, blockLabel, source } = confirmResetBlock;
+    setResettingBlock(true);
+    try {
+      const progressRef = doc(db, "progress", studentUid, "courses", selectedCourse, "lessons", lessonId);
+
+      // Drop just this block's answer + clear lesson completion so the student is forced to re-submit
+      await updateDoc(progressRef, {
+        [`answers.${blockId}`]: deleteField(),
+        completed: false,
+        completedAt: deleteField(),
+      });
+
+      // Audit log entry — inherits write rules from progress/{uid}/{document=**}
+      try {
+        const logCol = collection(db, "progress", studentUid, "courses", selectedCourse, "lessons", lessonId, "resetLog");
+        await addDoc(logCol, {
+          type: "block_reset",
+          blockId,
+          blockLabel: blockLabel || null,
+          teacherUid: user?.uid || null,
+          teacherEmail: user?.email || null,
+          timestamp: new Date().toISOString(),
+          createdAt: serverTimestamp(),
+          source: source || "student-progress",
+        });
+      } catch (logErr) {
+        console.warn("[reset block] audit log write failed:", logErr?.message);
+      }
+
+      // Local state — drop the answer + completion flag from cache
+      setProgressData((prev) => {
+        const updated = { ...prev };
+        const studentData = { ...(updated[studentUid] || {}) };
+        const lessonData = { ...(studentData[lessonId] || {}) };
+        delete lessonData[blockId];
+        lessonData._completed = false;
+        studentData[lessonId] = lessonData;
+        updated[studentUid] = studentData;
+        return updated;
+      });
+
+      setConfirmResetBlock(null);
+    } catch (err) {
+      console.error("Failed to reset block:", err);
+      alert(`Failed to reset ${studentName}'s answer. Check console for details.`);
+    } finally {
+      setResettingBlock(false);
+    }
+  };
+
   // Reset a student's XP (and optionally badges/level)
   const handleResetXP = async () => {
     if (!confirmResetXP || resettingXP) return;
@@ -661,6 +717,67 @@ export default function StudentProgress() {
           >
             Cancel
           </button>
+        </div>
+      </div>
+    );
+  };
+
+  // --- Reset Single Block Confirmation Popup ---
+  const renderConfirmResetBlock = () => {
+    if (!confirmResetBlock) return null;
+    const { studentName, lessonTitle, blockLabel } = confirmResetBlock;
+    return (
+      <div style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }} onClick={() => !resettingBlock && setConfirmResetBlock(null)}>
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+          padding: "24px 28px", maxWidth: 420, width: "90%",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+        }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ fontSize: 28, textAlign: "center", marginBottom: 8 }}>🔄</div>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, textAlign: "center", marginBottom: 8 }}>
+            Reset this answer?
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text2)", textAlign: "center", marginBottom: 16, lineHeight: 1.6 }}>
+            Clear <strong>{studentName}</strong>'s answer to{" "}
+            {blockLabel ? <strong>{blockLabel}</strong> : <strong>this question</strong>}{" "}
+            on <strong>{lessonTitle}</strong>?
+          </div>
+          <div style={{
+            background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8,
+            padding: "12px 16px", marginBottom: 16, fontSize: 12, color: "var(--text2)", lineHeight: 1.5,
+          }}>
+            • Only this one answer is cleared — other answers in the lesson are kept<br/>
+            • Lesson completion is unset so the student can re-submit<br/>
+            • The reset is logged to the audit trail
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={handleResetBlock}
+              disabled={resettingBlock}
+              style={{
+                flex: 1, padding: "10px 16px", borderRadius: 8, border: "none",
+                background: resettingBlock ? "var(--surface2)" : "var(--amber)",
+                color: resettingBlock ? "var(--text3)" : "#1a1a1a",
+                fontWeight: 700, fontSize: 13, cursor: resettingBlock ? "default" : "pointer",
+              }}
+            >
+              {resettingBlock ? "Resetting…" : "Reset Answer"}
+            </button>
+            <button
+              onClick={() => setConfirmResetBlock(null)}
+              disabled={resettingBlock}
+              style={{
+                padding: "10px 16px", borderRadius: 8,
+                border: "1px solid var(--border)", background: "transparent",
+                color: "var(--text)", fontWeight: 600, fontSize: 13, cursor: resettingBlock ? "default" : "pointer",
+              }}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1412,12 +1529,25 @@ export default function StudentProgress() {
                         }}>{i + 1}</div>
                       );
                       return (
-                        <div key={q.id} title={`Q${i + 1}: ${a.correct ? "Correct" : "Incorrect"}`} style={{
+                        <div key={q.id} title={`Q${i + 1}: ${a.correct ? "Correct" : "Incorrect"} — click to reset this answer`} style={{
                           width: 28, height: 28, borderRadius: 6,
                           background: a.correct ? "var(--green-dim)" : "var(--red-dim)",
                           border: `1px solid ${a.correct ? "var(--green)" : "var(--red)"}`,
                           display: "flex", alignItems: "center", justifyContent: "center",
                           fontSize: 11, fontWeight: 700, color: a.correct ? "var(--green)" : "var(--red)",
+                          cursor: "pointer", position: "relative",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmResetBlock({
+                            studentUid: s.uid,
+                            studentName: s.displayName,
+                            lessonId: lesson.id,
+                            lessonTitle: lesson.title,
+                            blockId: q.id,
+                            blockLabel: `Q${i + 1}`,
+                            source: "student-mc-dot",
+                          });
                         }}>
                           {a.correct ? "✓" : "✗"}
                         </div>
@@ -1440,7 +1570,29 @@ export default function StudentProgress() {
                         <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", flex: 1 }}>
                           Written: {q.prompt?.slice(0, 60)}{q.prompt?.length > 60 ? "..." : ""}
                         </div>
-                        <div style={{ display: "flex", gap: 3, marginLeft: 8 }}>
+                        <div style={{ display: "flex", gap: 3, marginLeft: 8, alignItems: "center" }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmResetBlock({
+                                studentUid: s.uid,
+                                studentName: s.displayName,
+                                lessonId: lesson.id,
+                                lessonTitle: lesson.title,
+                                blockId: q.id,
+                                blockLabel: `Written: ${q.prompt?.slice(0, 40)}${q.prompt?.length > 40 ? "…" : ""}`,
+                                source: "student-sa-card",
+                              });
+                            }}
+                            title="Reset this written answer"
+                            style={{
+                              background: "transparent", border: "1px solid var(--border)",
+                              borderRadius: 5, padding: "3px 6px", fontSize: 10,
+                              color: "var(--text3)", cursor: "pointer", marginRight: 4,
+                            }}
+                          >
+                            🔄
+                          </button>
                           {GRADE_TIERS.map((t) => {
                             const isActive = tier && a.writtenScore === t.value;
                             return (
@@ -1487,7 +1639,7 @@ export default function StudentProgress() {
                         </div>
                       )}
 
-                      <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text2)" }}>{a.answer}</div>
+                      <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text2)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{linkifyText(a.answer)}</div>
                       {a.feedback && (
                         <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 6, fontStyle: "italic" }}>
                           Feedback: {a.feedback}
@@ -1716,6 +1868,104 @@ export default function StudentProgress() {
             </tbody>
           </table>
         </div>
+
+        {sa.length > 0 && (
+          <div style={{ marginTop: 32 }}>
+            <h3 className="section-heading" style={{ marginBottom: 6 }}>Written Responses</h3>
+            <p style={{ color: "var(--text3)", fontSize: 12, marginBottom: 14 }}>
+              Every student's written answer, grouped by question. URLs are clickable — hit a Drive link to open it in a new tab.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {sa.map((q, qi) => {
+                const responses = [...filteredStudents]
+                  .sort((a, b) => {
+                    const al = (a.lastName || a.displayName?.split(" ").pop() || "").toLowerCase();
+                    const bl = (b.lastName || b.displayName?.split(" ").pop() || "").toLowerCase();
+                    return al.localeCompare(bl);
+                  })
+                  .map((s) => ({ s, a: progressData[s.uid]?.[lesson.id]?.[q.id] }))
+                  .filter(({ a }) => a?.submitted);
+                return (
+                  <div key={q.id} className="card" style={{ padding: "14px 18px" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>W{qi + 1}</span>
+                      <span style={{ fontSize: 11, color: "var(--text3)" }}>{responses.length}/{filteredStudents.length} answered</span>
+                    </div>
+                    <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12, color: "var(--text1)" }}>{q.prompt}</div>
+                    {responses.length === 0 ? (
+                      <div style={{ fontSize: 12, color: "var(--text3)", fontStyle: "italic" }}>No responses yet.</div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {responses.map(({ s, a }) => {
+                          const tier = a.writtenScore !== undefined && a.writtenScore !== null ? getTierInfo(a.writtenScore) : null;
+                          return (
+                            <div key={s.uid} style={{
+                              padding: "10px 14px",
+                              background: "var(--bg)",
+                              borderRadius: 8,
+                              border: "1px solid var(--border)",
+                            }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                                  {s.photoURL ? (
+                                    <img src={s.photoURL} alt="" style={{ width: 22, height: 22, borderRadius: "50%", border: "1px solid var(--border)" }} />
+                                  ) : (
+                                    <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--text3)" }}>👤</div>
+                                  )}
+                                  <span
+                                    style={{ fontSize: 12, fontWeight: 600, color: "var(--text2)", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                    onClick={() => { setSelectedStudent(s.uid); setView("student"); }}
+                                    title="View this student"
+                                  >
+                                    {s.displayName}
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                                  {tier ? (
+                                    <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600, background: tier.bg, color: tier.color }}>
+                                      {a.writtenLabel || tier.label}
+                                    </span>
+                                  ) : (
+                                    <span style={{ fontSize: 10, color: "var(--text3)", fontStyle: "italic" }}>pending</span>
+                                  )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setConfirmResetBlock({
+                                        studentUid: s.uid,
+                                        studentName: s.displayName,
+                                        lessonId: lesson.id,
+                                        lessonTitle: lesson.title,
+                                        blockId: q.id,
+                                        blockLabel: `W${qi + 1}`,
+                                        source: "lesson-written-responses",
+                                      });
+                                    }}
+                                    title="Reset this answer"
+                                    style={{
+                                      background: "transparent", border: "1px solid var(--border)",
+                                      borderRadius: 4, padding: "2px 5px", fontSize: 10,
+                                      color: "var(--text3)", cursor: "pointer", lineHeight: 1,
+                                    }}
+                                  >
+                                    🔄
+                                  </button>
+                                </div>
+                              </div>
+                              <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text2)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                {linkifyText(a.answer)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1923,6 +2173,8 @@ export default function StudentProgress() {
       {renderConfirmComplete()}
       {/* Reset XP confirmation modal */}
       {renderConfirmResetXP()}
+      {/* Reset single block confirmation modal */}
+      {renderConfirmResetBlock()}
     </main>
   );
 }

@@ -1,12 +1,14 @@
 // src/components/grading/WrittenResponseCard.jsx
 import { useState } from "react";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, collection, addDoc, deleteField, serverTimestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase";
+import { useAuth } from "../../hooks/useAuth";
 import { analyzeResponse } from "../../lib/aiDetection";
 import { compareToBaselines } from "../../lib/aiBaselines";
 import { createNotification } from "../../lib/notifications";
 import { awardXP, getXPConfig, DEFAULT_XP_VALUES } from "../../lib/gamification";
 import { GRADE_TIERS } from "../../lib/gradeTiers";
+import { linkifyText } from "../../lib/utils";
 
 const OVERRIDE_OPTIONS = [
   { label: "Agent got it wrong", value: null },
@@ -15,12 +17,16 @@ const OVERRIDE_OPTIONS = [
   { label: "Don't train on this", value: "ignore" },
 ];
 
-export default function WrittenResponseCard({ item, helpers, onSelectStudent, selectedLesson }) {
+export default function WrittenResponseCard({ item, helpers, onSelectStudent, selectedLesson, onResetBlock }) {
+  const { user } = useAuth();
   const [isAnalysisExpanded, setIsAnalysisExpanded] = useState(false);
   const [grading, setGrading] = useState(false);
   const [savedGrade, setSavedGrade] = useState(item.writtenScore ?? null);
   const [pendingTier, setPendingTier] = useState(null);
   const [gradeError, setGradeError] = useState(null);
+  const [resetting, setResetting] = useState(false);
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  const [wasReset, setWasReset] = useState(false);
   const { getStudentName, getStudentEmail, getStudentPhoto, getBlockPrompt, lessonMap, responses } = helpers;
 
   const wasAutoGraded = !!(item.autogradeOriginal || item.gradedBy === "autograde-agent");
@@ -117,6 +123,48 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
       setGradeError("Failed to save grade. Please try again.");
     }
     setGrading(false);
+  };
+
+  const handleResetBlock = async () => {
+    if (resetting) return;
+    setResetting(true);
+    try {
+      const progressRef = doc(
+        db, "progress", item.studentId, "courses", item.courseId, "lessons", item.lessonId
+      );
+      await updateDoc(progressRef, {
+        [`answers.${item.blockId}`]: deleteField(),
+        completed: false,
+        completedAt: deleteField(),
+      });
+      try {
+        const logCol = collection(
+          db, "progress", item.studentId, "courses", item.courseId,
+          "lessons", item.lessonId, "resetLog"
+        );
+        await addDoc(logCol, {
+          type: "block_reset",
+          blockId: item.blockId,
+          blockLabel: getBlockPrompt(item.lessonId, item.blockId)?.slice(0, 80) || null,
+          teacherUid: user?.uid || null,
+          teacherEmail: user?.email || null,
+          timestamp: new Date().toISOString(),
+          createdAt: serverTimestamp(),
+          source: "grading-queue",
+        });
+      } catch (logErr) {
+        console.warn("[reset block] audit log failed:", logErr?.message);
+      }
+      setWasReset(true);
+      setConfirmingReset(false);
+      if (typeof onResetBlock === "function") {
+        onResetBlock(item.studentId, item.lessonId, item.blockId);
+      }
+    } catch (err) {
+      console.error("Failed to reset block:", err);
+      setGradeError("Failed to reset answer. Please try again.");
+    }
+    setResetting(false);
   };
 
   const currentTier = savedGrade !== null ? GRADE_TIERS.find((t) => t.value === savedGrade) : null;
@@ -229,8 +277,8 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
       <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 8 }}>
         {getBlockPrompt(item.lessonId, item.blockId)}
       </div>
-      <div style={{ background: "var(--bg)", borderRadius: 8, padding: 14, fontSize: 15, lineHeight: 1.6, marginBottom: 12, border: "1px solid var(--border)" }}>
-        {item.answer}
+      <div style={{ background: "var(--bg)", borderRadius: 8, padding: 14, fontSize: 15, lineHeight: 1.6, marginBottom: 12, border: "1px solid var(--border)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+        {linkifyText(item.answer)}
       </div>
 
       {/* Agent feedback (shown when auto-graded) */}
@@ -289,6 +337,53 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
           }}>
             🔍 Review Requested
           </span>
+        )}
+        <span style={{ flex: 1 }} />
+        {wasReset ? (
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 6,
+            background: "rgba(245,166,35,0.12)", color: "var(--amber)", textTransform: "uppercase", letterSpacing: "0.05em",
+          }}>
+            🔄 Reset — student must re-submit
+          </span>
+        ) : confirmingReset ? (
+          <>
+            <span style={{ fontSize: 11, color: "var(--text2)", fontWeight: 600 }}>Reset this answer?</span>
+            <button
+              onClick={handleResetBlock}
+              disabled={resetting}
+              style={{
+                fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 6,
+                border: "none", background: "var(--amber)", color: "#1a1a1a",
+                cursor: resetting ? "default" : "pointer",
+              }}
+            >
+              {resetting ? "Resetting…" : "Confirm reset"}
+            </button>
+            <button
+              onClick={() => setConfirmingReset(false)}
+              disabled={resetting}
+              style={{
+                fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 6,
+                border: "1px solid var(--border)", background: "transparent",
+                color: "var(--text3)", cursor: resetting ? "default" : "pointer",
+              }}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setConfirmingReset(true)}
+            title="Clear this answer and force the student to re-submit"
+            style={{
+              fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 6,
+              border: "1px solid var(--border)", background: "transparent",
+              color: "var(--text3)", cursor: "pointer",
+            }}
+          >
+            🔄 Reset
+          </button>
         )}
       </div>
 

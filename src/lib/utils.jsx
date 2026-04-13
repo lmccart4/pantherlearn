@@ -103,3 +103,39 @@ export function renderMarkdown(text) {
 export function uid() {
   return crypto.randomUUID().slice(0, 8);
 }
+
+// Render plain student text with clickable URLs. Does NOT parse markdown —
+// student input is untrusted; we only auto-link http(s) / www URLs.
+export function linkifyText(text) {
+  if (text === null || text === undefined) return null;
+  const str = String(text);
+  if (!str) return str;
+  const urlRegex = /(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+)/gi;
+  const parts = [];
+  let lastIdx = 0;
+  let match;
+  let key = 0;
+  while ((match = urlRegex.exec(str)) !== null) {
+    if (match.index > lastIdx) parts.push(str.slice(lastIdx, match.index));
+    const raw = match[0].replace(/[.,;:!?)\]]+$/, ""); // strip trailing punctuation
+    const href = raw.startsWith("http") ? raw : `https://${raw}`;
+    parts.push(
+      <a
+        key={`lnk-${key++}`}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        style={{ color: "var(--amber)", textDecoration: "underline", wordBreak: "break-all" }}
+      >
+        {raw}
+      </a>
+    );
+    // push the trailing punctuation we stripped so formatting survives
+    const trailing = match[0].slice(raw.length);
+    if (trailing) parts.push(trailing);
+    lastIdx = match.index + match[0].length;
+  }
+  if (lastIdx < str.length) parts.push(str.slice(lastIdx));
+  return parts.length > 0 ? parts : str;
+}
