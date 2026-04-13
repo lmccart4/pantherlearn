@@ -339,6 +339,14 @@ export default function LessonViewer() {
       if (block.type === "score_tally") {
         extraProps.studentData = studentData;
       }
+      if (block.type === "slide_submit") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+      }
+      if (block.type === "image_gen") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted, handleRequestReview]);

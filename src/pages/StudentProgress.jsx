@@ -243,6 +243,16 @@ export default function StudentProgress() {
   const getQuestions = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question");
   const getMCQuestions = (lesson) => getQuestions(lesson).filter((b) => b.questionType === "multiple_choice");
   const getSAQuestions = (lesson) => getQuestions(lesson).filter((b) => b.questionType === "short_answer");
+  // Written-response blocks for the teacher "Written Responses" view: short_answer
+  // questions AND slide_submit blocks (which store their URL at answer.response
+  // instead of answer.answer). Kept separate from getSAQuestions so grade-calc
+  // behavior doesn't change.
+  const getWrittenBlocks = (lesson) => {
+    const blocks = lesson.blocks || [];
+    const sa = blocks.filter((b) => b.type === "question" && b.questionType === "short_answer");
+    const slides = blocks.filter((b) => b.type === "slide_submit");
+    return [...sa, ...slides];
+  };
   const getEmbedBlocks = (lesson) => (lesson.blocks || []).filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
 
   // --- NEW: Blended grade calculation ---
@@ -1677,6 +1687,9 @@ export default function StudentProgress() {
     if (!lesson) return null;
     const mc = getMCQuestions(lesson);
     const sa = getSAQuestions(lesson);
+    // "Written Responses" section includes both short_answer questions AND
+    // slide_submit blocks (which store the URL at answer.response).
+    const written = getWrittenBlocks(lesson);
 
     const questionStats = mc.map((q, i) => {
       let attempted = 0, correct = 0;
@@ -1869,14 +1882,14 @@ export default function StudentProgress() {
           </table>
         </div>
 
-        {sa.length > 0 && (
+        {written.length > 0 && (
           <div style={{ marginTop: 32 }}>
             <h3 className="section-heading" style={{ marginBottom: 6 }}>Written Responses</h3>
             <p style={{ color: "var(--text3)", fontSize: 12, marginBottom: 14 }}>
-              Every student's written answer, grouped by question. URLs are clickable — hit a Drive link to open it in a new tab.
+              Every student's written answer, grouped by question. URLs are clickable — hit a Drive or Slides link to open it in a new tab.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {sa.map((q, qi) => {
+              {written.map((q, qi) => {
                 const responses = [...filteredStudents]
                   .sort((a, b) => {
                     const al = (a.lastName || a.displayName?.split(" ").pop() || "").toLowerCase();
@@ -1953,7 +1966,7 @@ export default function StudentProgress() {
                                 </div>
                               </div>
                               <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text2)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                                {linkifyText(a.answer)}
+                                {linkifyText(a.answer || a.response || "")}
                               </div>
                             </div>
                           );
