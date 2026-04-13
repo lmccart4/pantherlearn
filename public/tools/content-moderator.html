@@ -756,11 +756,15 @@ function showRoundSummary() {
   });
   document.getElementById('round-posts-review').innerHTML = reviewHTML;
 
-  // Send interim score
-  sendScore(false);
+  // Send score after round. On the last round, mark as gameComplete so the
+  // grade lands in Firestore even if the student closes the tab before
+  // clicking "See Final Results".
+  const isLastRound = currentRound === ROUNDS.length - 1;
+  sendScore(isLastRound);
+  if (isLastRound) scoreSent = true;
 
   const btn = document.getElementById('next-round-btn');
-  if (currentRound < ROUNDS.length - 1) {
+  if (!isLastRound) {
     btn.textContent = 'Next Round →';
     btn.onclick = nextRound;
   } else {
@@ -777,11 +781,11 @@ function nextRound() {
 }
 
 function showFinalResults() {
-  // Auto-submit score when reaching results
-  if (!scoreSent) {
-    scoreSent = true;
-    sendScore(true);
-  }
+  // Always re-send with gameComplete: true — no guard. Belt-and-suspenders
+  // with the last-round auto-submit in case the student reached results via
+  // a different code path.
+  sendScore(true);
+  scoreSent = true;
   const pct = Math.round((totalScore / totalPossible) * 100);
 
   // Score ring
