@@ -36,6 +36,12 @@
           ]
         },
         {
+          "source": "/tools/**",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
           "source": "/service-worker.js",
           "headers": [
             { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
