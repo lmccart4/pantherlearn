@@ -251,6 +251,12 @@ const PERIOD_SCHEDULE = {
   "fUw67wFhAtobWFhjwvZ5":  { label: "Period 9", start: [14, 19], end: [15, 1] },
 };
 
+// Per-student teacher unlock — bypasses period gate AND past-due-date lock.
+// Keep entries commented with who + why so this doesn't become a landfill.
+const UNLOCKED_STUDENTS = new Set([
+  "N2pzOgX0LiVoXM4Fn0me2OXnlX02", // Sebastian Rivas Barrios — P5 — teacher unlock 2026-04-13
+]);
+
 function getNowET() {
   const str = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
   return new Date(str);
@@ -387,6 +393,16 @@ const feedbackText = document.getElementById("feedback-text");
 
 // --- Period Gate ---
 function checkPeriodGate() {
+  // Teacher-unlocked students bypass every gate (period + due date).
+  if (UNLOCKED_STUDENTS.has(studentId)) {
+    introScreen.classList.add("active");
+    const dl = document.getElementById("deadline-time");
+    if (dl) dl.textContent = "open (teacher unlock)";
+    const db = document.getElementById("deadline-banner");
+    if (db) db.style.display = "none";
+    return;
+  }
+
   // Check if past due date — always block with make-up message
   if (dueDate && !devMode) {
     const now = getNowET();
