@@ -387,24 +387,45 @@ async function syncCourse(courseId, classroomCourseId) {
     let pushed = 0, unchanged = 0;
     const changes = []; // { name, oldGrade, newGrade }
 
-    // Mark exempt students as excused on Google Classroom
+    // Clear grades for exempt students on Google Classroom.
+    //
+    // Historical note: this block used to try PATCHing { excused: true }, but
+    // the Google Classroom REST API does not accept `excused` as a writable
+    // field on studentSubmissions.patch — it's read-only, settable only via
+    // the Classroom web UI. Every run silently 400ed on this path.
+    //
+    // The closest API-supported equivalent is to clear the draftGrade and
+    // assignedGrade, leaving the submission in an ungraded state. Ungraded
+    // assignments don't count toward the student's average in Classroom —
+    // which is the actual pedagogical intent of marking them exempt. If a
+    // teacher wants the "Excused" label specifically, they can flip it in
+    // the Classroom UI manually.
     if (exemptUids && exemptUids.size > 0) {
       for (const uid of exemptUids) {
         const gcId = uidToGcId[uid];
         if (!gcId) continue;
         const sub = userToSub[gcId];
         if (!sub) continue;
-        // Skip if already excused
-        if (sub.state === "RETURNED" && sub.assignedGrade == null) continue;
+        // Already ungraded or already flipped to excused via UI — nothing to do
+        if (sub.excused === true) continue;
+        if (sub.draftGrade == null && sub.assignedGrade == null) continue;
+        const studentName = uidToName[uid] || gcIdToName[gcId] || uid.slice(0, 8);
         try {
-          await gcFetch(`/courses/${classroomCourseId}/courseWork/${cwId}/studentSubmissions/${sub.id}?updateMask=excused`, {
-            method: "PATCH", body: JSON.stringify({ excused: true }),
-          });
-          const studentName = uidToName[uid] || gcIdToName[gcId] || uid.slice(0, 8);
-          console.log(`  ${title}: ${studentName} marked excused`);
+          // Clear draftGrade first (if set)
+          if (sub.draftGrade != null) {
+            await gcFetch(`/courses/${classroomCourseId}/courseWork/${cwId}/studentSubmissions/${sub.id}?updateMask=draftGrade`, {
+              method: "PATCH", body: JSON.stringify({ draftGrade: null }),
+            });
+          }
+          // Clear assignedGrade (if set) — removes it from the gradebook average
+          if (sub.assignedGrade != null) {
+            await gcFetch(`/courses/${classroomCourseId}/courseWork/${cwId}/studentSubmissions/${sub.id}?updateMask=assignedGrade`, {
+              method: "PATCH", body: JSON.stringify({ assignedGrade: null }),
+            });
+          }
+          console.log(`  ${title}: ${studentName} grade cleared (exempt — appears as ungraded)`);
         } catch (err) {
-          // excused flag may not be supported on all assignment types — log and continue
-          console.log(`  ${title}: excused failed for ${uid}: ${err.message.split("\n")[0]}`);
+          console.log(`  ${title}: clear-grade failed for ${studentName}: ${err.message.split("\n")[0]}`);
         }
       }
     }
