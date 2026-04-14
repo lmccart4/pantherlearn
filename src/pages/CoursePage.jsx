@@ -8,6 +8,7 @@ import TeamPanel from "../components/TeamPanel";
 import ManaPool from "../components/ManaPool";
 import Leaderboard from "../components/Leaderboard";
 import { getManaState } from "../lib/mana";
+import { groupLessonsByWeek, getCurrentWeek } from "../lib/schoolWeeks";
 import { useTranslatedText, useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 
 export default function CoursePage() {
@@ -16,7 +17,10 @@ export default function CoursePage() {
   const [course, setCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [collapsedUnits, setCollapsedUnits] = useState({});
+  // Week-collapse state: key is week.num (-1 for "Unscheduled"). Weeks default
+  // collapsed except the current week. Teachers/students can toggle individually.
+  const [collapsedWeeks, setCollapsedWeeks] = useState({});
+  const [collapseInitialized, setCollapseInitialized] = useState(false);
   const [completedLessons, setCompletedLessons] = useState(new Set());
   const [manaEnabled, setManaEnabled] = useState(false);
   const isTeacher = userRole === "teacher";
@@ -47,20 +51,13 @@ export default function CoursePage() {
       .finally(() => setLoading(false));
   }, [courseId]);
 
-  // Real-time lessons — teacher visibility changes appear instantly
+  // Real-time lessons — teacher visibility changes appear instantly.
+  // We no longer pre-sort here; groupLessonsByWeek handles Fri→Mon order
+  // within each week and newest-first between weeks.
   useEffect(() => {
     const q = query(collection(db, "courses", courseId, "lessons"), orderBy("order", "asc"));
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      // Sort by dueDate descending (most recent first), undated lessons last
-      data.sort((a, b) => {
-        const da = a.dueDate || "";
-        const db_ = b.dueDate || "";
-        if (!da && !db_) return (b.order || 0) - (a.order || 0);
-        if (!da) return 1;
-        if (!db_) return -1;
-        return db_.localeCompare(da);
-      });
       setLessons(data);
       setLoading(false);
     }, (err) => console.warn("Lesson listener error:", err));
@@ -93,23 +90,34 @@ export default function CoursePage() {
     [lessons, isTeacher, isTestStudent]
   );
 
-  const lessonGroups = useMemo(() => {
-    const groups = [];
-    let currentUnit = null;
-    let currentGroup = null;
+  // Week-based grouping: Unscheduled drawer at top, then weeks in descending
+  // week-number order (future → current → past). Fri top, Mon bottom inside
+  // each week. `num` is assigned in display order for the little circled badge.
+  const weekGroups = useMemo(() => {
+    const groups = groupLessonsByWeek(visibleLessons);
     let globalNum = 0;
-    for (const lesson of visibleLessons) {
-      const unit = lesson.unit || "";
-      if (unit !== currentUnit) {
-        currentUnit = unit;
-        currentGroup = { unit, lessons: [] };
-        groups.push(currentGroup);
-      }
-      globalNum++;
-      currentGroup.lessons.push({ lesson, num: globalNum });
-    }
-    return groups;
+    return groups.map((g) => ({
+      ...g,
+      lessons: g.lessons.map((lesson) => ({ lesson, num: ++globalNum })),
+    }));
   }, [visibleLessons]);
+
+  // First time we have data, default every week to collapsed except the
+  // current real-world week (and the unscheduled drawer stays open too so
+  // teachers notice lessons with missing due dates).
+  useEffect(() => {
+    if (collapseInitialized || weekGroups.length === 0) return;
+    const currentWeek = getCurrentWeek();
+    const initial = {};
+    for (const g of weekGroups) {
+      // -1 is the unscheduled synthetic bucket — leave expanded.
+      if (g.week.num === -1) continue;
+      if (currentWeek && g.week.num === currentWeek.num) continue;
+      initial[g.week.num] = true;
+    }
+    setCollapsedWeeks(initial);
+    setCollapseInitialized(true);
+  }, [weekGroups, collapseInitialized]);
 
   if (loading) return (
     <main id="main-content" className="page-wrapper page-wrapper--narrow">
@@ -212,30 +220,28 @@ export default function CoursePage() {
               </div>
             ) : (
               <div className="cp-lesson-list">
-                {lessonGroups.map((group) => {
-                  const hasUnit = group.unit.trim() !== "";
-                  const isCollapsed = hasUnit && collapsedUnits[group.unit];
+                {weekGroups.map((group, groupIdx) => {
+                  const isCollapsed = !!collapsedWeeks[group.week.num];
+                  const isUnscheduled = group.week.num === -1;
 
                   return (
-                    <div key={group.unit || "__no_unit__"}>
-                      {/* Unit header */}
-                      {hasUnit && (
-                        <button
-                          onClick={() => setCollapsedUnits((prev) => ({ ...prev, [group.unit]: !prev[group.unit] }))}
-                          className="card cp-unit-header"
-                          style={{ marginTop: lessonGroups.indexOf(group) > 0 ? 20 : 0 }}
-                        >
-                          <span className={`cp-unit-chevron ${isCollapsed ? "collapsed" : ""}`}>▼</span>
-                          <div style={{ flex: 1 }}>
-                            <div className="cp-unit-title">
-                              {group.unit}
-                            </div>
-                            <div className="cp-unit-count">
-                              {group.lessons.length} {group.lessons.length === 1 ? "lesson" : "lessons"}
-                            </div>
+                    <div key={`week-${group.week.num}`}>
+                      {/* Week header (always shown, including Unscheduled) */}
+                      <button
+                        onClick={() => setCollapsedWeeks((prev) => ({ ...prev, [group.week.num]: !prev[group.week.num] }))}
+                        className="card cp-unit-header"
+                        style={{ marginTop: groupIdx > 0 ? 20 : 0 }}
+                      >
+                        <span className={`cp-unit-chevron ${isCollapsed ? "collapsed" : ""}`}>▼</span>
+                        <div style={{ flex: 1 }}>
+                          <div className="cp-unit-title">
+                            {isUnscheduled ? "📋 Unscheduled" : group.week.label}
                           </div>
-                        </button>
-                      )}
+                          <div className="cp-unit-count">
+                            {group.lessons.length} {group.lessons.length === 1 ? "lesson" : "lessons"}
+                          </div>
+                        </div>
+                      </button>
 
                       {/* Lessons in this group */}
                       {!isCollapsed && group.lessons.map(({ lesson, num }, i) => {
@@ -249,7 +255,7 @@ export default function CoursePage() {
                             style={{ textDecoration: "none", color: "inherit" }}>
                             <div className="card fade-in cp-lesson-row" style={{
                               animationDelay: `${i * 0.05}s`,
-                              marginLeft: hasUnit ? 12 : 0,
+                              marginLeft: 12,
                               borderLeft: isCompleted ? "3px solid var(--green)" : undefined,
                             }}>
                               <div className={`cp-lesson-number ${isCompleted ? "cp-lesson-number--completed" : "cp-lesson-number--default"}`}>

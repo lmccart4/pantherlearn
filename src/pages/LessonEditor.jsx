@@ -9,6 +9,7 @@ import { generateLessonBaselines } from "../lib/aiBaselines";
 import { fanOutNotification } from "../lib/notifications";
 import { generateQuestionSuggestion } from "../lib/aiQuestionGenerator";
 import useAutoSave from "../hooks/useAutoSave";
+import { groupLessonsByWeek, getCurrentWeek } from "../lib/schoolWeeks";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
@@ -1139,62 +1140,35 @@ export default function LessonEditor() {
     }
   };
 
-  // Collapse all units by default when lessons first load
-  const unitsInitializedRef = useRef(false);
+  // Collapse all weeks by default except the current one when lessons first load.
+  // Key is week.num (use -1 for the Unscheduled synthetic bucket, which we leave
+  // expanded so teachers notice lessons with missing due dates).
+  const weeksInitializedRef = useRef(false);
   useEffect(() => {
-    if (unitsInitializedRef.current || lessons.length === 0) return;
-    unitsInitializedRef.current = true;
+    if (weeksInitializedRef.current || lessons.length === 0) return;
+    weeksInitializedRef.current = true;
+    const currentWeek = getCurrentWeek();
     const initial = {};
-    const seen = new Set();
-    lessons.forEach((l) => {
-      const unit = l.unit || "";
-      if (unit && !seen.has(unit)) { seen.add(unit); initial[unit] = true; }
-    });
+    const groups = groupLessonsByWeek(lessons);
+    for (const g of groups) {
+      if (g.week.num === -1) continue; // Unscheduled stays expanded
+      if (currentWeek && g.week.num === currentWeek.num) continue; // current week expanded
+      initial[g.week.num] = true;
+    }
     setCollapsedUnits(initial);
   }, [lessons]);
 
-  // Toggle unit collapse
-  const toggleUnit = (unit) => {
-    setCollapsedUnits((prev) => ({ ...prev, [unit]: !prev[unit] }));
+  // Toggle week collapse
+  const toggleUnit = (weekNum) => {
+    setCollapsedUnits((prev) => ({ ...prev, [weekNum]: !prev[weekNum] }));
   };
 
-  // Group lessons by unit, sort within each unit by dueDate (if set) then order
+  // Group lessons by week. Within a week: dueDate descending (Fri top, Mon bottom).
+  // Unscheduled drawer at top, then newest week → oldest.
   const groupedLessons = useMemo(() => {
     const q = lessonSearch.toLowerCase().trim();
     const filtered = q ? lessons.filter((l) => l.title?.toLowerCase().includes(q)) : lessons;
-
-    // Group by unit
-    const unitMap = {};
-    for (const lesson of filtered) {
-      const unit = lesson.unit || "";
-      if (!unitMap[unit]) unitMap[unit] = [];
-      unitMap[unit].push(lesson);
-    }
-
-    // Sort within each unit: by dueDate descending (most recent first), undated last
-    const groups = Object.entries(unitMap).map(([unit, unitLessons]) => {
-      unitLessons.sort((a, b) => {
-        const da = a.dueDate || "";
-        const db_ = b.dueDate || "";
-        if (!da && !db_) return (b.order || 0) - (a.order || 0);
-        if (!da) return 1;
-        if (!db_) return -1;
-        return db_.localeCompare(da);
-      });
-      return { unit, lessons: unitLessons };
-    });
-
-    // Sort groups: units with most recent due-dated lessons first, then alphabetical
-    groups.sort((a, b) => {
-      const aFirst = a.lessons.find((l) => l.dueDate)?.dueDate || "";
-      const bFirst = b.lessons.find((l) => l.dueDate)?.dueDate || "";
-      if (!aFirst && !bFirst) return a.unit.localeCompare(b.unit);
-      if (!aFirst) return 1;
-      if (!bFirst) return -1;
-      return bFirst.localeCompare(aFirst);
-    });
-
-    return groups;
+    return groupLessonsByWeek(filtered);
   }, [lessons, lessonSearch]);
 
   if (userRole !== "teacher") {
@@ -1252,22 +1226,21 @@ export default function LessonEditor() {
                 onDragEnd={handleLessonDragEnd}
               >
                 {groupedLessons.map((group) => {
-                  const hasUnit = group.unit.trim() !== "";
-                  const isCollapsed = hasUnit && (collapsedUnits || {})[group.unit];
+                  const isUnscheduled = group.week.num === -1;
+                  const isCollapsed = !!(collapsedUnits || {})[group.week.num];
+                  const label = isUnscheduled ? "📋 Unscheduled" : group.week.label;
 
                   return (
-                    <div key={group.unit || "__no_unit__"} className="sidebar-unit-group">
-                      {hasUnit && (
-                        <button className="sidebar-unit-header" onClick={() => toggleUnit(group.unit)}>
-                          <span className={`sidebar-unit-chevron${isCollapsed ? " collapsed" : ""}`}>▾</span>
-                          <span className="sidebar-unit-name">{group.unit}</span>
-                          <span className="sidebar-unit-count">{group.lessons.length}</span>
-                        </button>
-                      )}
+                    <div key={`week-${group.week.num}`} className="sidebar-unit-group">
+                      <button className="sidebar-unit-header" onClick={() => toggleUnit(group.week.num)}>
+                        <span className={`sidebar-unit-chevron${isCollapsed ? " collapsed" : ""}`}>▾</span>
+                        <span className="sidebar-unit-name">{label}</span>
+                        <span className="sidebar-unit-count">{group.lessons.length}</span>
+                      </button>
 
                       {!isCollapsed && (
                         <SortableContext items={group.lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-                          <div style={{ paddingLeft: hasUnit ? 8 : 0 }}>
+                          <div style={{ paddingLeft: 8 }}>
                             {group.lessons.map((l) => (
                               <SortableLessonItem
                                 key={l.id}
