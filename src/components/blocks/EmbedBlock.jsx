@@ -115,40 +115,66 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
 
   return (
     <div style={{ margin: "24px 0" }}>
-      {hasScore && (
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "8px 14px",
-          marginBottom: 8,
-          borderRadius: "var(--radius, 12px)",
-          background: isComplete ? "rgba(16,185,129,0.08)" : "rgba(139,92,246,0.08)",
-          border: `1px solid ${isComplete ? "rgba(16,185,129,0.2)" : "rgba(139,92,246,0.2)"}`,
-        }}>
-          <span style={{ color: isComplete ? "#10b981" : "#8b5cf6", fontWeight: 700, fontSize: 14 }}>
-            {isComplete ? "✓ Complete" : "In Progress"}
-          </span>
-          <span style={{ color: "var(--text2, #ccc)", fontSize: 13, fontWeight: 600 }}>
-            {data.score}/{data.maxScore}
-          </span>
-          <div style={{
-            flex: 1, height: 6, borderRadius: 3,
-            background: "rgba(255,255,255,0.08)",
-            overflow: "hidden",
-          }}>
+      {hasScore && (() => {
+        const accent = isComplete ? "#10b981" : "#f59e0b";
+        const bg = isComplete ? "rgba(16,185,129,0.08)" : "rgba(245,158,11,0.1)";
+        const border = isComplete ? "rgba(16,185,129,0.2)" : "rgba(245,158,11,0.35)";
+        return (
+          <div style={{ marginBottom: 8 }}>
             <div style={{
-              height: "100%", borderRadius: 3,
-              width: `${pct}%`,
-              background: isComplete ? "#10b981" : "#8b5cf6",
-              transition: "width 0.6s cubic-bezier(0.2, 0, 0, 1)",
-            }} />
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "8px 14px",
+              borderRadius: "var(--radius, 12px)",
+              borderBottomLeftRadius: isComplete ? "var(--radius, 12px)" : 0,
+              borderBottomRightRadius: isComplete ? "var(--radius, 12px)" : 0,
+              background: bg,
+              border: `1px solid ${border}`,
+              borderBottom: isComplete ? `1px solid ${border}` : "none",
+            }}>
+              <span style={{ color: accent, fontWeight: 700, fontSize: 14 }}>
+                {isComplete ? "✓ Complete" : "⚠ Not Submitted"}
+              </span>
+              <span style={{ color: "var(--text2, #ccc)", fontSize: 13, fontWeight: 600 }}>
+                {data.score}/{data.maxScore}
+              </span>
+              <div style={{
+                flex: 1, height: 6, borderRadius: 3,
+                background: "rgba(255,255,255,0.08)",
+                overflow: "hidden",
+              }}>
+                <div style={{
+                  height: "100%", borderRadius: 3,
+                  width: `${pct}%`,
+                  background: accent,
+                  transition: "width 0.6s cubic-bezier(0.2, 0, 0, 1)",
+                }} />
+              </div>
+              <span style={{ color: accent, fontSize: 13, fontWeight: 700, minWidth: 36, textAlign: "right" }}>
+                {pct}%
+              </span>
+            </div>
+            {!isComplete && (
+              <div style={{
+                padding: "8px 14px 10px",
+                borderRadius: "0 0 var(--radius, 12px) var(--radius, 12px)",
+                background: bg,
+                borderLeft: `1px solid ${border}`,
+                borderRight: `1px solid ${border}`,
+                borderBottom: `1px solid ${border}`,
+                color: "var(--text2, #ccc)",
+                fontSize: 12,
+                lineHeight: 1.5,
+              }}>
+                Your grade <strong>won't save</strong> until you fully finish the activity.
+                Return to the activity above and complete every round or section to lock
+                in your score.
+              </div>
+            )}
           </div>
-          <span style={{ color: isComplete ? "#10b981" : "#8b5cf6", fontSize: 13, fontWeight: 700, minWidth: 36, textAlign: "right" }}>
-            {pct}%
-          </span>
-        </div>
-      )}
+        );
+      })()}
       <div style={{
         borderRadius: "var(--radius, 12px)",
         border: isComplete ? "1px solid rgba(16,185,129,0.3)" : "1px solid var(--border, #2a2f3d)",
