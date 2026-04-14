@@ -1691,6 +1691,16 @@ export default function StudentProgress() {
     // slide_submit blocks (which store the URL at answer.response).
     const written = getWrittenBlocks(lesson);
 
+    // Quick-access "Submission Links" — promote any block that's asking for
+    // a URL (slide_submit always, plus short_answer blocks whose prompt
+    // matches url/link/drive/folder/paste patterns). Same block stays in
+    // the full Written Responses list below.
+    const SUBMISSION_PROMPT_RE = /(google drive|drive (?:link|folder)|\bdrive folder\b|\bshareable link\b|paste (?:your|the|a)? ?(?:drive|google|shareable|folder|link|url)|(?:drive|folder|shareable|google docs?|google slides?) link|\burl\b|\blink here\b)/i;
+    const submissionBlocks = written.filter((b) =>
+      b.type === "slide_submit" ||
+      (b.prompt && SUBMISSION_PROMPT_RE.test(b.prompt))
+    );
+
     const questionStats = mc.map((q, i) => {
       let attempted = 0, correct = 0;
       filteredStudents.forEach((s) => {
@@ -1708,6 +1718,82 @@ export default function StudentProgress() {
         <p style={{ color: "var(--text3)", fontSize: 13, marginBottom: 24 }}>
           {mc.length} multiple choice · {sa.length} written response · {filteredStudents.length} students
         </p>
+
+        {submissionBlocks.length > 0 && (() => {
+          // Collect every student's submission across all detected submission blocks
+          const rows = [];
+          [...filteredStudents]
+            .sort((a, b) => {
+              const al = (a.lastName || a.displayName?.split(" ").pop() || "").toLowerCase();
+              const bl = (b.lastName || b.displayName?.split(" ").pop() || "").toLowerCase();
+              return al.localeCompare(bl);
+            })
+            .forEach((s) => {
+              for (const block of submissionBlocks) {
+                const a = progressData[s.uid]?.[lesson.id]?.[block.id];
+                if (!a?.submitted) continue;
+                const raw = a.answer || a.response || "";
+                if (!raw) continue;
+                rows.push({ student: s, block, raw, tier: a.writtenScore !== undefined && a.writtenScore !== null ? getTierInfo(a.writtenScore) : null, tierLabel: a.writtenLabel });
+              }
+            });
+          const total = rows.length;
+          const expected = filteredStudents.length * submissionBlocks.length;
+          return (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10 }}>
+                <h3 className="section-heading" style={{ marginBottom: 0 }}>📎 Submission Links</h3>
+                <span style={{ fontSize: 12, color: "var(--text3)" }}>{total}/{expected} submitted</span>
+              </div>
+              {submissionBlocks.length > 1 && (
+                <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 10 }}>
+                  {submissionBlocks.length} submission block(s) in this lesson:{" "}
+                  {submissionBlocks.map((b, i) => (
+                    <span key={b.id}>{i > 0 ? " · " : ""}<em>{b.prompt?.slice(0, 60)}{b.prompt?.length > 60 ? "…" : ""}</em></span>
+                  ))}
+                </div>
+              )}
+              {total === 0 ? (
+                <div className="card" style={{ padding: "14px 18px", fontSize: 13, color: "var(--text3)", fontStyle: "italic" }}>
+                  No student submissions yet.
+                </div>
+              ) : (
+                <div className="card" style={{ padding: "10px 4px" }}>
+                  {rows.map(({ student, block, raw, tier, tierLabel }, i) => (
+                    <div key={`${student.uid}-${block.id}`} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "8px 14px",
+                      borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none",
+                    }}>
+                      {student.photoURL ? (
+                        <img src={student.photoURL} alt="" style={{ width: 24, height: 24, borderRadius: "50%", border: "1px solid var(--border)", flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "var(--text3)", flexShrink: 0 }}>👤</div>
+                      )}
+                      <span
+                        style={{ fontSize: 13, fontWeight: 600, color: "var(--text2)", cursor: "pointer", minWidth: 140, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 0 }}
+                        onClick={() => { setSelectedStudent(student.uid); setView("student"); }}
+                        title="View this student"
+                      >
+                        {student.displayName}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.4, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {linkifyText(raw)}
+                      </span>
+                      {tier ? (
+                        <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600, background: tier.bg, color: tier.color, flexShrink: 0 }}>
+                          {tierLabel || tier.label}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 10, color: "var(--text3)", fontStyle: "italic", flexShrink: 0 }}>pending</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {mc.length > 0 && (
           <div style={{ marginBottom: 28 }}>
