@@ -4,9 +4,16 @@ import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 import { renderMarkdown } from "../../lib/utils";
 
 // Only allow known PAPS Firebase projects (not any *.web.app domain).
+// PAPS-owned projects follow one of these conventions:
+//   - paps-tools / pantherlearn / pantherprep / brstatus (plus preview channels)
+//   - anything-paps (the "-paps" suffix convention used for single-purpose tools
+//     like hallucination-lab-paps, digital-footprint-paps, battleship-ai-paps, etc.)
+// Regression note: the April 7 tightening dropped the -paps suffix variant,
+// silently blocking postMessage scores from ~11 live embeds for a week.
 function isAllowedOrigin(origin) {
   if (!origin) return false;
   if (/^https:\/\/(paps-tools|pantherlearn|pantherprep|brstatus)[a-z0-9-]*\.(web\.app|firebaseapp\.com)$/.test(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+-paps\.(web\.app|firebaseapp\.com)$/.test(origin)) return true;
   if (origin === window.location.origin) return true;
   // Allow localhost for development
   if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return true;
