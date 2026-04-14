@@ -93,14 +93,20 @@ export default function CoursePage() {
   // Week-based grouping: Unscheduled drawer at top, then weeks in descending
   // week-number order (future → current → past). Fri top, Mon bottom inside
   // each week. `num` is assigned in display order for the little circled badge.
+  // Students don't see the Unscheduled drawer — it's a teacher workflow
+  // queue for "stuff I still need to give a due date". Test students see it
+  // so Luke can QA against it.
   const weekGroups = useMemo(() => {
-    const groups = groupLessonsByWeek(visibleLessons);
+    let groups = groupLessonsByWeek(visibleLessons);
+    if (!isTeacher && !isTestStudent) {
+      groups = groups.filter((g) => g.week.num !== -1);
+    }
     let globalNum = 0;
     return groups.map((g) => ({
       ...g,
       lessons: g.lessons.map((lesson) => ({ lesson, num: ++globalNum })),
     }));
-  }, [visibleLessons]);
+  }, [visibleLessons, isTeacher, isTestStudent]);
 
   // First time we have data, default every week to collapsed except the
   // current real-world week (and the unscheduled drawer stays open too so
