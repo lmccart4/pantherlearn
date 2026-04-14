@@ -342,7 +342,12 @@ async function syncCourse(courseId, classroomCourseId) {
     for (const [actId, data] of Object.entries(acts)) {
       if (data.activityScore == null) continue;
       if (EXCLUDED_ACTIVITIES.has(actId)) continue;
+      // Pattern-based excludes
+      // - Evidence Logs (weekly-evidence-YYYY-WNN) — teacher-controlled, not synced
+      //   to Classroom. Flip the skip off when Luke wants them back.
+      if (actId.startsWith('weekly-evidence-')) continue;
       const actTitle = (data.activityTitle || actId).toLowerCase();
+      if (actTitle.startsWith('evidence log')) continue;
       if (actTitle.includes('battleship') && actTitle.includes('energy')) continue;
       if (!allActivities[actId]) allActivities[actId] = data.activityTitle || actId;
       if (!activityGrades[actId]) activityGrades[actId] = {};
@@ -526,14 +531,47 @@ async function syncCourse(courseId, classroomCourseId) {
     mergeFn(`activity_${actId}`, allActivities[actId], grades, null);
   }
 
-  // 8. Push merged grades (one push per unique key)
+  // 8. Collapse by title before pushing.
+  //
+  // Why: the same Classroom assignment title can come from BOTH a lesson
+  // AND an activity with matching titles (e.g. "Data Labeling Lab" has a
+  // lesson with an embed AND a per-student activity record). mergedByKey
+  // is keyed by lessonId / activity_${actId}, which gives us two separate
+  // entries for the same Classroom assignment. Pushing both caused the
+  // ping-pong: grade went lesson-score → activity-score on every sync run.
+  //
+  // Fix: group by title, take the highest grade per student per title,
+  // union exempt uids, and push exactly once per title.
+  const mergedByTitle = {};
+  const mergedExemptByTitle = {};
   for (const [key, bucket] of Object.entries(mergedByKey)) {
     const title = bucket._title;
+    if (!title) continue;
+    if (!mergedByTitle[title]) {
+      mergedByTitle[title] = { _title: title, _dueDate: bucket._dueDate };
+    }
+    const dest = mergedByTitle[title];
+    // Prefer a non-null due date if one source has one and the other doesn't
+    if (bucket._dueDate && !dest._dueDate) dest._dueDate = bucket._dueDate;
+    for (const [uid, grade] of Object.entries(bucket)) {
+      if (uid === "_title" || uid === "_dueDate") continue;
+      if (dest[uid] == null || grade > dest[uid]) dest[uid] = grade;
+    }
+    // Union exempt uids across keys that share this title
+    const srcExempt = mergedExempt[key];
+    if (srcExempt && srcExempt.size > 0) {
+      if (!mergedExemptByTitle[title]) mergedExemptByTitle[title] = new Set();
+      for (const uid of srcExempt) mergedExemptByTitle[title].add(uid);
+    }
+  }
+
+  // Push merged grades (one push per unique title)
+  for (const [title, bucket] of Object.entries(mergedByTitle)) {
     const dueDate = bucket._dueDate;
     const grades = { ...bucket };
     delete grades._title;
     delete grades._dueDate;
-    await pushAssignment(title, grades, dueDate, mergedExempt[key]);
+    await pushAssignment(title, grades, dueDate, mergedExemptByTitle[title]);
   }
 
   // 9. Save snapshot
