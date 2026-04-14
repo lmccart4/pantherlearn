@@ -475,16 +475,21 @@ async function syncCourse(courseId, classroomCourseId) {
     }
   };
 
-  // 7. Merge all grades by title (lesson + activity), taking highest per student
+  // 7. Merge all grades by title (lesson + activity), taking highest per student.
   //    This prevents duplicate titles from overwriting each other with lower scores.
   const lessonMap = {};
   lessons.forEach((l) => { lessonMap[l.id] = l; });
 
-  // Use composite key (lessonId) to avoid title collisions (Finding #11).
-  // Multiple lessons with the same title get separate Classroom assignments
-  // by appending a disambiguator when duplicates are detected.
+  // Title-collision policy (2026-04-14):
+  // When two visible lessons in the same course share a title, we SKIP both
+  // and emit a loud warning. We used to silently auto-disambiguate by
+  // prepending the unit name, but that created ghost-titled Classroom
+  // assignments that outlived their source lesson and required manual
+  // cleanup. Better to force the teacher to rename one of the duplicates in
+  // PantherLearn — deliberate naming beats silent renaming.
   const mergedByKey = {}; // { key: { _title, _dueDate, uid: grade } }
   const titleCounts = {}; // track title usage to detect duplicates
+  const collidedTitles = new Set();
 
   // Count title occurrences first to detect collisions
   for (const [lessonId, grades] of Object.entries(lessonGrades)) {
@@ -493,10 +498,16 @@ async function syncCourse(courseId, classroomCourseId) {
     titleCounts[title] = (titleCounts[title] || 0) + 1;
   }
 
-  // Warn about title collisions
+  // Warn about title collisions — and mark them as skip-targets
   for (const [title, count] of Object.entries(titleCounts)) {
     if (count > 1) {
-      console.log(`  ⚠️  Title collision: "${title}" used by ${count} lessons — disambiguating with unit prefix`);
+      collidedTitles.add(title);
+      const offenders = Object.entries(lessonGrades)
+        .filter(([lid]) => (lessonMap[lid]?.title || lid) === title)
+        .map(([lid]) => lid);
+      console.log(`  🛑 TITLE COLLISION: "${title}" used by ${count} visible lessons: [${offenders.join(", ")}]`);
+      console.log(`     → Skipping all ${count} lesson(s) for this title. Rename one in the Lesson Editor and re-sync.`);
+      stats.titleCollisions = (stats.titleCollisions || 0) + 1;
     }
   }
 
@@ -514,15 +525,12 @@ async function syncCourse(courseId, classroomCourseId) {
     }
   };
 
-  // Add lesson grades — use lessonId as key, disambiguate title if needed
+  // Add lesson grades — skip any lesson whose title collides with another
   for (const [lessonId, grades] of Object.entries(lessonGrades)) {
     const lesson = lessonMap[lessonId];
-    let title = lesson?.title || lessonId;
+    const title = lesson?.title || lessonId;
+    if (collidedTitles.has(title)) continue; // force teacher to rename in PL
     const dueDate = lesson?.dueDate || null;
-    // Disambiguate duplicate titles by prepending unit name
-    if (titleCounts[title] > 1 && lesson?.unit) {
-      title = `${lesson.unit}: ${title}`;
-    }
     mergeFn(lessonId, title, grades, dueDate, exemptMap[lessonId]);
   }
 
@@ -635,9 +643,10 @@ async function main() {
   console.log(`  Courses: ${stats.coursesSynced}/${stats.coursesScanned} synced`);
   console.log(`  Grades: ${stats.gradesPushed} pushed, ${stats.gradesUnchanged} unchanged`);
   if (stats.errors) console.log(`  Errors: ${stats.errors}`);
+  if (stats.titleCollisions) console.log(`  🛑 Title collisions (skipped — rename in PL and re-sync): ${stats.titleCollisions}`);
 
-  // Build and send email report if any grades changed
-  if (stats.gradesPushed > 0) {
+  // Build and send email report if any grades changed OR any title collisions detected
+  if (stats.gradesPushed > 0 || stats.titleCollisions > 0) {
     const emailBody = buildEmailReport(reportData, stats);
     console.log("\n── Email Report ──");
     console.log(emailBody);
@@ -679,6 +688,13 @@ function buildEmailReport(data, stats) {
 
   if (stats.errors > 0) {
     lines.push(`**Errors:** ${stats.errors}`, "");
+  }
+
+  if (stats.titleCollisions > 0) {
+    lines.push(
+      `**⚠️ Title collisions:** ${stats.titleCollisions} title(s) were skipped because two or more visible lessons share the same title. Check the sync log for the offending lesson IDs and rename one of the duplicates in the Lesson Editor, then re-run the sync.`,
+      ""
+    );
   }
 
   return lines.join("\n");
