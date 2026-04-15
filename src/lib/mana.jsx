@@ -2,7 +2,7 @@
 // Class Mana Pool system — shared resource for course-wide powers.
 // Data lives at courses/{courseId}/mana/{poolId} (default "pool")
 
-import { doc, getDoc, setDoc, addDoc, collection, getDocs, query, where, orderBy, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, addDoc, collection, getDocs, query, where, orderBy, serverTimestamp, runTransaction } from "firebase/firestore";
 import { db } from "./firebase";
 import { createNotification } from "./notifications";
 
@@ -422,7 +422,42 @@ export async function getStudentManaForClass(courseId) {
   return results;
 }
 
-// ─── Deduct Student Mana ───
+// ─── Charge Student Mana (strict — throws on insufficient balance) ───
+// Use for variable-amount student-initiated charges (custom 3D print quotes,
+// lesson-level grade bonuses, classwork passes). Atomic via Firestore
+// transaction so concurrent clicks/tabs can't double-spend.
+export async function chargeStudentMana(courseId, uid, amount, reason) {
+  const ref = doc(db, "courses", courseId, "studentMana", uid);
+  const result = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    const current = snap.exists() ? snap.data() : { balance: 0, lifetimeEarned: 0, history: [] };
+    const balance = current.balance || 0;
+    if (balance < amount) {
+      const err = new Error(`Insufficient mana balance — you need ${amount} ✦ but only have ${balance} ✦.`);
+      err.code = "INSUFFICIENT_MANA";
+      throw err;
+    }
+    const newBalance = balance - amount;
+    const timestamp = new Date().toISOString();
+    const entry = { type: "loss", amount, reason, timestamp };
+    tx.set(ref, {
+      ...current,
+      balance: newBalance,
+      history: [entry, ...(current.history || []).slice(0, 49)],
+      level: getLevel(current.lifetimeEarned || 0).label,
+    });
+    return { newBalance, timestamp };
+  });
+  await logManaTransaction(courseId, uid, {
+    type: "loss", amount, reason, timestamp: result.timestamp, balanceAfter: result.newBalance,
+  });
+  return { newBalance: result.newBalance, actualLoss: amount };
+}
+
+// ─── Deduct Student Mana (lenient — clamps to zero) ───
+// Use for teacher-initiated deductions (behavior penalties) where the action
+// must land even if the student is already at 0. Never use for student-initiated
+// spending — use spendStudentMana instead.
 export async function deductStudentMana(courseId, uid, amount, reason) {
   const ref = doc(db, "courses", courseId, "studentMana", uid);
   const snap = await getDoc(ref);

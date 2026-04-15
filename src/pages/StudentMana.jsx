@@ -12,7 +12,7 @@ import {
   awardStudentMana, saveManaState,
   getLevel, getNextLevel, getManaTitle,
   submitQuoteRequest, submitRewardSuggestion, submitFulfillmentRequest, getManaRequests,
-  deductStudentMana, applyGradeBonus, autoSelectMage,
+  chargeStudentMana, applyGradeBonus, autoSelectMage,
   MANA_LEVELS, MAGE_DAILY_BUDGET, MAGE_PER_STUDENT_CAP, MAGE_COMPLETION_BONUS, POSITIVE_BEHAVIORS,
   PERIOD_WINDOWS,
 } from "../lib/mana";
@@ -1168,12 +1168,14 @@ export default function StudentMana() {
                 disabled={(mana?.balance || 0) < req.quotedCost}
                 onClick={async () => {
                   try {
-                    await deductStudentMana(courseId, user.uid, req.quotedCost, `Custom 3D Print: ${req.description}`);
+                    // Status-first: the Firestore rule only allows priced→accepted once,
+                    // so a stale-state double-click fails here before any mana moves.
                     await updateDoc(doc(db, "courses", courseId, "manaRequests", req.id), { status: "accepted" });
+                    await chargeStudentMana(courseId, user.uid, req.quotedCost, `Custom 3D Print: ${req.description}`);
                     setToast("Accepted! Your print is on the way.");
                     setTimeout(() => setToast(null), 3000);
                     await load();
-                  } catch (err) { alert(err.message); }
+                  } catch (err) { alert(err.message); await load(); }
                 }}
                 className="mana-spell-btn"
                 style={{
@@ -1363,7 +1365,7 @@ export default function StudentMana() {
                   onClick={async () => {
                     if (!selectedLesson) return;
                     try {
-                      await deductStudentMana(courseId, user.uid, bonusModal.cost, `${bonusModal.name}: ${selectedLesson.title}`);
+                      await chargeStudentMana(courseId, user.uid, bonusModal.cost, `${bonusModal.name}: ${selectedLesson.title}`);
                       const newBonus = await applyGradeBonus(courseId, user.uid, selectedLesson.id, bonusModal.bonusAmount);
                       setToast(`+${bonusModal.bonusAmount}% applied to "${selectedLesson.title}"!`);
                       setTimeout(() => setToast(null), 4000);
@@ -1424,7 +1426,7 @@ export default function StudentMana() {
                   disabled={!inputText.trim()}
                   onClick={async () => {
                     try {
-                      await deductStudentMana(courseId, user.uid, inputModal.cost, `${inputModal.name}: ${inputText.trim()}`);
+                      await chargeStudentMana(courseId, user.uid, inputModal.cost, `${inputModal.name}: ${inputText.trim()}`);
                       await submitFulfillmentRequest(courseId, user.uid, user.displayName || "Student", inputModal.id, inputModal.name, inputModal.cost, inputText.trim());
                       setToast(`${inputModal.name} redeemed! Mr. McCarthy has been notified.`);
                       setTimeout(() => setToast(null), 3000);
