@@ -13,7 +13,16 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
   const data = (studentData && studentData[block.id]) || {};
   const [selected, setSelected] = useState(data.answer ?? null);
   const [textAnswer, setTextAnswer] = useState(data.answer ?? "");
-  const [rankingOrder, setRankingOrder] = useState(data.answer || null);
+  const [rankingOrder, setRankingOrder] = useState(() => {
+    if (data.answer) return data.answer;
+    if (block.questionType !== "ranking") return null;
+    const items = [...(block.items || [])];
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.abs(block.id.charCodeAt(i % block.id.length)) % (i + 1);
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    return items;
+  });
   const [submitted, setSubmitted] = useState(data.submitted || false);
 
   // "Request Manual Review" state for AI-graded answers
@@ -256,7 +265,6 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
   if (block.questionType === "multiple_choice") {
     const isAllCorrect = block.allCorrect;
     const isCorrect = submitted && (isAllCorrect ? true : selected === block.correctIndex);
-    const locked = submitted && lessonCompleted;
     return (
       <div className={`question-block ${submitted ? (isCorrect ? "correct" : "incorrect") : ""}`} style={{ position: "relative" }}>
         {xpToast && <div style={xpToastStyle}>+{xpToast} XP</div>}
@@ -285,7 +293,12 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
           })}
         </div>
         {!submitted && <button className="btn btn-primary" onClick={handleSubmitMC} disabled={selected === null} data-translatable>{ui(2) || "Submit Answer"}</button>}
-        {submitted && block.explanation && <div className="explanation" data-translatable><strong>{ui(5) || "Explanation:"}</strong> {translatedExplanation}</div>}
+        {submitted && block.explanation && (
+          <div className="explanation" data-translatable>
+            <strong>{ui(5) || "Explanation:"}</strong>{" "}
+            <span dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedExplanation || "") }} />
+          </div>
+        )}
         <div aria-live="polite" className="sr-only">
           {submitted && (isCorrect ? "Correct answer!" : `Incorrect. The correct answer is ${String.fromCharCode(65 + block.correctIndex)}.`)}
         </div>
@@ -294,7 +307,6 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
   }
 
   if (block.questionType === "short_answer") {
-    const locked = submitted && lessonCompleted;
     return (
       <div className={`question-block ${submitted ? "submitted-sa" : ""}`} style={{ position: "relative" }}>
         {xpToast && <div style={xpToastStyle}>+{xpToast} XP</div>}
@@ -438,7 +450,6 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
   // ─── Ranking question ───
   if (block.questionType === "ranking") {
     const items = rankingOrder || getShuffledItems();
-    if (!rankingOrder) setRankingOrder(items);
     const correctItems = block.items || [];
 
     const moveItem = (fromIdx, toIdx) => {
@@ -499,7 +510,6 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
   if (block.questionType === "linked") {
     const linkedData = allStudentData ? allStudentData[block.linkedBlockId] : studentData[block.linkedBlockId];
     const priorAnswer = linkedData?.answer;
-    const locked = submitted && lessonCompleted;
 
     return (
       <div className={`question-block ${submitted ? "submitted-sa" : ""}`} style={{ position: "relative" }}>
