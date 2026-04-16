@@ -136,7 +136,7 @@ export default function DonationModal({ isOpen, onClose, courseId, senderBalance
             <div className="flex justify-end gap-2">
               <button
                 className="rounded-md border border-[var(--border)] px-4 py-2 text-sm text-[var(--text2)] hover:bg-[var(--surface3)] disabled:opacity-50"
-                onClick={() => { setStep(1); setError(""); }}
+                onClick={() => { setStep(1); setError(""); setAmount(""); }}
                 disabled={submitting}
               >
                 ← Back
@@ -146,7 +146,7 @@ export default function DonationModal({ isOpen, onClose, courseId, senderBalance
                 disabled={!amountValid || submitting}
                 onClick={handleSubmit}
               >
-                {submitting ? "Sending…" : `Send ${amountValid ? amountNum : ""} mana →`}
+                {submitting ? "Sending…" : `Send ${amountValid ? `${amountNum} ` : ""}mana →`}
               </button>
             </div>
           </>
