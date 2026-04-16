@@ -112,8 +112,18 @@ export function groupLessonsByWeek(lessons) {
 
   const groups = [];
   if (unscheduled.length > 0) {
-    // Unscheduled sorts by `order` descending (stable)
-    unscheduled.sort((a, b) => (b.order || 0) - (a.order || 0));
+    // Sort by unit (numeric-aware so "Unit 2" precedes "Unit 10"), then by
+    // `order` ascending within unit. Lessons missing a unit fall to the bottom.
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+    unscheduled.sort((a, b) => {
+      const ua = a.unit || "";
+      const ub = b.unit || "";
+      if (ua && !ub) return -1;
+      if (!ua && ub) return 1;
+      const byUnit = collator.compare(ua, ub);
+      if (byUnit !== 0) return byUnit;
+      return (a.order || 0) - (b.order || 0);
+    });
     groups.push({
       week: { num: -1, label: "Unscheduled", start: null, end: null },
       lessons: unscheduled,
