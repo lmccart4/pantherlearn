@@ -143,9 +143,15 @@ async function syncCourse(courseId, classroomCourseId) {
   // 2. Load lesson definitions
   const lessonSnap = await db.collection("courses").doc(courseId).collection("lessons").get();
   const today = new Date().toISOString().slice(0, 10);
+  // Marking period 4 began 2026-04-14. Never sync MP3 (or earlier) work into
+  // MP4 — the 2026-04-16 manual sync was the last cleanup pass that included
+  // pre-cutoff assignments. Lessons with no dueDate are still synced (some
+  // ungated work has no date by design).
+  const MP4_CUTOFF = "2026-04-14";
   const lessons = lessonSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
     .filter((l) => l.visible !== false)
-    .filter((l) => !l.dueDate || l.dueDate < today); // only sync after due date has fully passed
+    .filter((l) => !l.dueDate || l.dueDate < today) // only sync after due date has fully passed
+    .filter((l) => !l.dueDate || l.dueDate >= MP4_CUTOFF);
 
   // 3. Find section courseIds (progress may be stored under section IDs)
   const sectionCourseIds = [courseId];
@@ -657,6 +663,17 @@ async function main() {
   } else {
     console.log("\nNo grade changes — skipping email.");
   }
+
+  // Emit run record for heartbeat watchdog (fire-and-forget).
+  try {
+    const payload = JSON.stringify({
+      taskId: "classroom-grade-sync",
+      overallOk: stats.errors === 0,
+      deliveries: {},
+      contentPreview: `Grade sync: ${stats.gradesPushed} pushed, ${stats.gradesUnchanged} unchanged, ${stats.errors} errors`,
+    });
+    execSync(`node ${require("os").homedir()}/Lachlan/projects/mission-control/log-run.cjs '${payload.replace(/'/g, "'\\''")}'`, { stdio: "ignore" });
+  } catch (_) { /* never let telemetry failure break the sync */ }
 }
 
 // ── Email report builder ────────────────────────────────────────────────────
