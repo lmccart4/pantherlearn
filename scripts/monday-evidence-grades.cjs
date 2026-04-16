@@ -481,6 +481,17 @@ async function main() {
       }
     }
   }
+
+  // Emit run record for heartbeat watchdog (fire-and-forget).
+  try {
+    const payload = JSON.stringify({
+      taskId: "evidence-log-grades",
+      overallOk: stats.errors === 0,
+      deliveries: {},
+      contentPreview: `Evidence grades: ${stats.studentsGraded} graded, ${stats.assignmentsCreated} Classroom assignments created, ${stats.errors} errors`,
+    });
+    execSync(`node ${require("os").homedir()}/Lachlan/projects/mission-control/log-run.cjs '${payload.replace(/'/g, "'\\''")}'`, { stdio: "ignore" });
+  } catch (_) { /* never let telemetry failure break the grading */ }
 }
 
 main().then(() => process.exit(0)).catch((err) => { console.error(`Fatal: ${err.message}`); process.exit(1); });
