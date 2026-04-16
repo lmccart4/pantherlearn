@@ -2472,3 +2472,6 @@ exports.donateMana = onCall(
     return { success: true, newSenderBalance };
   }
 );
+// ─── Heartbeat watcher (scheduled-task-watchdog) ──────────────────────────────
+exports.heartbeatWatcher = require("./heartbeat-watcher").heartbeatWatcher;
+
