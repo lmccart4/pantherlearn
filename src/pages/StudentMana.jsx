@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { doc, getDoc, collection, getDocs, updateDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import {
   getStudentMana, spendStudentMana, getManaState,
@@ -18,6 +18,7 @@ import {
 } from "../lib/mana";
 import { createNotification } from "../lib/notifications";
 import { isPerfMode } from "../lib/perfMode";
+import DonationModal from "../components/DonationModal.jsx";
 
 // Lazy-load GSAP — won't block initial render
 let gsapModule = null;
@@ -365,6 +366,38 @@ export default function StudentMana() {
   const [mageGender, setMageGender] = useState('M');
   const [classmates, setClassmates] = useState({});
   const [mageBudgetUsed, setMageBudgetUsed] = useState(0);
+
+  // Donation modal — separate classmate list (always loaded, not gated on mage status)
+  const [donationOpen, setDonationOpen] = useState(false);
+  const [donationClassmates, setDonationClassmates] = useState([]);
+
+  // Load classmates for the donation modal whenever course changes.
+  // Uses enrollments → user docs (NOT a full users-collection scan) — see ManaPool.jsx for the same pattern.
+  useEffect(() => {
+    let alive = true;
+    if (!user?.uid || !courseId) return;
+    (async () => {
+      try {
+        const enrollSnap = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", courseId)));
+        const peerUids = enrollSnap.docs
+          .map((d) => d.data().uid || d.data().studentUid)
+          .filter((uid) => uid && uid !== user.uid);
+        const userDocs = await Promise.allSettled(peerUids.map((uid) => getDoc(doc(db, "users", uid))));
+        const peers = [];
+        for (let i = 0; i < userDocs.length; i++) {
+          const r = userDocs[i];
+          if (r.status !== "fulfilled" || !r.value.exists()) continue;
+          const data = r.value.data();
+          if (data.role === "teacher" || data.isTestStudent) continue;
+          peers.push({ uid: peerUids[i], displayName: data.displayName || data.email || peerUids[i] });
+        }
+        if (alive) setDonationClassmates(peers);
+      } catch (e) {
+        console.warn("[StudentMana] Failed to load donation classmates:", e);
+      }
+    })();
+    return () => { alive = false; };
+  }, [courseId, user?.uid]);
 
   // Perf & capability
   const [perfMode] = useState(() => isPerfMode() || isLowEnd());
@@ -1029,6 +1062,29 @@ export default function StudentMana() {
                 </div>
               </div>
             )}
+
+            {/* ═══ SEND MANA ═══ */}
+            <button
+              onClick={() => setDonationOpen(true)}
+              style={{
+                marginTop: 16,
+                padding: "10px 20px",
+                borderRadius: 10,
+                border: "none",
+                background: `linear-gradient(135deg, ${ACCENT}, #c9a020)`,
+                color: "#0a0a0f",
+                fontSize: 13,
+                fontWeight: 700,
+                letterSpacing: "0.04em",
+                cursor: "pointer",
+                boxShadow: `0 4px 16px ${ACCENT}33`,
+                transition: "transform 0.15s ease, box-shadow 0.15s ease",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = `0 6px 20px ${ACCENT}55`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = `0 4px 16px ${ACCENT}33`; }}
+            >
+              ✨ Send mana to a classmate
+            </button>
           </div>
         </div>
 
@@ -1611,6 +1667,20 @@ export default function StudentMana() {
             {toast}
           </div>
         )}
+
+        {/* Donation modal */}
+        <DonationModal
+          isOpen={donationOpen}
+          onClose={() => setDonationOpen(false)}
+          courseId={courseId}
+          senderBalance={mana?.balance || 0}
+          classmates={donationClassmates}
+          onSuccess={(newBalance, recipientName, amount) => {
+            setMana((prev) => prev ? { ...prev, balance: newBalance } : prev);
+            setToast(`Sent ${amount} mana to ${recipientName} ✨`);
+            setTimeout(() => setToast(null), 3000);
+          }}
+        />
       </div>
     </main>
   );

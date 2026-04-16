@@ -192,14 +192,17 @@ export default function ManaPool({ courseId, compact = false }) {
             {state.currentMP}<span style={{ fontSize: 14, color: "var(--text3)", fontWeight: 400 }}>/{MANA_CAP} MP</span>
           </div>
           {userRole !== "teacher" && (
-            <button
-              onClick={() => setDonationOpen(true)}
-              disabled={myBalance === 0}
-              title={myBalance === 0 ? "You need mana to donate" : ""}
-              className="rounded-md bg-[var(--brand)] px-3 py-2 text-sm font-medium text-[#0a0a0f] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Send mana
-            </button>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+              <span style={{ fontSize: 11, color: "var(--text3)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                Your mana: {myBalance}
+              </span>
+              <button
+                onClick={() => setDonationOpen(true)}
+                className="rounded-md bg-[var(--brand)] px-3 py-2 text-sm font-medium text-[#0a0a0f] hover:opacity-90"
+              >
+                Send mana
+              </button>
+            </div>
           )}
         </div>
       </div>
