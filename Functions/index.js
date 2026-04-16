@@ -2363,7 +2363,7 @@ exports.donateMana = onCall(
     const enrollSnap = await db.collection("enrollments")
       .where("courseId", "==", courseId)
       .get();
-    const enrolledUids = new Set(enrollSnap.docs.map((d) => d.data().userId));
+    const enrolledUids = new Set(enrollSnap.docs.map((d) => d.data().uid || d.data().studentUid));
     if (!enrolledUids.has(senderUid)) {
       throw new HttpsError("failed-precondition", "You're not enrolled in this section.");
     }
