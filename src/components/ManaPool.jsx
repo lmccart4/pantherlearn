@@ -196,7 +196,7 @@ export default function ManaPool({ courseId, compact = false }) {
               onClick={() => setDonationOpen(true)}
               disabled={myBalance === 0}
               title={myBalance === 0 ? "You need mana to donate" : ""}
-              className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm font-medium text-[#0a0a0f] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="rounded-md bg-[var(--brand)] px-3 py-2 text-sm font-medium text-[#0a0a0f] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Send mana
             </button>
@@ -393,7 +393,7 @@ export default function ManaPool({ courseId, compact = false }) {
         }}
       />
       {donationToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 rounded-md bg-[var(--surface3)] px-4 py-2 text-sm text-[var(--text)] shadow-lg">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 rounded-md bg-[var(--surface3)] px-4 py-2 text-sm text-[var(--text)] shadow-lg">
           {donationToast}
         </div>
       )}
