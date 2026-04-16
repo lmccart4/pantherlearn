@@ -2383,6 +2383,9 @@ exports.donateMana = onCall(
     const recipientManaRef = db.doc(`courses/${courseId}/studentMana/${recipientUid}`);
     const senderTxRef = db.collection(`courses/${courseId}/studentMana/${senderUid}/transactions`).doc();
     const recipientTxRef = db.collection(`courses/${courseId}/studentMana/${recipientUid}/transactions`).doc();
+    // notificationRef is allocated OUTSIDE the transaction so the auto-generated
+    // doc ID is stable across transaction retries — a retry overwrites the same
+    // notification doc rather than creating a duplicate.
     const notificationRef = db.collection(`users/${recipientUid}/notifications`).doc();
 
     let newSenderBalance;
@@ -2402,7 +2405,9 @@ exports.donateMana = onCall(
       const newRecipientBalance = recipientBalance + amount;
       const ts = admin.firestore.FieldValue.serverTimestamp();
 
-      // Bounded history array — match the existing 50-entry cap used elsewhere in mana.jsx
+      // History-array timestamps use new Date() because Firestore's serverTimestamp()
+      // sentinel cannot appear inside array elements. Top-level lastUpdated + ledger
+      // docs below use serverTimestamp() correctly.
       const senderHistoryEntry = {
         type: "donation_sent",
         amount: -amount,
@@ -2420,17 +2425,17 @@ exports.donateMana = onCall(
 
       const senderExisting = senderManaSnap.exists ? (senderManaSnap.data().history || []) : [];
       const recipientExisting = recipientManaSnap.exists ? (recipientManaSnap.data().history || []) : [];
-      const HISTORY_CAP = 50;
 
+      // Bounded history: match the [newEntry, ...existing.slice(0, 49)] idiom used in src/lib/mana.jsx (keeps 50 most-recent entries).
       tx.set(senderManaRef, {
         balance: newSenderBalance,
-        history: [senderHistoryEntry, ...senderExisting].slice(0, HISTORY_CAP),
+        history: [senderHistoryEntry, ...senderExisting.slice(0, 49)],
         lastUpdated: ts,
       }, { merge: true });
 
       tx.set(recipientManaRef, {
         balance: newRecipientBalance,
-        history: [recipientHistoryEntry, ...recipientExisting].slice(0, HISTORY_CAP),
+        history: [recipientHistoryEntry, ...recipientExisting.slice(0, 49)],
         lastUpdated: ts,
       }, { merge: true });
 
