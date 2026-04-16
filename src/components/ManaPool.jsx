@@ -1,9 +1,9 @@
 // src/components/ManaPool.jsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { getManaState, castVote, MANA_CAP, getStudentMana } from "../lib/mana";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import DonationModal from "./DonationModal.jsx";
 
@@ -50,30 +50,49 @@ export default function ManaPool({ courseId, compact = false }) {
 
   // Load personal student mana balance + classmate list for donation modal
   useEffect(() => {
-    if (!courseId || !user || userRole === "teacher") return;
+    let mounted = true;
     (async () => {
+      if (userRole === "teacher" || !user?.uid || !courseId) return;
       try {
         const studentData = await getStudentMana(courseId, user.uid);
-        setMyBalance(studentData?.balance ?? 0);
+        if (mounted) setMyBalance(studentData?.balance ?? 0);
       } catch (e) {
         console.warn("[ManaPool] Failed to load personal balance:", e);
       }
       try {
-        const usersSnap = await getDocs(collection(db, "users"));
-        const list = [];
-        usersSnap.forEach((d) => {
-          if (d.id === user.uid) return;
+        // Targeted fetch: query enrollments for this course only, then fetch only those user docs
+        const enrollSnap = await getDocs(
+          query(collection(db, "enrollments"), where("courseId", "==", courseId))
+        );
+        const enrolledUids = new Set();
+        const nameFromEnrollment = {};
+        enrollSnap.forEach((d) => {
           const data = d.data();
-          if (data.role === "teacher") return;
-          const enrolled = data.enrolledCourses || {};
-          if (!enrolled[courseId]) return;
-          list.push({ uid: d.id, displayName: data.displayName || data.email || d.id });
+          if (data.isTestStudent) return;
+          const uid = data.uid || data.studentUid;
+          if (!uid || uid === user.uid) return;
+          enrolledUids.add(uid);
+          nameFromEnrollment[uid] = data.name || data.email || uid;
         });
-        setClassmatesRaw(list);
+        const userDocResults = await Promise.allSettled(
+          [...enrolledUids].map((uid) => getDoc(doc(db, "users", uid)))
+        );
+        const list = [];
+        userDocResults.forEach((result) => {
+          if (result.status !== "fulfilled") return;
+          const userDoc = result.value;
+          if (!userDoc.exists()) return;
+          const data = userDoc.data();
+          if (data.role === "teacher") return;
+          const uid = userDoc.id;
+          list.push({ uid, displayName: data.displayName || nameFromEnrollment[uid] || data.email || uid });
+        });
+        if (mounted) setClassmatesRaw(list);
       } catch (e) {
         console.warn("[ManaPool] Failed to load classmates:", e);
       }
     })();
+    return () => { mounted = false; };
   }, [courseId, user, userRole]);
 
   async function loadMana() {
@@ -97,8 +116,6 @@ export default function ManaPool({ courseId, compact = false }) {
     }
     setVoting(false);
   }
-
-  const classmateList = useMemo(() => classmatesRaw, [classmatesRaw]);
 
   if (loading || !state || !state.enabled) return null;
 
@@ -368,7 +385,7 @@ export default function ManaPool({ courseId, compact = false }) {
         onClose={() => setDonationOpen(false)}
         courseId={courseId}
         senderBalance={myBalance ?? 0}
-        classmates={classmateList}
+        classmates={classmatesRaw}
         onSuccess={(newBalance, recipientName, amount) => {
           setMyBalance(newBalance);
           setDonationToast(`Sent ${amount} mana to ${recipientName} ✨`);
