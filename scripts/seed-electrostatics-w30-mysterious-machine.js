@@ -17,7 +17,7 @@ const IMG = "/images/physics/electrostatics";
 
 const lesson = {
   title: "The Mysterious Machine",
-  questionOfTheDay: "Your teacher just touched a metal ball and your hair stood on end. Nothing was rubbed. No one shocked you. Where did the push on your hair come from?",
+  questionOfTheDay: "Can something push or pull on you without ever touching you?",
   course: "Physics",
   unit: "Electrostatics",
   order: 1,
@@ -47,7 +47,7 @@ const lesson = {
       type: "callout",
       style: "question",
       icon: "❓",
-      content: "**Question of the Day:** Your teacher just touched a metal ball and your hair stood on end. Nothing was rubbed. No one shocked you. Where did the push on your hair come from?"
+      content: "**Question of the Day:** Can something push or pull on you without ever touching you?"
     },
     {
       id: "text-mystery-framing",
@@ -211,7 +211,9 @@ const lesson = {
     {
       id: "img-settings",
       type: "image",
-      url: `${IMG}/phet-atom-settings.png`,
+      url: `${IMG}/phet-atom-settings.png?v=2`,
+      width: 646,
+      height: 972,
       caption: "Your right-hand panel should look like this before you start experimenting.",
       alt: "PhET Build an Atom settings panel showing Element, Net Charge, Mass Number, and Show options"
     },
@@ -294,7 +296,7 @@ const lesson = {
     {
       id: "img-stable-unstable",
       type: "image",
-      url: `${IMG}/stable-unstable-labels.png`,
+      url: `${IMG}/stable-unstable-labels.png?v=2`,
       caption: "The sim will label your atom as Stable or Unstable. Your job: figure out the rule.",
       alt: "Two labels reading 'Stable' and 'Unstable'"
     },
@@ -346,7 +348,7 @@ const lesson = {
     {
       id: "img-ions",
       type: "image",
-      url: `${IMG}/ion-labels.png`,
+      url: `${IMG}/ion-labels.png?v=2`,
       caption: "Three possible charge labels the sim can give your atom.",
       alt: "Three labels reading +Ion, -Ion, and Neutral Atom"
     },
