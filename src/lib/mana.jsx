@@ -3,6 +3,7 @@
 // Data lives at courses/{courseId}/mana/{poolId} (default "pool")
 
 import { doc, getDoc, setDoc, addDoc, collection, getDocs, query, where, orderBy, serverTimestamp, runTransaction } from "firebase/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { db } from "./firebase";
 import { createNotification } from "./notifications";
 
@@ -671,4 +672,14 @@ export async function markMageAbsent(courseId) {
   await saveManaState(courseId, undefined, updated);
 
   return { uid: selectedUid, name: names[selectedUid], gender: genders[selectedUid] || 'M', poolState: updated };
+}
+
+// ─── Donation: student-to-student mana transfer ───
+// Calls the donateMana Cloud Function. Returns { success, newSenderBalance }
+// on success, or throws an Error with the human-readable message from the
+// function's HttpsError (FirebaseError.message preserves it).
+export async function donateMana(courseId, recipientUid, amount) {
+  const fn = httpsCallable(getFunctions(), "donateMana");
+  const result = await fn({ courseId, recipientUid, amount });
+  return result.data;
 }
