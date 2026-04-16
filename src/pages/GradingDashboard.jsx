@@ -113,11 +113,15 @@ async function checkPendingGrades(courseId, enrollments, lessonMap, snapshot) {
         let earned = 0, possible = 0;
         mc.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.correct) earned++; });
         sa.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore; });
-        // Embed weighting: if lesson has other content, embeds = 50% of grade (total embed pts = non-embed pts)
-        // If embed-only lesson, each embed = 1 point (grade = percentage)
+        // Embed weighting: use explicit q.weight if set, otherwise dynamic 50/50 split
+        // (matches MyGrades.jsx:190 + StudentProgress.jsx:304 + classroom-sync.cjs:322).
         const nonEmbedPts = mc.length + sa.length + ((completed && reflection) ? 1 : 0);
-        const embedPtsEach = (embeds.length > 0 && nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1;
-        embeds.forEach((q) => { possible += embedPtsEach; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore * embedPtsEach; });
+        embeds.forEach((q) => {
+          const w = q.weight != null ? q.weight : ((nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1);
+          possible += w;
+          const a = answers[q.id];
+          if (a?.submitted && a.writtenScore != null) earned += a.writtenScore * w;
+        });
         if (completed && reflection) { possible++; if (reflection.valid) earned++; }
         if (possible === 0) continue;
 
@@ -389,7 +393,7 @@ export default function GradingDashboard() {
             const needsReview = answer.needsGrading && answer.submitted && answer.writtenScore == null;
             const isAutoGraded = answer.gradedBy === "autograde-agent" && answer.writtenScore != null;
             const isReviewRequested = answer.reviewRequested === true;
-            if (needsReview || (showGraded && isAutoGraded) || (showReviewRequested && isReviewRequested) || isReviewRequested) {
+            if (needsReview || (showGraded && isAutoGraded) || (showReviewRequested && isReviewRequested)) {
               writtenResponses.push({
                 id: `${progressDoc.ref.path}-${blockId}`,
                 studentId: uid, lessonId, courseId: selectedCourse, blockId,
@@ -426,7 +430,7 @@ export default function GradingDashboard() {
               const needsReview = answer.needsGrading && answer.submitted && answer.writtenScore == null;
               const isAutoGraded = answer.gradedBy === "autograde-agent" && answer.writtenScore != null;
               const isReviewRequested = answer.reviewRequested === true;
-              if (needsReview || (showGraded && isAutoGraded) || (showReviewRequested && isReviewRequested) || isReviewRequested) {
+              if (needsReview || (showGraded && isAutoGraded) || (showReviewRequested && isReviewRequested)) {
                 writtenResponses.push({
                   id: `${d.ref.path}-${blockId}`,
                   studentId: uid, lessonId: d.id, courseId: selectedCourse, blockId,
@@ -702,10 +706,15 @@ export default function GradingDashboard() {
 
           mc.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.correct) earned++; });
           sa.forEach((q) => { possible++; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore; });
-          // Embed weighting: embeds = 50% of grade in mixed lessons, 100% in embed-only
+          // Embed weighting: use explicit q.weight if set, otherwise dynamic 50/50 split
+          // (matches MyGrades.jsx:190 + StudentProgress.jsx:304 + classroom-sync.cjs:322).
           const nonEmbedPts2 = mc.length + sa.length + ((completed && reflection) ? 1 : 0);
-          const embedPtsEach2 = (embeds.length > 0 && nonEmbedPts2 > 0) ? nonEmbedPts2 / embeds.length : 1;
-          embeds.forEach((q) => { possible += embedPtsEach2; const a = answers[q.id]; if (a?.submitted && a.writtenScore != null) earned += a.writtenScore * embedPtsEach2; });
+          embeds.forEach((q) => {
+            const w = q.weight != null ? q.weight : ((nonEmbedPts2 > 0) ? nonEmbedPts2 / embeds.length : 1);
+            possible += w;
+            const a = answers[q.id];
+            if (a?.submitted && a.writtenScore != null) earned += a.writtenScore * w;
+          });
 
           if (completed && reflection) { possible++; if (reflection.valid) earned++; }
 
