@@ -32,7 +32,7 @@ Students earn mana through completed work, positive behavior, and grade bonuses,
 Three layers:
 
 1. **Cloud Function** `donateMana({courseId, recipientUid, amount})` — callable function added to `functions/index.js` (where the existing Cloud Functions live, e.g., the image-gen function). Performs the Firestore transaction server-side using admin SDK. Validates: sender is authenticated, recipient is in the same enrollment section, sender's balance ≥ amount, sender ≠ recipient. Writes both ledger entries atomically.
-2. **Firestore security rules** — deny all client writes to `courses/{courseId}/studentMana/{uid}` and `courses/{courseId}/studentMana/{uid}/transactions/{id}`. The Cloud Function service account is the only writer. Reads remain open to enrolled students for their own doc and to teachers for any doc in their courses (matches existing rules).
+2. **Firestore security rules** — unchanged in this iteration (existing rule allows writes from any user with course access). See "Firestore security rules" section for context. The Cloud Function provides the atomic-transaction safety and notification dispatch that the rule lockdown would have provided; the rule lockdown is deferred to a future security pass.
 3. **Client UI** — a "Send mana" button on the existing Mana page (`src/components/ManaPool.jsx`) that opens a two-step modal (recipient picker → amount + confirm). On confirm, calls the Cloud Function via `httpsCallable` (same pattern as `src/components/blocks/ImageGenBlock.jsx`). On success, optimistically updates the local balance and closes the modal with a toast. On failure, displays the server error and stays open.
 
 ## Data model
@@ -68,22 +68,12 @@ New transaction types: `donation_sent`, `donation_received`. Existing types (`gr
 
 ## Firestore security rules
 
-Add to `firestore.rules`:
+**No rule changes in this iteration.** The original spec proposed locking down `studentMana` writes to Cloud-Function-only with `allow write: if false`, but that would break two existing legitimate client-side writers:
 
-```
-match /courses/{courseId}/studentMana/{uid} {
-  allow read: if isEnrolledIn(courseId) || isTeacher(courseId);
-  allow write: if false;  // Cloud Function only
-}
-match /courses/{courseId}/studentMana/{uid}/transactions/{txId} {
-  allow read: if isEnrolledIn(courseId) || isTeacher(courseId);
-  allow write: if false;  // Cloud Function only
-}
-```
+- `src/pages/ManaManager.jsx` — teachers awarding mana via `awardStudentMana(...)`
+- `src/pages/StudentMana.jsx` — students awarding mana to other students via the Mage system, plus self-bonus on Mage completion
 
-The `allow write: if false` rule denies all client writes. The Cloud Function uses admin SDK which bypasses rules. This is the cleanest enforcement of "donations are atomic Cloud Function writes only" — no client tampering possible.
-
-**Migration concern:** if any existing client code currently writes directly to `studentMana/{uid}` (e.g., the grade-bonus or mage-award flows), it must be re-routed through Cloud Functions before this rule is deployed. Implementation plan must audit all writers first; if any exist, either route them through Cloud Functions OR keep narrower rules that allow writes from specific server-trusted contexts. Default assumption: existing writes are already server-only or via the existing Cloud Function pattern; verify in implementation.
+Donations still go through the Cloud Function for atomic-transaction safety, audit trail, and push notification dispatch. The existing rule (`allow write: if hasCourseAccess(courseId)`) stays in place. A future security pass can tighten all writers together — out of scope for donations.
 
 ## UI flow
 
@@ -154,11 +144,10 @@ Pantherlearn has no test framework. Verification stack:
 
 ## Rollback
 
-Single-commit rollback is clean. Three reverts:
+Single-commit rollback is clean. Two reverts:
 
 1. UI changes in `src/components/ManaPool.jsx` and the new modal component — pure JSX additions, deletion is safe.
 2. Cloud Function deploy: redeploy prior version (or delete the function entirely with `firebase functions:delete donateMana`).
-3. Firestore rules revert: restore prior `studentMana` rule. WARNING — the new rule may also have routed existing legitimate writers (grade bonus, mage award) through the Cloud Function pattern. If so, those writers also need to be reverted simultaneously, OR the rule kept narrower than this spec proposes. Implementation plan must surface the existing-writers audit early so this rollback risk is known.
 
 No schema changes, no migration, no student-facing data loss. Existing per-student balances are untouched by the feature itself — only changed by actual donation actions, all of which are individually logged and reversible by Cloud Function or by the existing teacher-side balance adjustment tool in ManaManager.
 
