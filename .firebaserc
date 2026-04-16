@@ -28,6 +28,9 @@
         ],
         "paps-tools": [
           "paps-tools"
+        ],
+        "ai-training-sim-paps": [
+          "ai-training-sim-paps"
         ]
       }
     }

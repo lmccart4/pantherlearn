@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Training Simulator — ElectiveBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --surface-0: #111116;
+    --surface-1: #18181f;
+    --surface-2: #202028;
+    --surface-3: #28282f;
+    --text: #ffffff;
+    --text-2: rgba(255,255,255,0.62);
+    --text-3: rgba(255,255,255,0.38);
+    --accent: #a78bfa;
+    --accent-2: #7c3aed;
+    --good: #34d399;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Nunito Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--surface-0);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  body {
+    background:
+      radial-gradient(ellipse 800px 500px at 15% 0%, rgba(167,139,250,0.12), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 95% 100%, rgba(124,58,237,0.10), transparent 60%),
+      var(--surface-0);
+  }
+  .app {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 20px 48px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center;
+    font-size: 22px;
+    box-shadow: 0 6px 20px rgba(124,58,237,0.35);
+  }
+  .brand-name {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .brand-sub {
+    font-size: 12px;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .lang-toggle {
+    display: flex;
+    background: var(--surface-2);
+    border-radius: 999px;
+    padding: 3px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .lang-toggle button {
+    background: transparent;
+    color: var(--text-2);
+    border: 0;
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 12px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .lang-toggle button.active {
+    background: var(--accent);
+    color: var(--surface-0);
+  }
+  .progress-rail {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 28px;
+  }
+  .progress-rail .pip {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface-2);
+    transition: background 0.3s;
+  }
+  .progress-rail .pip.active { background: var(--accent); }
+  .progress-rail .pip.done { background: var(--accent-2); }
+  .card {
+    background: var(--surface-1);
+    border-radius: 16px;
+    padding: 28px 24px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 10px;
+  }
+  h2 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .stage-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .lead {
+    color: var(--text-2);
+    font-size: 16px;
+    line-height: 1.55;
+    margin-bottom: 22px;
+    max-width: 64ch;
+  }
+  .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin: 20px 0 24px;
+  }
+  .profile {
+    position: relative;
+    background: var(--surface-2);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    user-select: none;
+  }
+  .profile:hover { transform: translateY(-2px); }
+  .profile.selected {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, var(--surface-2), rgba(167,139,250,0.08));
+  }
+  .profile .check {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    border: 2px solid var(--text-3);
+    background: transparent;
+    display: grid; place-items: center;
+    font-size: 14px;
+    color: var(--surface-0);
+    font-weight: 900;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .profile.selected .check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .profile.selected .check::after { content: "✓"; }
+  .profile .name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 2px;
+    padding-right: 28px;
+  }
+  .profile .tags {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-bottom: 10px;
+    font-family: var(--font-mono);
+  }
+  .profile .interests {
+    font-size: 13px;
+    color: var(--text-2);
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .profile .chose {
+    font-size: 12px;
+    padding: 4px 8px;
+    background: rgba(167,139,250,0.14);
+    color: var(--accent);
+    border-radius: 6px;
+    display: inline-block;
+    font-weight: 700;
+  }
+  .bulk-bar {
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .bulk-bar .bulk-btns { display: flex; gap: 8px; }
+  .chip {
+    background: var(--surface-2);
+    color: var(--text-2);
+    border: 0;
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s;
+  }
+  .chip:hover { background: var(--surface-3); color: var(--text); }
+  .footer-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .count {
+    font-size: 14px;
+    color: var(--text-2);
+  }
+  .count strong { color: var(--accent); font-weight: 700; }
+  .btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: var(--surface-0);
+    border: 0;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    box-shadow: 0 6px 24px rgba(124,58,237,0.35);
+  }
+  .btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 32px rgba(124,58,237,0.45);
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .btn.ghost {
+    background: var(--surface-2);
+    color: var(--text-2);
+    box-shadow: none;
+  }
+  .btn.ghost:hover:not(:disabled) {
+    background: var(--surface-3);
+    color: var(--text);
+  }
+  .label-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin: 20px 0;
+  }
+  @media (min-width: 640px) {
+    .label-row { grid-template-columns: 1fr 180px; align-items: center; }
+  }
+  .label-card {
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .label-card .edge-name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .label-card .edge-desc {
+    color: var(--text-2);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .label-group {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  select {
+    width: 100%;
+    background: var(--surface-1);
+    color: var(--text);
+    border: 2px solid var(--surface-3);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-2) 50%), linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
+    background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 34px;
+  }
+  select:focus { outline: none; border-color: var(--accent); }
+  .training-stage {
+    display: grid;
+    place-items: center;
+    min-height: 360px;
+    text-align: center;
+  }
+  .training-viz {
+    position: relative;
+    width: 280px;
+    height: 180px;
+    margin: 28px auto;
+  }
+  .training-viz .orbit {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(167,139,250,0.18);
+    animation: spin 6s linear infinite;
+  }
+  .training-viz .orbit:nth-child(1) { animation-duration: 4s; }
+  .training-viz .orbit:nth-child(2) { transform: scale(0.72); animation-duration: 6s; animation-direction: reverse; }
+  .training-viz .orbit:nth-child(3) { transform: scale(0.48); animation-duration: 8s; }
+  .training-viz .core {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center;
+    font-size: 26px;
+    box-shadow: 0 0 40px rgba(167,139,250,0.6);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .training-viz .dot {
+    position: absolute;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+  }
+  .training-viz .orbit:nth-child(1) .dot { top: -4px; left: 50%; transform: translateX(-50%); }
+  .training-viz .orbit:nth-child(2) .dot { top: 50%; right: -4px; transform: translateY(-50%); background: #ec4899; box-shadow: 0 0 10px #ec4899; }
+  .training-viz .orbit:nth-child(3) .dot { bottom: -4px; left: 50%; transform: translateX(-50%); background: #22d3ee; box-shadow: 0 0 10px #22d3ee; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 40px rgba(167,139,250,0.6); transform: translate(-50%, -50%) scale(1); }
+    50% { box-shadow: 0 0 60px rgba(167,139,250,0.9); transform: translate(-50%, -50%) scale(1.06); }
+  }
+  .training-log {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 8px;
+    min-height: 28px;
+    text-align: center;
+  }
+  .training-log .epoch {
+    color: var(--accent);
+  }
+  .eval-card {
+    background: var(--surface-2);
+    border-radius: 14px;
+    padding: 20px;
+    border-left: 4px solid var(--accent);
+    margin-bottom: 16px;
+  }
+  .eval-card .profile-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .eval-card .eval-name { font-size: 17px; font-weight: 700; }
+  .eval-card .eval-tags { font-size: 12px; color: var(--text-3); font-family: var(--font-mono); }
+  .eval-card .interests { color: var(--text-2); font-size: 14px; margin-bottom: 14px; line-height: 1.5; }
+  .rec-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .rec-arrow { color: var(--text-3); font-family: var(--font-mono); }
+  .rec-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    background: rgba(167,139,250,0.18);
+    color: var(--accent);
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .rec-badge.none {
+    background: rgba(248,113,113,0.18);
+    color: var(--bad);
+  }
+  .reason {
+    font-size: 13px;
+    color: var(--text-2);
+    background: var(--surface-1);
+    border-radius: 8px;
+    padding: 10px 12px;
+    line-height: 1.5;
+    border-left: 2px solid var(--text-3);
+  }
+  .eval-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .eval-progress .bar {
+    flex: 1;
+    height: 3px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .eval-progress .bar span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.4s ease;
+  }
+  .completion-wrap {
+    text-align: center;
+    padding: 40px 8px 8px;
+  }
+  .completion-wrap .badge {
+    display: inline-grid;
+    place-items: center;
+    width: 72px; height: 72px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    font-size: 34px;
+    margin-bottom: 22px;
+    box-shadow: 0 12px 40px rgba(124,58,237,0.45);
+    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes popIn {
+    from { transform: scale(0.3); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .completion-wrap h1 { font-size: 34px; margin-bottom: 10px; }
+  .completion-wrap .recap {
+    color: var(--text-2);
+    font-size: 15px;
+    line-height: 1.65;
+    max-width: 56ch;
+    margin: 0 auto 20px;
+  }
+  .score-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: var(--surface-2);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    margin: 8px 0 24px;
+  }
+  .score-badge .num {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: var(--font-display);
+  }
+  .hint {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-top: 18px;
+    font-style: italic;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  @media (max-width: 520px) {
+    h1 { font-size: 26px; }
+    .card { padding: 22px 18px; }
+    .app { padding: 16px 14px 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🧠</div>
+      <div>
+        <div class="brand-name" data-t="app.title">AI Training Simulator</div>
+        <div class="brand-sub" data-t="app.subtitle">Train ElectiveBot</div>
+      </div>
+    </div>
+    <div class="lang-toggle" role="group">
+      <button id="lang-en" class="active" aria-label="English">EN</button>
+      <button id="lang-es" aria-label="Español">ES</button>
+    </div>
+  </header>
+  <div class="progress-rail" id="progress-rail">
+    <div class="pip" data-stage="1"></div>
+    <div class="pip" data-stage="2"></div>
+    <div class="pip" data-stage="3"></div>
+    <div class="pip" data-stage="4"></div>
+  </div>
+  <div id="stage"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ───────────────────────── Translations ─────────────────────────
+  const T = {
+    en: {
+      "app.title": "AI Training Simulator",
+      "app.subtitle": "Train ElectiveBot",
+      "stage.1.label": "Stage 1 of 4 — Pick Training Data",
+      "stage.1.title": "Pick your training data",
+      "stage.1.lead": "ElectiveBot learns from historical student records. Pick which of last year's students to include in training. Your choices shape what the model thinks a \"typical\" elective-taker looks like.",
+      "stage.1.selectAll": "Select all",
+      "stage.1.selectNone": "Deselect all",
+      "stage.1.count": "selected",
+      "stage.1.next": "Train on selected →",
+      "stage.1.needOne": "Pick at least one student to keep going.",
+      "stage.2.label": "Stage 2 of 4 — Label Edge Cases",
+      "stage.2.title": "Label the tricky ones",
+      "stage.2.lead": "These four students don't fit the historical patterns. You have to pick an elective to assign them. Your labels become training examples too — your judgment calls teach the model what \"right\" looks like.",
+      "stage.2.pickPrompt": "Choose...",
+      "stage.2.next": "Start training →",
+      "stage.2.incomplete": "Pick an elective for every student to continue.",
+      "stage.3.label": "Stage 3 of 4 — Training",
+      "stage.3.title": "Training ElectiveBot",
+      "stage.3.lead": "Your selected profiles are feeding the model. In a real AI system, this step takes hours and billions of parameters. We'll fast-forward.",
+      "stage.3.log.0": "> loading profiles...",
+      "stage.3.log.1": "> extracting features (gender, neighborhood, interests)",
+      "stage.3.log.2": "> fitting pattern: interests ⟶ elective",
+      "stage.3.log.3": "> fitting pattern: demographics ⟶ elective",
+      "stage.3.log.4": "> validating on your edge-case labels",
+      "stage.3.log.5": "> model ready.",
+      "stage.3.skip": "Skip ahead →",
+      "stage.3.next": "See what it learned →",
+      "stage.4.label": "Stage 4 of 4 — Evaluate",
+      "stage.4.title": "See what ElectiveBot learned",
+      "stage.4.lead": "Your model is running on 6 incoming students it's never seen. Each card shows its recommendation and the pattern it used. Watch for where the logic breaks.",
+      "stage.4.arrow": "→",
+      "stage.4.recommendedLabel": "Recommended elective",
+      "stage.4.reasonLabel": "Why:",
+      "stage.4.next": "Next student →",
+      "stage.4.finish": "See recap →",
+      "stage.4.studentCount": "Student {n} of {total}",
+      "completion.title": "Training complete.",
+      "completion.score": "Completion score",
+      "completion.of": "of",
+      "completion.continue": "Return to the lesson to answer the reflection questions. Your score has been recorded.",
+      "labels.art": "Art",
+      "labels.woodshop": "Wood Shop",
+      "labels.robotics": "Robotics",
+      "labels.chorus": "Chorus",
+      "labels.cooking": "Cooking",
+      "none": "No recommendation",
+
+      // Historical profiles
+      "hp.carlos.name": "Carlos M.",
+      "hp.carlos.tags": "M · West Side · 10th",
+      "hp.carlos.int": "Working with his hands, cars, fixing things",
+      "hp.marcus.name": "Marcus T.",
+      "hp.marcus.tags": "M · North Side · 11th",
+      "hp.marcus.int": "Building, shop class in middle school, football",
+      "hp.jake.name": "Jake R.",
+      "hp.jake.tags": "M · North Side · 10th",
+      "hp.jake.int": "Hunting, carpentry, outdoor work",
+      "hp.maya.name": "Maya D.",
+      "hp.maya.tags": "F · West Side · 11th",
+      "hp.maya.int": "Carpentry, building model houses, drawing",
+      "hp.sofia.name": "Sofia L.",
+      "hp.sofia.tags": "F · Downtown · 10th",
+      "hp.sofia.int": "Painting, photography, fashion",
+      "hp.isabella.name": "Isabella V.",
+      "hp.isabella.tags": "F · Downtown · 11th",
+      "hp.isabella.int": "Drawing, sculpture, museums",
+      "hp.aaliyah.name": "Aaliyah J.",
+      "hp.aaliyah.tags": "F · West Side · 10th",
+      "hp.aaliyah.int": "Digital art, TikTok editing, illustration",
+      "hp.daniel.name": "Daniel K.",
+      "hp.daniel.tags": "M · Downtown · 11th",
+      "hp.daniel.int": "Graphic design, skateboarding graphics, cartoons",
+      "hp.ethan.name": "Ethan B.",
+      "hp.ethan.tags": "M · West Side · 10th",
+      "hp.ethan.int": "Coding, video games, Arduino kits",
+      "hp.olivia.name": "Olivia P.",
+      "hp.olivia.tags": "F · North Side · 11th",
+      "hp.olivia.int": "Robotics club, 3D printing, chess",
+      "hp.brandon.name": "Brandon S.",
+      "hp.brandon.tags": "M · West Side · 11th",
+      "hp.brandon.int": "Computer building, electronics, sci-fi",
+      "hp.imani.name": "Imani W.",
+      "hp.imani.tags": "F · West Side · 10th",
+      "hp.imani.int": "Math team, engineering, programming",
+
+      // Edge cases
+      "ec.alex.name": "Alex P.",
+      "ec.alex.desc": "Loves painting AND fixing bikes. Can't decide.",
+      "ec.jordan.name": "Jordan M.",
+      "ec.jordan.desc": "Strong grades across every subject. No standout interest.",
+      "ec.sam.name": "Sam R.",
+      "ec.sam.desc": "Just transferred from another district. No records here yet.",
+      "ec.riley.name": "Riley C.",
+      "ec.riley.desc": "Wants to try something totally new — doesn't know what.",
+
+      // Test students + reasons (dynamic — reason shown after the rec)
+      "ts.kenji.name": "Kenji N.",
+      "ts.kenji.tags": "M · East Side · 9th",
+      "ts.kenji.int": "Video games, fixing his own bike, anime",
+      "ts.maya2.name": "Maya H.",
+      "ts.maya2.tags": "F · West Side · 9th",
+      "ts.maya2.int": "Video games, digital art, streaming",
+      "ts.jamal.name": "Jamal W.",
+      "ts.jamal.tags": "M · East Side · 9th",
+      "ts.jamal.int": "Coding, math team, robotics club",
+      "ts.brielle.name": "Brielle S.",
+      "ts.brielle.tags": "F · Downtown · 9th",
+      "ts.brielle.int": "Carpentry from grandpa, wants to build furniture",
+      "ts.tyler.name": "Tyler K.",
+      "ts.tyler.tags": "M · West Side · 9th",
+      "ts.tyler.int": "Choir in middle school, drama, painting",
+      "ts.imani2.name": "Imani O.",
+      "ts.imani2.tags": "F · East Side · 9th",
+      "ts.imani2.int": "Cooking with her mom, food photography",
+
+      "reason.kenji": "Kenji is male and likes video games. In your training data, boys who like tech-adjacent hobbies were almost always funneled into Robotics. The model doesn't see his actual fit — it matches the pattern.",
+      "reason.maya2": "Maya is female and creative. Your training data showed most creative girls going into Art, so the model ignored her video-game interest and recommended Art — same stereotype as before.",
+      "reason.jamal": "Jamal fits Robotics perfectly on paper, but your training data has zero Robotics students from the East Side. With no neighborhood match, the model isn't confident — so it returns nothing. Students from under-represented areas fall through the cracks.",
+      "reason.brielle": "Brielle wants to build furniture — a perfect Wood Shop fit. But your training data had only one female Wood Shop student. The model leaned on the gender pattern and recommended Art instead, overriding her stated interest.",
+      "reason.tyler": "Tyler's interests scream Chorus or Art, but Chorus wasn't in your training data at all. The model can only recommend electives it has seen. Anything new is invisible.",
+      "reason.imani2": "Imani's interests point to Cooking, but Cooking wasn't in your training data either. Same problem: the model can't recommend what it's never seen — it defaulted to Art based on the photography interest.",
+
+      "eval.rec.kenji": "Robotics",
+      "eval.rec.maya2": "Art",
+      "eval.rec.jamal": "",
+      "eval.rec.brielle": "Art",
+      "eval.rec.tyler": "Art",
+      "eval.rec.imani2": "Art",
+
+      "recap.text": "Your ElectiveBot inherited every pattern in your training data — gender clustering, neighborhood gaps, and the invisibility of any elective you didn't include. It didn't invent bias. You did, when you decided which students \"counted\" as training examples."
+    },
+    es: {
+      "app.title": "Simulador de Entrenamiento de IA",
+      "app.subtitle": "Entrena a ElectiveBot",
+      "stage.1.label": "Etapa 1 de 4 — Elige datos de entrenamiento",
+      "stage.1.title": "Elige tus datos de entrenamiento",
+      "stage.1.lead": "ElectiveBot aprende de registros históricos de estudiantes. Elige cuáles del año pasado incluir en el entrenamiento. Tus decisiones moldean lo que el modelo considera un estudiante \"típico\".",
+      "stage.1.selectAll": "Seleccionar todo",
+      "stage.1.selectNone": "Deseleccionar todo",
+      "stage.1.count": "seleccionados",
+      "stage.1.next": "Entrenar con la selección →",
+      "stage.1.needOne": "Selecciona al menos un estudiante para continuar.",
+      "stage.2.label": "Etapa 2 de 4 — Etiqueta casos difíciles",
+      "stage.2.title": "Etiqueta los casos difíciles",
+      "stage.2.lead": "Estos cuatro estudiantes no encajan en los patrones históricos. Debes asignarles una materia. Tus etiquetas también se convierten en ejemplos de entrenamiento — tus decisiones le enseñan al modelo qué es \"correcto\".",
+      "stage.2.pickPrompt": "Elige...",
+      "stage.2.next": "Comenzar entrenamiento →",
+      "stage.2.incomplete": "Asigna una materia a cada estudiante para continuar.",
+      "stage.3.label": "Etapa 3 de 4 — Entrenamiento",
+      "stage.3.title": "Entrenando a ElectiveBot",
+      "stage.3.lead": "Tus perfiles seleccionados están alimentando el modelo. En un sistema real, esto tomaría horas y miles de millones de parámetros. Vamos a adelantarlo.",
+      "stage.3.log.0": "> cargando perfiles...",
+      "stage.3.log.1": "> extrayendo características (género, barrio, intereses)",
+      "stage.3.log.2": "> ajustando patrón: intereses ⟶ materia",
+      "stage.3.log.3": "> ajustando patrón: demografía ⟶ materia",
+      "stage.3.log.4": "> validando con tus casos difíciles",
+      "stage.3.log.5": "> modelo listo.",
+      "stage.3.skip": "Saltar →",
+      "stage.3.next": "Ver lo que aprendió →",
+      "stage.4.label": "Etapa 4 de 4 — Evaluación",
+      "stage.4.title": "Ve lo que ElectiveBot aprendió",
+      "stage.4.lead": "Tu modelo está evaluando a 6 estudiantes nuevos que nunca ha visto. Cada tarjeta muestra su recomendación y el patrón que usó. Observa dónde falla la lógica.",
+      "stage.4.arrow": "→",
+      "stage.4.recommendedLabel": "Materia recomendada",
+      "stage.4.reasonLabel": "Por qué:",
+      "stage.4.next": "Siguiente estudiante →",
+      "stage.4.finish": "Ver resumen →",
+      "stage.4.studentCount": "Estudiante {n} de {total}",
+      "completion.title": "Entrenamiento completo.",
+      "completion.score": "Puntaje de finalización",
+      "completion.of": "de",
+      "completion.continue": "Regresa a la lección para responder las preguntas de reflexión. Tu puntaje fue registrado.",
+      "labels.art": "Arte",
+      "labels.woodshop": "Carpintería",
+      "labels.robotics": "Robótica",
+      "labels.chorus": "Coro",
+      "labels.cooking": "Cocina",
+      "none": "Sin recomendación",
+
+      "hp.carlos.name": "Carlos M.",
+      "hp.carlos.tags": "M · Zona oeste · 10º",
+      "hp.carlos.int": "Trabajo manual, carros, reparaciones",
+      "hp.marcus.name": "Marcus T.",
+      "hp.marcus.tags": "M · Zona norte · 11º",
+      "hp.marcus.int": "Construcción, taller en primaria, fútbol americano",
+      "hp.jake.name": "Jake R.",
+      "hp.jake.tags": "M · Zona norte · 10º",
+      "hp.jake.int": "Caza, carpintería, aire libre",
+      "hp.maya.name": "Maya D.",
+      "hp.maya.tags": "F · Zona oeste · 11º",
+      "hp.maya.int": "Carpintería, modelos de casas, dibujo",
+      "hp.sofia.name": "Sofia L.",
+      "hp.sofia.tags": "F · Centro · 10º",
+      "hp.sofia.int": "Pintura, fotografía, moda",
+      "hp.isabella.name": "Isabella V.",
+      "hp.isabella.tags": "F · Centro · 11º",
+      "hp.isabella.int": "Dibujo, escultura, museos",
+      "hp.aaliyah.name": "Aaliyah J.",
+      "hp.aaliyah.tags": "F · Zona oeste · 10º",
+      "hp.aaliyah.int": "Arte digital, edición TikTok, ilustración",
+      "hp.daniel.name": "Daniel K.",
+      "hp.daniel.tags": "M · Centro · 11º",
+      "hp.daniel.int": "Diseño gráfico, gráficos de patineta, caricaturas",
+      "hp.ethan.name": "Ethan B.",
+      "hp.ethan.tags": "M · Zona oeste · 10º",
+      "hp.ethan.int": "Programación, videojuegos, kits Arduino",
+      "hp.olivia.name": "Olivia P.",
+      "hp.olivia.tags": "F · Zona norte · 11º",
+      "hp.olivia.int": "Club de robótica, impresión 3D, ajedrez",
+      "hp.brandon.name": "Brandon S.",
+      "hp.brandon.tags": "M · Zona oeste · 11º",
+      "hp.brandon.int": "Armar computadoras, electrónica, ciencia ficción",
+      "hp.imani.name": "Imani W.",
+      "hp.imani.tags": "F · Zona oeste · 10º",
+      "hp.imani.int": "Equipo de mate, ingeniería, programación",
+
+      "ec.alex.name": "Alex P.",
+      "ec.alex.desc": "Le gusta pintar Y reparar bicicletas. No decide.",
+      "ec.jordan.name": "Jordan M.",
+      "ec.jordan.desc": "Notas altas en todas las materias. Sin interés destacado.",
+      "ec.sam.name": "Sam R.",
+      "ec.sam.desc": "Recién transferido. Todavía no hay registros.",
+      "ec.riley.name": "Riley C.",
+      "ec.riley.desc": "Quiere probar algo totalmente nuevo — no sabe qué.",
+
+      "ts.kenji.name": "Kenji N.",
+      "ts.kenji.tags": "M · Zona este · 9º",
+      "ts.kenji.int": "Videojuegos, arregla su bici, anime",
+      "ts.maya2.name": "Maya H.",
+      "ts.maya2.tags": "F · Zona oeste · 9º",
+      "ts.maya2.int": "Videojuegos, arte digital, streaming",
+      "ts.jamal.name": "Jamal W.",
+      "ts.jamal.tags": "M · Zona este · 9º",
+      "ts.jamal.int": "Programación, mate, robótica",
+      "ts.brielle.name": "Brielle S.",
+      "ts.brielle.tags": "F · Centro · 9º",
+      "ts.brielle.int": "Carpintería con su abuelo, quiere hacer muebles",
+      "ts.tyler.name": "Tyler K.",
+      "ts.tyler.tags": "M · Zona oeste · 9º",
+      "ts.tyler.int": "Coro en primaria, teatro, pintura",
+      "ts.imani2.name": "Imani O.",
+      "ts.imani2.tags": "F · Zona este · 9º",
+      "ts.imani2.int": "Cocinar con su mamá, fotografía de comida",
+
+      "reason.kenji": "Kenji es hombre y le gustan los videojuegos. En tus datos, los chicos con hobbies tecnológicos casi siempre fueron dirigidos a Robótica. El modelo no ve su verdadero interés — solo el patrón.",
+      "reason.maya2": "Maya es mujer y creativa. Tus datos mostraron a la mayoría de chicas creativas yendo a Arte, así que el modelo ignoró los videojuegos y recomendó Arte — el mismo estereotipo.",
+      "reason.jamal": "Jamal encaja perfecto en Robótica, pero tus datos no tienen ningún estudiante de Robótica de la Zona este. Sin coincidencia de barrio, el modelo no confía — y no devuelve nada. Los estudiantes de zonas subrepresentadas quedan fuera.",
+      "reason.brielle": "Brielle quiere hacer muebles — encaja perfecto en Carpintería. Pero tus datos solo tenían una estudiante mujer en Carpintería. El modelo usó el patrón de género y recomendó Arte, ignorando su interés real.",
+      "reason.tyler": "Los intereses de Tyler apuntan a Coro o Arte, pero Coro no estaba en tus datos. El modelo solo recomienda lo que ya vio. Cualquier cosa nueva es invisible.",
+      "reason.imani2": "Los intereses de Imani apuntan a Cocina, pero Cocina tampoco estaba en tus datos. Mismo problema: el modelo no puede recomendar lo que nunca vio — optó por Arte por el interés en fotografía.",
+
+      "eval.rec.kenji": "Robótica",
+      "eval.rec.maya2": "Arte",
+      "eval.rec.jamal": "",
+      "eval.rec.brielle": "Arte",
+      "eval.rec.tyler": "Arte",
+      "eval.rec.imani2": "Arte",
+
+      "recap.text": "Tu ElectiveBot heredó cada patrón de tus datos — agrupación por género, vacíos por barrio, y la invisibilidad de cualquier materia que no incluiste. No inventó sesgo. Tú lo hiciste, al decidir qué estudiantes \"contaban\" como ejemplos de entrenamiento."
+    }
+  };
+
+  let lang = localStorage.getItem("aits-lang") || "en";
+  function t(key, vars) {
+    let s = (T[lang] && T[lang][key]) || T.en[key] || key;
+    if (vars) Object.keys(vars).forEach(k => { s = s.replace("{" + k + "}", vars[k]); });
+    return s;
+  }
+
+  function setLang(l) {
+    lang = l;
+    localStorage.setItem("aits-lang", l);
+    document.getElementById("lang-en").classList.toggle("active", l === "en");
+    document.getElementById("lang-es").classList.toggle("active", l === "es");
+    document.documentElement.lang = l;
+    // Re-render current stage with new strings
+    if (currentStage) renderStage(currentStage);
+    // Re-translate static header bits
+    document.querySelectorAll("[data-t]").forEach(el => {
+      el.textContent = t(el.getAttribute("data-t"));
+    });
+  }
+
+  document.getElementById("lang-en").addEventListener("click", () => setLang("en"));
+  document.getElementById("lang-es").addEventListener("click", () => setLang("es"));
+
+  // ─────────────────── Data ───────────────────
+  const HISTORICAL = [
+    { id: "carlos",   chose: "labels.woodshop" },
+    { id: "marcus",   chose: "labels.woodshop" },
+    { id: "jake",     chose: "labels.woodshop" },
+    { id: "maya",     chose: "labels.woodshop" },
+    { id: "sofia",    chose: "labels.art" },
+    { id: "isabella", chose: "labels.art" },
+    { id: "aaliyah",  chose: "labels.art" },
+    { id: "daniel",   chose: "labels.art" },
+    { id: "ethan",    chose: "labels.robotics" },
+    { id: "olivia",   chose: "labels.robotics" },
+    { id: "brandon",  chose: "labels.robotics" },
+    { id: "imani",    chose: "labels.robotics" },
+  ];
+  const EDGE_CASES = ["alex", "jordan", "sam", "riley"];
+  const ELECTIVE_OPTIONS = ["labels.art", "labels.woodshop", "labels.robotics", "labels.chorus", "labels.cooking"];
+  const TEST_STUDENTS = ["kenji", "maya2", "jamal", "brielle", "tyler", "imani2"];
+
+  // ─────────────────── State ───────────────────
+  const state = {
+    stage: 1,
+    selectedHistorical: new Set(HISTORICAL.map(p => p.id)),  // default: all selected
+    labels: {}, // edge case id -> label key
+    evalIndex: 0,
+    scoreSent: false,
+  };
+  let currentStage = null;
+
+  // ─────────────────── Progress rail ───────────────────
+  function renderRail() {
+    document.querySelectorAll(".progress-rail .pip").forEach(pip => {
+      const s = parseInt(pip.getAttribute("data-stage"), 10);
+      pip.classList.remove("active", "done");
+      if (s < state.stage) pip.classList.add("done");
+      else if (s === state.stage) pip.classList.add("active");
+    });
+  }
+
+  // ─────────────────── Stage router ───────────────────
+  function renderStage(n) {
+    currentStage = n;
+    state.stage = n;
+    renderRail();
+    const host = document.getElementById("stage");
+    host.innerHTML = "";
+    if (n === 1) renderStage1(host);
+    else if (n === 2) renderStage2(host);
+    else if (n === 3) renderStage3(host);
+    else if (n === 4) renderStage4(host);
+    else if (n === 5) renderCompletion(host);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // ─────────────────── Stage 1 ───────────────────
+  function renderStage1(host) {
+    const wrap = document.createElement("div");
+    wrap.className = "card";
+    wrap.innerHTML = `
+      <div class="stage-label">${t("stage.1.label")}</div>
+      <h1>${t("stage.1.title")}</h1>
+      <p class="lead">${t("stage.1.lead")}</p>
+      <div class="bulk-bar">
+        <div class="count"><strong id="sel-count">${state.selectedHistorical.size}</strong> / ${HISTORICAL.length} ${t("stage.1.count")}</div>
+        <div class="bulk-btns">
+          <button class="chip" id="btn-all">${t("stage.1.selectAll")}</button>
+          <button class="chip" id="btn-none">${t("stage.1.selectNone")}</button>
+        </div>
+      </div>
+      <div class="profile-grid" id="profile-grid"></div>
+      <div class="footer-bar">
+        <div></div>
+        <button class="btn" id="btn-next" ${state.selectedHistorical.size === 0 ? "disabled" : ""}>${t("stage.1.next")}</button>
+      </div>
+    `;
+    host.appendChild(wrap);
+
+    const grid = wrap.querySelector("#profile-grid");
+    HISTORICAL.forEach(p => {
+      const el = document.createElement("div");
+      el.className = "profile" + (state.selectedHistorical.has(p.id) ? " selected" : "");
+      el.innerHTML = `
+        <div class="check"></div>
+        <div class="name">${t("hp." + p.id + ".name")}</div>
+        <div class="tags">${t("hp." + p.id + ".tags")}</div>
+        <div class="interests">${t("hp." + p.id + ".int")}</div>
+        <div class="chose">${t(p.chose)}</div>
+      `;
+      el.addEventListener("click", () => {
+        if (state.selectedHistorical.has(p.id)) state.selectedHistorical.delete(p.id);
+        else state.selectedHistorical.add(p.id);
+        el.classList.toggle("selected");
+        updateCount();
+      });
+      grid.appendChild(el);
+    });
+
+    function updateCount() {
+      wrap.querySelector("#sel-count").textContent = state.selectedHistorical.size;
+      wrap.querySelector("#btn-next").disabled = state.selectedHistorical.size === 0;
+    }
+
+    wrap.querySelector("#btn-all").addEventListener("click", () => {
+      state.selectedHistorical = new Set(HISTORICAL.map(p => p.id));
+      wrap.querySelectorAll(".profile").forEach(el => el.classList.add("selected"));
+      updateCount();
+    });
+    wrap.querySelector("#btn-none").addEventListener("click", () => {
+      state.selectedHistorical.clear();
+      wrap.querySelectorAll(".profile").forEach(el => el.classList.remove("selected"));
+      updateCount();
+    });
+    wrap.querySelector("#btn-next").addEventListener("click", () => {
+      if (state.selectedHistorical.size === 0) return;
+      renderStage(2);
+    });
+  }
+
+  // ─────────────────── Stage 2 ───────────────────
+  function renderStage2(host) {
+    const wrap = document.createElement("div");
+    wrap.className = "card";
+    wrap.innerHTML = `
+      <div class="stage-label">${t("stage.2.label")}</div>
+      <h1>${t("stage.2.title")}</h1>
+      <p class="lead">${t("stage.2.lead")}</p>
+      <div id="edge-wrap"></div>
+      <div class="footer-bar">
+        <button class="btn ghost" id="btn-back">←</button>
+        <button class="btn" id="btn-next">${t("stage.2.next")}</button>
+      </div>
+    `;
+    host.appendChild(wrap);
+
+    const edgeWrap = wrap.querySelector("#edge-wrap");
+    EDGE_CASES.forEach(id => {
+      const row = document.createElement("div");
+      row.className = "label-row";
+      row.innerHTML = `
+        <div class="label-card">
+          <div class="edge-name">${t("ec." + id + ".name")}</div>
+          <div class="edge-desc">${t("ec." + id + ".desc")}</div>
+        </div>
+        <div class="label-group">
+          <select data-edge="${id}">
+            <option value="">${t("stage.2.pickPrompt")}</option>
+            ${ELECTIVE_OPTIONS.map(o => `<option value="${o}" ${state.labels[id] === o ? "selected" : ""}>${t(o)}</option>`).join("")}
+          </select>
+        </div>
+      `;
+      edgeWrap.appendChild(row);
+    });
+
+    function refreshNext() {
+      const done = EDGE_CASES.every(id => state.labels[id]);
+      wrap.querySelector("#btn-next").disabled = !done;
+    }
+    refreshNext();
+
+    edgeWrap.querySelectorAll("select").forEach(sel => {
+      sel.addEventListener("change", (e) => {
+        const edgeId = e.target.getAttribute("data-edge");
+        const v = e.target.value;
+        if (v) state.labels[edgeId] = v;
+        else delete state.labels[edgeId];
+        refreshNext();
+      });
+    });
+    wrap.querySelector("#btn-back").addEventListener("click", () => renderStage(1));
+    wrap.querySelector("#btn-next").addEventListener("click", () => {
+      if (!EDGE_CASES.every(id => state.labels[id])) return;
+      renderStage(3);
+    });
+  }
+
+  // ─────────────────── Stage 3 ───────────────────
+  function renderStage3(host) {
+    const wrap = document.createElement("div");
+    wrap.className = "card training-stage";
+    wrap.innerHTML = `
+      <div style="width:100%;">
+        <div class="stage-label" style="text-align:center;">${t("stage.3.label")}</div>
+        <h1 style="text-align:center;">${t("stage.3.title")}</h1>
+        <p class="lead" style="text-align:center; margin-left:auto; margin-right:auto;">${t("stage.3.lead")}</p>
+        <div class="training-viz">
+          <div class="orbit"><div class="dot"></div></div>
+          <div class="orbit"><div class="dot"></div></div>
+          <div class="orbit"><div class="dot"></div></div>
+          <div class="core">🧠</div>
+        </div>
+        <div class="training-log" id="t-log"></div>
+        <div style="text-align:center; margin-top:20px;">
+          <button class="btn" id="btn-skip" disabled>${t("stage.3.next")}</button>
+        </div>
+      </div>
+    `;
+    host.appendChild(wrap);
+
+    const log = wrap.querySelector("#t-log");
+    const btn = wrap.querySelector("#btn-skip");
+    const lines = ["stage.3.log.0","stage.3.log.1","stage.3.log.2","stage.3.log.3","stage.3.log.4","stage.3.log.5"];
+    let i = 0;
+    const interval = 900;
+    function tick() {
+      if (i >= lines.length) {
+        btn.disabled = false;
+        btn.textContent = t("stage.3.next");
+        return;
+      }
+      log.innerHTML = `<span class="epoch">[epoch ${String(i + 1).padStart(2, "0")}/${lines.length}]</span> ${t(lines[i])}`;
+      i++;
+      setTimeout(tick, interval);
+    }
+    tick();
+    // Allow skip after first 2 seconds
+    setTimeout(() => {
+      if (btn.disabled) {
+        btn.disabled = false;
+        btn.textContent = t("stage.3.skip");
+      }
+    }, 2000);
+    btn.addEventListener("click", () => renderStage(4));
+  }
+
+  // ─────────────────── Stage 4 ───────────────────
+  function renderStage4(host) {
+    const wrap = document.createElement("div");
+    wrap.className = "card";
+    wrap.innerHTML = `
+      <div class="stage-label">${t("stage.4.label")}</div>
+      <h1>${t("stage.4.title")}</h1>
+      <p class="lead">${t("stage.4.lead")}</p>
+      <div class="eval-progress">
+        <span id="eval-count">${t("stage.4.studentCount", { n: state.evalIndex + 1, total: TEST_STUDENTS.length })}</span>
+        <div class="bar"><span id="eval-bar" style="width:${((state.evalIndex + 1) / TEST_STUDENTS.length) * 100}%"></span></div>
+      </div>
+      <div id="eval-card-host"></div>
+      <div class="footer-bar">
+        <div></div>
+        <button class="btn" id="btn-eval-next">${state.evalIndex < TEST_STUDENTS.length - 1 ? t("stage.4.next") : t("stage.4.finish")}</button>
+      </div>
+    `;
+    host.appendChild(wrap);
+    renderEvalCard(wrap);
+
+    wrap.querySelector("#btn-eval-next").addEventListener("click", () => {
+      state.evalIndex++;
+      if (state.evalIndex >= TEST_STUDENTS.length) {
+        renderStage(5);
+        return;
+      }
+      wrap.querySelector("#eval-count").textContent = t("stage.4.studentCount", { n: state.evalIndex + 1, total: TEST_STUDENTS.length });
+      wrap.querySelector("#eval-bar").style.width = (((state.evalIndex + 1) / TEST_STUDENTS.length) * 100) + "%";
+      renderEvalCard(wrap);
+      const btn = wrap.querySelector("#btn-eval-next");
+      btn.textContent = state.evalIndex < TEST_STUDENTS.length - 1 ? t("stage.4.next") : t("stage.4.finish");
+    });
+  }
+
+  function renderEvalCard(parent) {
+    const host = parent.querySelector("#eval-card-host");
+    host.innerHTML = "";
+    const id = TEST_STUDENTS[state.evalIndex];
+    const rec = t("eval.rec." + id);
+    const card = document.createElement("div");
+    card.className = "eval-card";
+    card.style.animation = "none";
+    card.innerHTML = `
+      <div class="profile-row">
+        <div class="eval-name">${t("ts." + id + ".name")}</div>
+        <div class="eval-tags">${t("ts." + id + ".tags")}</div>
+      </div>
+      <div class="interests">${t("ts." + id + ".int")}</div>
+      <div class="rec-row">
+        <span class="rec-arrow">${t("stage.4.arrow")}</span>
+        <span class="rec-badge ${rec ? "" : "none"}">${rec || t("none")}</span>
+      </div>
+      <div class="reason"><strong>${t("stage.4.reasonLabel")}</strong> ${t("reason." + id)}</div>
+    `;
+    host.appendChild(card);
+    // Retrigger entrance animation
+    requestAnimationFrame(() => {
+      card.style.animation = "";
+      card.animate([
+        { opacity: 0, transform: "translateY(10px)" },
+        { opacity: 1, transform: "translateY(0)" }
+      ], { duration: 320, easing: "ease-out" });
+    });
+  }
+
+  // ─────────────────── Completion ───────────────────
+  function renderCompletion(host) {
+    const wrap = document.createElement("div");
+    wrap.className = "card";
+    wrap.innerHTML = `
+      <div class="completion-wrap">
+        <div class="badge">✓</div>
+        <h1>${t("completion.title")}</h1>
+        <div class="score-badge"><span class="num">5</span> ${t("completion.of")} 5 · ${t("completion.score")}</div>
+        <p class="recap">${t("recap.text")}</p>
+        <p class="hint">${t("completion.continue")}</p>
+      </div>
+    `;
+    host.appendChild(wrap);
+    // Mark all pips done
+    document.querySelectorAll(".progress-rail .pip").forEach(p => {
+      p.classList.remove("active");
+      p.classList.add("done");
+    });
+    sendScore();
+  }
+
+  // ─────────────────── Score postMessage ───────────────────
+  function sendScore() {
+    // Feedback memory: auto-fire on completion screen, no manual button.
+    // Always re-send is safe here because the completion screen renders exactly
+    // once per session; we don't guard but we track to avoid accidental loops.
+    try {
+      window.parent.postMessage({
+        type: "activityScore",  // CAMEL CASE — matches EmbedBlock contract
+        score: 5,
+        maxScore: 5,
+        gameComplete: true,
+        completedAt: new Date().toISOString()
+      }, "*");
+      state.scoreSent = true;
+    } catch (e) { /* ignore cross-origin edge case */ }
+  }
+
+  // ─────────────────── Boot ───────────────────
+  setLang(lang); // applies localStorage choice + static header strings
+  renderStage(1);
+})();
+</script>
+</body>
+</html>

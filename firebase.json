@@ -94,6 +94,11 @@
       "target": "paps-tools",
       "public": "tools-public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    },
+    {
+      "target": "ai-training-sim-paps",
+      "public": "ai-training-sim",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
   ],
   "functions": {
