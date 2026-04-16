@@ -2328,3 +2328,142 @@ exports.translateText = onRequest(
     }
   }
 );
+
+// ─────────────────────────────────────────────────────────────────
+// donateMana — student-to-student mana donation
+// Atomic transaction: deduct sender, credit recipient, append both
+// ledger entries, create recipient notification (existing FCM trigger
+// handles delivery). All in one transaction; either all succeed or none.
+// ─────────────────────────────────────────────────────────────────
+exports.donateMana = onCall(
+  { region: "us-central1", maxInstances: 10 },
+  async (request) => {
+    // Auth check
+    const senderUid = request.auth?.uid;
+    if (!senderUid) {
+      throw new HttpsError("unauthenticated", "You must be signed in to donate mana.");
+    }
+
+    // Input shape
+    const { courseId, recipientUid, amount } = request.data || {};
+    if (typeof courseId !== "string" || !courseId) {
+      throw new HttpsError("invalid-argument", "courseId is required.");
+    }
+    if (typeof recipientUid !== "string" || !recipientUid) {
+      throw new HttpsError("invalid-argument", "recipientUid is required.");
+    }
+    if (!Number.isInteger(amount) || amount < 1 || amount > 1000) {
+      throw new HttpsError("invalid-argument", "Donation amount must be a whole number between 1 and 1000.");
+    }
+    if (recipientUid === senderUid) {
+      throw new HttpsError("invalid-argument", "You can't donate mana to yourself.");
+    }
+
+    // Verify both sender and recipient are enrolled in the same course
+    const enrollSnap = await db.collection("enrollments")
+      .where("courseId", "==", courseId)
+      .get();
+    const enrolledUids = new Set(enrollSnap.docs.map((d) => d.data().userId));
+    if (!enrolledUids.has(senderUid)) {
+      throw new HttpsError("failed-precondition", "You're not enrolled in this section.");
+    }
+    if (!enrolledUids.has(recipientUid)) {
+      throw new HttpsError("failed-precondition", "That classmate is no longer in this section.");
+    }
+
+    // Read participant display names for the ledger entries + notification copy
+    const [senderUserSnap, recipientUserSnap] = await Promise.all([
+      db.collection("users").doc(senderUid).get(),
+      db.collection("users").doc(recipientUid).get(),
+    ]);
+    const senderName = senderUserSnap.exists ? (senderUserSnap.data().displayName || "Someone") : "Someone";
+    const recipientName = recipientUserSnap.exists ? (recipientUserSnap.data().displayName || "a classmate") : "a classmate";
+
+    const senderManaRef = db.doc(`courses/${courseId}/studentMana/${senderUid}`);
+    const recipientManaRef = db.doc(`courses/${courseId}/studentMana/${recipientUid}`);
+    const senderTxRef = db.collection(`courses/${courseId}/studentMana/${senderUid}/transactions`).doc();
+    const recipientTxRef = db.collection(`courses/${courseId}/studentMana/${recipientUid}/transactions`).doc();
+    const notificationRef = db.collection(`users/${recipientUid}/notifications`).doc();
+
+    let newSenderBalance;
+
+    await db.runTransaction(async (tx) => {
+      const senderManaSnap = await tx.get(senderManaRef);
+      const recipientManaSnap = await tx.get(recipientManaRef);
+
+      const senderBalance = senderManaSnap.exists ? (senderManaSnap.data().balance || 0) : 0;
+      const recipientBalance = recipientManaSnap.exists ? (recipientManaSnap.data().balance || 0) : 0;
+
+      if (senderBalance < amount) {
+        throw new HttpsError("failed-precondition", `Your balance is now ${senderBalance}. Try again with a smaller amount.`);
+      }
+
+      newSenderBalance = senderBalance - amount;
+      const newRecipientBalance = recipientBalance + amount;
+      const ts = admin.firestore.FieldValue.serverTimestamp();
+
+      // Bounded history array — match the existing 50-entry cap used elsewhere in mana.jsx
+      const senderHistoryEntry = {
+        type: "donation_sent",
+        amount: -amount,
+        recipientUid,
+        recipientName,
+        ts: new Date(),
+      };
+      const recipientHistoryEntry = {
+        type: "donation_received",
+        amount: +amount,
+        senderUid,
+        senderName,
+        ts: new Date(),
+      };
+
+      const senderExisting = senderManaSnap.exists ? (senderManaSnap.data().history || []) : [];
+      const recipientExisting = recipientManaSnap.exists ? (recipientManaSnap.data().history || []) : [];
+      const HISTORY_CAP = 50;
+
+      tx.set(senderManaRef, {
+        balance: newSenderBalance,
+        history: [senderHistoryEntry, ...senderExisting].slice(0, HISTORY_CAP),
+        lastUpdated: ts,
+      }, { merge: true });
+
+      tx.set(recipientManaRef, {
+        balance: newRecipientBalance,
+        history: [recipientHistoryEntry, ...recipientExisting].slice(0, HISTORY_CAP),
+        lastUpdated: ts,
+      }, { merge: true });
+
+      // Append-only authoritative ledger entries
+      tx.set(senderTxRef, {
+        type: "donation_sent",
+        amount: -amount,
+        recipientUid,
+        recipientName,
+        balanceAfter: newSenderBalance,
+        ts,
+      });
+      tx.set(recipientTxRef, {
+        type: "donation_received",
+        amount: +amount,
+        senderUid,
+        senderName,
+        balanceAfter: newRecipientBalance,
+        ts,
+      });
+
+      // Recipient push notification — existing sendPushNotification trigger sends FCM
+      tx.set(notificationRef, {
+        title: "You got mana ✨",
+        body: `${senderName} sent you ${amount} mana`,
+        icon: "✨",
+        link: "/mana",
+        type: "donation",
+        ts,
+      });
+    });
+
+    console.log(`donateMana: ${senderUid} → ${recipientUid}, amount=${amount}, course=${courseId}, newSenderBalance=${newSenderBalance}`);
+    return { success: true, newSenderBalance };
+  }
+);
