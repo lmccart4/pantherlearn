@@ -1,8 +1,11 @@
 // src/components/ManaPool.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { getManaState, castVote, MANA_CAP } from "../lib/mana";
+import { getManaState, castVote, MANA_CAP, getStudentMana } from "../lib/mana";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import DonationModal from "./DonationModal.jsx";
 
 export default function ManaPool({ courseId, compact = false }) {
   const { user, userRole } = useAuth();
@@ -10,6 +13,10 @@ export default function ManaPool({ courseId, compact = false }) {
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [myBalance, setMyBalance] = useState(0);
+  const [classmatesRaw, setClassmatesRaw] = useState([]);
+  const [donationOpen, setDonationOpen] = useState(false);
+  const [donationToast, setDonationToast] = useState("");
 
   const uiStrings = useTranslatedTexts([
     "Class Mana",                                // 0
@@ -41,6 +48,34 @@ export default function ManaPool({ courseId, compact = false }) {
     loadMana();
   }, [courseId]);
 
+  // Load personal student mana balance + classmate list for donation modal
+  useEffect(() => {
+    if (!courseId || !user || userRole === "teacher") return;
+    (async () => {
+      try {
+        const studentData = await getStudentMana(courseId, user.uid);
+        setMyBalance(studentData?.balance ?? 0);
+      } catch (e) {
+        console.warn("[ManaPool] Failed to load personal balance:", e);
+      }
+      try {
+        const usersSnap = await getDocs(collection(db, "users"));
+        const list = [];
+        usersSnap.forEach((d) => {
+          if (d.id === user.uid) return;
+          const data = d.data();
+          if (data.role === "teacher") return;
+          const enrolled = data.enrolledCourses || {};
+          if (!enrolled[courseId]) return;
+          list.push({ uid: d.id, displayName: data.displayName || data.email || d.id });
+        });
+        setClassmatesRaw(list);
+      } catch (e) {
+        console.warn("[ManaPool] Failed to load classmates:", e);
+      }
+    })();
+  }, [courseId, user, userRole]);
+
   async function loadMana() {
     try {
       const s = await getManaState(courseId);
@@ -62,6 +97,8 @@ export default function ManaPool({ courseId, compact = false }) {
     }
     setVoting(false);
   }
+
+  const classmateList = useMemo(() => classmatesRaw, [classmatesRaw]);
 
   if (loading || !state || !state.enabled) return null;
 
@@ -131,10 +168,22 @@ export default function ManaPool({ courseId, compact = false }) {
             <div style={{ fontSize: 12, color: "var(--text3)" }} data-translatable>{ui(2, "Earn mana together, unlock class powers")}</div>
           </div>
         </div>
-        <div style={{
-          fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: glowColor,
-        }}>
-          {state.currentMP}<span style={{ fontSize: 14, color: "var(--text3)", fontWeight: 400 }}>/{MANA_CAP} MP</span>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+          <div style={{
+            fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: glowColor,
+          }}>
+            {state.currentMP}<span style={{ fontSize: 14, color: "var(--text3)", fontWeight: 400 }}>/{MANA_CAP} MP</span>
+          </div>
+          {userRole !== "teacher" && (
+            <button
+              onClick={() => setDonationOpen(true)}
+              disabled={myBalance === 0}
+              title={myBalance === 0 ? "You need mana to donate" : ""}
+              className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm font-medium text-[#0a0a0f] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Send mana
+            </button>
+          )}
         </div>
       </div>
 
@@ -313,6 +362,24 @@ export default function ManaPool({ courseId, compact = false }) {
           100% { background-position: 200% center; }
         }
       `}</style>
+
+      <DonationModal
+        isOpen={donationOpen}
+        onClose={() => setDonationOpen(false)}
+        courseId={courseId}
+        senderBalance={myBalance ?? 0}
+        classmates={classmateList}
+        onSuccess={(newBalance, recipientName, amount) => {
+          setMyBalance(newBalance);
+          setDonationToast(`Sent ${amount} mana to ${recipientName} ✨`);
+          setTimeout(() => setDonationToast(""), 3000);
+        }}
+      />
+      {donationToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 rounded-md bg-[var(--surface3)] px-4 py-2 text-sm text-[var(--text)] shadow-lg">
+          {donationToast}
+        </div>
+      )}
     </div>
   );
 }
