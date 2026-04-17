@@ -20,7 +20,7 @@ export default function DonationModal({ isOpen, onClose, courseId, senderBalance
   const [error, setError] = useState("");
 
   const sortedClassmates = useMemo(
-    () => [...classmates].sort((a, b) => (a.displayName || "").localeCompare(b.displayName || "")),
+    () => [...(classmates || [])].sort((a, b) => (a.displayName || "").localeCompare(b.displayName || "")),
     [classmates]
   );
 
@@ -53,28 +53,73 @@ export default function DonationModal({ isOpen, onClose, courseId, senderBalance
       reset();
       onClose();
     } catch (e) {
-      // FirebaseError from a callable preserves the HttpsError.message
       setError(e?.message || "Couldn't send mana. Please try again.");
       setSubmitting(false);
     }
   };
 
+  const overlay = {
+    position: "fixed", inset: 0, zIndex: 1000,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    background: "rgba(0,0,0,0.65)", padding: 16,
+  };
+  const panel = {
+    width: "100%", maxWidth: 480,
+    background: "var(--surface-2)",
+    border: "1px solid var(--border)",
+    borderRadius: 12,
+    padding: 24,
+    boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+    fontFamily: "var(--font-body)",
+    color: "var(--text)",
+  };
+  const heading = { fontSize: 20, fontWeight: 600, color: "var(--text)", marginBottom: 4 };
+  const sub = { fontSize: 13, color: "var(--text-3)", marginBottom: 16 };
+  const field = {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 8,
+    border: "1px solid var(--border)",
+    background: "var(--surface-3)",
+    color: "var(--text)",
+    fontSize: 14,
+    fontFamily: "inherit",
+    marginBottom: 16,
+    outline: "none",
+  };
+  const btnRow = { display: "flex", justifyContent: "flex-end", gap: 8 };
+  const btnGhost = {
+    padding: "10px 16px", borderRadius: 8,
+    border: "1px solid var(--border)", background: "transparent",
+    color: "var(--text-2)", fontSize: 14, fontWeight: 500,
+    cursor: submitting ? "not-allowed" : "pointer",
+    opacity: submitting ? 0.5 : 1,
+  };
+  const btnPrimary = (enabled) => ({
+    padding: "10px 16px", borderRadius: 8, border: "none",
+    background: "var(--brand)", color: "#0a0a0f",
+    fontSize: 14, fontWeight: 600,
+    cursor: enabled ? "pointer" : "not-allowed",
+    opacity: enabled ? 1 : 0.5,
+  });
+  const hint = { fontSize: 13, color: "var(--text-3)", marginBottom: 16 };
+  const errBox = {
+    marginBottom: 12, padding: 12, borderRadius: 8,
+    border: "1px solid rgba(239,95,95,0.4)",
+    background: "rgba(239,95,95,0.12)",
+    color: "var(--red)", fontSize: 13,
+  };
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={handleClose}
-    >
-      <div
-        className="w-full max-w-md rounded-xl bg-[var(--surface2)] p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div style={overlay} onClick={handleClose}>
+      <div style={panel} onClick={(e) => e.stopPropagation()}>
         {step === 1 && (
           <>
-            <h2 className="mb-1 text-xl font-semibold text-[var(--text)]">Send mana to a classmate</h2>
-            <p className="mb-4 text-sm text-[var(--text3)]">Brighten someone's day. They'll know it came from you.</p>
+            <h2 style={heading}>Send mana to a classmate</h2>
+            <p style={sub}>Brighten someone's day. They'll know it came from you.</p>
 
             <select
-              className="mb-4 w-full rounded-md border border-[var(--border)] bg-[var(--surface3)] p-2 text-[var(--text)]"
+              style={field}
               value={recipientUid}
               onChange={(e) => setRecipientUid(e.target.value)}
             >
@@ -84,15 +129,10 @@ export default function DonationModal({ isOpen, onClose, courseId, senderBalance
               ))}
             </select>
 
-            <div className="flex justify-end gap-2">
+            <div style={btnRow}>
+              <button style={btnGhost} onClick={handleClose}>Cancel</button>
               <button
-                className="rounded-md border border-[var(--border)] px-4 py-2 text-sm text-[var(--text2)] hover:bg-[var(--surface3)]"
-                onClick={handleClose}
-              >
-                Cancel
-              </button>
-              <button
-                className="rounded-md bg-[var(--brand)] px-4 py-2 text-sm font-medium text-[#0a0a0f] disabled:opacity-50"
+                style={btnPrimary(!!recipientUid)}
                 disabled={!recipientUid}
                 onClick={() => setStep(2)}
               >
@@ -104,12 +144,12 @@ export default function DonationModal({ isOpen, onClose, courseId, senderBalance
 
         {step === 2 && recipient && (
           <>
-            <h2 className="mb-1 text-xl font-semibold text-[var(--text)]">Send mana to {recipient.displayName}</h2>
-            <p className="mb-4 text-sm text-[var(--text3)]">You have {senderBalance} mana available.</p>
+            <h2 style={heading}>Send mana to {recipient.displayName}</h2>
+            <p style={sub}>You have {senderBalance} mana available.</p>
 
             <input
               type="number"
-              className="mb-2 w-full rounded-md border border-[var(--border)] bg-[var(--surface3)] p-2 text-[var(--text)]"
+              style={{ ...field, marginBottom: 8 }}
               min={1}
               max={Math.min(senderBalance, 1000)}
               step={1}
@@ -120,29 +160,25 @@ export default function DonationModal({ isOpen, onClose, courseId, senderBalance
               autoFocus
             />
             {amountValid && (
-              <p className="mb-4 text-sm text-[var(--text3)]">You'll have {senderBalance - amountNum} left.</p>
+              <p style={hint}>You'll have {senderBalance - amountNum} left.</p>
             )}
             {!amountValid && amount && (
-              <p className="mb-4 text-sm text-[var(--text3)]">Enter a whole number between 1 and {Math.min(senderBalance, 1000)}.</p>
+              <p style={hint}>Enter a whole number between 1 and {Math.min(senderBalance, 1000)}.</p>
             )}
-            {!amount && <p className="mb-4 text-sm text-[var(--text3)]">&nbsp;</p>}
+            {!amount && <p style={hint}>&nbsp;</p>}
 
-            {error && (
-              <div className="mb-3 rounded-md border border-[var(--red)]/40 bg-[var(--red-dim)] p-3 text-sm text-[var(--red)]">
-                {error}
-              </div>
-            )}
+            {error && <div style={errBox}>{error}</div>}
 
-            <div className="flex justify-end gap-2">
+            <div style={btnRow}>
               <button
-                className="rounded-md border border-[var(--border)] px-4 py-2 text-sm text-[var(--text2)] hover:bg-[var(--surface3)] disabled:opacity-50"
+                style={btnGhost}
                 onClick={() => { setStep(1); setError(""); setAmount(""); }}
                 disabled={submitting}
               >
                 ← Back
               </button>
               <button
-                className="rounded-md bg-[var(--brand)] px-4 py-2 text-sm font-medium text-[#0a0a0f] disabled:opacity-50"
+                style={btnPrimary(amountValid && !submitting)}
                 disabled={!amountValid || submitting}
                 onClick={handleSubmit}
               >

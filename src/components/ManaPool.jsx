@@ -198,7 +198,12 @@ export default function ManaPool({ courseId, compact = false }) {
               </span>
               <button
                 onClick={() => setDonationOpen(true)}
-                className="rounded-md bg-[var(--brand)] px-3 py-2 text-sm font-medium text-[#0a0a0f] hover:opacity-90"
+                style={{
+                  padding: "8px 14px", minHeight: 44,
+                  borderRadius: 8, border: "none",
+                  background: "var(--brand)", color: "#0a0a0f",
+                  fontSize: 13, fontWeight: 600, cursor: "pointer",
+                }}
               >
                 Send mana
               </button>
@@ -396,7 +401,14 @@ export default function ManaPool({ courseId, compact = false }) {
         }}
       />
       {donationToast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 rounded-md bg-[var(--surface3)] px-4 py-2 text-sm text-[var(--text)] shadow-lg">
+        <div style={{
+          position: "fixed", top: 64, left: "50%", transform: "translateX(-50%)",
+          zIndex: 1100,
+          background: "var(--surface-3)", color: "var(--text)",
+          border: "1px solid var(--border)", borderRadius: 8,
+          padding: "10px 16px", fontSize: 14,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+        }}>
           {donationToast}
         </div>
       )}
