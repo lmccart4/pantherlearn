@@ -42,6 +42,14 @@ export default function TopBar() {
         {isTeacher && <Link to="/analytics" className={isActive("/analytics")}>Analytics</Link>}
         {isTeacher && <Link to="/rosters" className={isActive("/rosters")}>Rosters</Link>}
         {isTeacher && <Link to="/messages" className={isActive("/messages")}>Messages</Link>}
+        {isTeacher && (
+          <Link
+            to="/teacher/mana-requests"
+            className={location.pathname.startsWith("/teacher/mana-requests") ? "top-nav-link active" : "top-nav-link"}
+          >
+            ✦ Mana Inbox
+          </Link>
+        )}
       </nav>
 
       <div className="top-bar-right">

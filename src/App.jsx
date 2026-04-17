@@ -32,6 +32,7 @@ const XPControls = lazy(() => import("./pages/XPControls"));
 const TeamManager = lazy(() => import("./pages/TeamManager"));
 const ManaManager = lazy(() => import("./pages/ManaManager"));
 const StudentMana = lazy(() => import("./pages/StudentMana"));
+const TeacherManaRequests = lazy(() => import("./pages/TeacherManaRequests"));
 const BossBattle = lazy(() => import("./pages/BossBattle"));
 const AvatarCreator = lazy(() => import("./pages/AvatarCreator"));
 const MyGrades = lazy(() => import("./pages/MyGrades"));
@@ -139,6 +140,7 @@ function AppRoutes() {
             <Route path="/mana/:courseId" element={<ManaManager />} />
             <Route path="/my-mana" element={<StudentMana />} />
             <Route path="/my-mana/:courseId" element={<StudentMana />} />
+            <Route path="/teacher/mana-requests" element={<TeacherManaRequests />} />
             <Route path="/boss-battle/:courseId" element={<BossBattle />} />
             <Route path="/avatar" element={<AvatarCreator />} />
             <Route path="/my-grades" element={<MyGrades />} />
