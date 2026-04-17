@@ -134,7 +134,7 @@ const lesson = {
       type: "embed",
       scored: true,
       weight: 5,
-      url: "https://pantherlearn-d6f7c.web.app/tools/test-distribution-lab.html",
+      url: "https://pantherlearn.web.app/tools/test-distribution-lab.html",
       title: "Test Distribution Lab",
       height: 720,
     },
