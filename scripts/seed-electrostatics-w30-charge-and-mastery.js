@@ -85,7 +85,7 @@ const lesson = {
       type: "image",
       url: `${IMG}/phet-h-example.png`,
       caption: "Same example from yesterday. One of these numbers is the charge. Which one?",
-      alt: "A hydrogen symbol H with numbers around it including a 4- in the upper right"
+      alt: "A lithium symbol Li with 7 in the upper left, 1+ in the upper right, and 3 in the lower left"
     },
     {
       id: "callout-charge-q",
