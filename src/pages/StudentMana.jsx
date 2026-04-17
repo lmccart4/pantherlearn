@@ -12,7 +12,7 @@ import {
   awardStudentMana, saveManaState,
   getLevel, getNextLevel, getManaTitle,
   submitRewardSuggestion, getManaRequests,
-  chargeStudentMana, applyGradeBonus, autoSelectMage,
+  chargeStudentMana, applyGradeBonus, applyClassworkPass, autoSelectMage,
   MANA_LEVELS, MAGE_DAILY_BUDGET, MAGE_PER_STUDENT_CAP, MAGE_COMPLETION_BONUS, POSITIVE_BEHAVIORS,
   PERIOD_WINDOWS,
 } from "../lib/mana";
@@ -1165,8 +1165,7 @@ export default function StudentMana() {
                         onClick={async (e) => {
                           spawnRipple(e);
                           if (power.isQuoteRequest) { setQuoteModal(power); }
-                          else if (power.requiresInput) { setInputModal(power); }
-                          else if (power.category === "gradeBonus") {
+                          else if (power.id === "classwork-pass" || power.category === "gradeBonus") {
                             try {
                               const lessonsSnap = await getDocs(collection(db, "courses", courseId, "lessons"));
                               const visible = lessonsSnap.docs
@@ -1179,6 +1178,7 @@ export default function StudentMana() {
                               setSelectedLesson(null);
                             } catch (e) { console.error(e); }
                           }
+                          else if (power.requiresInput) { setInputModal(power); }
                           else { setConfirmPower(power); }
                         }}
                         className="mana-spell-btn"
@@ -1400,7 +1400,9 @@ export default function StudentMana() {
             }} onClick={(e) => e.stopPropagation()}>
               <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: MANA_TEXT }}>{bonusModal.icon} {bonusModal.name}</div>
               <div style={{ fontSize: 13, color: MANA_TEXT_MUTED, marginBottom: 16 }}>
-                +{bonusModal.bonusAmount} percentage points — choose an assignment ({bonusModal.cost} ✦)
+                {bonusModal.id === "classwork-pass"
+                  ? `Skip one classwork assignment — choose which one (${bonusModal.cost} ✦)`
+                  : `+${bonusModal.bonusAmount} percentage points — choose an assignment (${bonusModal.cost} ✦)`}
               </div>
               {bonusLessons.length === 0 ? (
                 <div style={{ color: MANA_TEXT_MUTED, fontSize: 13, padding: "10px 0" }}>No eligible assignments found.</div>
@@ -1431,18 +1433,34 @@ export default function StudentMana() {
                     if (!selectedLesson) return;
                     try {
                       await chargeStudentMana(courseId, user.uid, bonusModal.cost, `${bonusModal.name}: ${selectedLesson.title}`);
-                      const newBonus = await applyGradeBonus(courseId, user.uid, selectedLesson.id, bonusModal.bonusAmount);
-                      await createManaRequest({
-                        courseId,
-                        studentUid: user.uid,
-                        studentName: user.displayName || user.email || "Student",
-                        powerId: bonusModal.id,
-                        powerName: bonusModal.name,
-                        cost: bonusModal.cost,
-                        details: `Auto-applied +${bonusModal.bonusAmount}% to "${selectedLesson.title}"`,
-                        autoFulfilled: true,
-                      });
-                      setToast(`+${bonusModal.bonusAmount}% applied to "${selectedLesson.title}"!`);
+                      if (bonusModal.id === "classwork-pass") {
+                        await applyClassworkPass(courseId, user.uid, selectedLesson.id, selectedLesson.title);
+                        await createManaRequest({
+                          courseId,
+                          studentUid: user.uid,
+                          studentName: user.displayName || user.email || "Student",
+                          powerId: bonusModal.id,
+                          powerName: bonusModal.name,
+                          cost: bonusModal.cost,
+                          details: `Auto-applied exemption to "${selectedLesson.title}"`,
+                          lessonId: selectedLesson.id,
+                          autoFulfilled: true,
+                        });
+                        setToast(`"${selectedLesson.title}" marked exempt ✨`);
+                      } else {
+                        await applyGradeBonus(courseId, user.uid, selectedLesson.id, bonusModal.bonusAmount);
+                        await createManaRequest({
+                          courseId,
+                          studentUid: user.uid,
+                          studentName: user.displayName || user.email || "Student",
+                          powerId: bonusModal.id,
+                          powerName: bonusModal.name,
+                          cost: bonusModal.cost,
+                          details: `Auto-applied +${bonusModal.bonusAmount}% to "${selectedLesson.title}"`,
+                          autoFulfilled: true,
+                        });
+                        setToast(`+${bonusModal.bonusAmount}% applied to "${selectedLesson.title}"!`);
+                      }
                       setTimeout(() => setToast(null), 4000);
                       setBonusModal(null);
                       setSelectedLesson(null);
@@ -1456,7 +1474,7 @@ export default function StudentMana() {
                     background: selectedLesson ? `linear-gradient(135deg, ${ACCENT}, #c9a020)` : MANA_SURFACE,
                     color: selectedLesson ? "#fff" : MANA_TEXT_MUTED,
                   }}
-                >Apply +{bonusModal.bonusAmount}%</button>
+                >{bonusModal.id === "classwork-pass" ? "Mark Exempt" : `Apply +${bonusModal.bonusAmount}%`}</button>
               </div>
             </div>
           </div>

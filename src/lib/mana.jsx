@@ -90,6 +90,20 @@ export async function applyGradeBonus(courseId, uid, lessonId, bonusAmount) {
   return current + bonusAmount;
 }
 
+// Marks a specific lesson exempt for a student (driven by the Classwork Pass mana power).
+// Same exempt fields the teacher Progress page writes, so MyGrades + StudentProgress
+// already render it correctly.
+export async function applyClassworkPass(courseId, uid, lessonId, lessonTitle) {
+  const ref = doc(db, "progress", uid, "courses", courseId, "lessons", lessonId);
+  const { setDoc: setDocFn, serverTimestamp } = await import("firebase/firestore");
+  await setDocFn(ref, {
+    exempt: true,
+    exemptAt: serverTimestamp(),
+    exemptBy: "mana-spell",
+    exemptReason: `Classwork Pass: ${lessonTitle || lessonId}`,
+  }, { merge: true });
+}
+
 // ─── Fulfillment Requests (for powers that need teacher action) ───
 export async function submitFulfillmentRequest(courseId, uid, studentName, powerId, powerName, cost, details) {
   const colRef = collection(db, "courses", courseId, "manaRequests");
