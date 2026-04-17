@@ -14,6 +14,7 @@ export default function TeacherManaRequests() {
   const [rows, setRows] = useState([]);
   const [tab, setTab] = useState("pending");
   const [loading, setLoading] = useState(true);
+  const [fulfillingId, setFulfillingId] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -57,8 +58,15 @@ export default function TeacherManaRequests() {
   const list = tab === "pending" ? pending : fulfilled;
 
   async function handleFulfill(row) {
-    await markRequestFulfilled(row.courseId, row.id);
-    await load();
+    setFulfillingId(row.id);
+    try {
+      await markRequestFulfilled(row.courseId, row.id);
+      await load();
+    } catch (err) {
+      alert(`Couldn't mark fulfilled: ${err.message}`);
+    } finally {
+      setFulfillingId(null);
+    }
   }
 
   return (
@@ -131,17 +139,18 @@ export default function TeacherManaRequests() {
                 {tab === "pending" && !row.autoFulfilled && (
                   <button
                     onClick={() => handleFulfill(row)}
+                    disabled={fulfillingId === row.id}
                     style={{
                       padding: "8px 14px",
                       borderRadius: 8,
-                      background: "#7c3aed",
+                      background: fulfillingId === row.id ? "#a78bfa" : "#7c3aed",
                       color: "#fff",
                       border: "none",
                       fontWeight: 600,
-                      cursor: "pointer",
+                      cursor: fulfillingId === row.id ? "default" : "pointer",
                     }}
                   >
-                    Mark fulfilled
+                    {fulfillingId === row.id ? "Marking…" : "Mark fulfilled"}
                   </button>
                 )}
               </div>
