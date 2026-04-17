@@ -16,6 +16,7 @@ import {
   MANA_LEVELS, MAGE_DAILY_BUDGET, MAGE_PER_STUDENT_CAP, MAGE_COMPLETION_BONUS, POSITIVE_BEHAVIORS,
   PERIOD_WINDOWS,
 } from "../lib/mana";
+import { createManaRequest } from "../lib/manaRequests";
 import { createNotification } from "../lib/notifications";
 import { isPerfMode } from "../lib/perfMode";
 import DonationModal from "../components/DonationModal.jsx";
@@ -621,9 +622,17 @@ export default function StudentMana() {
   async function handleRedeem(power) {
     try {
       await spendStudentMana(courseId, user.uid, power.id);
+      await createManaRequest({
+        courseId,
+        studentUid: user.uid,
+        studentName: user.displayName || user.email || "Student",
+        powerId: power.id,
+        powerName: power.name,
+        cost: power.cost,
+      });
       setConfirmPower(null);
-      setToast(`${power.icon || "✦"} ${power.name} activated!`);
-      setTimeout(() => setToast(null), 3000);
+      setToast(`${power.icon || "✦"} ${power.name} activated! Mr. McCarthy has been notified.`);
+      setTimeout(() => setToast(null), 3500);
       await load();
     } catch (err) {
       alert(err.message);
@@ -1423,6 +1432,16 @@ export default function StudentMana() {
                     try {
                       await chargeStudentMana(courseId, user.uid, bonusModal.cost, `${bonusModal.name}: ${selectedLesson.title}`);
                       const newBonus = await applyGradeBonus(courseId, user.uid, selectedLesson.id, bonusModal.bonusAmount);
+                      await createManaRequest({
+                        courseId,
+                        studentUid: user.uid,
+                        studentName: user.displayName || user.email || "Student",
+                        powerId: bonusModal.id,
+                        powerName: bonusModal.name,
+                        cost: bonusModal.cost,
+                        details: `Auto-applied +${bonusModal.bonusAmount}% to "${selectedLesson.title}"`,
+                        autoFulfilled: true,
+                      });
                       setToast(`+${bonusModal.bonusAmount}% applied to "${selectedLesson.title}"!`);
                       setTimeout(() => setToast(null), 4000);
                       setBonusModal(null);
@@ -1483,7 +1502,15 @@ export default function StudentMana() {
                   onClick={async () => {
                     try {
                       await chargeStudentMana(courseId, user.uid, inputModal.cost, `${inputModal.name}: ${inputText.trim()}`);
-                      await submitFulfillmentRequest(courseId, user.uid, user.displayName || "Student", inputModal.id, inputModal.name, inputModal.cost, inputText.trim());
+                      await createManaRequest({
+                        courseId,
+                        studentUid: user.uid,
+                        studentName: user.displayName || "Student",
+                        powerId: inputModal.id,
+                        powerName: inputModal.name,
+                        cost: inputModal.cost,
+                        details: inputText.trim(),
+                      });
                       setToast(`${inputModal.name} redeemed! Mr. McCarthy has been notified.`);
                       setTimeout(() => setToast(null), 3000);
                       setInputModal(null);
@@ -1532,7 +1559,16 @@ export default function StudentMana() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && quoteDescription.trim()) {
                     (async () => {
-                      await submitQuoteRequest(courseId, user.uid, user.displayName || user.email, quoteModal.id, quoteDescription.trim());
+                      await createManaRequest({
+                        courseId,
+                        studentUid: user.uid,
+                        studentName: user.displayName || user.email || "Student",
+                        powerId: quoteModal.id,
+                        powerName: quoteModal.name || "Custom 3D Print",
+                        cost: 0,
+                        details: quoteDescription.trim(),
+                        type: "quote",
+                      });
                       setQuoteModal(null); setQuoteDescription("");
                       setToast("Request sent! Mr. McCarthy will set the price.");
                       setTimeout(() => setToast(null), 3000);
@@ -1558,7 +1594,16 @@ export default function StudentMana() {
                 <button
                   disabled={!quoteDescription.trim()}
                   onClick={async () => {
-                    await submitQuoteRequest(courseId, user.uid, user.displayName || user.email, quoteModal.id, quoteDescription.trim());
+                    await createManaRequest({
+                      courseId,
+                      studentUid: user.uid,
+                      studentName: user.displayName || user.email || "Student",
+                      powerId: quoteModal.id,
+                      powerName: quoteModal.name || "Custom 3D Print",
+                      cost: 0,
+                      details: quoteDescription.trim(),
+                      type: "quote",
+                    });
                     setQuoteModal(null); setQuoteDescription("");
                     setToast("Request sent! Mr. McCarthy will set the price.");
                     setTimeout(() => setToast(null), 3000);
