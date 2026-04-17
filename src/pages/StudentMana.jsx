@@ -11,7 +11,7 @@ import {
   getStudentMana, spendStudentMana, getManaState,
   awardStudentMana, saveManaState,
   getLevel, getNextLevel, getManaTitle,
-  submitQuoteRequest, submitRewardSuggestion, submitFulfillmentRequest, getManaRequests,
+  submitRewardSuggestion, getManaRequests,
   chargeStudentMana, applyGradeBonus, autoSelectMage,
   MANA_LEVELS, MAGE_DAILY_BUDGET, MAGE_PER_STUDENT_CAP, MAGE_COMPLETION_BONUS, POSITIVE_BEHAVIORS,
   PERIOD_WINDOWS,
@@ -1559,19 +1559,21 @@ export default function StudentMana() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && quoteDescription.trim()) {
                     (async () => {
-                      await createManaRequest({
-                        courseId,
-                        studentUid: user.uid,
-                        studentName: user.displayName || user.email || "Student",
-                        powerId: quoteModal.id,
-                        powerName: quoteModal.name || "Custom 3D Print",
-                        cost: 0,
-                        details: quoteDescription.trim(),
-                        type: "quote",
-                      });
-                      setQuoteModal(null); setQuoteDescription("");
-                      setToast("Request sent! Mr. McCarthy will set the price.");
-                      setTimeout(() => setToast(null), 3000);
+                      try {
+                        await createManaRequest({
+                          courseId,
+                          studentUid: user.uid,
+                          studentName: user.displayName || user.email || "Student",
+                          powerId: quoteModal.id,
+                          powerName: quoteModal.name || "Custom 3D Print",
+                          cost: 0,
+                          details: quoteDescription.trim(),
+                          type: "quote",
+                        });
+                        setQuoteModal(null); setQuoteDescription("");
+                        setToast("Request sent! Mr. McCarthy will set the price.");
+                        setTimeout(() => setToast(null), 3000);
+                      } catch (err) { alert(err.message); }
                     })();
                   }
                 }}
@@ -1594,19 +1596,21 @@ export default function StudentMana() {
                 <button
                   disabled={!quoteDescription.trim()}
                   onClick={async () => {
-                    await createManaRequest({
-                      courseId,
-                      studentUid: user.uid,
-                      studentName: user.displayName || user.email || "Student",
-                      powerId: quoteModal.id,
-                      powerName: quoteModal.name || "Custom 3D Print",
-                      cost: 0,
-                      details: quoteDescription.trim(),
-                      type: "quote",
-                    });
-                    setQuoteModal(null); setQuoteDescription("");
-                    setToast("Request sent! Mr. McCarthy will set the price.");
-                    setTimeout(() => setToast(null), 3000);
+                    try {
+                      await createManaRequest({
+                        courseId,
+                        studentUid: user.uid,
+                        studentName: user.displayName || user.email || "Student",
+                        powerId: quoteModal.id,
+                        powerName: quoteModal.name || "Custom 3D Print",
+                        cost: 0,
+                        details: quoteDescription.trim(),
+                        type: "quote",
+                      });
+                      setQuoteModal(null); setQuoteDescription("");
+                      setToast("Request sent! Mr. McCarthy will set the price.");
+                      setTimeout(() => setToast(null), 3000);
+                    } catch (err) { alert(err.message); }
                   }}
                   className="mana-spell-btn"
                   style={{

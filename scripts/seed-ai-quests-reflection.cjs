@@ -69,22 +69,29 @@ function makeLesson() {
     gradesReleased: true,
     blocks: [
       // ─── Opening ────────────────────────────────────────────────
-      { type: 'section_header', id: 'sh-overview', label: 'Looking Back at AI Quests' },
+      { type: 'section_header', id: 'sh-overview', label: 'AI Quests' },
+      { type: 'image', id: id(), url: IMG_HERO,
+        width: 1458, height: 1444,
+        alt: 'AI Quests — a stylized globe set in space with the title AI QUESTS and an Accept Mission button, from Google Research Labs',
+        caption: 'AI Quests — built by Google Research Labs.' },
       { type: 'text', id: id(), content:
-`Last semester you stepped into the boots of a Google researcher and worked through **AI Quests** — an interactive world where real AI problems are wrapped inside story-driven missions. You visited two places: **Market Marshes** and **Dusky Dunes**.
+`Today you're stepping into the boots of a Google researcher inside **AI Quests** — an interactive world where real AI problems are wrapped inside story-driven missions. You'll visit two places today, starting with **Market Marshes**.
 
-This lesson is the quiet part after the adventure — where you sit down, look back at what you built, and put words to it. What did you actually do? What worked? What didn't? And what would it take to make it real?
+**Here's the plan for Quest A:**
+1. Open the Quests map using the button below.
+2. Click into **Market Marshes**. Explore freely — try things, see what breaks, pay attention to what the game teaches you about AI along the way.
+3. When you finish, come back here and answer the four reflection questions for Quest A.
 
-No right or wrong answers here. But one-word answers won't get credit — be specific, reference the actual problem you worked on, and describe the AI steps you actually took.` },
+No right or wrong answers on the reflection. But one-word answers won't get credit — be specific, reference the actual problem you worked on, and describe the AI steps you actually took.` },
       { type: 'external_link', id: id(),
         icon: '🧭',
         title: 'AI Quests',
-        description: 'Need to jump back in? Complete **Market Marshes** and **Dusky Dunes**, then come back and answer the questions below.',
+        description: 'Click through to the AI Quests map and open **Market Marshes**. Come back here when you finish.',
         url: 'https://research.google/ai-quests/intl/en_gb/map',
         buttonLabel: 'Open AI Quests',
         openInNewTab: true },
       { type: 'objectives', id: 'obj-1', items: [
-        'Reflect on how AI tools helped you solve real-world problems in the AI Quests activity',
+        'Experience how AI tools help solve real-world problems through two guided quests',
         'Identify the friction points and limits of AI-assisted problem solving',
         'Translate a digital solution into practical advice for real-world implementation',
       ]},
@@ -95,7 +102,7 @@ No right or wrong answers here. But one-word answers won't get credit — be spe
         alt: 'Editorial illustration of a marsh landscape at dawn, reeds and winding waterways stretching to the horizon',
         caption: 'Market Marshes.' },
       { type: 'callout', id: id(), variant: 'info', content:
-`**Before you answer:** The four questions below are the same for both quests, but your answers should be different — the problem, the AI steps, and the friction were not the same in Marshes and Dunes. Draw on what you actually did.` },
+`**Finished Market Marshes?** Answer the four questions below before moving on to Dusky Dunes. The same four questions show up for both quests, but your answers should be different each time — draw on what you actually saw and did in *this* quest.` },
 
       { type: 'callout', id: id(), variant: 'tip', content: MARSHES_SCAFFOLDS[0] },
       { type: 'question', id: SA_IDS.marshes[0], questionType: 'short_answer',
@@ -118,8 +125,22 @@ No right or wrong answers here. But one-word answers won't get credit — be spe
       { type: 'image', id: id(), url: IMG_DUNES,
         alt: 'Editorial illustration of a desert landscape at dusk, rolling sand dunes stretching to the horizon under a soft sky',
         caption: 'Dusky Dunes.' },
+      { type: 'text', id: id(), content:
+`Nice work on Marshes. Time for your second quest.
+
+**Here's the plan for Quest B:**
+1. Open the Quests map again using the button below.
+2. Click into **Dusky Dunes**. Explore the same way — try things, pay attention to what the game teaches you, notice where it differs from Marshes.
+3. When you finish, come back here and answer the four reflection questions for Quest B.` },
+      { type: 'external_link', id: id(),
+        icon: '🧭',
+        title: 'AI Quests',
+        description: 'Back to the map — this time open **Dusky Dunes**. Come back here when you finish.',
+        url: 'https://research.google/ai-quests/intl/en_gb/map',
+        buttonLabel: 'Open AI Quests',
+        openInNewTab: true },
       { type: 'callout', id: id(), variant: 'warn', content:
-`**Heads up — same 4 questions, different quest.** It's easy to copy-paste your Marshes answers. Don't. The problem, the data, the stakes, and the fixes were all different here. Be specific to Dunes.` },
+`**Finished Dusky Dunes?** Same four questions again — but don't copy-paste your Marshes answers. The problem, the data, the stakes, and the fixes were all different here. Be specific to Dunes.` },
 
       { type: 'callout', id: id(), variant: 'tip', content: DUNES_SCAFFOLDS[0] },
       { type: 'question', id: SA_IDS.dunes[0], questionType: 'short_answer',
