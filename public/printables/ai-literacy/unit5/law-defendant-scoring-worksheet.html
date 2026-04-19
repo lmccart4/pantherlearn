@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Score the Defendant — COMPAS-Style Risk Calculation</title>
+  <link rel="stylesheet" href="_print.css">
+  <style>
+    .worksheet-title {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 18pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 3px solid #000;
+      padding-bottom: 8pt;
+      margin-bottom: 14pt;
+    }
+    .section-label {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 10pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 14pt 0 6pt;
+    }
+    .profile-box {
+      border: 2px solid #000;
+      padding: 10pt 14pt;
+      font-size: 11pt;
+      line-height: 1.5;
+    }
+    .scoring-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10pt;
+      font-size: 10.5pt;
+    }
+    .scoring-table th {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 9.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: #fff;
+      border: 2px solid #000;
+      padding: 6pt 8pt;
+      text-align: left;
+    }
+    .scoring-table td {
+      border: 1.5px solid #000;
+      padding: 7pt 8pt;
+      vertical-align: top;
+    }
+    .scoring-table tr:last-child td {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-weight: 700;
+      font-size: 11pt;
+    }
+    .scoring-table .points-col {
+      text-align: center;
+      width: 1.1in;
+      font-size: 13pt;
+    }
+    .risk-band-box {
+      border: 2px solid #000;
+      padding: 8pt 12pt;
+      font-size: 11pt;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+    }
+    .risk-band-box span {
+      font-weight: 700;
+    }
+    .reflection-item {
+      margin-bottom: 10pt;
+    }
+    .reflection-label {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 10pt;
+      font-weight: 700;
+      margin-bottom: 4pt;
+    }
+    .write-line {
+      border-bottom: 1.5px solid #000;
+      height: 16pt;
+      margin-bottom: 4pt;
+    }
+    .name-date-row {
+      display: flex;
+      gap: 0.3in;
+      margin-bottom: 12pt;
+      font-size: 10pt;
+    }
+    .name-date-row .field {
+      flex: 1;
+      border-bottom: 1.5px solid #000;
+      padding-bottom: 3pt;
+    }
+    .name-date-row .field-label {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 8.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 2pt;
+    }
+  </style>
+</head>
+<body>
+  <div class="paper">
+    <div class="worksheet-title">Score the Defendant<br><span style="font-size:11pt;letter-spacing:0.03em;">COMPAS-Style Risk Calculation</span></div>
+
+    <div class="name-date-row">
+      <div>
+        <div class="field-label">Name</div>
+        <div class="field">&nbsp;</div>
+      </div>
+      <div>
+        <div class="field-label">Period</div>
+        <div class="field">&nbsp;</div>
+      </div>
+      <div>
+        <div class="field-label">Date</div>
+        <div class="field">&nbsp;</div>
+      </div>
+    </div>
+
+    <div class="section-label">Section 1 &mdash; Defendant Profile</div>
+    <div class="profile-box">
+      <strong>Jordan</strong> &nbsp;&middot;&nbsp; Age 19 &nbsp;&middot;&nbsp; Zone C &nbsp;&middot;&nbsp; Employed part-time as a stocker &nbsp;&middot;&nbsp; Prior record: 2 misdemeanors (trespassing, petty theft) &nbsp;&middot;&nbsp; No violent history.
+    </div>
+
+    <div class="section-label">Section 2 &mdash; Point Tally</div>
+    <table class="scoring-table">
+      <thead>
+        <tr>
+          <th style="width:1.5in;">Factor</th>
+          <th>Scoring Rules</th>
+          <th class="points-col">Your Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Age Bracket</td>
+          <td>18&ndash;24 = 4 &nbsp;/&nbsp; 25&ndash;34 = 2 &nbsp;/&nbsp; 35+ = 1</td>
+          <td class="points-col">_____</td>
+        </tr>
+        <tr>
+          <td>Prior Record</td>
+          <td>0 = 0 &nbsp;/&nbsp; 1&ndash;2 misd = 2 &nbsp;/&nbsp; 3+ misd = 4 &nbsp;/&nbsp; any felony = 5</td>
+          <td class="points-col">_____</td>
+        </tr>
+        <tr>
+          <td>Employment</td>
+          <td>Full-time = 0 &nbsp;/&nbsp; Part-time = 2 &nbsp;/&nbsp; None = 3</td>
+          <td class="points-col">_____</td>
+        </tr>
+        <tr>
+          <td>Zone</td>
+          <td>A = 0 &nbsp;/&nbsp; B = 1 &nbsp;/&nbsp; C = 3 &nbsp;/&nbsp; D = 4</td>
+          <td class="points-col">_____</td>
+        </tr>
+        <tr>
+          <td><strong>TOTAL</strong></td>
+          <td></td>
+          <td class="points-col"><strong>_____</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="section-label">Section 3 &mdash; Risk Band</div>
+    <div class="risk-band-box">
+      <span>Low</span>&nbsp; (0&ndash;5) &nbsp;&nbsp;&nbsp;&nbsp;
+      <span>Medium</span>&nbsp; (6&ndash;10) &nbsp;&nbsp;&nbsp;&nbsp;
+      <span>High</span>&nbsp; (11+)
+      &nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;&nbsp;&nbsp; Jordan scores in the <span style="text-decoration:underline;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> band.
+    </div>
+
+    <div class="section-label">Section 4 &mdash; Reflection</div>
+
+    <div class="reflection-item">
+      <div class="reflection-label">1. What factor contributed most to Jordan&rsquo;s score?</div>
+      <div class="write-line"></div>
+      <div class="write-line"></div>
+    </div>
+
+    <div class="reflection-item">
+      <div class="reflection-label">2. The formula never mentions race. Could the outcome still produce a racially biased pattern? Why or why not?</div>
+      <div class="write-line"></div>
+      <div class="write-line"></div>
+      <div class="write-line"></div>
+    </div>
+
+    <div class="reflection-item">
+      <div class="reflection-label">3. Which factor would you remove from the formula &mdash; and what do you lose if you did?</div>
+      <div class="write-line"></div>
+      <div class="write-line"></div>
+      <div class="write-line"></div>
+    </div>
+
+  </div>
+</body>
+</html>

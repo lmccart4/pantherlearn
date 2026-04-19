@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Four Questions Courtroom — Judge Signs</title>
+  <link rel="stylesheet" href="_print.css">
+  <style>
+    /* Override to landscape for this file */
+    @page { size: letter landscape; margin: 0.5in; }
+
+    .sign-page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: calc(8.5in - 1in); /* landscape page height minus margins */
+      text-align: center;
+      page-break-after: always;
+      break-after: page;
+    }
+    .sign-page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+    .sign-headline {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 72pt;
+      font-weight: 900;
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.25in;
+      border-bottom: 4px solid #000;
+      padding-bottom: 0.2in;
+      width: 100%;
+    }
+    .sign-subtitle {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 28pt;
+      font-weight: 400;
+      line-height: 1.3;
+      max-width: 9in;
+    }
+    .sign-hint {
+      font-size: 16pt;
+      font-style: italic;
+      margin-top: 0.2in;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Page 1: Judge Benefit -->
+  <div class="sign-page">
+    <div class="sign-headline">Judge Benefit</div>
+    <div class="sign-subtitle">Who benefits from this AI deployment?</div>
+    <div class="sign-hint">(Name them. Specifically. Not &ldquo;society.&rdquo;)</div>
+  </div>
+
+  <!-- Page 2: Judge Cost -->
+  <div class="sign-page">
+    <div class="sign-headline">Judge Cost</div>
+    <div class="sign-subtitle">Who bears the cost or the risk when it fails?</div>
+    <div class="sign-hint">(Who shows up on the bad side of the error bar?)</div>
+  </div>
+
+  <!-- Page 3: Judge Transparency -->
+  <div class="sign-page">
+    <div class="sign-headline">Judge Transparency</div>
+    <div class="sign-subtitle">Can anyone see how it works? Who can&rsquo;t?</div>
+    <div class="sign-hint">(And who gets to decide what&rsquo;s visible?)</div>
+  </div>
+
+  <!-- Page 4: Judge Contest -->
+  <div class="sign-page">
+    <div class="sign-headline">Judge Contest</div>
+    <div class="sign-subtitle">If it hurts you, can you challenge the outcome?</div>
+    <div class="sign-hint">(If yes: how? If no: why not?)</div>
+  </div>
+
+</body>
+</html>

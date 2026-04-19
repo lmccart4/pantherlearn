@@ -27,11 +27,12 @@ module.exports = {
       content: "If you were the mayor and the chief showed you this 3-round map as proof of 'where the crime is,' what would you ask before agreeing?",
     },
     {
-      type: 'callout',
-      id: 'co-handson-printable',
-      variant: 'teacher-note',
-      title: 'Printable packet',
-      content: 'File: `lesson-plans-public/ai-literacy/unit5-printables/policing-grid-map.html` — 2 maps per page (1 per group of 4). B&W.',
+      type: 'external_link',
+      id: 'ext-handson-printable',
+      url: '/printables/ai-literacy/unit5/policing-grid-map.html',
+      title: 'Printable: Precinct Grid Map',
+      description: '2 maps per page, B&W. 1 map per group of 4.',
+      buttonLabel: 'Open printable',
     },
   ],
 };
