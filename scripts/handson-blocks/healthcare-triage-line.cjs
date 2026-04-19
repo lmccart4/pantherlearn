@@ -26,5 +26,12 @@ module.exports = {
       title: 'Wrap-up question',
       content: 'When you placed a card toward the "AI" end, what would have to be true for you to move it toward "human"? When you placed it toward "human," what would move it toward "AI"?',
     },
+    {
+      type: 'callout',
+      id: 'co-handson-printable',
+      variant: 'teacher-note',
+      title: 'Printable packet',
+      content: 'File: `lesson-plans-public/ai-literacy/unit5-printables/healthcare-case-cards.html` — Open in Chrome, Cmd+P to print. 1 page, B&W, 1 set for the room.',
+    },
   ],
 };

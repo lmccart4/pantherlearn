@@ -26,5 +26,12 @@ module.exports = {
       title: 'Wrap-up question',
       content: "If your resume had to pass 5 of these 6 filters to get to a human, what would you change about how you describe yourself — and what does that say about who the system rewards?",
     },
+    {
+      type: 'callout',
+      id: 'co-handson-printable',
+      variant: 'teacher-note',
+      title: 'Printable packets (2 files)',
+      content: '- `lesson-plans-public/ai-literacy/unit5-printables/hiring-resumes.html` — 30 resumes, B&W, 10 pages. 1 class set, reused across all 4 sections.\n- `lesson-plans-public/ai-literacy/unit5-printables/hiring-rule-cards.html` — 6 rule cards, B&W, 1 page. 1 card per table.',
+    },
   ],
 };

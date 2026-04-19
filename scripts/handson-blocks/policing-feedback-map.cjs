@@ -26,5 +26,12 @@ module.exports = {
       title: 'Wrap-up question',
       content: "If you were the mayor and the chief showed you this 3-round map as proof of 'where the crime is,' what would you ask before agreeing?",
     },
+    {
+      type: 'callout',
+      id: 'co-handson-printable',
+      variant: 'teacher-note',
+      title: 'Printable packet',
+      content: 'File: `lesson-plans-public/ai-literacy/unit5-printables/policing-grid-map.html` — 2 maps per page (1 per group of 4). B&W.',
+    },
   ],
 };

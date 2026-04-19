@@ -26,5 +26,12 @@ module.exports = {
       title: 'Wrap-up question',
       content: "Pick any AI tool you've used this week (inside or outside school). Run it through all four questions silently. Which question do you not have a good answer for?",
     },
+    {
+      type: 'callout',
+      id: 'co-handson-printable',
+      variant: 'teacher-note',
+      title: 'Printable packets (2 files)',
+      content: '- `lesson-plans-public/ai-literacy/unit5-printables/synthesis-judge-signs.html` — 4 landscape signs, B&W. Reusable.\n- `lesson-plans-public/ai-literacy/unit5-printables/synthesis-scenario-deck.html` — 20 scenario cards, B&W, 1 page. Reusable.',
+    },
   ],
 };

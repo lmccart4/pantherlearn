@@ -26,5 +26,12 @@ module.exports = {
       title: 'Wrap-up question',
       content: 'If this algorithm were used to decide whether you went home or stayed in jail, which input would you want to challenge first — and on what grounds?',
     },
+    {
+      type: 'callout',
+      id: 'co-handson-printable',
+      variant: 'teacher-note',
+      title: 'Printable packet',
+      content: 'File: `lesson-plans-public/ai-literacy/unit5-printables/law-defendant-scoring-worksheet.html` — 1 worksheet per student, B&W, 1 page.',
+    },
   ],
 };
