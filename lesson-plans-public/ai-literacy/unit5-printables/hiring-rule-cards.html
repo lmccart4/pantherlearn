@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hiring Filter Rule Cards</title>
+  <link rel="stylesheet" href="_print.css">
+  <style>
+    .page-title {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 13pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 3px solid #000;
+      padding-bottom: 6pt;
+      margin-bottom: 0.15in;
+    }
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 0.15in;
+      height: calc(11in - 1in - 0.6in);
+    }
+    .rule-card {
+      border: 3px solid #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14pt 16pt;
+      text-align: center;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .rule-label {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 9.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8pt;
+      border-bottom: 2px solid #000;
+      padding-bottom: 6pt;
+      width: 100%;
+    }
+    .rule-text {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 13pt;
+      font-weight: 700;
+      line-height: 1.3;
+      margin: 0;
+    }
+    .rule-annotation {
+      margin-top: 8pt;
+      font-size: 9pt;
+      font-style: italic;
+      line-height: 1.3;
+    }
+  </style>
+</head>
+<body>
+  <div class="paper">
+    <div class="page-title">Hiring Filter Rule Cards</div>
+    <div class="rules-grid">
+
+      <div class="rule-card">
+        <div class="rule-label">Filter Rule #1</div>
+        <div class="rule-text">&ldquo;Reject any resume with an employment gap of 6 months or more.&rdquo;</div>
+        <div class="rule-annotation">Mark an <strong>X</strong> on any resume with a visible 6+ month gap.</div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-label">Filter Rule #2</div>
+        <div class="rule-text">&ldquo;Accept only candidates from top-50 universities.&rdquo;</div>
+        <div class="rule-annotation">Top-50 in this dataset: Columbia, NYU, Princeton, Penn. Mark a <strong>check</strong> on qualifying resumes; X on all others.</div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-label">Filter Rule #3</div>
+        <div class="rule-text">&ldquo;Reject any resume from a zip code with more than 20% unemployment.&rdquo;</div>
+        <div class="rule-annotation">High-unemployment zips: 07202, 07206, 07520, 07032.</div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-label">Filter Rule #4</div>
+        <div class="rule-text">&ldquo;Accept only candidates under age 35.&rdquo;</div>
+        <div class="rule-annotation">Circle the age on each resume. Mark X on anyone 35 or older.</div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-label">Filter Rule #5</div>
+        <div class="rule-text">&ldquo;Reject any resume without 3 or more years of continuous employment.&rdquo;</div>
+        <div class="rule-annotation">Look at the longest unbroken stretch. Less than 3 years = X.</div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-label">Filter Rule #6</div>
+        <div class="rule-text">&ldquo;Accept only candidates whose skills include Excel AND one of: Python, SQL, or Tableau.&rdquo;</div>
+        <div class="rule-annotation">Both conditions must be true. Missing either = X.</div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

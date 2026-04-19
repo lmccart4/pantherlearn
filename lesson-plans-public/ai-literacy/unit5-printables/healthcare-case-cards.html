@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Triage Line — Case Cards (Healthcare)</title>
+  <link rel="stylesheet" href="_print.css">
+  <style>
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 0.15in;
+      height: calc(11in - 1in - 0.6in); /* page height minus margins minus title */
+    }
+    .page-title {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 14pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.15in;
+      border-bottom: 3px solid #000;
+      padding-bottom: 6pt;
+    }
+    .card {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+  </style>
+</head>
+<body>
+  <div class="paper">
+    <div class="page-title">Triage Line &mdash; Case Cards (Healthcare)</div>
+    <div class="cards-grid">
+
+      <div class="card">
+        <div class="num">Case 1</div>
+        <div class="headline">Mammogram Review</div>
+        <div class="body">An AI spots a suspicious mass a radiologist missed on initial review. Flag it for a second look, or auto-refer to biopsy?</div>
+      </div>
+
+      <div class="card">
+        <div class="num">Case 2</div>
+        <div class="headline">Triage in the ER</div>
+        <div class="body">A 73-year-old walks in with chest pain. AI predicts heart-attack probability 85% before any human sees the patient.</div>
+      </div>
+
+      <div class="card">
+        <div class="num">Case 3</div>
+        <div class="headline">Mental Health Hotline</div>
+        <div class="body">A suicide-risk AI scores a caller "high risk" mid-call. Does the AI dispatch emergency services, or flag the human counselor?</div>
+      </div>
+
+      <div class="card">
+        <div class="num">Case 4</div>
+        <div class="headline">First Reading of a CT Scan</div>
+        <div class="body">AI pre-reads all overnight CT scans and flags anomalies. The radiologist reviews only the flagged cases.</div>
+      </div>
+
+      <div class="card">
+        <div class="num">Case 5</div>
+        <div class="headline">Cancer Diagnosis</div>
+        <div class="body">AI says "stage 2 lymphoma." The oncologist disagrees. The AI is right 93% of the time.</div>
+      </div>
+
+      <div class="card">
+        <div class="num">Case 6</div>
+        <div class="headline">Prescribing Antibiotics</div>
+        <div class="body">AI recommends an antibiotic. The doctor agrees. The nurse dispenses. Who confirms the dose is right?</div>
+      </div>
+
+      <div class="card">
+        <div class="num">Case 7</div>
+        <div class="headline">Rare Disease Hunt</div>
+        <div class="body">Seven specialists have seen a patient with no diagnosis. An AI suggests a 1-in-a-million condition. Test for it?</div>
+      </div>
+
+      <div class="card">
+        <div class="num">Case 8</div>
+        <div class="headline">Surgery Robot</div>
+        <div class="body">A surgical robot can autonomously suture a small incision 3x faster than a human surgeon. Approve autonomous suturing?</div>
+      </div>
+
+      <div class="card">
+        <div class="num">Case 9</div>
+        <div class="headline">Insurance Coverage</div>
+        <div class="body">AI decides whether your MRI is covered before you get it. No appeal process yet exists.</div>
+      </div>
+
+      <div class="card">
+        <div class="num">Case 10</div>
+        <div class="headline">End-of-Life Prediction</div>
+        <div class="body">AI predicts a terminal patient has 2 weeks. The family asks to be told. The doctor doesn't trust the number.</div>
+      </div>
+
+      <div class="card">
+        <div class="num">Case 11</div>
+        <div class="headline">Pediatric Ear Infection</div>
+        <div class="body">AI reads an otoscope image from a parent's home app and recommends antibiotics. No doctor is involved.</div>
+      </div>
+
+      <div class="card">
+        <div class="num">Case 12</div>
+        <div class="headline">Disaster Triage</div>
+        <div class="body">Mass casualty event. AI sorts 40 patients into treat-now / treat-later / palliative in 8 seconds. Trust it?</div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
