@@ -251,6 +251,8 @@ export default function SortingBlock({ block, studentData = {}, onAnswer }) {
                 position: "relative", width: "90%", minHeight: 140, padding: "24px 20px",
                 background: "var(--surface)", border: "2px solid var(--border)", borderRadius: 16,
                 display: "flex", alignItems: "center", justifyContent: "center",
+                flexDirection: currentCard.imageUrl ? "column" : "row",
+                gap: currentCard.imageUrl ? 12 : 0,
                 fontSize: 18, fontWeight: 600, textAlign: "center", lineHeight: 1.4,
                 cursor: dragging ? "grabbing" : "grab", userSelect: "none",
                 transform: `translateX(${dragX}px) rotate(${rotation}deg)`,
@@ -266,6 +268,7 @@ export default function SortingBlock({ block, studentData = {}, onAnswer }) {
                   borderRadius: 8, fontSize: 13, fontWeight: 700,
                   background: "rgba(239,68,68,0.15)", color: "var(--red)",
                   border: "2px solid var(--red)", transform: "rotate(-12deg)",
+                  zIndex: 2,
                 }}>← {leftLabel}</div>
               )}
               {dragX > 30 && (
@@ -274,7 +277,19 @@ export default function SortingBlock({ block, studentData = {}, onAnswer }) {
                   borderRadius: 8, fontSize: 13, fontWeight: 700,
                   background: "rgba(34,197,94,0.15)", color: "var(--green)",
                   border: "2px solid var(--green)", transform: "rotate(12deg)",
+                  zIndex: 2,
                 }}>→ {rightLabel}</div>
+              )}
+              {currentCard.imageUrl && (
+                <img
+                  src={currentCard.imageUrl}
+                  alt={currentCard.text}
+                  draggable={false}
+                  style={{
+                    width: "100%", maxHeight: 220, objectFit: "cover",
+                    borderRadius: 10, pointerEvents: "none",
+                  }}
+                />
               )}
               <span dangerouslySetInnerHTML={{ __html: renderMarkdown(currentCard.text) }} />
             </div>
