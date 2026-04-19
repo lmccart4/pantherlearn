@@ -27,13 +27,10 @@ const LESSONS = [
   { slug: 'ai-real-world-synthesis', module: './handson-blocks/synthesis-four-questions.cjs' },
 ];
 
-const IMAGE_BASE = 'https://firebasestorage.googleapis.com/v0/b/pantherlearn-d6f7c.firebasestorage.app/o/';
-const IMAGE_PATH = 'lesson-images/ai-literacy/unit5-art-gallery/';
+const IMAGE_BASE = 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/ai-literacy/unit5-art-gallery/';
 
 function imageUrlFor(slug) {
-  const filename = `${slug}.jpg`;
-  const encoded = encodeURIComponent(IMAGE_PATH + filename);
-  return `${IMAGE_BASE}${encoded}?alt=media`;
+  return `${IMAGE_BASE}${slug}.jpg`;
 }
 
 function applyHandsOn(existingBlocks, mod) {
