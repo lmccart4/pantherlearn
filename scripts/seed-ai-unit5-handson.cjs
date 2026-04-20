@@ -36,6 +36,12 @@ function imageUrlFor(slug) {
 function applyHandsOn(existingBlocks, mod) {
   let blocks = [...existingBlocks];
 
+  // Idempotency: strip any prior copies of blocks this module owns, matched by id.
+  const modBlockIds = new Set((mod.blocks || []).map(b => b.id).filter(Boolean));
+  if (modBlockIds.size > 0) {
+    blocks = blocks.filter(b => !modBlockIds.has(b.id));
+  }
+
   if (mod.replacesFinalSortingItems) {
     const sortIdx = blocks.findIndex(b => b.type === 'sorting');
     if (sortIdx === -1) {
