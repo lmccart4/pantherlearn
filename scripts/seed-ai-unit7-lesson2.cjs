@@ -33,7 +33,7 @@ const lesson = {
         'Centaur — distinct roles, clean handoff between AI (brainstorm) and human (write)',
         'Neither — this isn\'t really collaboration',
         'Both equally',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: What Each Does Best' },
     { type: 'text', id: id(), content: `Understanding the collaboration models requires knowing what each partner contributes:\n\n**What humans bring:**\n- Judgment about what matters and why\n- Emotional intelligence and empathy\n- Original ideas that combine concepts in genuinely new ways\n- Values, ethics, and accountability\n- Context from lived experience that AI doesn\'t have\n- The ability to decide when the output is *good enough*\n\n**What AI brings:**\n- Speed and scale — processing vast information instantly\n- Consistency — no fatigue, no bad days\n- Breadth — access to patterns across enormous amounts of text and data\n- Iteration — generating 50 variations as easily as 1\n- No ego — it doesn\'t get defensive when you say "that\'s not right, try again"` },
     { type: 'question', id: id(), questionType: 'short_answer',

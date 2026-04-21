@@ -33,7 +33,7 @@ const lesson = {
         'The barrier to entry has dropped — technical skill is no longer required to create functional software',
         'Anyone can now become a professional programmer instantly',
         'Products built with AI don\'t require any human decisions',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: Build Something' },
     { type: 'text', id: id(), content: `Today you\'re going to build something real. Choose one of these options based on what sounds most interesting:\n\n**Option A — Website:** Use Framer or Canva to build a one-page website for something you care about. A club, a cause, your portfolio, a fictional business.\n\n**Option B — Chatbot:** Use Poe or a Claude Project to build a custom AI assistant. Give it a specific purpose, a personality, and knowledge it should have. Test it with real questions.\n\n**Option C — Automation:** Use Zapier (free tier) to automate one real thing in your life — a notification, a data collection form, a scheduled reminder.\n\n**Option D — Design:** Use Canva AI to create a complete set of social media graphics for a cause, event, or project you care about. At least 3 pieces, consistent visual identity.` },
     { type: 'activity', id: id(), title: 'Build Session (25 minutes)', instructions: 'Pick your option and build. Document what you\'re making and why. Take a screenshot of what you created.' },

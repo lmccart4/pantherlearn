@@ -34,7 +34,7 @@ const lesson = {
         'They claim scraping public web content for training falls under "fair use" doctrine',
         'They only used images that were already in the public domain',
         'Courts have already ruled it is legal',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: The Copyright Battle' },
     { type: 'text', id: id(), content: `The legal landscape around AI art is in chaos right now. Here's where things stand:\n\n**What artists are arguing:**\n- Training on their work without consent is theft of intellectual property\n- AI companies are profiting from their labor without compensation\n- "Style" should be protected — an artist's visual identity is their livelihood\n\n**What AI companies are arguing:**\n- Humans also "train" on other art — we all learn from what we see\n- Public images on the internet are fair game under fair use\n- No individual image is copied; the AI creates something new\n\n**What the courts are sorting out:**\n- The U.S. Copyright Office ruled in 2023 that purely AI-generated images cannot be copyrighted\n- Multiple lawsuits from artists against Stable Diffusion, Midjourney, and OpenAI are pending\n- The outcome will shape the creative economy for decades` },
     { type: 'callout', id: id(), variant: 'info', content: '**The Human Twist:** Some AI art has won competitions. In 2022, Jason Allen won the Colorado State Fair fine art competition with an AI-generated image. Other artists were furious. Allen argued he still made creative decisions as the "prompter." Who do you agree with?' },

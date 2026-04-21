@@ -33,7 +33,7 @@ const lesson = {
         'Radiologists will shift toward higher-complexity cases, patient communication, and oversight of AI — the job transforms rather than disappears',
         'Nothing will change because hospitals will refuse to use AI',
         'Radiologists will become AI engineers',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: High Risk vs. Low Risk' },
     { type: 'text', id: id(), content: `**Higher automation risk (significant task overlap with AI):**\n- Data entry and processing\n- Basic customer service and call centers\n- First-draft content writing (marketing copy, reports)\n- Paralegal research (not legal judgment)\n- Junior financial analysis\n- Basic coding tasks (boilerplate, documentation)\n\n**Lower automation risk (require things AI struggles with):**\n- Skilled trades (plumber, electrician, carpenter) — require physical problem-solving in unpredictable environments\n- Therapists and counselors — human relationship is the product\n- Teachers — relationships, mentorship, judgment about individual students\n- Surgeons — physical precision + judgment in complex, unique situations\n- Artists and creative directors — taste and vision are human\n- Scientists — hypothesis formation, experimental design, interpretation\n- Managers and leaders — human motivation, politics, accountability\n\n**The twist:** Many "lower risk" jobs are lower-paid. Many "higher risk" jobs were higher-paid white-collar work. AI disruption is coming for different income brackets than previous automation waves.` },
     { type: 'question', id: id(), questionType: 'short_answer',

@@ -33,7 +33,7 @@ const lesson = {
         'AI careers span technical and non-technical fields — nearly every industry needs people who understand AI',
         'AI will eliminate all jobs within 10 years',
         'AI jobs are only available at large tech companies like Google and OpenAI',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: What These Jobs Actually Require' },
     { type: 'text', id: id(), content: `**The technical path:** If you want to build AI systems, you need a strong foundation in math (statistics, linear algebra, calculus) and programming (Python is the language of ML). A CS or data science degree is the traditional route. Bootcamps and self-teaching are increasingly viable for some roles.\n\n**The hybrid path:** Many high-value AI roles need someone who understands both the technology and a specific domain. A nurse who understands machine learning can evaluate AI diagnostic tools in ways a pure engineer can't. A lawyer who understands AI can navigate regulation that a pure policy person can't.\n\n**The non-technical path:** AI ethics, policy, communications, and training roles need people who can think critically about AI — which is exactly what this course is building. These roles require writing, research, analysis, and judgment.\n\n**The entrepreneurship path:** The people using no-code tools to build AI-powered businesses don't need traditional credentials — they need ideas, hustle, and the ability to identify what problems AI can solve.` },
     { type: 'question', id: id(), questionType: 'short_answer',

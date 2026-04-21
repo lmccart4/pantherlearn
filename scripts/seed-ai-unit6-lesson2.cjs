@@ -33,7 +33,7 @@ const lesson = {
         'Check each citation actually exists before using it — AI frequently invents plausible-looking sources',
         'Only use them if the journal names sound familiar',
         'Ask the AI if it\'s sure the sources are real',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: The Research Partner Workflow' },
     { type: 'text', id: id(), content: `Here\'s a workflow that uses AI\'s strengths without falling into its traps:\n\n**Step 1 — Orient (AI)**\nAsk AI to explain the topic broadly. What are the key concepts? What are the main debates? What terms should you know? This builds your mental map fast.\n\n**Step 2 — Question (AI)**\nAsk AI: "What are the best questions to investigate about this topic?" or "What are five angles a researcher might take?" Use these to guide your real research.\n\n**Step 3 — Find Real Sources (Human)**\nUse Google Scholar, your school library, or credible news sources to find actual articles. Do NOT use AI-generated citations.\n\n**Step 4 — Understand (AI)**\nPaste complex source text into AI and ask it to explain, summarize, or identify the main argument. This saves time reading dense academic language.\n\n**Step 5 — Synthesize (You)**\nYou make the connections. You form the argument. AI helps you process information faster — the thinking is still yours.` },
     { type: 'activity', id: id(), title: 'Research Sprint', instructions: 'Pick a topic you\'re curious about (anything — not just school-related). Use the 5-step workflow above. Document each step: what you asked AI, what it gave you, what you verified, what you found on your own. Time yourself — 15 minutes total.' },

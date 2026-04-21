@@ -23,6 +23,7 @@ const DataTableBlock = lazy(() => import("./DataTableBlock"));
 const EvidenceUploadBlock = lazy(() => import("./EvidenceUploadBlock"));
 const ExternalActivityBlock = lazy(() => import("./ExternalActivityBlock"));
 const ScoreTallyBlock = lazy(() => import("./ScoreTallyBlock"));
+const CaseCardsBlock = lazy(() => import("./CaseCardsBlock"));
 
 // Heavy / specialized blocks — lazy-loaded so they don't bloat the initial bundle
 const SortingBlock = lazy(() => import("./SortingBlock"));
@@ -80,6 +81,7 @@ const BLOCK_MAP = {
   momentum_mystery_lab: MomentumMysteryLabBlock,
   connect_four: ConnectFourBlock,
   score_tally: ScoreTallyBlock,
+  case_cards: CaseCardsBlock,
   slide_submit: SlideSubmitBlock,
   image_gen: ImageGenBlock,
 };

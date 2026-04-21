@@ -34,7 +34,7 @@ const lesson = {
         'It was trained on historical data that reflected past gender bias in hiring',
         'Women are less qualified for tech jobs',
         'The AI malfunctioned due to a coding error',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: Who Gets Filtered Out' },
     { type: 'text', id: id(), content: `AI hiring tools can systematically disadvantage entire groups:\n\n**People with non-traditional paths** — career changers, those with gaps, self-taught candidates\n\n**People with disabilities** — video analysis tools may penalize atypical facial expressions, eye contact, or speech patterns associated with autism, anxiety, or hearing loss\n\n**People of color** — if past successful hires were mostly white, the AI encodes that pattern\n\n**People without insider knowledge** — if you don't know to use specific "ATS keywords," your resume gets auto-rejected even if you're qualified\n\nMany candidates never know why they were rejected. There's no appeal. No human to call. Just silence.` },
     { type: 'callout', id: id(), variant: 'warning', content: '**The Law is Behind:** The Equal Employment Opportunity Commission (EEOC) prohibits discrimination in hiring — but most AI hiring tools have never been audited for bias. New York City passed a law in 2023 requiring bias audits of AI hiring tools. It\'s one of the first laws of its kind.' },

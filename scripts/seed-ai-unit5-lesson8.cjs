@@ -33,7 +33,7 @@ const lesson = {
         'The black box problem',
         'Bias in, bias out — plus unequal impact',
         'Who\'s responsible?',
-      ], correct: 2 },
+      ], correctIndex: 2 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: Building Your Framework' },
     { type: 'text', id: id(), content: `When you encounter a new AI application — in the news, in your community, in a job you'll have someday — you now have the vocabulary to evaluate it critically. Here are four questions worth asking:\n\n**1. Who benefits?**\nIs this tool making life better for the people it affects, or primarily for the company deploying it?\n\n**2. Who bears the risk?**\nIf the AI makes a mistake, who pays the price? Is it the same group that benefits?\n\n**3. Is there accountability?**\nCan the AI's decisions be explained, challenged, and corrected? Is there a human in the loop?\n\n**4. What are the alternatives?**\nIs AI actually better than the existing approach — or just cheaper and faster for the people deploying it?` },
     { type: 'callout', id: id(), content: '**The Goal:** You don\'t need to be anti-AI or pro-AI. You need to be *thoughtful* about AI — able to recognize when it\'s being deployed well and when it\'s being deployed recklessly.' },

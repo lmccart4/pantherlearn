@@ -47,7 +47,7 @@ export default function TopBar() {
             to="/teacher/mana-requests"
             className={location.pathname.startsWith("/teacher/mana-requests") ? "top-nav-link active" : "top-nav-link"}
           >
-            ✦ Mana Inbox
+            ✦ Mana
           </Link>
         )}
       </nav>

@@ -33,7 +33,7 @@ const lesson = {
         'The US has a tradition of favoring industry self-regulation, a fragmented federal/state system, and intense tech lobbying against regulation',
         'The EU AI Act applies to the US automatically',
         'AI doesn\'t pose significant risks in the US context',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: The Competing Interests' },
     { type: 'text', id: id(), content: `AI policy debates involve groups with very different interests:\n\n**Tech companies:** Want minimal regulation, argue over-regulation stifles innovation and US competitiveness, often propose "self-regulation"\n\n**Civil rights groups:** Want strict regulation of facial recognition, hiring AI, and criminal justice AI — have documented evidence of harm to marginalized communities\n\n**National security establishment:** Wants AI capabilities for defense, surveillance, and intelligence — but also fears adversaries\' AI capabilities\n\n**Workers and unions:** Want protections against automation-driven job loss, notice requirements, and human oversight\n\n**Academic researchers:** Want open access to AI systems for study, transparency requirements, and slowed deployment of insufficiently tested systems\n\n**Ordinary citizens:** Largely unaware AI is already making decisions about their credit, healthcare, bail, and job applications` },
     { type: 'question', id: id(), questionType: 'short_answer',

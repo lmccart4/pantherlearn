@@ -34,7 +34,7 @@ const lesson = {
         'AI errors can result in wrongful arrests, and the consequences fall disproportionately on Black Americans',
         'The police should have used better cameras',
         'AI tools should never be used in law enforcement for any reason',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: Predictive Policing\'s Feedback Loop' },
     { type: 'text', id: id(), content: `Predictive policing has a structural problem called a **feedback loop**:\n\n1. AI is trained on historical crime data\n2. Historical data reflects where police *patrolled* — which was often concentrated in minority neighborhoods\n3. AI predicts those same neighborhoods as high-crime\n4. Police patrol those neighborhoods more\n5. More patrols = more arrests = more data confirming the prediction\n6. The AI's bias is reinforced, not corrected\n\nThe algorithm doesn't measure crime. It measures *policing* — and then recommends more of the same.\n\nChicago's CLEAR database assigned "risk scores" to hundreds of thousands of people. People with high scores were visited by police proactively — not because they had done anything, but because the algorithm flagged them.` },
     { type: 'callout', id: id(), variant: 'warning', content: '**Surveillance Creep:** China uses a nationwide network of 500+ million cameras with AI facial recognition, linked to a "social credit" system that can restrict travel, employment, and schooling based on behavior scores. This is an extreme case — but the technology is the same.' },

@@ -39,7 +39,7 @@ const lesson = {
         'AI can process thousands of images and detect subtle patterns humans might miss after fatigue',
         'AI never makes mistakes in medical settings',
         'AI is programmed to always agree with human doctors',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: The Risks Nobody Talks About' },
     { type: 'text', id: id(), content: `AI in healthcare isn't all breakthroughs and saved lives. There are serious risks:\n\n**Bias in Training Data**\nIf an AI is trained mostly on data from white male patients, it may perform worse for women, elderly patients, or people of color. A 2019 study found a widely-used healthcare algorithm was biased against Black patients — it consistently underestimated how sick they were.\n\n**The Black Box Problem**\nMany AI systems can't explain *why* they made a decision. If an AI flags you as high-risk for a disease, the doctor might not know why. This makes it hard to verify, appeal, or trust.\n\n**Over-Reliance**\nWhen doctors trust AI too much, they stop applying their own judgment. If the AI is wrong and the doctor doesn't catch it, the patient pays the price.\n\n**Data Privacy**\nAI needs enormous amounts of patient data to train. Who owns that data? Who has access? What happens if it's breached or sold?` },
     { type: 'callout', id: id(), variant: 'warning', content: '**The Stakes Are High:** In most technology, a bug is annoying. In healthcare, a bug can cost someone their life. The margin for error is essentially zero.' },

@@ -42,6 +42,12 @@ function applyHandsOn(existingBlocks, mod) {
     blocks = blocks.filter(b => !modBlockIds.has(b.id));
   }
 
+  // Also strip any explicitly-obsolete block IDs (e.g. replaced activity blocks).
+  if (Array.isArray(mod.obsoleteBlockIds) && mod.obsoleteBlockIds.length > 0) {
+    const obsolete = new Set(mod.obsoleteBlockIds);
+    blocks = blocks.filter(b => !obsolete.has(b.id));
+  }
+
   if (mod.replacesFinalSortingItems) {
     const sortIdx = blocks.findIndex(b => b.type === 'sorting');
     if (sortIdx === -1) {

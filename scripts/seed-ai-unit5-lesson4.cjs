@@ -34,7 +34,7 @@ const lesson = {
         'Solar and wind output fluctuates unpredictably, and AI can balance supply and demand in real time',
         'AI can store energy better than batteries',
         'Traditional computers cannot handle electricity data',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: AI\'s Own Carbon Problem' },
     { type: 'text', id: id(), content: `Here's the uncomfortable truth: AI has a massive carbon footprint.\n\n**Training Large Models**\nTraining GPT-3 emitted roughly 552 tons of CO₂ — equivalent to driving 120 cars for a year. Newer, larger models are exponentially more expensive.\n\n**Inference at Scale**\nEvery time someone sends a message to an AI chatbot, servers consume power. ChatGPT processes over 10 million queries per day. That adds up fast.\n\n**Water Consumption**\nAI data centers use enormous amounts of water for cooling. Microsoft reported that training GPT-4 consumed roughly 700,000 liters of water.\n\n**The Irony**\nWe might be using a carbon-heavy technology to fight carbon — and the net math isn't always in our favor.` },
     { type: 'callout', id: id(), variant: 'warning', content: '**The Data Center Problem:** By 2030, data centers (which power AI) could consume 8% of global electricity — up from about 2% today. Whether that electricity comes from clean sources matters enormously.' },

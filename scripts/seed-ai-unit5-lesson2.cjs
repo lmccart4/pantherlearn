@@ -34,7 +34,7 @@ const lesson = {
         'Because those factors correlate with race due to historical inequality, so the algorithm learns to proxy race',
         'Because Black defendants always answer the questionnaire differently',
         'Bias is impossible when you remove race from the inputs',
-      ], correct: 1 },
+      ], correctIndex: 1 },
     { type: 'section_header', id: 'sh-part2', label: 'Part 2: The Right to Challenge an Algorithm' },
     { type: 'text', id: id(), content: `In 2016, a Wisconsin man named Eric Loomis was sentenced to six years in prison. His COMPAS score — which he was never allowed to see the methodology behind — was cited by the judge.\n\nLoomis appealed, arguing that using a secret algorithm in sentencing violated his due process rights. He argued: how can you challenge a decision when you don't know how it was made?\n\nThe Wisconsin Supreme Court ruled against him. They said judges could use COMPAS as one factor among many.\n\n**The question this raises:** In America, you have the right to confront the evidence against you. If an algorithm scores you as dangerous and you can't see how it works, have your rights been violated?` },
     { type: 'callout', id: id(), variant: 'warning', content: '**The Company\'s Defense:** Northpointe (the maker of COMPAS) says their algorithm doesn\'t use race as an input, so it can\'t be racist. Critics say that\'s exactly the problem — it uses factors that are proxies for race without acknowledging it.' },
