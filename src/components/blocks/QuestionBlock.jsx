@@ -6,6 +6,7 @@ import { useTranslatedText, useTranslatedTexts } from "../../hooks/useTranslated
 import { renderMarkdown } from "../../lib/utils";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 import { useTelemetryContext } from "../../contexts/TelemetryContext";
+import DictationButton from "../DictationButton";
 
 export default function QuestionBlock({ block, studentData = {}, onAnswer, onRequestReview, courseId, lessonCompleted, allStudentData }) {
   const { user } = useAuth();
@@ -323,8 +324,12 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
               onChange={(e) => { setTextAnswer(e.target.value); markSADirty(); }}
               onBlur={saveSANow}
             />
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <button className="btn btn-primary" onClick={handleSubmitSA} disabled={!textAnswer.trim()} data-translatable>{ui(3) || "Submit Response"}</button>
+              <DictationButton
+                getValue={() => textAnswer}
+                setValue={(v) => { setTextAnswer(v); markSADirty(); }}
+              />
               {saSaveError && !submitted && (
                 <span style={{ fontSize: 11, color: "var(--amber)" }}>
                   {saSaveError}
@@ -540,7 +545,13 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
               onChange={(e) => { setTextAnswer(e.target.value); markSADirty(); }}
               onBlur={saveSANow}
             />
-            <button className="btn btn-primary" onClick={handleSubmitLinked} disabled={!textAnswer.trim()}>Submit Response</button>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <button className="btn btn-primary" onClick={handleSubmitLinked} disabled={!textAnswer.trim()}>Submit Response</button>
+              <DictationButton
+                getValue={() => textAnswer}
+                setValue={(v) => { setTextAnswer(v); markSADirty(); }}
+              />
+            </div>
           </>
         ) : (
           <div className="sa-submitted">

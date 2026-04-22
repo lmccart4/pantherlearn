@@ -4,11 +4,16 @@ import "katex/dist/katex.min.css";
 import { isPerfMode } from "./perfMode";
 
 function renderKaTeX(text) {
+  const DOLLAR_PLACEHOLDER = "\u0000ESC_DOLLAR\u0000";
+  // Protect escaped dollar signs (\$) so KaTeX doesn't treat them as math delimiters
+  text = text.replace(/\\\$/g, DOLLAR_PLACEHOLDER);
+
   // In performance mode, strip $ delimiters and show plain text math
   if (isPerfMode()) {
     return text
       .replace(/\$\$(.+?)\$\$/gs, (_, expr) => `<div class="perf-math">${expr.trim()}</div>`)
-      .replace(/(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g, (_, expr) => expr.trim());
+      .replace(/(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g, (_, expr) => expr.trim())
+      .replaceAll(DOLLAR_PLACEHOLDER, "$");
   }
   // Block math: $$...$$
   text = text.replace(/\$\$(.+?)\$\$/gs, (_, expr) => {
@@ -20,7 +25,8 @@ function renderKaTeX(text) {
     try { return katex.renderToString(expr.trim(), { displayMode: false, throwOnError: false }); }
     catch { return expr; }
   });
-  return text;
+  // Restore escaped dollars as literal $
+  return text.replaceAll(DOLLAR_PLACEHOLDER, "$");
 }
 
 function escapeHTML(text) {

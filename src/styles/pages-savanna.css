@@ -1,0 +1,540 @@
+/* ──────────────────────────────────────────────────────────────
+   PAGES · SAVANNA OVERRIDE LAYER
+   Catch-all overrides for pages that haven't been rewritten yet.
+   Ensures no legacy dark-bg/gold-glow sneaks through.
+   ────────────────────────────────────────────────────────────── */
+
+/* Force page roots to paper canvas */
+.page, .page-wrap, .container, .main-container {
+  background: transparent;
+  color: var(--fg-default);
+}
+
+/* Page hero banners (common pattern across dashboards / course pages) */
+.page-hero, .hero-banner, .dashboard-hero {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-xl);
+  padding: var(--space-7) var(--space-6);
+  color: var(--fg-default);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+.page-hero h1, .hero-banner h1, .dashboard-hero h1 {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: clamp(36px, 6vw, 64px);
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  font-variation-settings: "SOFT" 60;
+  color: var(--fg-default);
+}
+.page-hero h1 em,
+.hero-banner h1 em,
+.dashboard-hero h1 em {
+  font-style: italic;
+  color: var(--accent-alt);
+  font-weight: 400;
+}
+
+/* Generic sub-section titles */
+.section-title, .subsection-title {
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: var(--t-xl);
+  letter-spacing: -0.01em;
+  color: var(--fg-default);
+  margin-bottom: var(--space-4);
+}
+
+/* Dashboard course cards */
+.course-card, .class-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-card);
+  color: var(--fg-default);
+  transition: transform var(--dur-base) var(--ease-snap), box-shadow var(--dur-base) var(--ease-snap);
+  text-decoration: none;
+}
+.course-card:hover, .class-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 var(--fg-default);
+  text-decoration: none;
+}
+.course-card h2, .course-card h3, .class-card h2, .class-card h3 {
+  font-family: var(--serif);
+  font-weight: 800;
+  color: var(--fg-default);
+  font-size: var(--t-lg);
+  letter-spacing: -0.01em;
+}
+
+/* Lesson list items on CoursePage */
+.lesson-list-item,
+.lesson-row {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-md);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: 10px;
+  box-shadow: 2px 2px 0 var(--fg-default);
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  color: var(--fg-default);
+  text-decoration: none;
+  transition: transform var(--dur-fast) var(--ease-snap), box-shadow var(--dur-fast) var(--ease-snap);
+}
+.lesson-list-item:hover,
+.lesson-row:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--fg-default);
+  text-decoration: none;
+}
+
+/* LessonViewer sticky sidebar (legacy) */
+.lesson-sidebar,
+.progress-sidebar {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-btn);
+}
+
+/* LoginPage */
+.login-page,
+.login-container {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  padding: var(--space-5);
+}
+.login-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-xl);
+  padding: var(--space-7);
+  box-shadow: var(--shadow-hero);
+  max-width: 460px;
+  width: 100%;
+}
+.login-title {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: clamp(36px, 5vw, 56px);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variation-settings: "SOFT" 80;
+  margin-bottom: var(--space-5);
+}
+
+/* Editor / Grading main panels */
+.editor-panel,
+.grading-panel,
+.editor-sidebar,
+.grading-sidebar {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-btn);
+}
+
+/* Badge grid cards */
+.badge-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-md);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-btn);
+  text-align: center;
+}
+.badge-card .badge-name {
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: var(--t-base);
+  margin-top: 8px;
+}
+.badge-card.locked { opacity: 0.4; }
+
+/* AvatarCreator: picker swatches */
+.color-picker-swatch,
+.picker-swatch {
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-snap);
+}
+.color-picker-swatch:hover { transform: translate(-1px, -1px); }
+.color-picker-swatch.selected {
+  box-shadow: 0 0 0 3px var(--bg-canvas), 0 0 0 5px var(--fg-default);
+}
+
+/* Leaderboard rows */
+.leaderboard-row,
+.lb-row {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-md);
+  padding: 12px var(--space-4);
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 48px auto 1fr auto;
+  gap: var(--space-4);
+  align-items: center;
+  color: var(--fg-default);
+}
+.leaderboard-row.me,
+.lb-row.me {
+  background: color-mix(in oklab, var(--accent-hero) 18%, var(--bg-surface));
+}
+
+/* Streak / XP display */
+.streak-display, .xp-display {
+  background: var(--fg-default);
+  color: var(--fg-onink);
+  border-radius: var(--r-lg);
+  padding: var(--space-5);
+  border: 1.5px solid var(--fg-default);
+}
+.streak-number, .xp-number {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: 56px;
+  line-height: 0.85;
+  color: var(--accent-hero);
+  letter-spacing: -0.03em;
+  font-variation-settings: "SOFT" 100;
+}
+
+/* Classroom display (big screen) */
+.classroom-display {
+  background: var(--bg-canvas);
+  color: var(--fg-default);
+  min-height: 100vh;
+}
+.classroom-display h1 {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-variation-settings: "SOFT" 100, "opsz" 144;
+}
+
+/* Modals / dialogs */
+.modal, .dialog, .overlay-dialog {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-hero);
+  color: var(--fg-default);
+}
+.modal-overlay, .dialog-overlay {
+  background: color-mix(in oklab, var(--ink-900) 60%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+/* Bot arcade / chatbot dashboard cards */
+.bot-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-card);
+}
+.bot-card:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--fg-default); }
+
+/* Boss battle */
+.boss-battle {
+  background: var(--ink-900);
+  color: var(--paper);
+  min-height: 100vh;
+}
+.boss-battle-arena {
+  background: var(--ink-800);
+  border: 1.5px solid var(--paper);
+  border-radius: var(--r-xl);
+  padding: var(--space-7);
+  color: var(--paper);
+  box-shadow: 8px 8px 0 var(--paper);
+}
+
+/* Mana / Shop */
+.mana-shop-item {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-btn);
+  color: var(--fg-default);
+}
+
+/* Empty states */
+.empty-state {
+  background: var(--bg-surface);
+  border: 1.5px dashed var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-7);
+  text-align: center;
+  color: var(--fg-muted);
+}
+
+/* Error states */
+.error-boundary, .error-state {
+  background: color-mix(in oklab, var(--status-danger) 15%, var(--bg-surface));
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-5);
+  color: var(--fg-default);
+}
+
+/* Scroll bar — savanna */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--fg-faint);
+  border-radius: var(--r-full);
+  border: 2px solid var(--bg-canvas);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--fg-muted); }
+
+/* Text selection */
+::selection {
+  background: var(--accent-hero);
+  color: var(--accent-hero-ink);
+}
+
+/* ── Student Dashboard (.sd-*) ── */
+.sd-avatar-hero {
+  background: var(--fg-default);
+  color: var(--fg-onink);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-hero);
+  position: relative;
+  overflow: hidden;
+}
+.sd-avatar-card {
+  background: var(--bg-canvas);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-btn);
+}
+.sd-avatar-label { color: var(--accent-hero); font-family: var(--mono); letter-spacing: 0.14em; text-transform: uppercase; font-size: 11px; }
+.sd-avatar-label--custom { color: var(--bg-canvas); opacity: 0.7; }
+.sd-welcome-heading {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: clamp(32px, 5vw, 56px);
+  letter-spacing: -0.025em;
+  line-height: 0.95;
+  color: var(--fg-onink);
+  font-variation-settings: "SOFT" 60;
+}
+.sd-level-badge {
+  background: var(--accent-hero);
+  color: var(--accent-hero-ink);
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1.5px solid var(--fg-default);
+}
+.sd-xp-bar {
+  height: 12px;
+  background: rgba(255,255,255,0.15);
+  border: 1.5px solid var(--bg-canvas);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+.sd-xp-fill {
+  height: 100%;
+  background: var(--accent-hero);
+  border-right: 1.5px solid var(--bg-canvas);
+  transition: width var(--dur-slow) var(--ease-snap);
+}
+.sd-stats { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+.sd-stat-card {
+  background: var(--bg-canvas);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-md);
+  padding: var(--space-4);
+  color: var(--fg-default);
+  flex: 1;
+  min-width: 140px;
+}
+.sd-stat-value {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: 34px;
+  color: var(--accent-hero);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variation-settings: "SOFT" 100;
+}
+.sd-stat-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+.sd-course-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--accent-hero);
+  color: var(--accent-hero-ink);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: 22px;
+}
+.sd-course-title {
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: var(--t-lg);
+  color: var(--fg-default);
+  letter-spacing: -0.01em;
+}
+.sd-course-subtitle { color: var(--fg-muted); font-size: var(--t-sm); }
+.sd-course-bar {
+  height: 10px;
+  background: var(--bg-sunken);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+.sd-course-bar-fill {
+  height: 100%;
+  background: var(--accent-hero);
+  transition: width var(--dur-slow) var(--ease-snap);
+}
+
+/* ── Teacher Dashboard (.td-* / .tdash-*) ── */
+.tdash-hero, .td-hero {
+  background: var(--fg-default);
+  color: var(--fg-onink);
+  border-radius: var(--r-xl);
+  padding: var(--space-6);
+  border: 1.5px solid var(--fg-default);
+  box-shadow: var(--shadow-hero);
+}
+.tdash-stat-card, .td-stat-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-5);
+  color: var(--fg-default);
+  box-shadow: var(--shadow-btn);
+}
+
+/* ── MyGrades (.mg-*) ── */
+.mg-page { color: var(--fg-default); }
+.mg-course-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-btn);
+  margin-bottom: var(--space-5);
+}
+.mg-course-title {
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: var(--t-xl);
+  letter-spacing: -0.015em;
+  color: var(--fg-default);
+}
+.mg-overall-grade {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: 56px;
+  color: var(--accent-hero);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variation-settings: "SOFT" 100;
+}
+.mg-category-chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--fg-default);
+  background: var(--bg-surface);
+}
+.mg-lesson-row {
+  background: var(--bg-canvas);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-md);
+  padding: 12px var(--space-4);
+  margin-bottom: 8px;
+  color: var(--fg-default);
+}
+
+/* ── Lesson Viewer sidebar (.lv-* / .ls-*) ── */
+.lv-sidebar, .ls-sidebar {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-btn);
+}
+.lv-toc-item, .ls-toc-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 4px;
+  color: var(--fg-default);
+  text-decoration: none;
+  font-size: var(--t-sm);
+  line-height: 1.4;
+  border-radius: var(--r-sm);
+}
+.lv-toc-item:hover, .ls-toc-item:hover { background: var(--bg-sunken); }
+.lv-toc-item.active, .ls-toc-item.active { background: var(--fg-default); color: var(--bg-canvas); }
+.lv-toc-check { color: var(--accent-hero); }
+
+/* ── Grading Dashboard (.gd-*) ── */
+.gd-sidebar {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-btn);
+}
+.gd-student-row {
+  padding: 10px var(--space-3);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  color: var(--fg-default);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.gd-student-row:hover { background: var(--bg-sunken); }
+.gd-student-row.selected { background: var(--accent-hero); color: var(--accent-hero-ink); }
+.gd-submission-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-card);
+}

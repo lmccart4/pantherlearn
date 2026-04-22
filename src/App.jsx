@@ -1,7 +1,8 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useEffect, lazy, Suspense } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
+import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import TopBar from "./components/TopBar";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -21,6 +22,7 @@ const PushOptIn = lazy(() => import("./components/PushOptIn"));
 
 // Lazy-loaded pages
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const SavannaShowcase = lazy(() => import("./pages/SavannaShowcase"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const CoursePage = lazy(() => import("./pages/CoursePage"));
 const LessonViewer = lazy(() => import("./pages/LessonViewer"));
@@ -91,7 +93,6 @@ function ProtectedLayout() {
 
   return (
     <>
-      <a href="#main-content" className="skip-to-content">Skip to content</a>
       <TopBar />
       <AnimatedOutlet />
     </>
@@ -127,6 +128,7 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
           <Route path="/display" element={<ClassroomDisplay />} />
+          <Route path="/design-system" element={<SavannaShowcase />} />
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/course/:courseId" element={<CoursePage />} />
@@ -174,6 +176,8 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const prefersReduced = usePrefersReducedMotion();
+
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
@@ -181,14 +185,16 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <TranslationProvider cloudFunctionUrl={TRANSLATE_URL}>
-          <ErrorBoundary>
-            <AppRoutes />
-          </ErrorBoundary>
-        </TranslationProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <MotionConfig reducedMotion={prefersReduced ? "always" : "never"}>
+      <BrowserRouter>
+        <AuthProvider>
+          <TranslationProvider cloudFunctionUrl={TRANSLATE_URL}>
+            <ErrorBoundary>
+              <AppRoutes />
+            </ErrorBoundary>
+          </TranslationProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </MotionConfig>
   );
 }

@@ -1,0 +1,121 @@
+/* ──────────────────────────────────────────────────────────────
+   SAVANNA SIGNAL · SEMANTIC TOKENS
+   Components MUST read these, not the raw layer.
+   Light default → [data-theme="dark"] flip → [data-role="teacher"] hero swap.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  /* surfaces */
+  --bg-canvas:  var(--paper);
+  --bg-surface: var(--paper-card);
+  --bg-sunken:  var(--paper-2);
+  --bg-deep:    var(--paper-3);
+
+  /* foreground */
+  --fg-default: var(--ink-900);
+  --fg-muted:   var(--ink-500);
+  --fg-faint:   var(--ink-300);
+  --fg-onink:   var(--paper);
+
+  /* structural */
+  --border-default: var(--ink-900);
+  --border-soft:    var(--ink-200);
+
+  /* accents */
+  --accent-hero:     var(--lime);
+  --accent-hero-ink: var(--lime-ink);
+  --accent-alt:      var(--coral);
+  --accent-alt-ink:  var(--coral-ink);
+
+  /* status */
+  --status-info:        var(--cobalt);
+  --status-info-ink:    var(--cobalt-ink);
+  --status-warn:        var(--hazard);
+  --status-warn-ink:    var(--hazard-ink);
+  --status-danger:      var(--coral);
+  --status-danger-ink:  var(--coral-ink);
+  --status-success:     var(--lime);
+  --status-success-ink: var(--lime-ink);
+
+  /* focus */
+  --focus-ring: var(--cobalt);
+
+  /* ambient */
+  --grain-opacity: 0.12;
+  --grain-blend: multiply;
+
+  /* shadow (offset-hard) */
+  --shadow-card: 5px 5px 0 var(--ink-900);
+  --shadow-btn:  3px 3px 0 var(--ink-900);
+  --shadow-hero: 8px 8px 0 var(--ink-900);
+
+  /* legacy bridge */
+  color-scheme: light;
+}
+
+/* ── Dark theme ── */
+html[data-theme="dark"] {
+  --bg-canvas:  var(--ink-900);
+  --bg-surface: var(--ink-800);
+  --bg-sunken:  var(--ink-700);
+  --bg-deep:    #0d0b08;
+
+  --fg-default: var(--paper);
+  --fg-muted:   var(--ink-200);
+  --fg-faint:   var(--ink-300);
+  --fg-onink:   var(--ink-900);
+
+  --border-default: var(--paper);
+  --border-soft:    var(--ink-500);
+
+  --accent-hero:     var(--lime);
+  --accent-hero-ink: var(--lime-ink);
+  --accent-alt:      var(--coral-lift);
+  --accent-alt-ink:  var(--coral-ink);
+
+  --status-info:       var(--cobalt-lift);
+  --status-info-ink:   var(--cobalt-lift-ink);
+  --status-danger:     var(--coral-lift);
+
+  --focus-ring: var(--lime);
+
+  --grain-opacity: 0.08;
+  --grain-blend: screen;
+
+  --shadow-card: 5px 5px 0 var(--paper);
+  --shadow-btn:  3px 3px 0 var(--paper);
+  --shadow-hero: 8px 8px 0 var(--paper);
+
+  /* legacy bridge */
+  --bg: var(--ink-900);
+  --surface-0: var(--ink-800);
+  --surface-1: var(--ink-700);
+  --surface-2: #34302a;
+  --text: var(--paper);
+  --text-2: var(--ink-200);
+  --text-3: var(--ink-300);
+  --border-hover: color-mix(in oklab, var(--paper) 40%, transparent);
+  color-scheme: dark;
+}
+
+/* ── Teacher role: cobalt hero swap ── */
+html[data-role="teacher"] {
+  --accent-hero:     var(--cobalt);
+  --accent-hero-ink: var(--cobalt-ink);
+}
+html[data-role="teacher"][data-theme="dark"] {
+  --accent-hero:     var(--cobalt-lift);
+  --accent-hero-ink: var(--cobalt-lift-ink);
+}
+
+/* ── Guardian role: quiet ink hero ── */
+html[data-role="guardian"] {
+  --accent-hero:     var(--ink-900);
+  --accent-hero-ink: var(--paper);
+}
+html[data-role="guardian"][data-theme="dark"] {
+  --accent-hero:     var(--paper);
+  --accent-hero-ink: var(--ink-900);
+}
+
+/* ── Legacy single-class overrides (kept to unblock un-migrated code) ── */
+[data-theme="light"] { /* no-op; light is default now */ }

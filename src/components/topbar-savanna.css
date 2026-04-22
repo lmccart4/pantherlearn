@@ -1,0 +1,43 @@
+/* Savanna topbar wrapper — fixed top, inner pill Topnav */
+.sv-topbar-wrap {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 12px var(--space-5);
+  background: color-mix(in oklab, var(--bg-canvas) 80%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.sv-topbar {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.sv-topbar-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--fg-default);
+  object-fit: cover;
+}
+.sv-topbar-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--fg-default);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sv-topnav--dark .sv-topbar-name { color: var(--fg-onink); }
+
+body { padding-top: 80px; }
+@media (max-width: 640px) {
+  .sv-topbar-wrap { padding: 8px var(--space-3); }
+  .sv-topbar-name { display: none; }
+  body { padding-top: 72px; }
+}
