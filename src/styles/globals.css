@@ -50,19 +50,9 @@ body::before {
   outline: none;
 }
 *:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 3px;
+  outline: 3px solid var(--focus-ring) !important;
+  outline-offset: 3px !important;
   border-radius: 3px;
-}
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-[role="button"]:focus-visible,
-[tabindex]:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 3px;
 }
 
 /* App shell container */
