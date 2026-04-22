@@ -22,6 +22,7 @@ const PushOptIn = lazy(() => import("./components/PushOptIn"));
 
 // Lazy-loaded pages
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const SavannaShowcase = lazy(() => import("./pages/SavannaShowcase"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const CoursePage = lazy(() => import("./pages/CoursePage"));
 const LessonViewer = lazy(() => import("./pages/LessonViewer"));
@@ -127,6 +128,7 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
           <Route path="/display" element={<ClassroomDisplay />} />
+          <Route path="/design-system" element={<SavannaShowcase />} />
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/course/:courseId" element={<CoursePage />} />
