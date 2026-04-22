@@ -75,8 +75,9 @@
   --r-full: 9999px;
 
   /* borders */
-  --border: 1.5px solid var(--ink-900);
-  --border-thin: 1px solid var(--ink-900);
+  /* --border is a COLOR (legacy contract); prefer 1.5px solid var(--border-default) in new code */
+  --border: var(--ink-900);
+  --border-thin: var(--ink-200);
 
   /* motion */
   --ease-snap:    cubic-bezier(0.22, 1, 0.36, 1);
@@ -87,14 +88,18 @@
   --dur-slow:  350ms;
 
   /* legacy compatibility (read-only bridge for un-migrated code) */
-  --bg: var(--paper);
-  --surface-0: var(--paper-card);
-  --surface-1: var(--paper-2);
-  --surface-2: var(--paper-3);
-  --surface-3: var(--paper-3);
-  --text: var(--ink-900);
-  --text-2: var(--ink-500);
-  --text-3: var(--ink-300);
+  --bg: var(--bg-canvas);
+  --surface: var(--bg-surface);
+  --surface-alt: var(--bg-sunken);
+  --surface-0: var(--bg-surface);
+  --surface-1: var(--bg-sunken);
+  --surface-2: var(--bg-deep);
+  --surface-3: var(--bg-deep);
+  --text: var(--fg-default);
+  --text-2: var(--fg-muted);
+  --text-3: var(--fg-faint);
+  --text2: var(--fg-muted);
+  --text3: var(--fg-faint);
   --brand: var(--lime);
   --brand-light: var(--lime);
   --brand-muted: color-mix(in oklab, var(--lime) 30%, transparent);

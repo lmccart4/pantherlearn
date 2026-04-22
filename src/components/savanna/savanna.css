@@ -420,7 +420,7 @@
 .sv-score-delta {
   font-family: var(--mono);
   font-size: 12px;
-  color: var(--status-warn);
+  color: var(--hazard);
   margin-top: 4px;
   letter-spacing: 0.08em;
 }
@@ -457,14 +457,12 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: var(--cobalt);
+  color: var(--ink-900);
   font-family: var(--serif);
   font-weight: 900;
 }
 .sv-mana--hazard { background: var(--status-warn); color: var(--status-warn-ink); }
-.sv-mana--hazard .sv-mana-gem { color: var(--status-warn-ink); }
 .sv-mana--coral { background: var(--status-danger); color: var(--coral-ink); }
-.sv-mana--coral .sv-mana-gem { color: var(--accent-alt-display); }
 
 /* ── Progress bar ── */
 .sv-progress {

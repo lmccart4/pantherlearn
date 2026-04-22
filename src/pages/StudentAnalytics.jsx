@@ -4,7 +4,7 @@
 // No chart library — pure CSS bars and color-coded grids.
 
 import { useState, useEffect, useMemo } from "react";
-import { collection, getDocs, getDocsFromServer, query, orderBy, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, getDocsFromServer, query, orderBy, limit, doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo } from "../lib/gamification";
@@ -107,30 +107,27 @@ export default function StudentAnalytics() {
         });
         setStudents(enrolledStudents);
 
-        // Progress for every student × lesson (includes engagementTime)
+        // Progress — one subcollection query per student (not per lesson)
+        // Cuts reads from students×lessons to just students.
         const progress = {};
-        const progressPromises = [];
-        for (const student of enrolledStudents) {
-          progress[student.uid] = {};
-          if (!student.hasLoggedIn) continue;
-          for (const lesson of lessonsList) {
-            progressPromises.push(
-              getDoc(doc(db, "progress", student.uid, "courses", selectedCourse, "lessons", lesson.id))
-                .then((progDoc) => {
-                  if (progDoc.exists()) {
-                    const d = progDoc.data();
-                    progress[student.uid][lesson.id] = {
-                      answers: d.answers || {},
-                      completed: d.completed || false,
-                      completedAt: d.completedAt || null,
-                      engagementTime: d.engagementTime || 0,
-                    };
-                  }
-                })
-                .catch(() => {})
-            );
-          }
-        }
+        for (const student of enrolledStudents) progress[student.uid] = {};
+        const progressPromises = enrolledStudents
+          .filter((s) => s.hasLoggedIn)
+          .map((s) =>
+            getDocs(collection(db, "progress", s.uid, "courses", selectedCourse, "lessons"))
+              .then((snap) => {
+                snap.forEach((progDoc) => {
+                  const d = progDoc.data();
+                  progress[s.uid][progDoc.id] = {
+                    answers: d.answers || {},
+                    completed: d.completed || false,
+                    completedAt: d.completedAt || null,
+                    engagementTime: d.engagementTime || 0,
+                  };
+                });
+              })
+              .catch(() => {})
+          );
         await Promise.all(progressPromises);
         setProgressData(progress);
 
@@ -153,7 +150,8 @@ export default function StudentAnalytics() {
         );
         await Promise.all(telemPromises);
 
-        // Also fetch the past 14 days of daily buckets for sparklines
+        // Past 14 days of daily telemetry buckets for sparklines.
+        // One subcollection query per student instead of 14 gets per student.
         const today = new Date();
         const dayKeys = [];
         for (let i = 0; i < 14; i++) {
@@ -163,20 +161,24 @@ export default function StudentAnalytics() {
             `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
           );
         }
+        const dayKeySet = new Set(dayKeys);
         const dailyBuckets = {};
-        const dailyPromises = [];
-        for (const s of enrolledStudents.filter((s) => s.hasLoggedIn)) {
-          dailyBuckets[s.uid] = {};
-          for (const dayKey of dayKeys) {
-            dailyPromises.push(
-              getDoc(doc(db, "telemetry", s.uid, "courses", selectedCourse, "days", dayKey))
-                .then((dayDoc) => {
-                  if (dayDoc.exists()) dailyBuckets[s.uid][dayKey] = dayDoc.data();
-                })
-                .catch(() => {})
-            );
-          }
-        }
+        const dailyPromises = enrolledStudents
+          .filter((s) => s.hasLoggedIn)
+          .map((s) => {
+            dailyBuckets[s.uid] = {};
+            return getDocs(query(
+              collection(db, "telemetry", s.uid, "courses", selectedCourse, "days"),
+              orderBy("__name__", "desc"),
+              limit(14)
+            ))
+              .then((snap) => {
+                snap.forEach((dayDoc) => {
+                  if (dayKeySet.has(dayDoc.id)) dailyBuckets[s.uid][dayDoc.id] = dayDoc.data();
+                });
+              })
+              .catch(() => {});
+          });
         await Promise.all(dailyPromises);
 
         setTelemetryData({ summaries: telem, daily: dailyBuckets, dayKeys });

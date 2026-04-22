@@ -735,3 +735,118 @@ html[data-theme="dark"] .sv-stamp--boss {
   color: var(--accent-hero) !important;
   border: 1.5px solid var(--paper) !important;
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Theme-flip fixes for notification dropdown, announcement banner,
+   and any other legacy components that had hardcoded dark bg.
+   ────────────────────────────────────────────────────────────── */
+
+.notif-dropdown {
+  background: var(--bg-surface) !important;
+  border: 1.5px solid var(--fg-default) !important;
+  box-shadow: var(--shadow-card) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: var(--fg-default) !important;
+}
+.notif-header {
+  border-bottom: 1px dashed var(--border-soft) !important;
+}
+.notif-header-title { color: var(--fg-default) !important; }
+.notif-mark-all { color: var(--status-warn-display) !important; }
+.notif-mark-all:hover { color: var(--fg-default) !important; }
+.notif-empty { color: var(--fg-muted) !important; }
+.notif-item {
+  color: var(--fg-default) !important;
+  border-bottom: 1px dashed var(--border-soft) !important;
+}
+.notif-item:hover { background: var(--bg-sunken) !important; }
+.notif-item.unread {
+  background: color-mix(in oklab, var(--accent-hero) 14%, var(--bg-surface)) !important;
+}
+.notif-item.unread:hover {
+  background: color-mix(in oklab, var(--accent-hero) 22%, var(--bg-surface)) !important;
+}
+.notif-item-text { color: var(--fg-muted) !important; }
+.notif-item-time { color: var(--fg-faint) !important; }
+.notif-unread-dot {
+  background: var(--accent-hero) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent-hero) 30%, transparent) !important;
+}
+
+/* Announcement banner */
+.announcement-banner {
+  background: var(--bg-surface) !important;
+  border: 1.5px solid var(--fg-default) !important;
+  box-shadow: var(--shadow-btn);
+}
+.announcement-banner.pinned {
+  border-color: var(--fg-default) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.announcement-item { border-bottom: 1px dashed var(--border-soft) !important; }
+.announcement-text { color: var(--fg-muted) !important; }
+.announcement-meta { color: var(--fg-faint) !important; }
+.announcement-pin-badge {
+  color: var(--status-warn-ink) !important;
+  background: var(--status-warn) !important;
+  border: 1.5px solid var(--fg-default);
+}
+
+/* Sign-out button hover (legacy) */
+.sign-out-btn:hover {
+  color: var(--accent-alt-display) !important;
+  background: color-mix(in oklab, var(--status-danger) 12%, transparent) !important;
+  border-color: var(--accent-alt-display) !important;
+}
+
+/* Music config / editor modals */
+.music-config, .music-config-content,
+.bug-reporter-content {
+  background: var(--bg-surface) !important;
+  border: 1.5px solid var(--fg-default) !important;
+  color: var(--fg-default) !important;
+}
+.music-config-close:hover {
+  color: var(--accent-alt-display) !important;
+  border-color: var(--accent-alt-display) !important;
+}
+
+/* DictationButton active state */
+.dictation-btn.listening {
+  color: var(--accent-alt-display) !important;
+}
+
+/* Evidence upload dropzone */
+.evidence-upload-zone {
+  background: var(--bg-surface) !important;
+  border: 2px dashed var(--fg-default) !important;
+  color: var(--fg-default) !important;
+}
+.evidence-upload-zone:hover {
+  background: color-mix(in oklab, var(--accent-hero) 10%, var(--bg-surface)) !important;
+  border-color: var(--fg-default) !important;
+}
+
+/* Spinner ring */
+.spinner, .loading-spinner {
+  border-color: color-mix(in oklab, var(--fg-default) 12%, transparent) !important;
+  border-top-color: var(--accent-hero) !important;
+}
+
+/* Music player FAB */
+.music-player, .floating-music-player {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--fg-default);
+  color: var(--fg-default);
+  box-shadow: var(--shadow-card);
+}
+
+/* Teacher dashboard template card descriptors (legacy --text-3 too faint on paper) */
+.td-template-desc, .td-card-badge--viewonly, .td-card-desc,
+.td-card-meta { color: var(--fg-muted) !important; }
+
+/* Chat FAB — always lime-on-ink, regardless of role (teachers would get cobalt-on-ink otherwise, fails contrast) */
+.class-chat-toggle, .chat-toggle-btn, .chat-fab {
+  color: var(--lime) !important;
+}

@@ -666,7 +666,7 @@ export default function ClassChat() {
       <button onClick={() => setOpen(!open)} aria-label={open ? "Close chat" : "Open class chat"} style={{
         position: "fixed", bottom: 24, right: 24, zIndex: 9000,
         width: 56, height: 56, borderRadius: "50%",
-        background: "var(--ink-900)", color: "var(--accent-hero)",
+        background: "var(--ink-900)", color: "var(--lime)",
         border: "1.5px solid var(--paper)",
         boxShadow: "3px 3px 0 var(--ink-900)",
         cursor: "pointer", fontSize: 24,
