@@ -1,7 +1,8 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useEffect, lazy, Suspense } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
+import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import TopBar from "./components/TopBar";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -173,6 +174,8 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const prefersReduced = usePrefersReducedMotion();
+
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
@@ -180,14 +183,16 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <TranslationProvider cloudFunctionUrl={TRANSLATE_URL}>
-          <ErrorBoundary>
-            <AppRoutes />
-          </ErrorBoundary>
-        </TranslationProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <MotionConfig reducedMotion={prefersReduced ? "always" : "never"}>
+      <BrowserRouter>
+        <AuthProvider>
+          <TranslationProvider cloudFunctionUrl={TRANSLATE_URL}>
+            <ErrorBoundary>
+              <AppRoutes />
+            </ErrorBoundary>
+          </TranslationProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </MotionConfig>
   );
 }
