@@ -21,8 +21,8 @@
   --border-soft:    var(--ink-200);
 
   /* accents */
-  --accent-hero:     var(--lime);
-  --accent-hero-ink: var(--lime-ink);
+  --accent-hero:     var(--lime-deep);
+  --accent-hero-ink: var(--lime-deep-ink);
   --accent-alt:      var(--coral);
   --accent-alt-ink:  var(--coral-ink);
 
@@ -33,8 +33,8 @@
   --status-warn-ink:    var(--hazard-red-ink);
   --status-danger:      var(--coral);
   --status-danger-ink:  var(--coral-ink);
-  --status-success:     var(--lime);
-  --status-success-ink: var(--lime-ink);
+  --status-success:     var(--lime-deep);
+  --status-success-ink: var(--lime-deep-ink);
 
   /* focus */
   --focus-ring: var(--cobalt);
@@ -96,6 +96,10 @@ html[data-theme="dark"] {
   /* In dark mode, warn returns to yellow — plenty of contrast on ink */
   --status-warn:       var(--hazard);
   --status-warn-ink:   var(--hazard-ink);
+
+  /* And success returns to bright lime — hero color on ink */
+  --status-success:     var(--lime);
+  --status-success-ink: var(--lime-ink);
 
   --focus-ring: var(--lime);
 

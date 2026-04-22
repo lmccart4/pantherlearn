@@ -301,7 +301,7 @@
   font-weight: 900;
   font-size: 56px;
   line-height: 0.85;
-  color: var(--accent-hero);
+  color: var(--lime); /* always bright lime on ink stub, regardless of theme/role */
   letter-spacing: -0.03em;
   font-variation-settings: "SOFT" 100;
 }
@@ -405,7 +405,7 @@
   font-family: var(--serif);
   font-weight: 900;
   font-size: 74px;
-  color: var(--accent-hero);
+  color: var(--lime); /* iconic lime on dark scoreboard regardless of theme */
   line-height: 0.85;
   letter-spacing: -0.03em;
   font-variation-settings: "SOFT" 100;
@@ -621,7 +621,7 @@
 .sv-avatar-frame--coral  { background: var(--status-danger); color: var(--coral-ink); }
 .sv-avatar-frame--cobalt { background: var(--status-info); color: var(--status-info-ink); }
 .sv-avatar-frame--hazard { background: var(--status-warn); color: var(--status-warn-ink); }
-.sv-avatar-frame--ink    { background: var(--bg-inverse); color: var(--accent-hero); }
+.sv-avatar-frame--ink    { background: var(--bg-inverse); color: var(--lime); }
 .sv-avatar-frame--paper  { background: var(--bg-surface); color: var(--fg-default); }
 .sv-avatar-frame::after {
   content: "";

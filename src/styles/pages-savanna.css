@@ -209,7 +209,7 @@
   font-weight: 900;
   font-size: 56px;
   line-height: 0.85;
-  color: var(--accent-hero);
+  color: var(--lime);
   letter-spacing: -0.03em;
   font-variation-settings: "SOFT" 100;
 }
@@ -328,7 +328,7 @@
   padding: var(--space-4);
   box-shadow: var(--shadow-btn);
 }
-.sd-avatar-label { color: var(--accent-hero); font-family: var(--mono); letter-spacing: 0.14em; text-transform: uppercase; font-size: 11px; }
+.sd-avatar-label { color: var(--lime); font-family: var(--mono); letter-spacing: 0.14em; text-transform: uppercase; font-size: 11px; }
 .sd-avatar-label--custom { color: var(--bg-canvas); opacity: 0.7; }
 .sd-welcome-heading {
   font-family: var(--serif);
@@ -378,7 +378,7 @@
   font-family: var(--serif);
   font-weight: 900;
   font-size: 34px;
-  color: var(--accent-hero);
+  color: var(--lime);
   letter-spacing: -0.02em;
   line-height: 1;
   font-variation-settings: "SOFT" 100;
@@ -599,7 +599,7 @@
 .sd-avatar-hero .sd-avatar-label,
 .tdash-hero .sd-avatar-label,
 .td-hero .sd-avatar-label {
-  color: var(--accent-hero);
+  color: var(--lime);
 }
 
 /* Legacy text-2 subtitle on dark hero */

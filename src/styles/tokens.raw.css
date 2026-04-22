@@ -19,6 +19,11 @@
   /* signal */
   --lime: #c6ff3f;
   --lime-ink: #2a3b00;
+  /* Light-mode hero swap: bright lime is iconic on ink but
+     disappears on paper. Deeper saturated olive-lime reads as
+     "hero green" + passes AA on paper. */
+  --lime-deep: #7fb800;
+  --lime-deep-ink: #1a2200;
   --coral: #ff6a4d;
   --coral-ink: #3a0f05;
   --cobalt: #2238ff;
