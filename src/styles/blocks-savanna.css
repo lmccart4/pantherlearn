@@ -191,7 +191,7 @@
 .callout-insight {
   background: color-mix(in oklab, var(--status-warn) 14%, var(--bg-surface));
 }
-.callout-insight .callout-icon { background: var(--status-warn); color: var(--hazard-ink); }
+.callout-insight .callout-icon { background: var(--status-warn); color: var(--status-warn-ink); }
 .callout-warning {
   background: color-mix(in oklab, var(--status-danger) 14%, var(--bg-surface));
 }
@@ -512,7 +512,7 @@
 .mc-option.selected,
 .mc-option[aria-pressed="true"] {
   background: var(--status-warn);
-  color: var(--hazard-ink);
+  color: var(--status-warn-ink);
 }
 .mc-option.selected .mc-option-letter,
 .mc-option.selected .mc-letter {
@@ -876,7 +876,7 @@
 }
 .mg-written-pill.refining { background: var(--accent-hero); color: var(--accent-hero-ink); }
 .mg-written-pill.developing { background: var(--status-info); color: var(--status-info-ink); }
-.mg-written-pill.approaching { background: var(--status-warn); color: var(--hazard-ink); }
+.mg-written-pill.approaching { background: var(--status-warn); color: var(--status-warn-ink); }
 .mg-written-pill.emerging { background: var(--status-danger); color: var(--coral-ink); }
 .mg-written-pill.missing { background: var(--bg-sunken); color: var(--fg-muted); }
 

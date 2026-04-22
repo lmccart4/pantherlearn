@@ -25,6 +25,11 @@
   --cobalt-ink: #e6ebff;
   --hazard: #ffd23a;
   --hazard-ink: #2b2200;
+  /* Light-mode warn swap: amber is too low-contrast on paper.
+     Use a brick red (shared w/ World Intel) instead. */
+  --hazard-red: #b91c1c;
+  --hazard-red-deep: #7f1313;
+  --hazard-red-ink: #f8e8e8;
   --forest: #143d30;
   --plum: #6b1e6b;
 

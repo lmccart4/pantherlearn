@@ -29,8 +29,8 @@
   /* status */
   --status-info:        var(--cobalt);
   --status-info-ink:    var(--cobalt-ink);
-  --status-warn:        var(--hazard);
-  --status-warn-ink:    var(--hazard-ink);
+  --status-warn:        var(--hazard-red);
+  --status-warn-ink:    var(--hazard-red-ink);
   --status-danger:      var(--coral);
   --status-danger-ink:  var(--coral-ink);
   --status-success:     var(--lime);
@@ -51,7 +51,7 @@
      Vibrant coral/hazard fail contrast as text — these darken just
      enough for display use while keeping the editorial vibe. */
   --accent-alt-display: #B8391E;   /* darker coral, 4.5:1 on paper */
-  --status-warn-display: #8A6500;  /* darker hazard, 4.6:1 on paper */
+  --status-warn-display: var(--hazard-red-deep);  /* deep brick-red, 8.5:1 on paper */
   --status-danger-display: #B8391E;
   --status-success-display: #2A3B00; /* lime-ink, used for text on paper */
   --forest-display: var(--forest); /* forest is already dark enough on paper */
@@ -92,6 +92,10 @@ html[data-theme="dark"] {
   --status-info:       var(--cobalt-lift);
   --status-info-ink:   var(--cobalt-lift-ink);
   --status-danger:     var(--coral-lift);
+
+  /* In dark mode, warn returns to yellow — plenty of contrast on ink */
+  --status-warn:       var(--hazard);
+  --status-warn-ink:   var(--hazard-ink);
 
   --focus-ring: var(--lime);
 

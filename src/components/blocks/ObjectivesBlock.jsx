@@ -1,9 +1,10 @@
 import { useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
 import { renderMarkdown } from "../../lib/utils";
 export default function ObjectivesBlock({ block }) {
-  const allTexts = [block.title, ...(block.items || [])];
+  const title = block.title || "Learning Objectives";
+  const allTexts = [title, ...(block.items || [])];
   const translated = useTranslatedTexts(allTexts);
-  const translatedTitle = translated?.[0] ?? block.title;
+  const translatedTitle = translated?.[0] ?? title;
   const translatedItems = translated ? translated.slice(1) : block.items;
   return (
     <div className="objectives-block">

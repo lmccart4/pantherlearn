@@ -130,7 +130,7 @@
 }
 .sv-btn--pixel {
   background: var(--status-warn);
-  color: var(--hazard-ink);
+  color: var(--status-warn-ink);
   border-radius: 6px;
   font-family: var(--mono);
   letter-spacing: 0.14em;
@@ -203,7 +203,7 @@
 .sv-chip--lime   { background: var(--accent-hero); color: var(--accent-hero-ink); }
 .sv-chip--coral  { background: var(--status-danger); color: var(--coral-ink); }
 .sv-chip--cobalt { background: var(--status-info); color: var(--status-info-ink); }
-.sv-chip--hazard { background: var(--status-warn); color: var(--hazard-ink); }
+.sv-chip--hazard { background: var(--status-warn); color: var(--status-warn-ink); }
 .sv-chip--ghost  { background: transparent; }
 .sv-chip--ink    { background: var(--fg-default); color: var(--bg-canvas); }
 
@@ -461,8 +461,8 @@
   font-family: var(--serif);
   font-weight: 900;
 }
-.sv-mana--hazard { background: var(--status-warn); color: var(--hazard-ink); }
-.sv-mana--hazard .sv-mana-gem { color: var(--hazard-ink); }
+.sv-mana--hazard { background: var(--status-warn); color: var(--status-warn-ink); }
+.sv-mana--hazard .sv-mana-gem { color: var(--status-warn-ink); }
 .sv-mana--coral { background: var(--status-danger); color: var(--coral-ink); }
 .sv-mana--coral .sv-mana-gem { color: var(--accent-alt-display); }
 
@@ -556,7 +556,7 @@
   font-size: 34px;
   letter-spacing: -0.02em;
   background: var(--status-warn);
-  color: var(--hazard-ink);
+  color: var(--status-warn-ink);
   border: 1.5px solid var(--fg-default);
   border-radius: 50%;
   box-shadow: inset 0 0 0 6px var(--bg-canvas), inset 0 0 0 7.5px var(--fg-default);
@@ -622,7 +622,7 @@
 .sv-avatar-frame--lg { width: 96px; height: 96px; font-size: 40px; border-radius: var(--r-lg); }
 .sv-avatar-frame--coral  { background: var(--status-danger); color: var(--coral-ink); }
 .sv-avatar-frame--cobalt { background: var(--status-info); color: var(--status-info-ink); }
-.sv-avatar-frame--hazard { background: var(--status-warn); color: var(--hazard-ink); }
+.sv-avatar-frame--hazard { background: var(--status-warn); color: var(--status-warn-ink); }
 .sv-avatar-frame--ink    { background: var(--bg-inverse); color: var(--accent-hero); }
 .sv-avatar-frame--paper  { background: var(--bg-surface); color: var(--fg-default); }
 .sv-avatar-frame::after {
@@ -674,7 +674,7 @@
   max-width: 62ch;
 }
 .sv-callout--warn   { background: color-mix(in oklab, var(--status-warn) 18%, var(--bg-surface)); }
-.sv-callout--warn .sv-callout-tag { background: var(--status-warn); color: var(--hazard-ink); }
+.sv-callout--warn .sv-callout-tag { background: var(--status-warn); color: var(--status-warn-ink); }
 .sv-callout--danger { background: color-mix(in oklab, var(--status-danger) 15%, var(--bg-surface)); }
 .sv-callout--danger .sv-callout-tag { background: var(--status-danger); color: var(--coral-ink); }
 .sv-callout--info   { background: color-mix(in oklab, var(--status-info) 10%, var(--bg-surface)); }
@@ -684,7 +684,7 @@
 /* ── Hazard band ── */
 .sv-hazard-band {
   background: repeating-linear-gradient(-45deg, var(--status-warn) 0 18px, var(--fg-default) 18px 32px);
-  color: var(--hazard-ink);
+  color: var(--status-warn-ink);
   border: 1.5px solid var(--fg-default);
   border-radius: var(--r-md);
   padding: 10px 14px;
@@ -787,7 +787,7 @@
   text-transform: uppercase;
   opacity: 0;
 }
-.sv-choice--selected { background: var(--status-warn); color: var(--hazard-ink); }
+.sv-choice--selected { background: var(--status-warn); color: var(--status-warn-ink); }
 .sv-choice--selected .sv-choice-letter { background: var(--fg-default); color: var(--status-warn); }
 .sv-choice--correct { background: var(--accent-hero); color: var(--accent-hero-ink); border-color: var(--fg-default); }
 .sv-choice--correct .sv-choice-letter { background: var(--fg-default); color: var(--accent-hero); }

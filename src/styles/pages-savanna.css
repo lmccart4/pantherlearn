@@ -680,7 +680,7 @@ a:hover { color: var(--accent-alt-display); text-decoration-thickness: 2px; }
 /* Music controls range accent — kept as is (decorative) */
 
 /* Pills / chips that use amber text */
-.chip-amber, .pill-amber { background: var(--status-warn) !important; color: var(--hazard-ink) !important; border: 1.5px solid var(--fg-default) !important; }
+.chip-amber, .pill-amber { background: var(--status-warn) !important; color: var(--status-warn-ink) !important; border: 1.5px solid var(--fg-default) !important; }
 .chip-red, .pill-red { background: var(--status-danger) !important; color: var(--coral-ink) !important; border: 1.5px solid var(--fg-default) !important; }
 
 /* Focus outlines on inputs use --amber → switch to cobalt */
