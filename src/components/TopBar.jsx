@@ -7,7 +7,6 @@ import { resolveDisplayName } from "../lib/displayName";
 import { setRole } from "../lib/theme";
 import NotificationBell from "./NotificationBell";
 import PerfModeToggle from "./PerfModeToggle";
-import ThemeToggle from "./ThemeToggle";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
 import { Topnav, TopnavBrand, Button } from "./savanna";
 import "./topbar-savanna.css";
@@ -70,7 +69,6 @@ export default function TopBar() {
 
   const rightSlot = (
     <>
-      <ThemeToggle />
       <PerfModeToggle />
       <NotificationBell />
       {user?.photoURL && (

@@ -39,6 +39,23 @@
   /* focus */
   --focus-ring: var(--cobalt);
 
+  /* Inverse surface — stays dark in BOTH themes. Use for Scoreboard,
+     Ticket stub, dark-variant Ticket/Card, ink avatar frame, etc. */
+  --bg-inverse:        var(--ink-900);
+  --bg-inverse-2:      var(--ink-800);
+  --fg-inverse:        var(--paper);
+  --fg-inverse-muted:  var(--paper-2);
+  --fg-inverse-faint:  var(--ink-200);
+
+  /* Display accents with AA contrast on paper surfaces.
+     Vibrant coral/hazard fail contrast as text — these darken just
+     enough for display use while keeping the editorial vibe. */
+  --accent-alt-display: #B8391E;   /* darker coral, 4.5:1 on paper */
+  --status-warn-display: #8A6500;  /* darker hazard, 4.6:1 on paper */
+  --status-danger-display: #B8391E;
+  --status-success-display: #2A3B00; /* lime-ink, used for text on paper */
+  --forest-display: var(--forest); /* forest is already dark enough on paper */
+
   /* ambient */
   --grain-opacity: 0.12;
   --grain-blend: multiply;
@@ -84,6 +101,22 @@ html[data-theme="dark"] {
   --shadow-card: 5px 5px 0 var(--paper);
   --shadow-btn:  3px 3px 0 var(--paper);
   --shadow-hero: 8px 8px 0 var(--paper);
+
+  /* Inverse surface in dark mode stays dark (ink-800 elevated a step) */
+  --bg-inverse:       #0d0b08;
+  --bg-inverse-2:     var(--ink-900);
+  --fg-inverse:       var(--paper);
+  --fg-inverse-muted: var(--paper-2);
+  --fg-inverse-faint: var(--ink-200);
+
+  /* Display accents in dark mode — lift for AA on ink */
+  --accent-alt-display: var(--coral-lift);
+  --status-warn-display: var(--hazard);
+  --status-danger-display: var(--coral-lift);
+  --status-success-display: var(--lime);
+
+  /* Forest is too dark on ink — lift to lime */
+  --forest-display: var(--lime);
 
   /* legacy bridge */
   --bg: var(--ink-900);

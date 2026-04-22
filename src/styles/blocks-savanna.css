@@ -14,7 +14,7 @@
   line-height: 1.7;
 }
 .text-block strong { color: var(--fg-default); font-weight: 700; }
-.text-block em { font-style: italic; color: var(--accent-alt); }
+.text-block em { font-style: italic; color: var(--accent-alt-display); }
 .text-block a {
   color: var(--fg-default);
   text-decoration: none;

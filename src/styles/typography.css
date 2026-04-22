@@ -23,7 +23,7 @@ html, body {
 .t-display-1 em {
   font-style: italic;
   font-weight: 400;
-  color: var(--accent-alt);
+  color: var(--accent-alt-display);
   font-variation-settings: "SOFT" 20, "opsz" 144;
 }
 .t-display-1 u {

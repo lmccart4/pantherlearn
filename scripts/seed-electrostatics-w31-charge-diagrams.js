@@ -127,12 +127,12 @@ const lesson = {
       questionType: "multiple_choice",
       prompt: "**Model D** has 5 protons, 7 neutrons, and 7 electrons. What is it, and what is its mass number?",
       options: [
-        "Atom, mass number 12",
         "−Ion, mass number 12",
+        "Atom, mass number 12",
         "+Ion, mass number 12",
         "−Ion, mass number 14"
       ],
-      correctIndex: 1,
+      correctIndex: 0,
       explanation: "More electrons (7) than protons (5) → **−ion** (gained 2 electrons). Mass number = protons + neutrons = 5 + 7 = **12**. Electrons don't count toward mass number.",
       difficulty: "apply"
     },
@@ -217,15 +217,15 @@ const lesson = {
       id: "w31cd-q-mass",
       type: "question",
       questionType: "multiple_choice",
-      prompt: "When System A and System B were rubbed together and charged up, what happened to their **mass**?",
+      prompt: "Both System A and System B were **neutral** before rubbing. After rubbing, System A has extra −ions and System B has extra +ions. What happened to each system's **mass**?",
       options: [
-        "Both systems' masses stayed the same. Rubbing moves electrons between them, but the electrons still exist — mass is conserved.",
-        "System A's mass increased because it gained −ions. System B's mass decreased because it lost them.",
+        "Both systems' masses stayed exactly the same. Nothing about the mass changed.",
+        "System A's mass increased slightly (it gained electrons). System B's mass decreased slightly (it lost those same electrons). Total mass of A + B is conserved.",
         "System A's mass decreased because it lost atoms. System B's mass increased because it gained them.",
-        "Both systems lost mass because rubbing generates heat, which reduces mass."
+        "Both systems lost mass because rubbing generates heat, which carries away mass."
       ],
-      correctIndex: 0,
-      explanation: "Rubbing moves **electrons** from one system to the other, but electrons still exist — they just moved. Mass is conserved. The atom-that-lost-an-electron and the atom-that-gained-one are both still counted; nothing disappeared.",
+      correctIndex: 1,
+      explanation: "Electrons have tiny but real mass. System A **gained** electrons from System B — so A got slightly heavier and B got slightly lighter. The electrons themselves weren't destroyed, so the **total** mass of the combined system (A + B together) is conserved — but each individual system's mass shifted by however many electrons moved.",
       difficulty: "analyze"
     },
 

@@ -663,11 +663,12 @@ export default function ClassChat() {
   return (
     <>
       {/* Floating button */}
-      <button onClick={() => setOpen(!open)} style={{
+      <button onClick={() => setOpen(!open)} aria-label={open ? "Close chat" : "Open class chat"} style={{
         position: "fixed", bottom: 24, right: 24, zIndex: 9000,
         width: 56, height: 56, borderRadius: "50%",
-        background: "var(--amber, #f59e0b)", border: "none",
-        boxShadow: "0 4px 20px rgba(245, 158, 11, 0.35)",
+        background: "var(--ink-900)", color: "var(--accent-hero)",
+        border: "1.5px solid var(--paper)",
+        boxShadow: "3px 3px 0 var(--ink-900)",
         cursor: "pointer", fontSize: 24,
         display: "flex", alignItems: "center", justifyContent: "center",
         transition: "transform 0.15s",
@@ -676,10 +677,12 @@ export default function ClassChat() {
         {open ? "✕" : "💬"}
         {totalUnread > 0 && !open && (
           <span style={{
-            position: "absolute", top: -2, right: -2,
-            background: "#ef4444", color: "#fff",
-            fontSize: 11, fontWeight: 700,
-            width: 20, height: 20, borderRadius: "50%",
+            position: "absolute", top: -4, right: -4,
+            background: "var(--ink-900)", color: "var(--paper)",
+            fontSize: 11, fontWeight: 700, fontFamily: "var(--mono)",
+            minWidth: 20, height: 20, padding: "0 5px",
+            border: "1.5px solid var(--paper)",
+            borderRadius: 9999,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             {totalUnread}

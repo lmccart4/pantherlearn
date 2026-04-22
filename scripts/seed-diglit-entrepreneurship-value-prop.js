@@ -12,8 +12,9 @@ const lesson = {
   title: "Value Proposition — Why Would Anyone Care?",
   course: "Digital Literacy",
   unit: "Digital Entrepreneurship",
-  order: 34,
+  order: 35,
   visible: false,
+  dueDate: "2026-04-22",
   blocks: [
 
     {
@@ -24,9 +25,16 @@ const lesson = {
       subtitle: "~5 minutes"
     },
     {
+      id: "b-hero-image",
+      type: "image",
+      url: "https://firebasestorage.googleapis.com/v0/b/pantherlearn-d6f7c.firebasestorage.app/o/lesson-images%2Fdigital-literacy%2Fdl-value-prop-features-vs-benefits.jpg?alt=media",
+      caption: "Same laptop. Two very different ads.",
+      alt: "Two laptop advertisements side by side for the same silver laptop. The left panel labeled FEATURES lists tech specs: 16GB RAM, 1TB SSD, 14-inch OLED Display, 12-core CPU, 18-hour battery, Aluminum chassis. The right panel labeled BENEFITS shows a young woman writing in a sunny cafe with the laptop, with handwritten text overlays reading 'Write your novel anywhere,' 'All-day battery,' 'Feels made for you.' A caption across the bottom reads SAME LAPTOP. DIFFERENT STORY."
+    },
+    {
       id: "b-warmup",
       type: "text",
-      content: "Look at these two descriptions of the same laptop:\n\n**Description A (Features):** *16GB RAM, 256GB SSD, M2 chip, 13.3-inch Retina display, 802.11ax Wi-Fi*\n\n**Description B (Benefits):** *Edit videos without lag. Store thousands of photos. Battery lasts all day so you never need a charger in class. Fast enough to run anything you throw at it.*\n\nSame laptop. Which one makes you want to buy it?"
+      content: "Look at the two ads above. Same laptop. Same specs. Two completely different pitches.\n\n**Left ad (Features):** what the laptop *is* — the specs, the hardware, the numbers.\n\n**Right ad (Benefits):** what the laptop *does for you* — the life you can live with it.\n\nWhich one makes you actually want to buy it?"
     },
     {
       id: "callout-qotd",
@@ -106,7 +114,7 @@ const lesson = {
       id: "q-features",
       type: "question",
       questionType: "short_answer",
-      prompt: "List 3 features of YOUR business concept (from your niche in Lesson 33). What does it include, offer, or do?",
+      prompt: "List 3 features of YOUR business concept (from your niche in *Finding Your Niche — The Riches Are in the Niches*). What does it include, offer, or do?",
       placeholder: "Feature 1: ...\nFeature 2: ...\nFeature 3: ...",
       difficulty: "create"
     },
@@ -137,7 +145,7 @@ const lesson = {
     {
       id: "b-summary",
       type: "text",
-      content: "Your value proposition is the most important sentence in your business. It shows up on your landing page, your pitch deck, your social media bio, and your elevator pitch.\n\nIf someone reads your value proposition and immediately understands who it's for and why it matters — it's working.\n\n**Up next:** Lesson 35 — Branding. You know what your business does. Now it needs a name, a look, and a personality."
+      content: "Your value proposition is the most important sentence in your business. It shows up on your landing page, your pitch deck, your social media bio, and your elevator pitch.\n\nIf someone reads your value proposition and immediately understands who it's for and why it matters — it's working.\n\n**Up next:** *Branding 101 — Name, Logo, Colors, Vibe*. You know what your business does. Now it needs a name, a look, and a personality."
     },
     {
       id: "q-exit",

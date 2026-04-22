@@ -34,7 +34,7 @@
 .hero-banner h1 em,
 .dashboard-hero h1 em {
   font-style: italic;
-  color: var(--accent-alt);
+  color: var(--accent-alt-display);
   font-weight: 400;
 }
 
@@ -537,4 +537,201 @@
   border-radius: var(--r-lg);
   padding: var(--space-6);
   box-shadow: var(--shadow-card);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   CONTRAST FIXES — legacy classes that fail WCAG
+   ────────────────────────────────────────────────────────────── */
+
+/* Skip link: force savanna palette (ink bg + paper text) */
+.skip-to-content {
+  background: var(--fg-default) !important;
+  color: var(--bg-canvas) !important;
+  padding: 8px 14px !important;
+  border-radius: var(--r-sm) !important;
+  font-family: var(--mono) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+}
+
+/* Teacher dashboard fork button — amber on paper failed; use display token */
+.td-fork-btn {
+  color: var(--status-warn-display) !important;
+}
+.td-fork-btn:hover {
+  color: var(--fg-default) !important;
+  text-decoration: underline;
+}
+
+/* Notification count badge — tighten to pass AA at 11px */
+.notif-badge, .notification-count {
+  background: var(--ink-900);
+  color: var(--paper);
+  border: 1.5px solid var(--paper);
+  border-radius: var(--r-full);
+  padding: 1px 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Any legacy inline .text3 / .text-3 / --text-3 bg text is pushed to fg-muted */
+.text-3, .text3 { color: var(--fg-muted) !important; }
+
+/* Generic rule: ban lime/hazard/coral as text color on paper-family bgs */
+.text-amber, .text-hazard, [data-color="hazard"] { color: var(--status-warn-display); }
+.text-coral, [data-color="coral"] { color: var(--accent-alt-display); }
+.text-lime, [data-color="lime"] { color: var(--status-success-display); }
+
+/* Sub-titles under dark cards (sd-avatar-hero) — muted against ink bg */
+.sd-avatar-hero, .tdash-hero, .td-hero {
+  color: var(--fg-inverse);
+}
+.sd-avatar-hero .sd-welcome-heading,
+.sd-avatar-hero h1, .tdash-hero h1, .td-hero h1 {
+  color: var(--fg-inverse);
+}
+.sd-avatar-hero p, .tdash-hero p, .td-hero p {
+  color: var(--fg-inverse-muted);
+}
+.sd-avatar-hero .sd-avatar-label,
+.tdash-hero .sd-avatar-label,
+.td-hero .sd-avatar-label {
+  color: var(--accent-hero);
+}
+
+/* Legacy text-2 subtitle on dark hero */
+.sd-avatar-hero .text-2,
+.sd-avatar-hero .sd-welcome .text-2 {
+  color: var(--fg-inverse-muted);
+}
+
+/* Score/streak display inherits inverse */
+.streak-display, .xp-display {
+  background: var(--bg-inverse);
+  color: var(--fg-inverse);
+  border-color: var(--bg-inverse);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   LEGACY COLOR OVERRIDES (WCAG contrast fixes on paper surfaces)
+   --brand/--amber/--red map to vibrant hues that fail as text on
+   paper. Substitute display-safe tokens for text contexts.
+   ────────────────────────────────────────────────────────────── */
+
+/* Base link color: ink with underline, not lime */
+a {
+  color: var(--fg-default);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+}
+a:hover { color: var(--accent-alt-display); text-decoration-thickness: 2px; }
+/* Topnav/link styles override this already via higher specificity */
+.sv-topnav-links a, .sv-topnav-links a:hover { text-decoration: none; }
+.sv-btn, .sv-btn:hover, .btn, .btn:hover { text-decoration: none; }
+.sv-choice, .sv-choice:hover { text-decoration: none; }
+
+/* Specific legacy classes that use brand/amber/red as text on paper */
+.sd-level-xp,
+.sd-level-title,
+.sd-accuracy-high,
+.sd-course-progress-value,
+.sd-avatar-label--new,
+.top-brand { color: var(--fg-default); }
+
+.sd-accuracy-low,
+.notif-dot-red,
+.sign-out-btn:hover { color: var(--accent-alt-display) !important; }
+
+.notif-mark-all,
+.notif-unread-badge,
+.badge--amber,
+.evidence-pdf-btn:hover,
+.evidence-upload-zone strong { color: var(--status-warn-display) !important; }
+.badge--red { background: color-mix(in oklab, var(--status-danger) 18%, var(--bg-surface)) !important; color: var(--accent-alt-display) !important; }
+.badge--amber { background: color-mix(in oklab, var(--status-warn) 20%, var(--bg-surface)) !important; color: var(--status-warn-display) !important; }
+
+/* Notif count badge: ink bg + paper text */
+.notif-count, .notification-count, .badge-count {
+  background: var(--ink-900) !important;
+  color: var(--paper) !important;
+  border: 1.5px solid var(--paper) !important;
+}
+
+/* Spinner border (amber accent) — kept vibrant since it's decorative and ephemeral */
+
+/* Annotation tool buttons — swap amber text to ink for readability */
+.annotation-tool-btn.active,
+.annotation-tool-btn:hover:not(:disabled) { color: var(--fg-default) !important; border-color: var(--fg-default) !important; }
+.annotation-action-btn:hover:not(:disabled) { color: var(--fg-default) !important; }
+.annotation-clear:hover:not(:disabled) { color: var(--accent-alt-display) !important; }
+
+/* Evidence upload icons */
+.evidence-upload-zone { color: var(--fg-muted); }
+.evidence-upload-zone strong { color: var(--status-warn-display) !important; }
+
+/* Editor code / question type labels (.amber ribbon) */
+.editor-type-label, .label-amber { color: var(--status-warn-display); }
+.label-red, .error-label { color: var(--accent-alt-display); }
+
+/* Music controls range accent — kept as is (decorative) */
+
+/* Pills / chips that use amber text */
+.chip-amber, .pill-amber { background: var(--status-warn) !important; color: var(--hazard-ink) !important; border: 1.5px solid var(--fg-default) !important; }
+.chip-red, .pill-red { background: var(--status-danger) !important; color: var(--coral-ink) !important; border: 1.5px solid var(--fg-default) !important; }
+
+/* Focus outlines on inputs use --amber → switch to cobalt */
+.input-field:focus,
+.select-field:focus,
+.sa-input:focus,
+.chatbot-input:focus,
+.editor-input:focus,
+.sidebar-course-select:focus,
+.sidebar-search:focus {
+  box-shadow: 3px 3px 0 var(--fg-default) !important;
+  border-color: var(--fg-default) !important;
+  outline: 3px solid var(--focus-ring) !important;
+  outline-offset: 3px !important;
+}
+
+/* FAB buttons — ensure solid bg for contrast */
+.bug-reporter-fab {
+  background-color: #7c3aed !important; /* solid purple backup under gradient */
+}
+.bug-reporter-fab:hover, .bug-reporter-fab.active {
+  background-color: #6d28d9 !important;
+}
+
+/* Notification count badge — savanna palette with AA contrast */
+.notif-count, .notification-count, .badge-count,
+.bell-notif-count, .sd-notification-count,
+.notif-badge {
+  background: var(--ink-900) !important;
+  color: var(--paper) !important;
+  border: 1.5px solid var(--paper) !important;
+  font-family: var(--mono) !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  padding: 0 5px !important;
+  min-width: 18px !important;
+  line-height: 18px !important;
+  text-align: center !important;
+  border-radius: var(--r-full) !important;
+  box-shadow: none !important;
+}
+
+/* Plum stamp needs lift in dark mode */
+html[data-theme="dark"] .sv-stamp--boss {
+  color: #b84bb8 !important;
+  border-color: #b84bb8 !important;
+}
+
+/* ChatToggle / chat FAB "💬" emoji button — ensure bg solid for contrast */
+.chat-toggle-btn, .class-chat-toggle, .chat-fab {
+  background: var(--ink-900) !important;
+  color: var(--accent-hero) !important;
+  border: 1.5px solid var(--paper) !important;
 }
