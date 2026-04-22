@@ -88,7 +88,6 @@ export default function TopBar() {
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <Topnav
         className="sv-topbar"
-        dark={isTeacher}
         brand={brand}
         links={isTeacher ? teacherLinks : studentLinks}
         rightSlot={rightSlot}
