@@ -1,0 +1,62 @@
+[
+  {
+    "filename": "ai-healthcare-hero.jpg",
+    "originalPrompt": "Editorial illustration, thoughtful tone, off-white background. A doctor in a white coat stands on the left side examining a backlit chest X-ray on a light box. On the right side, a sleek translucent AI interface floats in the air showing the same X-ray with colored overlay markers highlighting suspicious regions and percentage annotations for diagnostic confidence. Muted navy, warm gray, and soft teal palette. Flat editorial illustration with clean lines, slight texture grain. No text labels visible. Magazine-quality, serious tone — not cartoonish. 16:9 composition.",
+    "enrichedPrompt": "Editorial illustration, thoughtful tone, off-white background. A doctor in a white coat stands on the left side examining a backlit chest X-ray on a light box. On the right side, a sleek translucent AI interface floats in the air showing the same X-ray with colored overlay markers highlighting suspicious regions and percentage annotations for diagnostic confidence. Muted navy, warm gray, and soft teal palette. Flat editorial illustration with clean lines, slight texture grain. No text labels visible. Magazine-quality, serious tone — not cartoonish. 16:9 composition.",
+    "style": "illustration",
+    "model": "nano-banana",
+    "aspect": "1:1",
+    "timestamp": "2026-04-21T12:16:53.340Z",
+    "success": true
+  },
+  {
+    "filename": "ai-healthcare-diagnosis.jpg",
+    "originalPrompt": "Editorial illustration, thoughtful tone, off-white background. A chest X-ray image occupies the center of the composition. Subtle blue AI scanning lines sweep across the X-ray. Small colored circular markers in teal and amber highlight specific areas of interest, each with a thin connector line to a tiny label dot (no readable text). To the side, three small horizontal progress bars suggest probability percentages. Muted navy, warm gray, teal. Flat editorial magazine style, clean, no cartoons, no text. 16:9 composition.",
+    "enrichedPrompt": "Editorial illustration, thoughtful tone, off-white background. A chest X-ray image occupies the center of the composition. Subtle blue AI scanning lines sweep across the X-ray. Small colored circular markers in teal and amber highlight specific areas of interest, each with a thin connector line to a tiny label dot (no readable text). To the side, three small horizontal progress bars suggest probability percentages. Muted navy, warm gray, teal. Flat editorial magazine style, clean, no cartoons, no text. 16:9 composition.",
+    "style": "illustration",
+    "model": "nano-banana",
+    "aspect": "1:1",
+    "timestamp": "2026-04-21T12:17:13.103Z",
+    "success": true
+  },
+  {
+    "filename": "ai-hiring-filter.jpg",
+    "originalPrompt": "Editorial illustration, thoughtful tone, off-white background. Show a funnel from top to bottom: at the top, hundreds of tiny identical resume documents stream in; in the middle of the funnel, a stylized AI algorithm layer represented by connected nodes and filtering lines; at the bottom, only a few resume documents emerge. The vast majority of resumes are deflected aside into a discard pile. The few that pass through are highlighted in warm amber. Muted navy, warm gray, amber accents. Flat editorial magazine style, no readable text on documents, no cartoons. 16:9 composition.",
+    "enrichedPrompt": "Editorial illustration, thoughtful tone, off-white background. Show a funnel from top to bottom: at the top, hundreds of tiny identical resume documents stream in; in the middle of the funnel, a stylized AI algorithm layer represented by connected nodes and filtering lines; at the bottom, only a few resume documents emerge. The vast majority of resumes are deflected aside into a discard pile. The few that pass through are highlighted in warm amber. Muted navy, warm gray, amber accents. Flat editorial magazine style, no readable text on documents, no cartoons. 16:9 composition.",
+    "style": "illustration",
+    "model": "nano-banana",
+    "aspect": "1:1",
+    "timestamp": "2026-04-21T12:17:32.294Z",
+    "success": true
+  },
+  {
+    "filename": "ai-policing-eye.jpg",
+    "originalPrompt": "Editorial illustration, slightly ominous tone, off-white background. A single large eye, centered, whose iris is composed entirely of miniature security cameras and faint circuit board traces radiating outward. The surrounding whites of the eye are a deep navy blue. A few faint grid lines cross the composition. Muted navy, cool gray, subtle magenta accent. Flat editorial magazine style, clean lines, no text, no cartoons, serious tone. 16:9 composition.",
+    "enrichedPrompt": "Editorial illustration, slightly ominous tone, off-white background. A single large eye, centered, whose iris is composed entirely of miniature security cameras and faint circuit board traces radiating outward. The surrounding whites of the eye are a deep navy blue. A few faint grid lines cross the composition. Muted navy, cool gray, subtle magenta accent. Flat editorial magazine style, clean lines, no text, no cartoons, serious tone. 16:9 composition.\n\n[Style: illustration] Bold stylized illustration with confident shapes and strong silhouettes. Clean color palette with purposeful choices. Editorial or children's book quality. Distinctive artistic voice.\n[Restrictions] No photographic realism. No generic clip-art style. No text unless specified. No busy backgrounds that compete with the subject.",
+    "style": "illustration",
+    "model": "nano-banana",
+    "aspect": "1:1",
+    "timestamp": "2026-04-21T12:17:48.179Z",
+    "success": true
+  },
+  {
+    "filename": "ai-policing-surveillance.jpg",
+    "originalPrompt": "Editorial illustration, thoughtful tone, off-white background. An overhead view of a diverse crowd of simple stylized human silhouettes walking on a plain plaza. Over the crowd, a translucent pale-blue grid overlay snaps to each person's head with a small tracking rectangle and thin connector lines to edge-of-frame marker dots. Most rectangles are plain; a few are highlighted amber to suggest selective tracking. Muted navy, warm gray, pale blue grid, amber accents. Flat editorial magazine style, no text, no cartoons. 16:9 composition.",
+    "enrichedPrompt": "Editorial illustration, thoughtful tone, off-white background. An overhead view of a diverse crowd of simple stylized human silhouettes walking on a plain plaza. Over the crowd, a translucent pale-blue grid overlay snaps to each person's head with a small tracking rectangle and thin connector lines to edge-of-frame marker dots. Most rectangles are plain; a few are highlighted amber to suggest selective tracking. Muted navy, warm gray, pale blue grid, amber accents. Flat editorial magazine style, no text, no cartoons. 16:9 composition.",
+    "style": "illustration",
+    "model": "nano-banana",
+    "aspect": "1:1",
+    "timestamp": "2026-04-21T12:18:05.817Z",
+    "success": true
+  },
+  {
+    "filename": "ai-art-human-vs-ai.jpg",
+    "originalPrompt": "Editorial illustration, thoughtful tone, off-white background. Side-by-side composition: on the left, a human hand holding a pencil mid-sketch above a blank sheet of paper, with a few organic pencil lines emerging. On the right, a stylized AI interface box displaying a finished artwork that is visually almost identical to the human sketch, but composed of faint mosaic thumbnails of many other artworks behind it (implying training data). A thin arrow connects the left and right. Muted navy, warm gray, soft coral accent. Flat editorial magazine style, no visible text or watermarks, no cartoons. 16:9 composition.",
+    "enrichedPrompt": "Editorial illustration, thoughtful tone, off-white background. Side-by-side composition: on the left, a human hand holding a pencil mid-sketch above a blank sheet of paper, with a few organic pencil lines emerging. On the right, a stylized AI interface box displaying a finished artwork that is visually almost identical to the human sketch, but composed of faint mosaic thumbnails of many other artworks behind it (implying training data). A thin arrow connects the left and right. Muted navy, warm gray, soft coral accent. Flat editorial magazine style, no visible text or watermarks, no cartoons. 16:9 composition.",
+    "style": "illustration",
+    "model": "nano-banana",
+    "aspect": "1:1",
+    "timestamp": "2026-04-21T12:18:32.025Z",
+    "success": true
+  }
+]
