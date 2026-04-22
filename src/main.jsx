@@ -5,6 +5,7 @@ import "./lib/theme"; // Apply saved theme before React renders
 import App from "./App";
 import "./index.css";
 import "./blocks.css";
+import "./styles/blocks-savanna.css";
 import "./preview.css";
 
 // Auto-reload if a stale JS chunk fails to load after a deploy
