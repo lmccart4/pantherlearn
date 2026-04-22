@@ -1,23 +1,55 @@
-// src/lib/theme.js — Theme (light/dark) utilities
-const STORAGE_KEY = 'pantherlearn-theme';
+// src/lib/theme.js — Savanna Signal theme + role
+const THEME_KEY = 'pantherlearn-theme';
+const ROLE_KEY = 'pantherlearn-role';
 
-export function getTheme() {
+function prefersDark() {
   try {
-    return localStorage.getItem(STORAGE_KEY) || 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
   } catch {
-    return 'dark';
+    return false;
   }
 }
 
-export function setTheme(theme) {
+export function getTheme() {
   try {
-    localStorage.setItem(STORAGE_KEY, theme);
-  } catch { /* localStorage unavailable */ }
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch { /* noop */ }
+  return prefersDark() ? 'dark' : 'light';
+}
+
+export function setTheme(theme) {
+  try { localStorage.setItem(THEME_KEY, theme); } catch { /* noop */ }
   document.documentElement.dataset.theme = theme;
 }
 
-// Apply immediately on import (runs before React render)
-const saved = getTheme();
-if (saved === 'light') {
-  document.documentElement.dataset.theme = 'light';
+export function toggleTheme() {
+  const next = getTheme() === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+  return next;
+}
+
+export function getRole() {
+  try {
+    const saved = localStorage.getItem(ROLE_KEY);
+    if (saved === 'teacher' || saved === 'guardian' || saved === 'student') return saved;
+  } catch { /* noop */ }
+  return 'student';
+}
+
+export function setRole(role) {
+  try { localStorage.setItem(ROLE_KEY, role); } catch { /* noop */ }
+  if (role && role !== 'student') {
+    document.documentElement.dataset.role = role;
+  } else {
+    delete document.documentElement.dataset.role;
+  }
+}
+
+// Apply immediately (before React renders)
+const theme = getTheme();
+document.documentElement.dataset.theme = theme;
+const role = getRole();
+if (role && role !== 'student') {
+  document.documentElement.dataset.role = role;
 }

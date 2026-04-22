@@ -1,0 +1,108 @@
+/* ──────────────────────────────────────────────────────────────
+   SAVANNA SIGNAL · TYPOGRAPHY
+   9 roles. Fonts loaded in index.html.
+   ────────────────────────────────────────────────────────────── */
+
+html, body {
+  font-family: var(--sans);
+  font-size: var(--t-base);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.t-display-1 {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: clamp(56px, 11vw, var(--t-mega));
+  line-height: 0.88;
+  letter-spacing: -0.035em;
+  font-variation-settings: "SOFT" 100, "opsz" 144;
+}
+.t-display-1 em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent-alt);
+  font-variation-settings: "SOFT" 20, "opsz" 144;
+}
+.t-display-1 u {
+  text-decoration: none;
+  background: linear-gradient(transparent 60%, var(--accent-hero) 60%);
+  padding: 0 .06em;
+}
+
+.t-display-2 {
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: clamp(40px, 7vw, var(--t-3xl));
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+  font-variation-settings: "SOFT" 60;
+}
+
+.t-h1 {
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: var(--t-xl);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.t-h2 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: var(--t-lg);
+  line-height: 1.2;
+}
+
+.t-body-lg {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: var(--t-md);
+  line-height: 1.55;
+  max-width: 56ch;
+}
+
+.t-body {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: var(--t-base);
+  line-height: 1.6;
+}
+
+.t-caption {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+}
+
+.t-stamp {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.t-numeric {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: 74px;
+  line-height: 0.85;
+  letter-spacing: -0.035em;
+  font-variation-settings: "SOFT" 100, "opsz" 144;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Non-Latin adjustment */
+:lang(zh), :lang(ja), :lang(ko), :lang(th), :lang(ar) {
+  line-height: 1.7;
+}
+:lang(zh) .t-display-1, :lang(ja) .t-display-1, :lang(ko) .t-display-1,
+:lang(zh) .t-display-2, :lang(ja) .t-display-2, :lang(ko) .t-display-2 {
+  font-size: clamp(40px, 7vw, 72px);
+  font-style: normal;
+}
