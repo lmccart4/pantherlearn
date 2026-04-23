@@ -607,16 +607,14 @@ export default function ClassChat() {
   useEffect(() => {
     if (!courseId || !user) return;
 
-    let q;
-    if (userRole === "teacher") {
-      q = query(collection(db, "courses", courseId, "chats"), orderBy("lastMessageAt", "desc"));
-    } else {
-      q = query(
-        collection(db, "courses", courseId, "chats"),
-        where("members", "array-contains", user.uid),
-        orderBy("lastMessageAt", "desc")
-      );
-    }
+    // Teacher widget only shows chats the teacher is actually a member of
+    // (i.e. messages directed at them). The full course-wide view lives in
+    // the Message Center.
+    const q = query(
+      collection(db, "courses", courseId, "chats"),
+      where("members", "array-contains", user.uid),
+      orderBy("lastMessageAt", "desc")
+    );
 
     const unsub = onSnapshot(q, (snap) => {
       setChats(snap.docs.map((d) => ({ id: d.id, ...d.data() })));

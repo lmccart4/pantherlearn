@@ -344,6 +344,7 @@ export default function StudentMana() {
   // Quote request modal
   const [quoteModal, setQuoteModal] = useState(null);
   const [quoteDescription, setQuoteDescription] = useState("");
+  const [quoteModelUrl, setQuoteModelUrl] = useState("");
 
   // Suggest a reward modal
   const [showSuggestModal, setShowSuggestModal] = useState(false);
@@ -1235,7 +1236,7 @@ export default function StudentMana() {
                   try {
                     // Status-first: the Firestore rule only allows priced→accepted once,
                     // so a stale-state double-click fails here before any mana moves.
-                    await updateDoc(doc(db, "courses", courseId, "manaRequests", req.id), { status: "accepted" });
+                    await updateDoc(doc(db, "courses", courseId, "manaRequests", req.id), { status: "accepted", acceptedAt: new Date().toISOString() });
                     await chargeStudentMana(courseId, user.uid, req.quotedCost, `Custom 3D Print: ${req.description}`);
                     setToast("Accepted! Your print is on the way.");
                     setTimeout(() => setToast(null), 3000);
@@ -1555,18 +1556,48 @@ export default function StudentMana() {
             position: "fixed", inset: 0, background: "rgba(5,2,15,0.8)", zIndex: 9999,
             display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
             backdropFilter: "blur(4px)",
-          }} onClick={() => { setQuoteModal(null); setQuoteDescription(""); }}>
+          }} onClick={() => { setQuoteModal(null); setQuoteDescription(""); setQuoteModelUrl(""); }}>
+            {(() => {
+              const isValidUrl = (() => {
+                const u = quoteModelUrl.trim();
+                if (!u) return false;
+                try {
+                  const parsed = new URL(u);
+                  return parsed.protocol === "http:" || parsed.protocol === "https:";
+                } catch { return false; }
+              })();
+              const canSubmit = quoteDescription.trim() && isValidUrl;
+              const submit = async () => {
+                if (!canSubmit) return;
+                try {
+                  await createManaRequest({
+                    courseId,
+                    studentUid: user.uid,
+                    studentName: user.displayName || user.email || "Student",
+                    powerId: quoteModal.id,
+                    powerName: quoteModal.name || "Custom 3D Print",
+                    cost: 0,
+                    details: quoteDescription.trim(),
+                    type: "quote",
+                    modelUrl: quoteModelUrl.trim(),
+                  });
+                  setQuoteModal(null); setQuoteDescription(""); setQuoteModelUrl("");
+                  setToast("Request sent! Mr. McCarthy will set the price.");
+                  setTimeout(() => setToast(null), 3000);
+                } catch (err) { alert(err.message); }
+              };
+              return (
             <div onClick={(e) => e.stopPropagation()} style={{
               background: `linear-gradient(135deg, ${MANA_SURFACE}, ${MANA_GRAD_MID2})`,
               borderRadius: 14, padding: "28px 32px",
-              maxWidth: 400, width: "100%", border: `1px solid ${MANA_BORDER}`,
+              maxWidth: 440, width: "100%", border: `1px solid ${MANA_BORDER}`,
               boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${ACCENT}22`,
             }}>
               <div style={{ textAlign: "center", marginBottom: 16 }}>
                 <div style={{ fontSize: 36, marginBottom: 8 }}>🏗️</div>
                 <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: MANA_TEXT }}>Request a Custom 3D Print</div>
                 <div style={{ fontSize: 13, color: MANA_TEXT_MUTED, marginBottom: 16 }}>
-                  Describe what you want printed. Mr. McCarthy will set the price.
+                  Describe what you want printed and paste a link to the model. Mr. McCarthy will set the price.
                 </div>
               </div>
               <input
@@ -1574,36 +1605,33 @@ export default function StudentMana() {
                 placeholder="Describe what you want printed"
                 value={quoteDescription}
                 onChange={(e) => setQuoteDescription(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && quoteDescription.trim()) {
-                    (async () => {
-                      try {
-                        await createManaRequest({
-                          courseId,
-                          studentUid: user.uid,
-                          studentName: user.displayName || user.email || "Student",
-                          powerId: quoteModal.id,
-                          powerName: quoteModal.name || "Custom 3D Print",
-                          cost: 0,
-                          details: quoteDescription.trim(),
-                          type: "quote",
-                        });
-                        setQuoteModal(null); setQuoteDescription("");
-                        setToast("Request sent! Mr. McCarthy will set the price.");
-                        setTimeout(() => setToast(null), 3000);
-                      } catch (err) { alert(err.message); }
-                    })();
-                  }
-                }}
                 style={{
                   width: "100%", padding: "10px 14px", borderRadius: 8,
                   border: `1px solid ${MANA_BORDER}`, background: MANA_SURFACE2,
-                  color: MANA_TEXT, fontSize: 14, marginBottom: 16,
+                  color: MANA_TEXT, fontSize: 14, marginBottom: 10,
                 }}
               />
+              <input
+                type="url"
+                placeholder="Link to the model (Thingiverse, Printables, etc.)"
+                value={quoteModelUrl}
+                onChange={(e) => setQuoteModelUrl(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: 8,
+                  border: `1px solid ${quoteModelUrl.trim() && !isValidUrl ? "#ef4444" : MANA_BORDER}`,
+                  background: MANA_SURFACE2,
+                  color: MANA_TEXT, fontSize: 14, marginBottom: 6,
+                }}
+              />
+              <div style={{ fontSize: 11, color: quoteModelUrl.trim() && !isValidUrl ? "#ef4444" : MANA_TEXT_MUTED, marginBottom: 14, minHeight: 16 }}>
+                {quoteModelUrl.trim() && !isValidUrl
+                  ? "Must be a valid http:// or https:// link"
+                  : "Required — the exact model you want printed"}
+              </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button
-                  onClick={() => { setQuoteModal(null); setQuoteDescription(""); }}
+                  onClick={() => { setQuoteModal(null); setQuoteDescription(""); setQuoteModelUrl(""); }}
                   style={{
                     flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${MANA_BORDER}`,
                     background: "transparent", color: MANA_TEXT_MUTED, fontWeight: 600, fontSize: 14, cursor: "pointer",
@@ -1612,36 +1640,22 @@ export default function StudentMana() {
                   Cancel
                 </button>
                 <button
-                  disabled={!quoteDescription.trim()}
-                  onClick={async () => {
-                    try {
-                      await createManaRequest({
-                        courseId,
-                        studentUid: user.uid,
-                        studentName: user.displayName || user.email || "Student",
-                        powerId: quoteModal.id,
-                        powerName: quoteModal.name || "Custom 3D Print",
-                        cost: 0,
-                        details: quoteDescription.trim(),
-                        type: "quote",
-                      });
-                      setQuoteModal(null); setQuoteDescription("");
-                      setToast("Request sent! Mr. McCarthy will set the price.");
-                      setTimeout(() => setToast(null), 3000);
-                    } catch (err) { alert(err.message); }
-                  }}
+                  disabled={!canSubmit}
+                  onClick={submit}
                   className="mana-spell-btn"
                   style={{
                     flex: 1, padding: "10px 0", borderRadius: 8, border: "none",
-                    background: quoteDescription.trim() ? `linear-gradient(135deg, ${ACCENT}, #c9a020)` : MANA_SURFACE,
-                    color: quoteDescription.trim() ? "#fff" : MANA_TEXT_MUTED,
-                    fontWeight: 600, fontSize: 14, cursor: quoteDescription.trim() ? "pointer" : "default",
+                    background: canSubmit ? `linear-gradient(135deg, ${ACCENT}, #c9a020)` : MANA_SURFACE,
+                    color: canSubmit ? "#fff" : MANA_TEXT_MUTED,
+                    fontWeight: 600, fontSize: 14, cursor: canSubmit ? "pointer" : "default",
                   }}
                 >
                   Send Request
                 </button>
               </div>
             </div>
+              );
+            })()}
           </div>
         )}
 

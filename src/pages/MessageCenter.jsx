@@ -112,14 +112,18 @@ export default function MessageCenter() {
         });
         setStudentMap(users);
 
-        // Fetch ALL chats for this course (teacher has read access)
+        // Fetch ALL chats for this course (teacher has read access),
+        // then exclude chats the teacher is a member of — those belong in
+        // the floating message widget, not the course-wide Message Center.
         const chatsSnap = await getDocs(
           query(
             collection(db, "courses", selectedCourse, "chats"),
             orderBy("lastMessageAt", "desc")
           )
         );
-        const chatList = chatsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const chatList = chatsSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((c) => !(c.members || []).includes(user?.uid));
         setChats(chatList);
       } catch (err) {
         console.error("Error fetching message center data:", err);
@@ -127,7 +131,7 @@ export default function MessageCenter() {
       setLoadingData(false);
     };
     fetchCourseData();
-  }, [selectedCourse]);
+  }, [selectedCourse, user?.uid]);
 
   // ─── Step 3: Load announcements when course or tab changes ───
   useEffect(() => {

@@ -27,7 +27,7 @@ const lesson = {
     {
       id: "b-hero-image",
       type: "image",
-      url: "https://firebasestorage.googleapis.com/v0/b/pantherlearn-d6f7c.firebasestorage.app/o/lesson-images%2Fdigital-literacy%2Fdl-value-prop-features-vs-benefits.jpg?alt=media",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/dl-value-prop-features-vs-benefits.jpg",
       caption: "Same laptop. Two very different ads.",
       alt: "Two laptop advertisements side by side for the same silver laptop. The left panel labeled FEATURES lists tech specs: 16GB RAM, 1TB SSD, 14-inch OLED Display, 12-core CPU, 18-hour battery, Aluminum chassis. The right panel labeled BENEFITS shows a young woman writing in a sunny cafe with the laptop, with handwritten text overlays reading 'Write your novel anywhere,' 'All-day battery,' 'Feels made for you.' A caption across the bottom reads SAME LAPTOP. DIFFERENT STORY."
     },

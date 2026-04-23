@@ -106,6 +106,15 @@
   .reflection { background: rgba(96,165,250,0.06); border-left: 3px solid var(--blue); padding: 12px 16px; border-radius: 4px; font-size: 14px; line-height: 1.55; }
   .reflection strong { color: var(--blue); }
 
+  .rules-summary-title { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: 0.1em; text-transform: uppercase; margin: 16px 0 8px; }
+  .rules-summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .rule-summary-card { background: var(--panel-2); border: 1px solid var(--line); border-left: 4px solid var(--amber); border-radius: 8px; padding: 10px 13px; }
+  .rule-summary-card .rsc-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .rule-summary-card .rsc-num { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--amber); }
+  .rule-summary-card .rsc-count { font-size: 11px; font-weight: 700; color: var(--reject); }
+  .rule-summary-card .rsc-text { font-size: 13px; line-height: 1.4; font-weight: 600; margin-bottom: 4px; }
+  .rule-summary-card .rsc-bias { font-size: 12px; line-height: 1.45; color: var(--muted); }
+
   .submit-score-btn { margin-top: 14px; padding: 11px 22px; background: var(--violet); color: #110624; font-weight: 700; border: none; border-radius: 9px; font-size: 14.5px; cursor: pointer; }
   .submit-score-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
@@ -346,10 +355,27 @@ function renderFinal() {
   const panel = document.createElement("div");
   panel.className = "final-panel";
   const pct = Math.round((totalScore / MAX_SCORE) * 100);
+  // Count how many candidates each rule rejected, for the summary cards
+  const perRuleRejections = RULES.map(rule => RESUMES.filter(r => rule.eval(r)).length);
+
   panel.innerHTML = `
     <h2>The Bias Reveal</h2>
     <div class="final-score">${totalScore} / ${MAX_SCORE}</div>
     <div class="final-subtext">${pct}% of your filter decisions matched what the AI would do. This score measures whether you can *predict the AI's behavior* — not whether the AI is right.</div>
+
+    <div class="rules-summary-title">All 6 Rules — Which One Did the Most Damage?</div>
+    <div class="rules-summary-grid">
+      ${RULES.map((rule, i) => `
+        <div class="rule-summary-card">
+          <div class="rsc-head">
+            <span class="rsc-num">Rule ${i + 1}</span>
+            <span class="rsc-count">${perRuleRejections[i]} of ${RESUMES.length} rejected</span>
+          </div>
+          <div class="rsc-text">"${rule.text}"</div>
+          <div class="rsc-bias">${rule.biasNote}</div>
+        </div>
+      `).join('')}
+    </div>
 
     <table class="reveal-table">
       <thead>

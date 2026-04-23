@@ -13,6 +13,8 @@ import { renderMarkdown } from "../../lib/utils";
 function isAllowedOrigin(origin) {
   if (!origin) return false;
   if (/^https:\/\/(paps-tools|pantherlearn|pantherprep|brstatus)[a-z0-9-]*\.(web\.app|firebaseapp\.com)$/.test(origin)) return true;
+  // Custom production domains (Firebase custom-domain routing)
+  if (/^https:\/\/(pantherlearn|pantherprep)\.com$/.test(origin)) return true;
   if (/^https:\/\/[a-z0-9-]+-paps\.(web\.app|firebaseapp\.com)$/.test(origin)) return true;
   if (origin === window.location.origin) return true;
   // Allow localhost for development

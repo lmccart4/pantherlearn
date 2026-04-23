@@ -21,11 +21,11 @@ import { db } from "./firebase";
  */
 export async function createManaRequest({
   courseId, studentUid, studentName, powerId, powerName, cost,
-  details = "", autoFulfilled = false, type,
+  details = "", autoFulfilled = false, type, modelUrl,
 }) {
   const resolvedType = type || (autoFulfilled ? "auto-applied" : "fulfillment");
   const colRef = collection(db, "courses", courseId, "manaRequests");
-  const docRef = await addDoc(colRef, {
+  const payload = {
     type: resolvedType,
     studentUid,
     studentName,
@@ -39,7 +39,9 @@ export async function createManaRequest({
     notifiedAt: null,
     fulfilledAt: autoFulfilled ? new Date().toISOString() : null,
     createdAt: new Date().toISOString(),
-  });
+  };
+  if (modelUrl) payload.modelUrl = modelUrl;
+  const docRef = await addDoc(colRef, payload);
   return docRef.id;
 }
 
@@ -49,6 +51,49 @@ export async function markRequestFulfilled(courseId, requestId, note = "") {
     status: "fulfilled",
     fulfilledAt: new Date().toISOString(),
     fulfillmentNote: note,
+  });
+}
+
+export async function markRequestAccepted(courseId, requestId) {
+  const ref = doc(db, "courses", courseId, "manaRequests", requestId);
+  await updateDoc(ref, {
+    status: "accepted",
+    acceptedAt: new Date().toISOString(),
+  });
+}
+
+export async function revertRequestToPending(courseId, requestId) {
+  const ref = doc(db, "courses", courseId, "manaRequests", requestId);
+  await updateDoc(ref, {
+    status: "pending",
+    acceptedAt: null,
+  });
+}
+
+export async function priceQuote(courseId, requestId, price) {
+  const ref = doc(db, "courses", courseId, "manaRequests", requestId);
+  await updateDoc(ref, {
+    status: "priced",
+    quotedCost: price,
+    pricedAt: new Date().toISOString(),
+  });
+}
+
+export async function declineQuote(courseId, requestId) {
+  const ref = doc(db, "courses", courseId, "manaRequests", requestId);
+  await updateDoc(ref, {
+    status: "declined",
+    declinedAt: new Date().toISOString(),
+  });
+}
+
+export async function cancelQuote(courseId, requestId) {
+  // Teacher retracts a quote that hasn't been accepted yet → back to pending
+  const ref = doc(db, "courses", courseId, "manaRequests", requestId);
+  await updateDoc(ref, {
+    status: "pending",
+    quotedCost: null,
+    pricedAt: null,
   });
 }
 

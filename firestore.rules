@@ -89,7 +89,7 @@ service cloud.firestore {
               && resource.data.studentUid == request.auth.uid
               && resource.data.status == "priced"
               && request.resource.data.status in ["accepted", "cancelled"]
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"]));
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "acceptedAt"]));
         allow delete: if isCourseTeacher(courseId);
       }
       match /bossBattles/{battleId} {
