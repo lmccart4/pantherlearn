@@ -2065,7 +2065,7 @@ exports.generateImage = onCall(
       }
     }
 
-    const { prompt, aspectRatio } = request.data;
+    const { prompt, aspectRatio, blockId, cap: rawCap } = request.data;
     if (!prompt || typeof prompt !== "string" || prompt.trim().length < 3) {
       throw new HttpsError("invalid-argument", "Prompt must be at least 3 characters.");
     }
@@ -2073,8 +2073,22 @@ exports.generateImage = onCall(
       throw new HttpsError("invalid-argument", "Prompt must be under 500 characters.");
     }
 
-    // Rate limit: 5 per minute per student
+    // Per-block lifetime cap (students only; teachers bypass).
+    // If blockId omitted, no per-block cap applies (legacy callers unaffected).
     const uid = request.auth.uid;
+    const cap = typeof rawCap === "number" && rawCap > 0 ? Math.min(Math.floor(rawCap), 100) : 10;
+    const usageRef = blockId && typeof blockId === "string" && !isTeacher
+      ? db.collection("imageGenUsage").doc(`${uid}__${blockId}`)
+      : null;
+    if (usageRef) {
+      const usageDoc = await usageRef.get();
+      const used = usageDoc.exists ? (usageDoc.data().count || 0) : 0;
+      if (used >= cap) {
+        throw new HttpsError("resource-exhausted", `You've used all ${cap} image generations for this activity.`);
+      }
+    }
+
+    // Rate limit: 10 per minute per student
     const now = Date.now();
     const rateLimitRef = db.collection("imageGenRateLimit").doc(uid);
     const rateLimitDoc = await rateLimitRef.get();
@@ -2198,13 +2212,54 @@ exports.generateImage = onCall(
           textResponse = parts.find(p => p.text)?.text || "";
         }
 
-        return { image: imageData, mimeType, text: textResponse };
+        // Increment per-block counter (best effort; don't fail the request if this errors)
+        if (usageRef) {
+          try {
+            await usageRef.set({
+              count: admin.firestore.FieldValue.increment(1),
+              lastAt: now,
+              cap,
+            }, { merge: true });
+          } catch (e) {
+            console.warn("imageGenUsage increment failed:", e.message);
+          }
+        }
+        const remaining = usageRef
+          ? Math.max(0, cap - ((await usageRef.get()).data()?.count || 0))
+          : null;
+        return { image: imageData, mimeType, text: textResponse, remaining, cap: usageRef ? cap : null };
       } catch (err) {
         if (err instanceof HttpsError) throw err;
         if (attempt < slots.length - 1) continue;
         throw new HttpsError("internal", `Generation failed: ${err.message}`);
       }
     }
+  }
+);
+
+// Returns { used, cap, remaining } for a given (uid, blockId). Teachers always see used:0.
+exports.getImageGenUsage = onCall(
+  { enforceAppCheck: false, maxInstances: 10 },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Must be signed in.");
+    }
+    const { blockId, cap: rawCap } = request.data || {};
+    if (!blockId || typeof blockId !== "string") {
+      throw new HttpsError("invalid-argument", "blockId required.");
+    }
+    const cap = typeof rawCap === "number" && rawCap > 0 ? Math.min(Math.floor(rawCap), 100) : 10;
+
+    const email = request.auth.token?.email || "";
+    const isTeacher = email === "lucamccarthy@paps.net" || email === "lmccart4@gmail.com" || email.includes("@lachlan.internal");
+    if (isTeacher) {
+      return { used: 0, cap, remaining: cap };
+    }
+
+    const uid = request.auth.uid;
+    const doc = await db.collection("imageGenUsage").doc(`${uid}__${blockId}`).get();
+    const used = doc.exists ? (doc.data().count || 0) : 0;
+    return { used, cap, remaining: Math.max(0, cap - used) };
   }
 );
 

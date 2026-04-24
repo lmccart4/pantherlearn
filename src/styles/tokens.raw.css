@@ -35,6 +35,11 @@
   --hazard-red: #b91c1c;
   --hazard-red-deep: #7f1313;
   --hazard-red-ink: #f8e8e8;
+  /* Light-mode amber-for-accent swap: dark amber (AA on paper) so
+     legacy --amber references don't turn into unreadable yellow on
+     paper. Keeps the "yellow/warning" semantic feel. */
+  --amber-deep: #a16207;
+  --amber-deep-ink: #fff7e0;
   --forest: #143d30;
   --plum: #6b1e6b;
 
@@ -109,9 +114,11 @@
   --brand-light: var(--lime);
   --brand-muted: color-mix(in oklab, var(--lime) 30%, transparent);
   --brand-subtle: color-mix(in oklab, var(--lime) 12%, transparent);
-  --amber: var(--hazard);
-  --amber-bright: var(--hazard);
-  --amber-dim: color-mix(in oklab, var(--hazard) 30%, transparent);
+  /* --amber: mode-aware via --amber-display (deep amber in light, yellow in dark).
+     See tokens.semantic.css for the swap. */
+  --amber: var(--amber-display);
+  --amber-bright: var(--amber-display);
+  --amber-dim: color-mix(in oklab, var(--amber-display) 30%, transparent);
   --green: var(--lime);
   --green-muted: color-mix(in oklab, var(--lime) 22%, transparent);
   --red: var(--coral);

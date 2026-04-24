@@ -6,7 +6,8 @@ import { useAuth } from "../hooks/useAuth";
 import {
   CLASSES, SKIN_TONES, HAIR_COLORS, EYE_COLORS, PETS, ACCESSORIES,
   DEFAULT_AVATAR, VISUAL_TIERS,
-  getAvatar, saveAvatar, getUnlockedItems,
+  getAvatar, saveAvatar, getUnlockedItems, isItemUnlocked,
+  getAvatarRentals, rentAvatarItem,
 } from "../lib/avatar";
 import { getStudentGamification, getLevelInfo } from "../lib/gamification";
 import { getStudentEnrolledCourseIds } from "../lib/enrollment";
@@ -24,6 +25,10 @@ export default function AvatarCreator() {
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [hoverPreview, setHoverPreview] = useState(null);
+  const [rentals, setRentals] = useState({});
+  const [primaryCourseId, setPrimaryCourseId] = useState(null);
+  const [renting, setRenting] = useState(null);
+  const [rentError, setRentError] = useState("");
 
   // ─── UI chrome strings ───
   const uiStrings = useTranslatedTexts([
@@ -126,6 +131,7 @@ export default function AvatarCreator() {
       // primary course — and thus the XP used for unlock checks — always matches
       // what the student sees on their dashboard.
       let xp = 0;
+      let pcid = null;
       try {
         const enrolledSet = await getStudentEnrolledCourseIds(user.uid);
         if (enrolledSet.size > 0) {
@@ -133,18 +139,20 @@ export default function AvatarCreator() {
           const orderedEnrolled = coursesSnap.docs
             .map((d) => ({ id: d.id, ...d.data() }))
             .filter((c) => !c.hidden && enrolledSet.has(c.id));
-          const primaryCourseId = orderedEnrolled.length > 0 ? orderedEnrolled[0].id : [...enrolledSet][0];
-          const gam = await getStudentGamification(user.uid, primaryCourseId);
+          pcid = orderedEnrolled.length > 0 ? orderedEnrolled[0].id : [...enrolledSet][0];
+          const gam = await getStudentGamification(user.uid, pcid);
           xp = gam.totalXP || 0;
         }
       } catch (e) {
-        // Fallback to global gamification doc
         const gam = await getStudentGamification(user.uid);
         xp = gam.totalXP || 0;
       }
 
+      const activeRentals = await getAvatarRentals(user.uid);
+      setRentals(activeRentals);
+      setPrimaryCourseId(pcid);
       setTotalXP(xp);
-      setUnlocked(getUnlockedItems(xp));
+      setUnlocked(getUnlockedItems(xp, user.uid, activeRentals));
       setLoaded(true);
     })();
   }, [user]);
@@ -171,6 +179,41 @@ export default function AvatarCreator() {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleRent = async (item, assignKey) => {
+    if (!user || !primaryCourseId) {
+      setRentError("No active course for mana — can't rent right now.");
+      setTimeout(() => setRentError(""), 3500);
+      return;
+    }
+    const ok = window.confirm(
+      `Rent ${item.name} for ${item.rentalHours}h? Costs ${item.rentalCost} ✦ mana.`
+    );
+    if (!ok) return;
+    setRenting(item.id);
+    setRentError("");
+    try {
+      const { expiresAt } = await rentAvatarItem(primaryCourseId, user.uid, item);
+      const nextRentals = { ...rentals, [item.id]: expiresAt };
+      setRentals(nextRentals);
+      setUnlocked(getUnlockedItems(totalXP, user.uid, nextRentals));
+      if (assignKey) update(assignKey, item.id);
+    } catch (e) {
+      setRentError(e.code === "INSUFFICIENT_MANA" ? e.message : `Rental failed: ${e.message}`);
+      setTimeout(() => setRentError(""), 5000);
+    } finally {
+      setRenting(null);
+    }
+  };
+
+  const rentalHoursLeft = (itemId) => {
+    const iso = rentals[itemId];
+    if (!iso) return null;
+    const ms = new Date(iso).getTime() - Date.now();
+    if (ms <= 0) return null;
+    const hrs = Math.ceil(ms / (60 * 60 * 1000));
+    return hrs;
   };
 
   if (!loaded) {
@@ -281,25 +324,38 @@ export default function AvatarCreator() {
 
           {/* ─── Options Panel ─── */}
           <div style={styles.options}>
+            {rentError && <div style={styles.rentError}>{rentError}</div>}
             {/* Class */}
             <Section title={ui(11, "Class")}>
               <div style={styles.optGrid}>
                 {allClasses.map((c) => {
-                  const locked = level < c.unlockLevel;
+                  const locked = !isItemUnlocked(c, level, user?.uid, rentals);
+                  const rentable = locked && c.rentable;
+                  const hoursLeft = rentalHoursLeft(c.id);
                   return (
                     <OptionCard
                       key={c.id}
                       selected={avatar.classId === c.id}
                       locked={locked}
+                      rentable={rentable}
                       lockLevel={c.unlockLevel}
-                      onClick={() => !locked && update("classId", c.id)}
+                      onClick={() => {
+                        if (!locked) return update("classId", c.id);
+                        if (rentable && renting !== c.id) handleRent(c, "classId");
+                      }}
                       accent={c.color.accent}
                       onHover={() => hover("classId", c.id)}
                       onUnhover={unhover}
                     >
                       <div style={styles.optIcon}>{c.icon}</div>
                       <div style={styles.optName} data-translatable>{tClass(c.id)}</div>
-                      {locked && <div style={styles.lockBadge}>Lv {c.unlockLevel}</div>}
+                      {locked && rentable && (
+                        <div style={styles.rentBadge}>{renting === c.id ? "..." : `Rent ${c.rentalCost}✦`}</div>
+                      )}
+                      {locked && !rentable && <div style={styles.lockBadge}>Lv {c.unlockLevel}</div>}
+                      {!locked && hoursLeft != null && (
+                        <div style={styles.rentActiveBadge}>{hoursLeft}h left</div>
+                      )}
                     </OptionCard>
                   );
                 })}
@@ -383,20 +439,32 @@ export default function AvatarCreator() {
             <Section title={ui(15, "Companion Pet")}>
               <div style={styles.optGrid}>
                 {sortedPets.map((p) => {
-                  const locked = level < p.unlockLevel;
+                  const locked = !isItemUnlocked(p, level, user?.uid, rentals);
+                  const rentable = locked && p.rentable;
+                  const hoursLeft = rentalHoursLeft(p.id);
                   return (
                     <OptionCard
                       key={p.id}
                       selected={avatar.petId === p.id}
                       locked={locked}
+                      rentable={rentable}
                       lockLevel={p.unlockLevel}
-                      onClick={() => !locked && update("petId", p.id)}
+                      onClick={() => {
+                        if (!locked) return update("petId", p.id);
+                        if (rentable && renting !== p.id) handleRent(p, "petId");
+                      }}
                       onHover={() => hover("petId", p.id)}
                       onUnhover={unhover}
                     >
                       <div style={styles.optIcon}>{p.icon}</div>
                       <div style={styles.optName} data-translatable>{tPet(p.id)}</div>
-                      {locked && <div style={styles.lockBadge}>Lv {p.unlockLevel}</div>}
+                      {locked && rentable && (
+                        <div style={styles.rentBadge}>{renting === p.id ? "..." : `Rent ${p.rentalCost}✦`}</div>
+                      )}
+                      {locked && !rentable && <div style={styles.lockBadge}>Lv {p.unlockLevel}</div>}
+                      {!locked && hoursLeft != null && (
+                        <div style={styles.rentActiveBadge}>{hoursLeft}h left</div>
+                      )}
                     </OptionCard>
                   );
                 })}
@@ -407,7 +475,7 @@ export default function AvatarCreator() {
             <Section title={ui(16, "Accessory")}>
               <div style={styles.optGrid}>
                 {sortedAccSlot.map((a) => {
-                  const locked = level < a.unlockLevel;
+                  const locked = !isItemUnlocked(a, level, user?.uid, rentals);
                   return (
                     <OptionCard
                       key={a.id}
@@ -431,7 +499,7 @@ export default function AvatarCreator() {
             <Section title={ui(17, "Special Power")}>
               <div style={styles.optGrid}>
                 {sortedPowerSlot.map((a) => {
-                  const locked = level < a.unlockLevel;
+                  const locked = !isItemUnlocked(a, level, user?.uid, rentals);
                   return (
                     <OptionCard
                       key={a.id}
@@ -501,7 +569,7 @@ function Section({ title, children }) {
   );
 }
 
-function OptionCard({ children, selected, locked, lockLevel, onClick, accent, onHover, onUnhover }) {
+function OptionCard({ children, selected, locked, lockLevel, onClick, accent, onHover, onUnhover, rentable }) {
   return (
     <button
       onClick={onClick}
@@ -509,10 +577,10 @@ function OptionCard({ children, selected, locked, lockLevel, onClick, accent, on
       onMouseLeave={onUnhover || undefined}
       style={{
         ...styles.optCard,
-        border: selected ? "2px solid #8b5cf6" : "2px solid #2a2e42",
+        border: selected ? "2px solid #8b5cf6" : (rentable ? "2px solid rgba(139,92,246,0.45)" : "2px solid #2a2e42"),
         background: selected ? "rgba(139,92,246,0.1)" : "#1e2235",
-        opacity: locked ? 0.5 : 1,
-        cursor: locked ? "default" : "pointer",
+        opacity: locked && !rentable ? 0.5 : (locked ? 0.75 : 1),
+        cursor: locked && !rentable ? "default" : "pointer",
         boxShadow: selected ? "0 0 12px #8b5cf633" : "none",
         transition: "all 0.15s, opacity 0.15s",
       }}
@@ -671,6 +739,39 @@ const styles = {
     borderRadius: 4,
     background: "rgba(243,156,18,0.2)",
     color: "#f39c12",
+  },
+  rentBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    fontSize: 9,
+    fontWeight: 800,
+    padding: "2px 6px",
+    borderRadius: 4,
+    background: "rgba(139,92,246,0.25)",
+    color: "#c4a6ff",
+    border: "1px solid rgba(139,92,246,0.5)",
+    pointerEvents: "none",
+  },
+  rentActiveBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    fontSize: 8,
+    fontWeight: 800,
+    padding: "1px 5px",
+    borderRadius: 4,
+    background: "rgba(46,204,113,0.2)",
+    color: "#2ecc71",
+  },
+  rentError: {
+    padding: "10px 14px",
+    margin: "12px 0",
+    borderRadius: 6,
+    background: "rgba(231,76,60,0.18)",
+    color: "#ff8a7a",
+    fontSize: 13,
+    border: "1px solid rgba(231,76,60,0.4)",
   },
   colorRow: { display: "flex", gap: 8, flexWrap: "wrap" },
   colorSwatch: {

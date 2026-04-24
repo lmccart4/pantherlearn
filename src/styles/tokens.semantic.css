@@ -55,6 +55,8 @@
   --status-danger-display: #B8391E;
   --status-success-display: #2A3B00; /* lime-ink, used for text on paper */
   --forest-display: var(--forest); /* forest is already dark enough on paper */
+  /* Legacy --amber bridge: dark amber on paper (AA-readable), bright yellow on ink */
+  --amber-display: var(--amber-deep);
 
   /* ambient */
   --grain-opacity: 0.12;
@@ -122,6 +124,8 @@ html[data-theme="dark"] {
   --status-warn-display: var(--hazard);
   --status-danger-display: var(--coral-lift);
   --status-success-display: var(--lime);
+  /* Dark mode: legacy --amber returns to bright yellow (plenty of contrast on ink) */
+  --amber-display: var(--hazard);
 
   /* Forest is too dark on ink — lift to lime */
   --forest-display: var(--lime);

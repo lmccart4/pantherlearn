@@ -4,16 +4,21 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
 
 const lesson = {
   title: "Revenue Models — How Does the Money Actually Work?",
+  questionOfTheDay: "If a creator has 10,000 followers but makes $0, and another has 500 followers but makes $3,000/month — what's the difference?",
   course: "Digital Literacy",
   unit: "Digital Entrepreneurship",
   order: 36,
   visible: false,
+  dueDate: "2026-04-23",
   blocks: [
 
     {
@@ -107,7 +112,17 @@ const lesson = {
     {
       id: "b-practice-intro",
       type: "text",
-      content: "Open Google Sheets. You're going to build a simple revenue plan for your business.\n\nThis is an estimate, not a prediction. The point isn't to hit a specific number — it's to think through *how* money flows through your business and whether the model is realistic.\n\nConnect your spreadsheet skills from Unit 4 — you already know how to build formulas."
+      content: "Open the **Revenue Autopsy Workbook** (button below). Go to **File → Make a copy** — work in your own copy, not the template.\n\nThe workbook has two parts:\n\n- **Part A — Autopsy:** dissect five real creators' revenue models. Calculate what they make; identify which model they're using.\n- **Part B — Your Plan:** build a simple revenue projection for your own business.\n\nThis is an estimate, not a prediction. The point is to think through *how* money flows through your business and whether the model is realistic."
+    },
+    {
+      id: "link-autopsy-sheet",
+      type: "external_link",
+      icon: "📊",
+      title: "Revenue Autopsy — Student Workbook",
+      url: "https://docs.google.com/spreadsheets/d/1uOv5_RrbbVpFwXb0CSWXbJQpNj0pWiVs2jgtvV0yn4M/edit",
+      description: "Make your own copy: File → Make a copy. Part A dissects five real creators; Part B is where you build your own revenue plan.",
+      buttonLabel: "Open the workbook",
+      openInNewTab: true
     },
     {
       id: "q-revenue-model",
@@ -132,6 +147,14 @@ const lesson = {
       prompt: "Reality check: Is your projected volume realistic for someone just starting? What would you need to achieve it — followers, customers, hours, marketing? What's the minimum you'd need to earn $100/month?",
       placeholder: "Is it realistic? ...\nTo achieve it I'd need: ...\nMinimum for $100/month: ...",
       difficulty: "evaluate"
+    },
+    {
+      id: "evidence-workbook",
+      type: "evidence_upload",
+      icon: "📷",
+      title: "Upload Your Completed Workbook",
+      instructions: "Share your completed Revenue Autopsy workbook (File → Share → Copy link → paste below) OR upload a screenshot of both Part A and Part B filled out.",
+      reflectionPrompt: "In one sentence: which of the five creators earns the most passively, and what makes that model 'passive'?"
     },
 
     {
@@ -167,9 +190,15 @@ const lesson = {
       type: "vocab_list",
       terms: [
         { term: "Revenue model", definition: "The mechanism by which a business earns money — how money flows from customer to creator." },
-        { term: "CPM", definition: "Cost per mille (cost per thousand views) — the amount advertisers pay per 1,000 views, used to calculate ad-supported revenue." },
-        { term: "Conversion rate", definition: "The percentage of people who take a desired action (upgrade from free to paid, make a purchase) — typically 2-5% for freemium models." },
+        { term: "Per-sale (one-time)", definition: "Revenue model where the customer pays once and receives the product. Templates, ebooks, art prints, digital downloads." },
+        { term: "Subscription", definition: "Revenue model where customers pay a recurring fee (monthly/yearly) for ongoing access to content, tools, or community." },
+        { term: "Ad-supported", definition: "Revenue model where content is free to the viewer and advertisers pay the creator based on views or clicks. YouTube, podcasts, blogs." },
+        { term: "Freemium", definition: "Revenue model where a basic version is free and premium features are paid. Typically 2–5% of free users upgrade." },
+        { term: "CPM", definition: "Cost per mille (cost per thousand views) — the amount advertisers pay per 1,000 views. YouTube CPM is roughly $3–5 for most niches." },
+        { term: "Conversion rate", definition: "The percentage of people who take a desired action (upgrade from free to paid, make a purchase) — typically 2–5% for freemium models." },
         { term: "Recurring revenue", definition: "Income that comes in regularly (monthly/yearly subscriptions) rather than one-time purchases — more predictable and scalable." },
+        { term: "Passive income", definition: "Revenue that keeps coming in without requiring your active time for each dollar — a course built once and sold forever is passive." },
+        { term: "Active income", definition: "Revenue that requires your time for every dollar earned — freelancing and hourly services are active. Capped by hours in the day." },
         { term: "Scalable", definition: "A business model that can grow revenue without a proportional increase in work — digital products are highly scalable; hourly services are not." }
       ]
     }
@@ -178,13 +207,12 @@ const lesson = {
 
 async function seed() {
   try {
-    await db.collection("courses").doc("digital-literacy")
-      .collection("lessons").doc("entrepreneurship-revenue")
-      .set(lesson);
+    const result = await safeLessonWrite(db, "digital-literacy", "entrepreneurship-revenue", lesson);
     console.log('✅ Lesson "Revenue Models" seeded!');
     console.log("   Path: courses/digital-literacy/lessons/entrepreneurship-revenue");
     console.log("   Blocks:", lesson.blocks.length);
     console.log("   Order:", lesson.order);
+    console.log(`   🛡  Action: ${result.action} (preserved ${result.preserved} IDs)`);
     process.exit(0);
   } catch (err) {
     console.error("❌ Error:", err);

@@ -4,16 +4,21 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
 
 const lesson = {
   title: "Branding 101 — Name, Logo, Colors, Vibe",
+  questionOfTheDay: "Why do you trust some brands you've never bought from, just based on how they look?",
   course: "Digital Literacy",
   unit: "Digital Entrepreneurship",
   order: 35,
   visible: false,
+  dueDate: "2026-04-23",
   blocks: [
 
     {
@@ -79,17 +84,17 @@ const lesson = {
       questionType: "multiple_choice",
       prompt: "A student is launching a tutoring service for anxious high school students who struggle with test prep. Which color palette would best support this brand?",
       options: [
-        "Red and black — creates urgency and makes students take it seriously",
-        "Soft blue and light green — communicates calm, trust, and supportive growth",
-        "Bright yellow and orange — energetic and exciting",
-        "Purple and gold — stands out and feels premium"
+        "Bright red and black — tells students you mean business and take test prep seriously",
+        "Muted blue and sage green — a quiet, steady tone across every page",
+        "Purple and gold — stands out as premium and professional",
+        "Orange and white — approachable, youthful, and high-energy"
       ],
       correctIndex: 1,
-      explanation: "For anxious students struggling with tests, the brand needs to communicate safety and calm — not more pressure. Soft blue (trust, calm) and light green (growth, supportive) directly address the emotional state of the target audience. Red/black would increase anxiety. The other options don't match the specific emotional need.",
+      explanation: "The audience is already anxious. The brand's job isn't to add intensity (red/black, orange) or flash (purple/gold) — it's to match the emotional state the student is hoping to feel: calm, steady, safe. Muted cool tones do that. Every other option adds arousal when the audience needs the opposite.",
       difficulty: "apply"
     },
     {
-      id: "q-brand-voice",
+      id: "q-voice-ab",
       type: "question",
       questionType: "short_answer",
       prompt: "Read these two social media captions for the same fitness app. Which brand voice do you think works better for a teen audience? Why?\n\n**Caption A:** \"Maximize your athletic performance with our clinically-validated workout protocols. Consult a physician before beginning any exercise program.\"\n\n**Caption B:** \"We'll be honest: the first week kinda hurts. The second week you start to feel different. Week 3? You won't recognize yourself. Start today 💪\"",
@@ -105,9 +110,19 @@ const lesson = {
       subtitle: "~15 minutes"
     },
     {
+      id: "link-canva",
+      type: "external_link",
+      icon: "🎨",
+      title: "Canva — Design your brand board",
+      url: "https://www.canva.com/",
+      description: "Use Canva to build a single-page brand board. Log in with your school Google account. Canva's \"Brand Board\" template is a good starting point.",
+      buttonLabel: "Open Canva",
+      openInNewTab: true
+    },
+    {
       id: "b-brand-kit-intro",
       type: "text",
-      content: "Open Canva and create a single-page brand board for your business. Your brand kit should include:\n\n- **Business name** (with a 1-sentence explanation of why you chose it)\n- **Logo** (even text-based is fine — keep it simple)\n- **Color palette** (3 colors with hex codes — use Canva's palette generator)\n- **Brand voice** (3 adjectives that describe how this brand talks)\n- **One sample social media post** using your brand's visual style\n\n**Time budget:** 5 min on name + logo, 5 min on colors + voice, 5 min on sample post. Don't get stuck on perfecting the logo."
+      content: "Create a single-page brand board for your business in Canva. Your brand kit should include:\n\n- **Business name** (with a 1-sentence explanation of why you chose it)\n- **Logo** (even text-based is fine — keep it simple)\n- **Color palette** (3 colors with hex codes — use Canva's palette generator)\n- **Brand voice** (3 adjectives that describe how this brand talks)\n- **One sample social media post** using your brand's visual style\n\n**Time budget:** 5 min on name + logo, 5 min on colors + voice, 5 min on sample post. Don't get stuck on perfecting the logo."
     },
     {
       id: "q-brand-name",
@@ -115,6 +130,14 @@ const lesson = {
       questionType: "short_answer",
       prompt: "What is your business name? Why did you choose it? (Is it short? Searchable? Does it hint at what the business does or who it's for?)",
       placeholder: "Name: ...\nWhy: ...",
+      difficulty: "create"
+    },
+    {
+      id: "q-brand-logo",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "Describe your logo. Is it a wordmark (styled text), a symbol, or both? Why is it **simple enough** to still read clearly at a very small size (like a favicon or an app icon on a phone)?",
+      placeholder: "Type (wordmark / symbol / both): ...\nDescription: ...\nWhy it still works small: ...",
       difficulty: "create"
     },
     {
@@ -132,6 +155,22 @@ const lesson = {
       prompt: "Describe your brand voice in 3 adjectives. Then write one sample caption in that voice for a hypothetical post about your business.",
       placeholder: "Brand voice adjectives: ...\nSample caption: ...",
       difficulty: "create"
+    },
+    {
+      id: "q-brand-sample-post",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "Look at the sample post on your brand board. Which specific brand choices — colors, typography, tone of voice — are visible in this one post? If your target audience saw this in their feed next to 20 other posts, what would make it recognizably **yours**?",
+      placeholder: "Brand choices visible: ...\nWhat makes it recognizable: ...",
+      difficulty: "analyze"
+    },
+    {
+      id: "evidence-brand-board",
+      type: "evidence_upload",
+      icon: "📷",
+      title: "Upload Your Brand Board",
+      instructions: "Export or screenshot your completed Canva brand board and upload it here. Your board should show: business name, logo, color palette (with hex codes), brand voice adjectives, and one sample social post.",
+      reflectionPrompt: "In one sentence: what's the strongest design choice on your board, and why will your specific audience respond to it?"
     },
 
     {
@@ -178,13 +217,12 @@ const lesson = {
 
 async function seed() {
   try {
-    await db.collection("courses").doc("digital-literacy")
-      .collection("lessons").doc("entrepreneurship-branding")
-      .set(lesson);
+    const result = await safeLessonWrite(db, "digital-literacy", "entrepreneurship-branding", lesson);
     console.log('✅ Lesson "Branding 101" seeded!');
     console.log("   Path: courses/digital-literacy/lessons/entrepreneurship-branding");
     console.log("   Blocks:", lesson.blocks.length);
     console.log("   Order:", lesson.order);
+    console.log(`   🛡  Action: ${result.action} (preserved ${result.preserved} IDs)`);
     process.exit(0);
   } catch (err) {
     console.error("❌ Error:", err);

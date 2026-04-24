@@ -609,21 +609,19 @@
 /* --- External Link --- */
 .external-link-block {
   display: flex;
-  gap: 12px;
-  align-items: center;
+  flex-direction: column;
+  gap: 10px;
   padding: var(--space-4);
   background: var(--bg-surface);
   border: 1.5px solid var(--fg-default);
   border-radius: var(--r-md);
-  text-decoration: none;
   color: var(--fg-default);
   box-shadow: var(--shadow-btn);
-  transition: transform var(--dur-fast) var(--ease-snap), box-shadow var(--dur-fast) var(--ease-snap);
 }
-.external-link-block:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 var(--fg-default);
-  text-decoration: none;
+.external-link-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .external-link-icon {
   width: 40px;
@@ -642,11 +640,39 @@
   font-weight: 800;
   font-size: var(--t-md);
   color: var(--fg-default);
+  margin: 0;
 }
+.external-link-description,
 .external-link-desc {
   font-size: var(--t-sm);
   color: var(--fg-muted);
-  margin-top: 2px;
+  line-height: 1.5;
+}
+.external-link-button {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--accent-hero);
+  color: var(--accent-hero-ink);
+  border: 1.5px solid var(--fg-default);
+  border-radius: var(--r-sm);
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: var(--t-sm);
+  text-decoration: none;
+  box-shadow: 2px 2px 0 var(--fg-default);
+  transition: transform var(--dur-fast) var(--ease-snap), box-shadow var(--dur-fast) var(--ease-snap);
+}
+.external-link-button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--fg-default);
+  text-decoration: none;
+}
+.external-link-button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--fg-default);
 }
 
 /* --- Calculator Block --- */

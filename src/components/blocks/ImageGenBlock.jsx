@@ -3,13 +3,14 @@
 // Calls the generateImage Cloud Function (dual API keys, rate limited).
 // Students write prompts, iterate, and build a gallery.
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { getFunctions, httpsCallable } from "firebase/functions";
 
 const functions = getFunctions();
 const generateImageFn = httpsCallable(functions, "generateImage");
+const getImageGenUsageFn = httpsCallable(functions, "getImageGenUsage");
 
-const MAX_IMAGES = 10;
+const DEFAULT_CAP = 10;
 
 const TIPS = [
   "Be specific about what you want — \"a golden retriever wearing a space helmet on Mars\" beats \"a dog in space\"",
@@ -21,21 +22,40 @@ const TIPS = [
 ];
 
 export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
+  const cap = typeof block?.cap === "number" && block.cap > 0 ? Math.floor(block.cap) : DEFAULT_CAP;
   const [prompt, setPrompt] = useState("");
   const [images, setImages] = useState([]);
+  const [serverUsed, setServerUsed] = useState(0); // lifetime count from server
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [tipIndex, setTipIndex] = useState(0);
   const promptRef = useRef(null);
 
+  // Hydrate lifetime usage from server on mount
+  useEffect(() => {
+    if (!block?.id) return;
+    let cancelled = false;
+    getImageGenUsageFn({ blockId: block.id, cap })
+      .then((res) => {
+        if (cancelled) return;
+        const used = Math.max(0, Number(res?.data?.used) || 0);
+        setServerUsed(used);
+      })
+      .catch(() => { /* fail open — server will still enforce on generate */ });
+    return () => { cancelled = true; };
+  }, [block?.id, cap]);
+
+  const totalUsed = serverUsed + images.length; // server count + newly generated this session
+  const remaining = Math.max(0, cap - totalUsed);
+
   const generate = useCallback(async () => {
     if (!prompt.trim() || prompt.trim().length < 3) {
       setError("Write a more detailed prompt (at least 3 characters).");
       return;
     }
-    if (images.length >= MAX_IMAGES) {
-      setError(`You've reached the maximum of ${MAX_IMAGES} images for this activity.`);
+    if (remaining <= 0) {
+      setError(`You've used all ${cap} image generations for this activity.`);
       return;
     }
 
@@ -43,7 +63,7 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
     setError("");
 
     try {
-      const result = await generateImageFn({ prompt: prompt.trim() });
+      const result = await generateImageFn({ prompt: prompt.trim(), blockId: block?.id, cap });
       const newImage = {
         id: Date.now(),
         prompt: prompt.trim(),
@@ -55,14 +75,15 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
       setImages(updated);
       setTipIndex((tipIndex + 1) % TIPS.length);
 
-      // Report progress
+      // Participation grading: any generation = full credit (1/1), doesn't matter how many.
       if (onAnswer) {
+        const totalDone = serverUsed + updated.length;
         onAnswer(block.id, {
           submitted: true,
-          response: `${updated.length} image(s) generated`,
+          response: `${totalDone} image(s) generated`,
           writtenScore: 1,
-          score: updated.length,
-          maxScore: MAX_IMAGES,
+          score: 1,
+          maxScore: 1,
           completedAt: new Date().toISOString(),
           gradedBy: "auto",
           writtenLabel: "Completed",
@@ -70,10 +91,12 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
       }
     } catch (err) {
       const msg = err.message || "Generation failed";
-      if (msg.includes("Rate limit")) {
-        setError("Slow down! Max 5 images per minute. Wait a moment and try again.");
+      if (msg.includes("all ") && msg.includes("image generations")) {
+        setError(msg.replace("Firebase: ", ""));
+      } else if (msg.includes("Rate limit")) {
+        setError("Slow down! Max 10 images per minute. Wait a moment and try again.");
       } else if (msg.includes("Session limit")) {
-        setError("You've hit the hourly limit (20 images). Take a break and try again later.");
+        setError("You've hit the hourly limit (30 images). Take a break and try again later.");
       } else if (msg.includes("No image generated")) {
         setError("The AI couldn't generate an image for that prompt. Try being more descriptive or changing the subject.");
       } else {
@@ -82,7 +105,7 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
     } finally {
       setLoading(false);
     }
-  }, [prompt, images, block.id, onAnswer, tipIndex]);
+  }, [prompt, images, block.id, onAnswer, tipIndex, remaining, cap, serverUsed]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey && !loading) {
@@ -149,7 +172,7 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
         />
         <button
           onClick={generate}
-          disabled={loading || !prompt.trim()}
+          disabled={loading || !prompt.trim() || remaining <= 0}
           style={{
             background: loading ? "var(--border, #2a3a4a)" : "var(--accent, #02C39A)",
             color: loading ? "var(--text-muted, #94a3b8)" : "#0D1B2A",
@@ -158,15 +181,15 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
             padding: "12px 20px",
             fontWeight: 700,
             fontSize: 14,
-            cursor: loading ? "wait" : "pointer",
+            cursor: loading ? "wait" : (remaining <= 0 ? "not-allowed" : "pointer"),
             whiteSpace: "nowrap",
             alignSelf: "flex-end",
             minHeight: 48,
             transition: "all 0.15s",
-            opacity: !prompt.trim() ? 0.5 : 1,
+            opacity: (!prompt.trim() || remaining <= 0) ? 0.5 : 1,
           }}
         >
-          {loading ? "Generating..." : "Generate"}
+          {loading ? "Generating..." : (remaining <= 0 ? "Cap reached" : "Generate")}
         </button>
       </div>
 
@@ -178,7 +201,7 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
         marginTop: -12,
         marginBottom: 12,
       }}>
-        {prompt.length}/500 · {images.length}/{MAX_IMAGES} images
+        {prompt.length}/500 · {totalUsed}/{cap} images · {remaining} left
       </div>
 
       {/* Error */}

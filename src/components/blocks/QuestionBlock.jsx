@@ -285,7 +285,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
               <button key={i} className={cls} onClick={() => !submitted && setSelected(i)} disabled={submitted}
                 role="radio" aria-checked={i === selected}>
                 <span className="option-letter">{String.fromCharCode(65 + i)}</span>
-                <span className="option-text">{opt}</span>
+                <span className="option-text" dangerouslySetInnerHTML={{ __html: renderMarkdown(opt) }} />
                 {submitted && !isAllCorrect && i === block.correctIndex && <span className="check-icon">✓ Correct</span>}
                 {submitted && !isAllCorrect && i === selected && i !== block.correctIndex && <span className="x-icon">✗ Incorrect</span>}
                 {submitted && isAllCorrect && i === selected && <span className="check-icon">✓</span>}

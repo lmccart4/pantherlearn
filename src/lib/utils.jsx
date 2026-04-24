@@ -21,9 +21,15 @@ function renderKaTeX(text) {
     catch { return expr; }
   });
   // Inline math: $...$  (not preceded/followed by $)
-  text = text.replace(/(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g, (_, expr) => {
+  // Two guards against currency being misread as math:
+  //   1. Reject matches that contain HTML tags or newlines — math never spans structure.
+  //   2. Require at least one math-specific char (\, ^, _, {, }). Currency spans
+  //      like "$100 to $5,000" would otherwise get rendered as italic math gibberish.
+  text = text.replace(/(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g, (match, expr) => {
+    if (/[<>\n]/.test(expr)) return match;
+    if (!/[\\^_{}]/.test(expr)) return match;
     try { return katex.renderToString(expr.trim(), { displayMode: false, throwOnError: false }); }
-    catch { return expr; }
+    catch { return match; }
   });
   // Restore escaped dollars as literal $
   return text.replaceAll(DOLLAR_PLACEHOLDER, "$");

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patrol Placement Lab</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #131d33;
+    --panel-2: #0e1729;
+    --line: #1f2a44;
+    --cell: #0a1426;
+    --cell-hover: #162238;
+    --text: #e5ecf7;
+    --muted: #8ea0bf;
+    --accent: #60a5fa;
+    --warn: #f59e0b;
+    --hot: #ef4444;
+    --ok: #10b981;
+    --violet: #a78bfa;
+    --qA: #60a5fa;
+    --qB: #a78bfa;
+    --qC: #f59e0b;
+    --qD: #10b981;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-user-select: none; }
+  body { min-height: 100vh; padding: 14px; overflow-x: hidden; }
+
+  h1 { margin: 0 0 4px; font-size: 20px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin: 0 0 12px; line-height: 1.45; }
+
+  .status-bar { display: flex; justify-content: space-between; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .status-bar .round { font-weight: 700; font-size: 15px; }
+  .status-bar .rule { color: var(--muted); font-size: 12px; line-height: 1.45; text-align: right; }
+
+  /* Pool */
+  .pool-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+  .pool-hdr { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .pool-hdr .label { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
+  .pool-hdr .count { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .pool { min-height: 48px; display: flex; flex-wrap: wrap; gap: 5px; padding: 5px; border: 1.5px dashed var(--line); border-radius: 8px; background: var(--panel-2); align-items: center; }
+  .pool .empty-hint { color: var(--muted); font-size: 12px; padding: 8px; font-style: italic; }
+
+  .token {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #3b82f6);
+    color: #04101e; font-weight: 800; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: grab; touch-action: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    position: relative;
+    flex: 0 0 auto;
+  }
+  .token::after { content: "🚓"; font-size: 14px; }
+  .token:hover { transform: translateY(-1px); }
+  .token.dragging, .token-mini.dragging { cursor: grabbing; opacity: 0.75; box-shadow: 0 8px 20px rgba(0,0,0,0.6); pointer-events: none; }
+
+  /* Grid map */
+  .map-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 12px; position: relative; }
+  .map-legend { display: flex; gap: 14px; font-size: 11px; color: var(--muted); margin-bottom: 10px; flex-wrap: wrap; padding-left: 2px; }
+  .map-legend .item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .map-legend .qchip { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .map-legend .crime-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--hot); box-shadow: 0 0 4px rgba(239,68,68,0.6); display: inline-block; }
+
+  .map {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 2px solid var(--line);
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .cell {
+    background: var(--cell);
+    position: relative;
+    min-height: 0;
+    transition: background 0.1s;
+    cursor: pointer;
+    overflow: visible;
+  }
+  .cell.q-A { background: color-mix(in oklab, var(--qA) 16%, var(--cell)); }
+  .cell.q-B { background: color-mix(in oklab, var(--qB) 16%, var(--cell)); }
+  .cell.q-C { background: color-mix(in oklab, var(--qC) 18%, var(--cell)); }
+  .cell.q-D { background: color-mix(in oklab, var(--qD) 16%, var(--cell)); }
+  .cell.drop-target { background: color-mix(in oklab, var(--accent) 25%, var(--cell)); box-shadow: inset 0 0 0 2px var(--accent); }
+  .cell.picked-target { background: color-mix(in oklab, var(--accent) 18%, var(--cell)); }
+
+  .cell .tokens { position: absolute; inset: 2px; display: flex; flex-wrap: wrap; gap: 1px; align-items: center; justify-content: center; z-index: 2; pointer-events: none; touch-action: none; }
+  .cell .tokens .token-mini { width: 14px; height: 14px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #3b82f6); border: 1px solid #0b1220; box-shadow: 0 1px 2px rgba(0,0,0,0.5); pointer-events: auto; cursor: grab; flex: 0 0 auto; touch-action: none; }
+  .cell .count-pill { position: absolute; bottom: 1px; right: 2px; background: #0b1220; color: var(--accent); font-size: 9px; font-weight: 700; padding: 0 3px; border-radius: 3px; z-index: 3; pointer-events: none; line-height: 1.4; }
+
+  /* Crime dots overlay — absolute on cells */
+  .crime-dot {
+    position: absolute;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--hot);
+    box-shadow: 0 0 5px rgba(239,68,68,0.7);
+    pointer-events: none;
+    z-index: 1;
+    transform: translate(-50%, -50%);
+    animation: crime-in 0.4s ease-out both;
+  }
+  @keyframes crime-in {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  /* Quadrant labels (big letters, watermark style) */
+  .q-label {
+    position: absolute;
+    font-size: 64px;
+    font-weight: 900;
+    pointer-events: none;
+    z-index: 4;
+    line-height: 1;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    opacity: 0.28;
+  }
+  .q-label.A { top: 6px; left: 12px; color: var(--qA); }
+  .q-label.B { top: 6px; right: 16px; color: var(--qB); }
+  .q-label.C { bottom: 6px; left: 12px; color: var(--qC); }
+  .q-label.D { bottom: 6px; right: 16px; color: var(--qD); }
+
+  /* Stats bar per precinct */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; border-left: 3px solid var(--qA); }
+  .stat.q-B { border-left-color: var(--qB); }
+  .stat.q-C { border-left-color: var(--qC); }
+  .stat.q-D { border-left-color: var(--qD); }
+  .stat .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .stat .letter { font-size: 18px; font-weight: 800; }
+  .stat .reports { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--warn); }
+  .stat .sub { color: var(--muted); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; display: flex; justify-content: space-between; }
+  .stat .patrols { color: var(--accent); font-weight: 700; }
+  .stat .delta { font-size: 10px; }
+  .stat .delta.up { color: var(--hot); }
+  .stat .delta.down { color: var(--ok); }
+
+  /* Actions */
+  .action-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .action-bar .hint { font-size: 12px; color: var(--muted); }
+  .btn { background: var(--accent); color: #041020; font-weight: 700; border: none; padding: 11px 22px; border-radius: 9px; font-size: 14px; cursor: pointer; letter-spacing: 0.03em; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.finish { background: var(--violet); color: #110624; }
+  .btn.secondary { background: transparent; border: 1.5px solid var(--line); color: var(--text); }
+
+  /* Log */
+  .log { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+  .log h3 { margin: 0 0 8px; font-size: 12px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; }
+  table.log-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+  table.log-table th { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); color: var(--muted); font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+  table.log-table td { padding: 5px 6px; border-bottom: 1px solid var(--line); }
+
+  /* Reveal */
+  .reveal { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .reveal h2 { margin: 0 0 8px; font-size: 20px; color: var(--violet); }
+  .reveal .score { font-size: 36px; font-weight: 800; color: var(--warn); margin: 6px 0 4px; }
+  .reveal .score-sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .reveal .insight { background: rgba(167,139,250,0.08); border-left: 3px solid var(--violet); padding: 12px 16px; border-radius: 4px; font-size: 14px; line-height: 1.55; margin-bottom: 14px; }
+  .reveal .insight strong { color: var(--violet); }
+  .reveal .bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  .reveal .bar { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; border-left: 3px solid var(--qA); }
+  .reveal .bar.q-B { border-left-color: var(--qB); }
+  .reveal .bar.q-C { border-left-color: var(--qC); }
+  .reveal .bar.q-D { border-left-color: var(--qD); }
+  .reveal .bar .letter { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+  .reveal .bar .row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; }
+  .reveal .bar .row.start { color: var(--muted); }
+  .reveal .bar .row.end { font-weight: 700; border-top: 1px dotted var(--line); padding-top: 6px; margin-top: 4px; }
+  .reveal .bar .row.end.up { color: var(--hot); }
+  .reveal .bar .row.end.down { color: var(--ok); }
+  .reveal .gap { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--warn); margin: 8px 0; }
+
+  .picked-banner {
+    background: rgba(96,165,250,0.15); border: 1px solid var(--accent); border-radius: 8px;
+    padding: 8px 12px; margin-bottom: 10px; font-size: 13px; display: none; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .picked-banner.show { display: flex; }
+  .picked-banner button { background: transparent; border: 1px solid var(--line); color: var(--text); padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+
+  @media (max-width: 640px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .reveal .bars { grid-template-columns: repeat(2, 1fr); }
+    .q-label { font-size: 44px; }
+    .map { max-width: 100%; }
+    .status-bar .rule { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Patrol Placement Lab</h1>
+<p class="subtitle">You are the AI. Each round, deploy 15 patrols across a grid of 100 street cells — red dots mark reported crimes. After each round, new reports come in based on where you patrolled. Play 3 rounds. Watch what happens.</p>
+
+<div class="status-bar">
+  <div class="round">Round <span id="roundNum">1</span> of 3</div>
+  <div class="rule"><strong>Rule:</strong> New reports per precinct = 2 (true crime, same everywhere) + number of patrols you send (each surfaces 1 arrest).</div>
+</div>
+
+<div class="picked-banner" id="pickedBanner">
+  <span>Token picked — tap any grid cell to place it, or tap another token to return it to the pool.</span>
+  <button id="cancelPick">Cancel</button>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="pool-wrap">
+  <div class="pool-hdr">
+    <span class="label">Patrol pool</span>
+    <span class="count"><span id="poolCount">15</span> / 15 available</span>
+  </div>
+  <div class="pool" id="pool"></div>
+</div>
+
+<div class="map-wrap">
+  <div class="map-legend">
+    <span class="item"><span class="crime-dot"></span> Reported crime</span>
+    <span class="item"><span class="qchip" style="background: var(--qA);"></span> Precinct A</span>
+    <span class="item"><span class="qchip" style="background: var(--qB);"></span> Precinct B</span>
+    <span class="item"><span class="qchip" style="background: var(--qC);"></span> Precinct C</span>
+    <span class="item"><span class="qchip" style="background: var(--qD);"></span> Precinct D</span>
+  </div>
+  <div class="map" id="map">
+    <div class="q-label A">A</div>
+    <div class="q-label B">B</div>
+    <div class="q-label C">C</div>
+    <div class="q-label D">D</div>
+  </div>
+</div>
+
+<div class="action-bar">
+  <div class="hint" id="hint">Place all 15 patrols on the grid, then deploy.</div>
+  <button class="btn" id="deployBtn" disabled>Deploy Patrols →</button>
+</div>
+
+<div id="logWrap" class="log" style="display:none;">
+  <h3>Reports by round</h3>
+  <table class="log-table" id="logTable"></table>
+</div>
+
+<div id="revealWrap" style="display:none;"></div>
+
+<script>
+// ============ DATA ============
+const GRID = 10;
+// All four precincts have the SAME true underlying crime rate (baseline: 2).
+// Round 0 numbers look different because they reflect historical over-patrolling
+// of A/B/C and neglect of D — not because crime is actually unequal.
+const PRECINCTS = [
+  { id: "A", baseline: 2, round0: 5,  col0: 0, col1: 5, row0: 0, row1: 5, qClass: "q-A" },
+  { id: "B", baseline: 2, round0: 8,  col0: 5, col1:10, row0: 0, row1: 5, qClass: "q-B" },
+  { id: "C", baseline: 2, round0: 12, col0: 0, col1: 5, row0: 5, row1:10, qClass: "q-C" },
+  { id: "D", baseline: 2, round0: 2,  col0: 5, col1:10, row0: 5, row1:10, qClass: "q-D" },
+];
+const PATROL_REPORT_RATE = 1.0;
+const TOTAL_TOKENS = 15;
+const ROUNDS = 3;
+
+function precinctOf(row, col) {
+  for (const p of PRECINCTS) {
+    if (col >= p.col0 && col < p.col1 && row >= p.row0 && row < p.row1) return p;
+  }
+  return null;
+}
+
+// Seeded pseudo-random for stable-ish dot placement per round
+let rngSeed = 1;
+function rng() { rngSeed = (rngSeed * 9301 + 49297) % 233280; return rngSeed / 233280; }
+function seed(n) { rngSeed = n || 1; }
+
+// ============ STATE ============
+let currentRound = 1;
+// placed[precinct] = count of patrols in that precinct
+let placed = { A: 0, B: 0, C: 0, D: 0 };
+// cellTokens[row,col] = count of tokens in that cell
+let cellTokens = Array.from({ length: GRID }, () => Array(GRID).fill(0));
+let pool = TOTAL_TOKENS;
+let reports = Object.fromEntries(PRECINCTS.map(p => [p.id, p.round0]));
+let prevReports = { ...reports };
+// dots: [{ precinct, x, y }] — x,y are cell centers in grid units (0..9.99)
+let dots = [];
+const history = [];
+let pickedToken = null; // "pool" or "r,c"
+
+// ============ INITIAL DOTS (Round 0) ============
+function generateDots() {
+  const list = [];
+  for (const p of PRECINCTS) {
+    const count = reports[p.id];
+    for (let i = 0; i < count; i++) {
+      // Place randomly within the quadrant (including some jitter)
+      const row = p.row0 + rng() * (p.row1 - p.row0);
+      const col = p.col0 + rng() * (p.col1 - p.col0);
+      list.push({ precinct: p.id, x: col, y: row });
+    }
+  }
+  dots = list;
+}
+seed(7);
+generateDots();
+
+// ============ RENDER ============
+const mapEl = document.getElementById("map");
+const poolEl = document.getElementById("pool");
+const statsEl = document.getElementById("stats");
+const deployBtn = document.getElementById("deployBtn");
+const hintEl = document.getElementById("hint");
+const roundNumEl = document.getElementById("roundNum");
+const poolCountEl = document.getElementById("poolCount");
+const logWrap = document.getElementById("logWrap");
+const logTable = document.getElementById("logTable");
+const revealWrap = document.getElementById("revealWrap");
+const pickedBanner = document.getElementById("pickedBanner");
+
+function renderStats() {
+  statsEl.innerHTML = PRECINCTS.map(p => {
+    const delta = currentRound > 1 ? reports[p.id] - prevReports[p.id] : null;
+    const deltaTxt = (delta != null && delta !== 0) ? `<span class="delta ${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '↑ +' + delta : '↓ ' + delta}</span>` : "";
+    return `
+      <div class="stat ${p.qClass}">
+        <div class="row"><span class="letter">${p.id}</span><span class="reports">${reports[p.id]}</span></div>
+        <div class="sub"><span>Baseline ${p.baseline}</span><span class="patrols"><span data-pcount="${p.id}">${placed[p.id]}</span> patrols</span></div>
+        ${deltaTxt ? `<div class="sub" style="margin-top:2px;"><span>${deltaTxt}</span><span>Crime reports</span></div>` : ""}
+      </div>
+    `;
+  }).join("");
+}
+
+function renderPool() {
+  poolEl.innerHTML = "";
+  if (pool === 0) {
+    poolEl.innerHTML = '<span class="empty-hint">All 15 patrols deployed — ready to run the round.</span>';
+  } else {
+    for (let i = 0; i < pool; i++) {
+      const t = document.createElement("div");
+      t.className = "token";
+      t.dataset.origin = "pool";
+      attachDragHandlers(t);
+      poolEl.appendChild(t);
+    }
+  }
+  poolCountEl.textContent = pool;
+}
+
+function renderMap() {
+  // Keep the four quadrant labels; rebuild cells + dots on top
+  mapEl.querySelectorAll(".cell, .crime-dot").forEach(e => e.remove());
+
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID; c++) {
+      const p = precinctOf(r, c);
+      const cell = document.createElement("div");
+      cell.className = "cell " + (p ? p.qClass : "");
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      cell.style.gridColumn = (c + 1);
+      cell.style.gridRow = (r + 1);
+
+      const count = cellTokens[r][c];
+      if (count > 0) {
+        const pill = document.createElement("div");
+        pill.className = "count-pill";
+        pill.textContent = count;
+        cell.appendChild(pill);
+
+        const wrap = document.createElement("div");
+        wrap.className = "tokens";
+        const show = Math.min(count, 4); // cap visual stack at 4 mini-tokens
+        for (let i = 0; i < show; i++) {
+          const mini = document.createElement("div");
+          mini.className = "token-mini";
+          mini.dataset.origin = `${r},${c}`;
+          attachDragHandlers(mini);
+          wrap.appendChild(mini);
+        }
+        cell.appendChild(wrap);
+      }
+
+      cell.addEventListener("click", (e) => {
+        if (!pickedToken) return;
+        if (e.target.classList.contains("token-mini")) return;
+        dropPickedInto(r, c);
+      });
+
+      mapEl.appendChild(cell);
+    }
+  }
+
+  // Dots — positioned as percentages across the whole map
+  const mapBox = mapEl.getBoundingClientRect();
+  for (const d of dots) {
+    const dot = document.createElement("div");
+    dot.className = "crime-dot";
+    dot.style.left = (d.x / GRID) * 100 + "%";
+    dot.style.top  = (d.y / GRID) * 100 + "%";
+    mapEl.appendChild(dot);
+  }
+}
+
+function updateHint() {
+  const remaining = pool;
+  if (remaining > 0) {
+    hintEl.textContent = `Place all ${remaining} remaining patrol${remaining === 1 ? '' : 's'} before deploying.`;
+    deployBtn.disabled = true;
+  } else {
+    hintEl.textContent = `All ${TOTAL_TOKENS} patrols deployed — click to run Round ${currentRound}.`;
+    deployBtn.disabled = false;
+  }
+}
+
+function renderLog() {
+  if (history.length === 0) { logWrap.style.display = "none"; return; }
+  logWrap.style.display = "block";
+  let html = `<thead><tr><th>Round</th>${PRECINCTS.map(p => `<th>${p.id} <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">(patrols/reports)</span></th>`).join("")}</tr></thead><tbody>`;
+  html += `<tr><td>0</td>${PRECINCTS.map(p => `<td>— / <strong>${p.round0}</strong></td>`).join("")}</tr>`;
+  history.forEach(h => {
+    html += `<tr><td>${h.round}</td>${PRECINCTS.map(p => `<td>${h.patrols[p.id]} / <strong>${h.reports[p.id]}</strong></td>`).join("")}</tr>`;
+  });
+  html += "</tbody>";
+  logTable.innerHTML = html;
+}
+
+function renderAll() {
+  renderStats();
+  renderPool();
+  renderMap();
+  renderLog();
+  updateHint();
+}
+
+// ============ POINTER DRAG ============
+// Use pointer capture + CSS transforms (not body-reparenting) so state never
+// leaks if a pointerup is delivered out-of-order or to a different element.
+let drag = null;
+
+function attachDragHandlers(tokenEl) {
+  tokenEl.addEventListener("pointerdown", onDragStart);
+  tokenEl.addEventListener("pointermove", onDragMove);
+  tokenEl.addEventListener("pointerup", onDragEnd);
+  tokenEl.addEventListener("pointercancel", onDragEnd);
+}
+
+function onDragStart(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  // Abort any stale drag first
+  if (drag) cleanupDrag(true);
+  const el = e.currentTarget;
+  const rect = el.getBoundingClientRect();
+  drag = {
+    el,
+    pointerId: e.pointerId,
+    startX: e.clientX,
+    startY: e.clientY,
+    origin: el.dataset.origin,
+    moved: false,
+  };
+  el.classList.add("dragging");
+  el.style.zIndex = "1000";
+  try { el.setPointerCapture(e.pointerId); } catch {}
+}
+
+function onDragMove(e) {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  const dx = e.clientX - drag.startX;
+  const dy = e.clientY - drag.startY;
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
+  drag.el.style.transform = `translate(${dx}px, ${dy}px)`;
+  document.querySelectorAll(".cell").forEach(c => c.classList.remove("drop-target"));
+  poolEl.classList.remove("drop-target");
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const cell = under?.closest(".cell");
+  const poolOver = under?.closest(".pool");
+  if (cell) cell.classList.add("drop-target");
+  if (poolOver) poolEl.classList.add("drop-target");
+}
+
+function onDragEnd(e) {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const cell = under?.closest(".cell");
+  const poolOver = under?.closest(".pool");
+
+  // If didn't actually drag, treat as no-op (future: could enter pick mode)
+  if (!drag.moved) return cleanupDrag(true);
+
+  // Tentatively remove from origin
+  const origin = drag.origin;
+  const originP = origin !== "pool" ? precinctOf(...origin.split(",").map(Number)) : null;
+  let changed = false;
+
+  if (cell) {
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    const destP = precinctOf(r, c);
+    if (destP) {
+      // Commit the move
+      if (origin === "pool") pool--;
+      else {
+        const [or, oc] = origin.split(",").map(Number);
+        cellTokens[or][oc]--;
+        if (originP) placed[originP.id]--;
+      }
+      cellTokens[r][c]++;
+      placed[destP.id]++;
+      changed = true;
+    }
+  } else if (poolOver) {
+    if (origin !== "pool") {
+      const [or, oc] = origin.split(",").map(Number);
+      cellTokens[or][oc]--;
+      if (originP) placed[originP.id]--;
+      pool++;
+      changed = true;
+    }
+  }
+  // else: dropped in empty space → revert (no state change)
+
+  cleanupDrag(!changed);
+  if (changed) renderAll();
+}
+
+function cleanupDrag(revert) {
+  if (!drag) return;
+  const el = drag.el;
+  el.classList.remove("dragging");
+  el.style.transform = "";
+  el.style.zIndex = "";
+  try { el.releasePointerCapture(drag.pointerId); } catch {}
+  document.querySelectorAll(".cell").forEach(c => c.classList.remove("drop-target"));
+  poolEl.classList.remove("drop-target");
+  drag = null;
+  // If we reverted or no change, nothing to re-render — the token stays where it was.
+  // But if the element was detached (shouldn't happen now), a renderAll would fix it.
+}
+
+function dropPickedInto(r, c) {
+  if (!pickedToken) return;
+  const p = precinctOf(r, c);
+  if (!p) return;
+  const origin = pickedToken.dataset.origin;
+  if (origin === "pool") pool--;
+  else {
+    const [or, oc] = origin.split(",").map(Number);
+    cellTokens[or][oc]--;
+    const op = precinctOf(or, oc);
+    if (op) placed[op.id]--;
+  }
+  cellTokens[r][c]++;
+  placed[p.id]++;
+  if (pickedToken.style) pickedToken.style.outline = "";
+  pickedToken = null;
+  pickedBanner.classList.remove("show");
+  renderAll();
+}
+
+document.getElementById("cancelPick").addEventListener("click", () => {
+  if (pickedToken && pickedToken.style) pickedToken.style.outline = "";
+  pickedToken = null;
+  pickedBanner.classList.remove("show");
+});
+
+// Dismiss pick on outside click
+document.addEventListener("click", (e) => {
+  if (!pickedToken) return;
+  if (e.target.closest(".cell, .token, .token-mini, .picked-banner")) return;
+  pickedToken.style.outline = "";
+  pickedToken = null;
+  pickedBanner.classList.remove("show");
+});
+
+// ============ DEPLOY ============
+deployBtn.addEventListener("click", () => {
+  if (pool > 0) return;
+  const patrolsThisRound = { ...placed };
+  prevReports = { ...reports };
+  const newReports = {};
+  for (const p of PRECINCTS) {
+    newReports[p.id] = p.baseline + Math.floor(patrolsThisRound[p.id] * PATROL_REPORT_RATE);
+  }
+  history.push({ round: currentRound, patrols: patrolsThisRound, reports: newReports });
+  reports = newReports;
+
+  if (currentRound === ROUNDS) {
+    // Refresh dots one more time for final state
+    seed(currentRound + 42);
+    generateDots();
+    renderAll();
+    renderReveal();
+    sendScore(true);
+    document.querySelector(".pool-wrap").style.display = "none";
+    document.querySelector(".action-bar").style.display = "none";
+    document.querySelector(".status-bar").style.display = "none";
+    return;
+  }
+  currentRound++;
+  placed = { A: 0, B: 0, C: 0, D: 0 };
+  cellTokens = Array.from({ length: GRID }, () => Array(GRID).fill(0));
+  pool = TOTAL_TOKENS;
+  roundNumEl.textContent = currentRound;
+  seed(currentRound + 42);
+  generateDots();
+  renderAll();
+  sendScore(false);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// ============ REVEAL ============
+function renderReveal() {
+  const finalReports = history[history.length - 1].reports;
+
+  const barsHTML = PRECINCTS.map(p => {
+    const start = p.round0;
+    const end = finalReports[p.id];
+    const delta = end - start;
+    const deltaTxt = delta === 0 ? "no change" : (delta > 0 ? `+${delta}` : `${delta}`);
+    const cls = delta > 0 ? "up" : delta < 0 ? "down" : "";
+    return `
+      <div class="bar ${p.qClass}">
+        <div class="letter">${p.id}</div>
+        <div class="row start"><span>Round 0</span><span>${start}</span></div>
+        <div class="row start"><span>Baseline</span><span>${p.baseline}</span></div>
+        <div class="row end ${cls}"><span>After 3 rounds</span><span>${end} (${deltaTxt})</span></div>
+      </div>
+    `;
+  }).join("");
+
+  // Ratio / gap — guard division by zero
+  const entries = Object.entries(finalReports);
+  const highest = entries.reduce((a, b) => b[1] > a[1] ? b : a);
+  const lowest  = entries.reduce((a, b) => b[1] < a[1] ? b : a);
+  let gapHTML;
+  if (lowest[1] <= 0) {
+    gapHTML = `Precinct ${highest[0]} still reports <strong>${highest[1]}</strong> crime${highest[1] === 1 ? '' : 's'}; ${lowest[0]} reports <strong>0</strong> — the gap between "visible" and "invisible" neighborhoods persists even after you redistributed patrols.`;
+  } else {
+    const ratio = (highest[1] / lowest[1]).toFixed(1);
+    gapHTML = `Precinct ${highest[0]} still reports <strong>${ratio}× more</strong> crime than ${lowest[0]} (${highest[1]} vs ${lowest[1]}).`;
+  }
+
+  // Insight — rewritten to match what the sim actually shows
+  const totalStart = PRECINCTS.reduce((acc, p) => acc + p.round0, 0);
+  const totalBase  = PRECINCTS.reduce((acc, p) => acc + p.baseline, 0);
+
+  revealWrap.innerHTML = `
+    <div class="reveal">
+      <h2>The Feedback Loop Revealed</h2>
+      <div class="score">Complete</div>
+      <div class="score-sub">Three rounds, 45 patrols deployed. Here's what the data actually showed.</div>
+
+      <div class="bars">${barsHTML}</div>
+
+      <div class="gap">${gapHTML}</div>
+
+      <div class="insight"><strong>The twist:</strong> All four precincts had the <em>same</em> underlying crime rate — a baseline of 2 crimes per round, everywhere. The Round 0 numbers (A:5 · B:8 · C:12 · D:2) didn't reflect actual crime. They reflected <strong>years of past patrolling</strong> in A/B/C and <strong>years of neglect</strong> in D.<br><br>Then you deployed patrols. Each patrol surfaced extra arrests, citations, and stops that got logged as crime data. Precincts you patrolled got <em>more</em> reports (baseline + arrests). Precincts you ignored dropped to the true floor of 2 — the crime that was actually happening there all along.<br><br><strong>That's the feedback loop.</strong> A real predictive-policing AI takes the Round 0 numbers at face value, sends patrols to C, those patrols generate more C reports, the algorithm confirms its own prediction, more patrols to C, forever. D's crime — just as real — never gets seen, because patrols never go there to see it. <strong>The algorithm doesn't measure crime. It measures where police already go. And then it tells them to go there more.</strong></div>
+
+      <button class="btn finish" id="submitFinal">Submit Score & Complete</button>
+    </div>
+  `;
+  revealWrap.style.display = "block";
+  document.getElementById("submitFinal").addEventListener("click", () => {
+    sendScore(true);
+    const btn = document.getElementById("submitFinal");
+    btn.textContent = "Score Submitted ✓";
+    btn.disabled = true;
+    btn.style.opacity = "0.6";
+  });
+}
+
+// ============ POSTMESSAGE ============
+function sendScore(gameComplete) {
+  const roundsDone = history.length;
+  const pct = Math.min(1, roundsDone / ROUNDS);
+  const scoreVal = Math.round(pct * 5 * 100) / 100;
+  if (scoreVal <= 0 && !gameComplete) return;
+  try {
+    window.parent.postMessage({
+      type: 'activityScore',
+      score: Math.max(0, scoreVal),
+      maxScore: 5,
+      gameComplete: gameComplete,
+      completedAt: new Date().toISOString()
+    }, '*');
+  } catch (e) {}
+}
+
+// ============ INIT ============
+renderAll();
+</script>
+</body>
+</html>

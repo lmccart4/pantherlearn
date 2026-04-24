@@ -19,6 +19,9 @@ import "./villainPackDraw2";
 import { PACK_PETS } from "./petPack";
 import "./petPackDraw2";
 
+// Import tung pack (Juan Quinche exempt)
+import { TUNG_CLASSES, TUNG_PETS } from "./tungPack";
+
 // ═══════════════════════════════════════════
 // CHARACTER CLASSES
 // ═══════════════════════════════════════════
@@ -100,6 +103,8 @@ export const CLASSES = {
   ...HERO_CLASSES,
   // ─── Villain Pack (auto-imported) ───
   ...VILLAIN_CLASSES,
+  // ─── Tung Pack (meme; exempt-uid only) ───
+  ...TUNG_CLASSES,
 };
 
 // ═══════════════════════════════════════════
@@ -156,6 +161,8 @@ export const PETS = [
   { id: "dragon", name: "Elder Dragon", icon: "🐲", unlockLevel: 35 },
   // ─── Pet Pack (auto-imported) ───
   ...PACK_PETS,
+  // ─── Tung Pack pets (exempt-uid only) ───
+  ...TUNG_PETS,
 ];
 
 // ═══════════════════════════════════════════
@@ -301,21 +308,62 @@ export async function saveAvatar(uid, avatarState) {
 // ═══════════════════════════════════════════
 // UNLOCK CHECKS
 // ═══════════════════════════════════════════
-export function getUnlockedItems(totalXP) {
+/** True if the item's unlockLevel is met, uid is in exemptUids, or a rental is active. */
+export function isItemUnlocked(item, level, uid, rentals = null) {
+  if (!item) return false;
+  if (item.exemptUids && uid && item.exemptUids.includes(uid)) return true;
+  if (rentals && rentals[item.id] && new Date(rentals[item.id]) > new Date()) return true;
+  return level >= (item.unlockLevel || 1);
+}
+
+/** Read active rentals (ms-future timestamps only) from gamification/{uid}.avatarRentals. */
+export async function getAvatarRentals(uid) {
+  if (!uid) return {};
+  const snap = await getDoc(doc(db, "gamification", uid));
+  const raw = snap.exists() ? (snap.data().avatarRentals || {}) : {};
+  const now = Date.now();
+  const active = {};
+  for (const [id, iso] of Object.entries(raw)) {
+    if (iso && new Date(iso).getTime() > now) active[id] = iso;
+  }
+  return active;
+}
+
+/**
+ * Rent an avatar item for `item.rentalHours` hours by spending `item.rentalCost` mana.
+ * Charges atomically via chargeStudentMana (throws INSUFFICIENT_MANA on low balance).
+ * Returns { expiresAt: ISO, newBalance }.
+ */
+export async function rentAvatarItem(courseId, uid, item) {
+  if (!item || !item.rentable) throw new Error("Item is not rentable");
+  const { chargeStudentMana } = await import("./mana");
+  const reason = `Avatar rental — ${item.name || item.id} (${item.rentalHours}h)`;
+  const { newBalance } = await chargeStudentMana(courseId, uid, item.rentalCost, reason);
+  const expiresAt = new Date(Date.now() + item.rentalHours * 60 * 60 * 1000).toISOString();
+  const ref = doc(db, "gamification", uid);
+  const snap = await getDoc(ref);
+  const existing = snap.exists() ? (snap.data().avatarRentals || {}) : {};
+  const avatarRentals = { ...existing, [item.id]: expiresAt };
+  await setDoc(ref, { avatarRentals }, { merge: true });
+  return { expiresAt, newBalance };
+}
+
+export function getUnlockedItems(totalXP, uid = null, rentals = null) {
   const { current } = getLevelInfo(totalXP);
   const level = current.level;
+  const unlocked = (item) => isItemUnlocked(item, level, uid, rentals);
 
   return {
-    classes: Object.values(CLASSES).filter((c) => level >= c.unlockLevel),
-    lockedClasses: Object.values(CLASSES).filter((c) => level < c.unlockLevel),
-    hairColors: HAIR_COLORS.filter((h) => level >= (h.unlockLevel || 1)),
-    lockedHairColors: HAIR_COLORS.filter((h) => level < (h.unlockLevel || 1)),
-    eyeColors: EYE_COLORS.filter((e) => level >= (e.unlockLevel || 1)),
-    lockedEyeColors: EYE_COLORS.filter((e) => level < (e.unlockLevel || 1)),
-    pets: PETS.filter((p) => level >= p.unlockLevel),
-    lockedPets: PETS.filter((p) => level < p.unlockLevel),
-    accessories: ACCESSORIES.filter((a) => level >= a.unlockLevel),
-    lockedAccessories: ACCESSORIES.filter((a) => level < a.unlockLevel),
+    classes: Object.values(CLASSES).filter(unlocked),
+    lockedClasses: Object.values(CLASSES).filter((c) => !unlocked(c)),
+    hairColors: HAIR_COLORS.filter(unlocked),
+    lockedHairColors: HAIR_COLORS.filter((h) => !unlocked(h)),
+    eyeColors: EYE_COLORS.filter(unlocked),
+    lockedEyeColors: EYE_COLORS.filter((e) => !unlocked(e)),
+    pets: PETS.filter(unlocked),
+    lockedPets: PETS.filter((p) => !unlocked(p)),
+    accessories: ACCESSORIES.filter(unlocked),
+    lockedAccessories: ACCESSORIES.filter((a) => !unlocked(a)),
     level,
     visualTier: getVisualTier(level),
   };

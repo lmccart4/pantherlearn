@@ -49,9 +49,6 @@ export default function ExternalLinkBlock({ block }) {
           )}
         </a>
       )}
-      {block.url && (
-        <div className="external-link-url">{block.url}</div>
-      )}
     </div>
   );
 }

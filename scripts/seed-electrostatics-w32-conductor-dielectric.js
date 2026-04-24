@@ -1,7 +1,7 @@
 // seed-electrostatics-w32-conductor-dielectric.js
 // Electrostatics — Week 32, Lesson 7 (Friday 4/24, 42 min)
-// Predict → test → formalize: conductor vs dielectric via rotating-stand experiment
-// Models W32 Tasks 12-13
+// Observe → Test (6 stations) → Classify → Diagram
+// Aligned with Luke's "Discovery: Conductors vs Dielectrics" doc
 // Run: node scripts/seed-electrostatics-w32-conductor-dielectric.js
 
 import { initializeApp } from "firebase-admin/app";
@@ -17,7 +17,7 @@ const IMG = "/images/physics/electrostatics";
 
 const lesson = {
   title: "Conductors vs. Dielectrics — The Great Divide",
-  questionOfTheDay: "Why does a charged balloon stick harder to a metal spoon than to a wooden ruler?",
+  questionOfTheDay: "Why does a charged balloon stick harder to metal than to wood — when both are neutral?",
   course: "Physics",
   unit: "Electrostatics",
   order: 7,
@@ -36,12 +36,12 @@ const lesson = {
       type: "callout",
       style: "question",
       icon: "❓",
-      content: "**Question of the Day:** Why does a charged balloon stick harder to a metal spoon than to a wooden ruler?"
+      content: "**Question of the Day:** Why does a charged balloon stick harder to metal than to wood — when both are neutral?"
     },
     {
       id: "w32cd-text-intro",
       type: "text",
-      content: "You noticed it on Tuesday — the metal-coated PVC, the tin-foil cup, the metal whiteboard all responded more dramatically than their wood and plastic counterparts. Yesterday you learned **polarization**. Today we tie those two facts together.\n\nThe scientific community long ago divided all neutral materials into two categories. Today you learn their names, what's different inside them, and you run the experiment that *proves* the division."
+      content: "You've seen different materials interact differently with a charged balloon — Tuesday's rotation stations, yesterday's polarization diagrams. Some responded strongly; some barely moved.\n\nBy the end of today you'll be able to **explain why these objects experience interactions of differing strengths** — at the level of the atoms inside them."
     },
     {
       id: "w32cd-objectives",
@@ -49,179 +49,181 @@ const lesson = {
       title: "What You'll Figure Out",
       items: [
         "The difference between conductors and dielectrics at the atomic level",
-        "Which one polarizes more (and why)",
-        "How to use charge diagrams to predict how strongly a material will respond"
+        "Which one polarizes more strongly (and why)",
+        "How to draw charge diagrams that predict how strongly any neutral material will respond"
       ]
     },
 
     {
-      id: "w32cd-sec-task1",
+      id: "w32cd-sec-part1",
       type: "section_header",
-      icon: "🧠",
-      title: "Task 1 — Two Kinds of Neutral Material",
-      subtitle: "~4 min"
+      icon: "📺",
+      title: "Part 1 — Observe: Metal Plate vs. Wooden Board",
+      subtitle: "~5 min"
     },
     {
-      id: "w32cd-img-cd-compare",
-      type: "image",
-      url: `${IMG}/w32-conductor-vs-dielectric.png`,
-      caption: "Two neutral systems. Both have zero net charge. But what's inside is very different.",
-      alt: "Two charge diagrams side by side. Left labeled Dielectric PVC shows only gray atoms scattered throughout. Right labeled Conductor Metal shows a mix of red positive ions, gray atoms, and small scattered blue free electrons drifting between them"
+      id: "w32cd-text-part1",
+      type: "text",
+      content: "Watch the video linked below: a woman rubs a balloon with felt, then brings a **metal plate** and a **wooden board** close to it.\n\nBoth objects are neutral. Pay close attention to whether the metal plate and the wooden board interact with the balloon in the same way — or differently."
+    },
+    {
+      id: "w32cd-link-video-part1",
+      type: "external_link",
+      icon: "📺",
+      title: "Video — Balloon near a metal plate and a wooden board",
+      url: "https://mediaplayer.pearsoncmg.com/assets/_frames.true/secs-experiment-video-30",
+      description: "Watch how the charged balloon responds to each material. You'll come back to this video again in Part 4.",
+      buttonLabel: "Play the video",
+      openInNewTab: true
+    },
+    {
+      id: "w32cd-q-part1-obs",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "What did you observe in the video? Does the metal plate interact any differently than the wooden board does? Be specific — which one moved more, swung faster, or pulled the balloon harder?",
+      placeholder: "With the metal plate, the balloon ___. With the wooden board, the balloon ___. The ___ responded more strongly because ___.",
+      difficulty: "analyze"
+    },
+
+    {
+      id: "w32cd-sec-part2",
+      type: "section_header",
+      icon: "🧪",
+      title: "Part 2 — Four Observational Experiments",
+      subtitle: "~10 min"
+    },
+    {
+      id: "w32cd-text-part2-setup",
+      type: "text",
+      content: "**Setup:** each pair uses a different charged probe.\n\n- **Pair A (Tubes):** the **gray PVC pipe rubbed with fur**.\n- **Pair B (Flats):** a **balloon rubbed with fur**.\n\nEach time you run an experiment, recharge your probe fresh before bringing it near. Don't touch the station object.\n\nRun all **four** experiments below. For each one, record what you observed — did the objects attract, repel, or do nothing? How strongly? The experiments are paired: same shape, different material — pay close attention to what changes when only the material changes."
+    },
+    {
+      id: "w32cd-callout-exp-pair1",
+      type: "callout",
+      style: "insight",
+      icon: "🧵",
+      content: "**Pair A — Tubes (on the holder)**\n\n1. Place an **uncharged white PVC tube** on the holder. Rub the **gray PVC with fur** and bring the gray PVC close to the white PVC on the holder. Observe.\n2. Place an **uncharged tin-foil-coated PVC tube** on the holder. Rub the gray PVC with fur again and bring it close to the tin-foil-coated PVC. Observe."
+    },
+    {
+      id: "w32cd-q-pair1",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "**Experiments 1 & 2 (Tubes):** Record your observations for each. What was the difference between how the **white PVC** and the **tin-foil-coated PVC** responded when the charged gray PVC was brought near?",
+      placeholder: "White PVC on holder: ___.\nTin-foil-coated PVC on holder: ___.\nDifference: ___.",
+      difficulty: "analyze"
+    },
+    {
+      id: "w32cd-callout-exp-pair3",
+      type: "callout",
+      style: "insight",
+      icon: "🟩",
+      content: "**Pair B — Flat Pieces**\n\n3. Rub a **balloon with fur** and bring it close to an **uncharged plastic bag** held up by a partner. Observe.\n4. Rub the balloon with fur again and bring it close to an **uncharged piece of tin foil** (similar size), also held up by a partner. Observe."
+    },
+    {
+      id: "w32cd-q-pair3",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "**Experiments 3 & 4 (Flats):** Record your observations for each. Which flat piece pulled toward the charged balloon more strongly — the plastic bag or the tin foil?",
+      placeholder: "Plastic bag: ___.\nTin foil: ___.\nDifference: ___.",
+      difficulty: "analyze"
+    },
+    {
+      id: "w32cd-q-pattern",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "**Stand back and look across all four experiments.** What's the pattern? Which category of material — the metal ones or the non-metal ones — consistently interacted more strongly with whatever charged probe you used?",
+      placeholder: "Across both pairs, the ___ materials responded more strongly. The pattern I see is ___.",
+      difficulty: "analyze"
+    },
+
+    {
+      id: "w32cd-sec-part3",
+      type: "section_header",
+      icon: "📖",
+      title: "Part 3 — The Names for What You Just Saw",
+      subtitle: "~8 min"
+    },
+    {
+      id: "w32cd-text-part3-intro",
+      type: "text",
+      content: "You've now seen two clean comparisons where the metal object reacted more dramatically than the non-metal object. The scientific community long ago gave these two categories of materials their own names — and the difference comes down to **what's going on inside each material at the atomic level**."
     },
     {
       id: "w32cd-callout-defs",
       type: "callout",
       style: "insight",
       icon: "📖",
-      content: "**Dielectric** (e.g., PVC, wood, rubber): made of **only atoms**. Electrons are locked to their atoms. Also called *insulators*.\n\n**Conductor** (e.g., metal): made of **+ions, atoms, and free electrons**. Those free electrons can drift around the whole object — they aren't stuck to one atom."
-    },
-
-    {
-      id: "w32cd-sec-task2",
-      type: "section_header",
-      icon: "🔮",
-      title: "Task 2 — Predict Which Polarizes More",
-      subtitle: "~7 min"
+      content: "**Conductor** — a material whose electrons are *not bound* to atoms. Those **free electrons** can drift across the whole material. When a negatively charged object is brought close, the free electrons are repelled and pile up on the far side — producing strong polarization.\n\n**Dielectric** (also called an *insulator*) — a material where electrons are *confined to their atoms*. The electrons can shift slightly away from a negative object or toward a positive one, but they can't leave the atom they belong to. This tiny internal shift is called **polarization**, and the polarized atoms are called **electric dipoles**."
     },
     {
-      id: "w32cd-text-predict",
-      type: "text",
-      content: "Say we bring a positively charged rod near a neutral dielectric and a neutral conductor. **In which one can the negative charges move more easily?** Why should that matter for how strongly each material gets attracted to the rod?"
-    },
-    {
-      id: "w32cd-q-predict",
-      type: "question",
-      questionType: "multiple_choice",
-      prompt: "Based on what's inside each material, which one should polarize **more dramatically** when a charged rod is brought nearby?",
-      options: [
-        "The dielectric, because its atoms are locked in place.",
-        "The conductor, because free electrons can drift across the whole object toward the charged rod.",
-        "They should polarize the same, since both are neutral.",
-        "The dielectric, because metal reflects charge."
-      ],
-      correctIndex: 1,
-      explanation: "In the conductor, the free electrons can travel across the entire object and pile up on the side nearest the charged rod. In a dielectric, the best each atom can do is a tiny internal shift — so the effect is much smaller.",
-      difficulty: "analyze"
-    },
-    {
-      id: "w32cd-q-defend",
-      type: "question",
-      questionType: "short_answer",
-      prompt: "Defend your prediction in two sentences. Use the words *free electrons*, *polarization*, and *attraction*.",
-      placeholder: "The ___ should polarize more because...",
-      difficulty: "analyze"
-    },
-
-    {
-      id: "w32cd-sec-task3",
-      type: "section_header",
-      icon: "🧪",
-      title: "Task 3 — The Rotating-Stand Experiment",
-      subtitle: "~15 min"
-    },
-    {
-      id: "w32cd-img-rotating",
+      id: "w32cd-img-cd-compare",
       type: "image",
-      url: `${IMG}/w32-rotating-stand-pvc.png`,
-      caption: "Rotating stand with a PVC tube balanced on top. A charged gray PVC brought nearby will make the tube rotate if it's attracted.",
-      alt: "A pointed stand supporting a horizontal PVC tube that can spin freely. A second PVC tube is held by fur nearby. The free tube begins to rotate toward the held one"
+      url: `${IMG}/w32-conductor-vs-dielectric.png`,
+      caption: "A negatively charged rectangle brought close to two neutral rods. Top rod: a dielectric — atoms polarize slightly in place. Bottom rod: a conductor — free electrons migrate to the far side.",
+      alt: "Two horizontal rods each near a negatively charged rectangle. Top rod labeled Dielectric shows atoms drawn as dumbbells with slight internal shifts. Bottom rod labeled Conductor shows free electrons concentrated on the far side, leaving positive ions on the near side"
     },
     {
-      id: "w32cd-text-experiment",
-      type: "text",
-      content: "**Procedure:**\n\n1. Balance the **white PVC pipe** (dielectric) on the rotating stand.\n2. Rub the gray PVC pipe with fur to charge it. Bring it close — *but don't touch*.\n3. Watch carefully. How fast does the white PVC rotate? How far does it swing?\n4. Now swap in the **metal-coated PVC** (conductor) and repeat step 2.\n5. Compare the two responses.\n\n**Safety tip:** keep your hands off the balanced pipe during the test. Body heat and moisture throw off the result."
-    },
-    {
-      id: "w32cd-q-obs",
+      id: "w32cd-q-classify-foil",
       type: "question",
       questionType: "short_answer",
-      prompt: "Record your observations. Which pipe responded more strongly? Be specific — faster rotation? Larger swing? Smaller gap needed before you saw motion?",
-      placeholder: "White PVC (dielectric): The tube rotated ___ and swung about ___.\nMetal-coated PVC (conductor): The tube rotated ___ and swung about ___.\nThe ___ responded more strongly.",
-      difficulty: "recall"
+      prompt: "Based on the definitions above and your observations: **is tin foil a conductor or a dielectric?** Explain your answer using what you saw in the experiments.",
+      placeholder: "Tin foil is a ___. I know because in the experiments, the tin-foil objects ___, which fits the definition of a ___ because ___.",
+      difficulty: "analyze"
     },
     {
-      id: "w32cd-evidence-exp",
-      type: "evidence_upload",
-      icon: "📷",
-      title: "Upload Whiteboard — Observations + Prediction Check",
-      instructions: "Photo of your observation chart *and* a sentence stating whether the experiment **supported** or **disproved** your Task 2 prediction.",
-      reflectionPrompt: "Did anything surprise you — maybe one material was much more dramatic than you expected?"
+      id: "w32cd-q-classify-pvc",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "**Is the plastic PVC tube a conductor or a dielectric?** Explain your answer using what you saw in the experiments.",
+      placeholder: "The PVC tube is a ___. I know because in the experiments, the bare PVC ___, which fits the definition of a ___ because ___.",
+      difficulty: "analyze"
     },
 
     {
-      id: "w32cd-sec-task4",
+      id: "w32cd-sec-part4",
       type: "section_header",
-      icon: "🧩",
-      title: "Task 4 — Formalize the Rule",
-      subtitle: "~7 min"
+      icon: "✏️",
+      title: "Part 4 — Draw the Charge Diagrams",
+      subtitle: "~10 min"
     },
     {
-      id: "w32cd-q-rule",
+      id: "w32cd-link-video-part4",
+      type: "external_link",
+      icon: "📺",
+      title: "Rewatch the video",
+      url: "https://mediaplayer.pearsoncmg.com/assets/_frames.true/secs-experiment-video-30",
+      description: "Pay close attention to the relative strength of attraction — the metal plate vs. the wooden board — so your diagrams match what you see.",
+      buttonLabel: "Play the video",
+      openInNewTab: true
+    },
+    {
+      id: "w32cd-text-part4",
+      type: "text",
+      content: "Rewatch the video. A negatively charged balloon is somewhat attracted to a wooden board, and **more strongly** attracted to a metal plate. Now you're going to show why — with atomic-level charge diagrams.\n\nOn your whiteboard, draw **two diagrams side by side**:\n\n1. **Negatively charged balloon next to a metal plate (conductor).** Show where the free electrons end up inside the plate and where the positive ions are left behind. Show the charges on the balloon.\n2. **Negatively charged balloon next to a wooden board (dielectric).** Show how the atoms inside the wood polarize — with each atom's electron shifted slightly away from the balloon and its protons slightly toward the balloon. Show the charges on the balloon.\n\nLabel everything. Your two diagrams should make it obvious why the metal plate pulls the balloon harder."
+    },
+    {
+      id: "w32cd-q-diagram-explain",
       type: "question",
       questionType: "short_answer",
-      prompt: "In your own words, write the rule that connects **material type** to **polarization strength** to **attraction strength**. Use *conductor*, *dielectric*, *free electrons*, and *polarization*.",
-      placeholder: "Conductors have ___, which means they can ___ more than dielectrics. More polarization means...",
+      prompt: "Describe your two diagrams in words. Where did the negative charges end up in the metal plate? What happened to the atoms inside the wooden board? Why does your diagram show a **stronger** attraction for the metal plate than for the wood?",
+      placeholder: "Metal plate: the free electrons ___, leaving ___. Wooden board: each atom ___. Stronger attraction for the metal because ___.",
       difficulty: "create"
     },
     {
-      id: "w32cd-q-predict-new",
-      type: "question",
-      questionType: "multiple_choice",
-      prompt: "You bring a charged balloon near a neutral aluminum can and a neutral cardboard box at the same distance. Which object does the balloon attract to more strongly?",
-      options: [
-        "The cardboard box, because it's lighter.",
-        "They attract equally — both are neutral.",
-        "Neither, because neutral objects don't interact with charge.",
-        "The aluminum can, because aluminum is a conductor and polarizes more."
-      ],
-      correctIndex: 3,
-      explanation: "Aluminum is a conductor with free electrons that can pile up on the near side, producing strong polarization. Cardboard is a dielectric — its atoms can only polarize a tiny bit. The charged balloon feels a larger attractive pull from the can.",
-      difficulty: "analyze"
+      id: "w32cd-evidence-diagrams",
+      type: "evidence_upload",
+      icon: "📷",
+      title: "Upload Whiteboard — Conductor & Dielectric Charge Diagrams",
+      instructions: "Photo of both diagrams side by side: (1) balloon + metal plate (conductor), (2) balloon + wooden board (dielectric). Free electrons, protons, and polarized atoms should all be clearly labeled.",
+      reflectionPrompt: "One sentence: which diagram has charge more *concentrated* near the balloon, and why does that matter for how strongly the balloon is attracted?"
     },
 
-    {
-      id: "w32cd-sec-exit",
-      type: "section_header",
-      icon: "🚪",
-      title: "Exit Check",
-      subtitle: "~5 min"
-    },
-    {
-      id: "w32cd-q-exit1",
-      type: "question",
-      questionType: "multiple_choice",
-      prompt: "Which of these is the best definition of a **conductor**?",
-      options: [
-        "A material that generates heat when electricity passes through it.",
-        "A material with more protons than electrons.",
-        "A material with free electrons that can drift across the whole object.",
-        "A material that blocks electric charge."
-      ],
-      correctIndex: 2,
-      explanation: "A conductor is defined by having free (mobile) electrons. That mobility is what allows it to polarize strongly and to carry current later on when we study circuits.",
-      difficulty: "recall"
-    },
-    {
-      id: "w32cd-q-exit2",
-      type: "question",
-      questionType: "multiple_choice",
-      prompt: "A charged balloon is brought near a neutral dielectric. What happens?",
-      options: [
-        "Nothing — the dielectric is neutral.",
-        "The dielectric polarizes slightly: electrons inside each atom shift, causing a weak attraction.",
-        "Free electrons flow across the dielectric toward the balloon.",
-        "The dielectric becomes negatively charged permanently."
-      ],
-      correctIndex: 1,
-      explanation: "Dielectrics have no free electrons, so the only available motion is a tiny shift *within* each atom. That's enough for a small polarization and a weak attraction — but much weaker than what you'd see with a conductor.",
-      difficulty: "analyze"
-    },
     {
       id: "w32cd-callout-bridge",
       type: "callout",
       style: "insight",
       icon: "🔗",
-      content: "**Next week:** we solve the Van de Graaff mystery for real. You'll use everything from this week — atomic model, charge diagrams, conductors, dielectrics, polarization — to explain every piece of that machine. Then we test your understanding on the unit assessment."
+      content: "**Next week:** we solve the Van de Graaff mystery for real. You'll use every piece of this week — atomic model, charge diagrams, polarization, conductors vs. dielectrics — to explain every part of that machine. Then we test your understanding on the unit assessment."
     }
   ]
 };

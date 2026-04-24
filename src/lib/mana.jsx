@@ -648,6 +648,18 @@ export async function autoSelectMage(courseId) {
 /**
  * Mark mage as absent — pick a new mage without adding current to history.
  * Resets budget for the new mage.
+ *
+ * Absent-today handling:
+ * 1. The current mage's turn is preserved (NOT added to mageHistory).
+ * 2. The current mage is added to `mageAbsentToday` so we don't re-pick them today.
+ * 3. If the non-history eligible pool is exhausted (every remaining untuned
+ *    student is absent today), we fall back to `mageHistory` members who are
+ *    NOT absent today. A history-fallback pick does NOT get re-added to
+ *    history — their "real" turn already counted on a prior day; today they're
+ *    a stand-in so the class still has a mage.
+ *
+ * This solves the edge case where the only students who haven't been mage yet
+ * are all out sick — nobody loses their turn, and today's class still runs.
  */
 export async function markMageAbsent(courseId) {
   const pool = await getManaState(courseId);
@@ -655,24 +667,32 @@ export async function markMageAbsent(courseId) {
   const allUids = Object.keys(names);
   if (allUids.length === 0) return null;
 
+  const today = new Date().toISOString().split("T")[0];
   const mageHistory = pool.mageHistory || [];
   const mageCycleNumber = pool.mageCycleNumber || 1;
   const studentManaMap = await getStudentManaForClass(courseId);
 
-  // Current mage is NOT added to history (absent = turn preserved)
+  // Reset the absent-today list at the start of a new day.
+  const priorAbsentToday = pool.mageAbsentDate === today ? (pool.mageAbsentToday || []) : [];
   const currentMageId = pool.mageStudentId;
+  const absentToday = [...new Set([...priorAbsentToday, currentMageId].filter(Boolean))];
 
-  // Build eligible pool excluding history AND the absent mage
-  let eligible = allUids.filter(uid => !mageHistory.includes(uid) && uid !== currentMageId);
+  // Try 1: non-history pool, excluding anyone marked absent today.
+  let eligible = allUids.filter(uid => !mageHistory.includes(uid) && !absentToday.includes(uid));
+  let fromHistory = false;
+
+  // Try 2 (fallback): history members who aren't absent today. They've already
+  // had a "real" turn — we borrow them as stand-ins without incrementing history.
   if (eligible.length === 0) {
-    eligible = allUids.filter(uid => uid !== currentMageId);
+    eligible = allUids.filter(uid => !absentToday.includes(uid));
+    fromHistory = true;
   }
+
   if (eligible.length === 0) return null;
 
   const selectedUid = weightedRandomSelect(eligible, studentManaMap);
   if (!selectedUid) return null;
 
-  const today = new Date().toISOString().split("T")[0];
   const updated = {
     ...pool,
     mageStudentId: selectedUid,
@@ -680,12 +700,15 @@ export async function markMageAbsent(courseId) {
     mageDate: today,
     mageBudgetUsed: 0,
     magePerStudent: {},
-    mageHistory,
+    mageHistory, // unchanged — absent students + history-fallback picks preserve turns
     mageCycleNumber,
+    mageAbsentToday: absentToday,
+    mageAbsentDate: today,
+    mageIsStandIn: fromHistory,
   };
   await saveManaState(courseId, undefined, updated);
 
-  return { uid: selectedUid, name: names[selectedUid], gender: genders[selectedUid] || 'M', poolState: updated };
+  return { uid: selectedUid, name: names[selectedUid], gender: genders[selectedUid] || 'M', poolState: updated, fromHistory };
 }
 
 // ─── Donation: student-to-student mana transfer ───
