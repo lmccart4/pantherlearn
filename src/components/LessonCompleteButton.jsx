@@ -75,7 +75,7 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
   const slideSubmitBlocks = blocks.filter((b) => b.type === "slide_submit");
 
   const allQuestionsAnswered = questionBlocks.every((b) => studentData[b.id]?.submitted);
-  const allChatbotsUsed = chatbotBlocks.every((b) => chatLogs[b.id]?.length > 0);
+  const allChatbotsUsed = chatbotBlocks.every((b) => studentData[b.id]?.submitted || chatLogs[b.id]?.length > 0);
   const allChecklistsDone = checklistBlocks.every((b) => {
     const items = b.items || [];
     if (items.length === 0) return true;
@@ -89,7 +89,7 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
 
   const remaining = [];
   const unansweredQ = questionBlocks.filter((b) => !studentData[b.id]?.submitted).length;
-  const unusedChat = chatbotBlocks.filter((b) => !chatLogs[b.id]?.length).length;
+  const unusedChat = chatbotBlocks.filter((b) => !studentData[b.id]?.submitted && !chatLogs[b.id]?.length).length;
   const uncheckedLists = checklistBlocks.filter((b) => {
     const items = b.items || [];
     if (items.length === 0) return false;
