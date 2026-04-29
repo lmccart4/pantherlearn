@@ -20,7 +20,6 @@ export default function AvatarCreator() {
   const { user } = useAuth();
   const [avatar, setAvatar] = useState({ ...DEFAULT_AVATAR });
   const [totalXP, setTotalXP] = useState(0);
-  const [unlocked, setUnlocked] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);

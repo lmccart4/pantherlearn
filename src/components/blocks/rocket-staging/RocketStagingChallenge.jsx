@@ -399,6 +399,19 @@ export default function RocketStagingChallenge({ onComplete, initialState }) {
     setCompletedMissions(missions);
   }, [initialState?.completedMissions]);
 
+  // Refs to hold launch animation timers so they can be cleared on unmount
+  const stageIntervalRef = useRef(null);
+  const altIntervalRef = useRef(null);
+  const launchTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      clearInterval(stageIntervalRef.current);
+      clearInterval(altIntervalRef.current);
+      clearTimeout(launchTimeoutRef.current);
+    };
+  }, []);
+
   const mission = MISSIONS[missionIndex];
 
   const initMission = useCallback((idx) => {
@@ -451,12 +464,12 @@ export default function RocketStagingChallenge({ onComplete, initialState }) {
     setAnimStage(0);
 
     let stageIdx = 0;
-    const stageInterval = setInterval(() => {
+    stageIntervalRef.current = setInterval(() => {
       stageIdx++;
       if (stageIdx >= stages.length) {
-        clearInterval(stageInterval);
+        clearInterval(stageIntervalRef.current);
         const finalV = computeFinalVelocity();
-        setTimeout(() => {
+        launchTimeoutRef.current = setTimeout(() => {
           const success = finalV >= mission.targetVelocity;
           const result = {
             success,
@@ -494,10 +507,10 @@ export default function RocketStagingChallenge({ onComplete, initialState }) {
 
     // Altitude animation
     let altVal = 0;
-    const altInterval = setInterval(() => {
+    altIntervalRef.current = setInterval(() => {
       altVal += Math.random() * 3 + 1;
       setAltitude(altVal);
-      if (altVal > 100) clearInterval(altInterval);
+      if (altVal > 100) clearInterval(altIntervalRef.current);
     }, 100);
   };
 

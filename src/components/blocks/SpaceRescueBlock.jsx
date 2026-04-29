@@ -8,7 +8,7 @@ import { db } from "../../lib/firebase";
 import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 import "./SpaceRescueBlock.css";
 
-export default function SpaceRescueBlock({ block, courseId, lessonId }) {
+export default function SpaceRescueBlock({ block, courseId }) {
   const { user, userRole } = useAuth();
   const isTeacher = userRole === "teacher";
   const navigate = useNavigate();
