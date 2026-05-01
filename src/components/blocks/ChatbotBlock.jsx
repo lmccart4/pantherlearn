@@ -106,7 +106,8 @@ export default function ChatbotBlock({ block, lessonId, courseId, getToken, onLo
       if (onAnswer) onAnswer(block.id, { messages: allMsgs, submitted: true, writtenScore: 1, savedAt: new Date().toISOString() });
       trackEvent("chat_message", { blockId: block.id });
     } catch (err) {
-      const errorMsg = err.message.includes("Slow down")
+      console.error("Chatbot error:", err);
+      const errorMsg = err.message && err.message !== "Request failed"
         ? err.message
         : ui(4, "Hmm, I had trouble connecting. Please try again!");
       setMessages((prev) => [...prev, { role: "assistant", content: errorMsg }]);
