@@ -119,7 +119,7 @@ const lesson = {
     {
       id: "w34vdg-image-series",
       type: "image",
-      url: "https://pantherlearn.com/lesson-images/triboelectric-kit-series.png",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/electrostatics/triboelectric-kit-series.png",
       alt: "Triboelectric series for our kit, ranked from fur (most positive) at top to PVC (most negative) at bottom",
       caption: "The triboelectric series for the materials in your kit."
     },
