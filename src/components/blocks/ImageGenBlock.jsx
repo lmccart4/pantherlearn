@@ -9,8 +9,14 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 const functions = getFunctions();
 const generateImageFn = httpsCallable(functions, "generateImage");
 const getImageGenUsageFn = httpsCallable(functions, "getImageGenUsage");
+const getSavedImageGenerationsFn = httpsCallable(functions, "getSavedImageGenerations");
 
 const DEFAULT_CAP = 10;
+
+/** Prefer persisted URL; fall back to in-session base64. */
+function imgSrc(img) {
+  return img.imageUrl || `data:${img.mimeType};base64,${img.data}`;
+}
 
 const TIPS = [
   "Be specific about what you want — \"a golden retriever wearing a space helmet on Mars\" beats \"a dog in space\"",
@@ -46,6 +52,32 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
     return () => { cancelled = true; };
   }, [block?.id, cap]);
 
+  // If this block persists images, hydrate the student's prior gallery from Firestore
+  // so they can see what they made in earlier sessions.
+  useEffect(() => {
+    if (!block?.id || !block.persist) return;
+    let cancelled = false;
+    getSavedImageGenerationsFn({ blockId: block.id })
+      .then((res) => {
+        if (cancelled) return;
+        const saved = Array.isArray(res?.data?.images) ? res.data.images : [];
+        if (!saved.length) return;
+        // Map server shape → client shape (client uses `data` for base64; here we use imageUrl)
+        const hydrated = saved.map((s) => ({
+          id: s.id,
+          prompt: s.prompt,
+          imageUrl: s.imageUrl,
+          mimeType: s.mimeType,
+          text: "",
+        }));
+        setImages(hydrated);
+        // Subtract these from the server counter so totalUsed doesn't double-count
+        setServerUsed((u) => Math.max(0, u - hydrated.length));
+      })
+      .catch(() => { /* quiet: gallery just won't rehydrate */ });
+    return () => { cancelled = true; };
+  }, [block?.id, block?.persist]);
+
   const totalUsed = serverUsed + images.length; // server count + newly generated this session
   const remaining = Math.max(0, cap - totalUsed);
 
@@ -63,13 +95,19 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
     setError("");
 
     try {
-      const result = await generateImageFn({ prompt: prompt.trim(), blockId: block?.id, cap });
+      const result = await generateImageFn({
+        prompt: prompt.trim(),
+        blockId: block?.id,
+        cap,
+        persist: block?.persist === true,
+      });
       const newImage = {
-        id: Date.now(),
+        id: result.data.savedId || Date.now(),
         prompt: prompt.trim(),
         data: result.data.image,
         mimeType: result.data.mimeType,
         text: result.data.text,
+        imageUrl: result.data.savedUrl || null,
       };
       const updated = [...images, newImage];
       setImages(updated);
@@ -259,7 +297,7 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
                 }}
               >
                 <img
-                  src={`data:${img.mimeType};base64,${img.data}`}
+                  src={imgSrc(img)}
                   alt={img.prompt}
                   style={{
                     width: "100%",
@@ -307,7 +345,7 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
           }}
         >
           <img
-            src={`data:${selectedImage.mimeType};base64,${selectedImage.data}`}
+            src={imgSrc(selectedImage)}
             alt={selectedImage.prompt}
             style={{
               maxWidth: "90%",

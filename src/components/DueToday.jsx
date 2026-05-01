@@ -1,7 +1,11 @@
 // src/components/DueToday.jsx
 // Shows lessons due today, tomorrow, or overdue in a compact dashboard widget.
+// Lessons whose dueDate is in a closed marking period are hidden — once a
+// marking period closes, the grade is locked and stale to-dos shouldn't pile
+// up on the student dashboard.
 import { Link } from "react-router-dom";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
+import { getCurrentMarkingPeriod, MARKING_PERIODS } from "../lib/markingPeriods";
 
 export default function DueToday({ lessonMap, allCourses, completedLessons = new Set() }) {
   const uiStrings = useTranslatedTexts([
@@ -25,6 +29,11 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
 
+  // Hide assignments from any marking period that's already closed.
+  const currentMpId = getCurrentMarkingPeriod(now);
+  const currentMp = MARKING_PERIODS.find((mp) => mp.id === currentMpId);
+  const mpStartCutoff = currentMp?.start || null;
+
   // Collect incomplete lessons with due dates that are relevant (overdue, today, tomorrow)
   const items = [];
   let totalDueCount = 0;
@@ -32,6 +41,7 @@ export default function DueToday({ lessonMap, allCourses, completedLessons = new
     if (lesson.visible === false) continue;
     const dueDate = lesson.dueDate;
     if (!dueDate) continue;
+    if (mpStartCutoff && dueDate < mpStartCutoff) continue; // skip closed marking periods
     const isPastDue = dueDate < todayStr;
     const isToday = dueDate === todayStr;
     const isTomorrow = dueDate === tomorrowStr;

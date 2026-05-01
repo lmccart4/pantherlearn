@@ -149,12 +149,12 @@ const lesson = {
       difficulty: "evaluate"
     },
     {
-      id: "evidence-workbook",
-      type: "evidence_upload",
-      icon: "📷",
-      title: "Upload Your Completed Workbook",
-      instructions: "Share your completed Revenue Autopsy workbook (File → Share → Copy link → paste below) OR upload a screenshot of both Part A and Part B filled out.",
-      reflectionPrompt: "In one sentence: which of the five creators earns the most passively, and what makes that model 'passive'?"
+      id: "q-workbook-share",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "Share your completed Revenue Autopsy workbook.\n\n1. In Sheets: **File → Share → Copy link** (anyone with link → Viewer is fine).\n2. Paste the link below.\n3. Then answer: in one sentence, which of the five creators earns the most *passively*, and what makes that model 'passive'?",
+      placeholder: "Link: https://docs.google.com/spreadsheets/...\n\nMost passive creator: ...",
+      difficulty: "evaluate"
     },
 
     {

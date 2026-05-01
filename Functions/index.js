@@ -2065,7 +2065,7 @@ exports.generateImage = onCall(
       }
     }
 
-    const { prompt, aspectRatio, blockId, cap: rawCap } = request.data;
+    const { prompt, aspectRatio, blockId, cap: rawCap, persist } = request.data;
     if (!prompt || typeof prompt !== "string" || prompt.trim().length < 3) {
       throw new HttpsError("invalid-argument", "Prompt must be at least 3 characters.");
     }
@@ -2224,10 +2224,59 @@ exports.generateImage = onCall(
             console.warn("imageGenUsage increment failed:", e.message);
           }
         }
+
+        // Persist image + prompt to Storage/Firestore when the block opts in.
+        // Best-effort: failures log but don't fail the generation.
+        let savedUrl = null;
+        let savedId = null;
+        if (persist === true && blockId) {
+          try {
+            const ts = Date.now();
+            savedId = `${ts}`;
+            const ext = (mimeType || "image/png").split("/")[1] || "png";
+            const storagePath = `students/${uid}/image-gen/${blockId}/${ts}.${ext}`;
+            const bucket = admin.storage().bucket();
+            const file = bucket.file(storagePath);
+            const downloadToken = crypto.randomUUID();
+            await file.save(Buffer.from(imageData, "base64"), {
+              metadata: {
+                contentType: mimeType,
+                metadata: { firebaseStorageDownloadTokens: downloadToken },
+              },
+              resumable: false,
+            });
+            savedUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(storagePath)}?alt=media&token=${downloadToken}`;
+            await db
+              .collection("imageGenerations")
+              .doc(`${uid}__${blockId}`)
+              .collection("images")
+              .doc(savedId)
+              .set({
+                prompt: trimmedPrompt,
+                imageUrl: savedUrl,
+                storagePath,
+                mimeType,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                uid,
+                blockId,
+              });
+          } catch (e) {
+            console.warn("imageGen persist failed:", e.message);
+          }
+        }
+
         const remaining = usageRef
           ? Math.max(0, cap - ((await usageRef.get()).data()?.count || 0))
           : null;
-        return { image: imageData, mimeType, text: textResponse, remaining, cap: usageRef ? cap : null };
+        return {
+          image: imageData,
+          mimeType,
+          text: textResponse,
+          remaining,
+          cap: usageRef ? cap : null,
+          savedUrl,
+          savedId,
+        };
       } catch (err) {
         if (err instanceof HttpsError) throw err;
         if (attempt < slots.length - 1) continue;
@@ -2260,6 +2309,37 @@ exports.getImageGenUsage = onCall(
     const doc = await db.collection("imageGenUsage").doc(`${uid}__${blockId}`).get();
     const used = doc.exists ? (doc.data().count || 0) : 0;
     return { used, cap, remaining: Math.max(0, cap - used) };
+  }
+);
+
+// Returns an array of saved image records for the caller on a given persisted block.
+// Each: { id, prompt, imageUrl, mimeType, createdAt(ms) }. Ordered oldest → newest.
+exports.getSavedImageGenerations = onCall(
+  { enforceAppCheck: false, maxInstances: 10 },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+    const { blockId } = request.data || {};
+    if (!blockId || typeof blockId !== "string") {
+      throw new HttpsError("invalid-argument", "blockId required.");
+    }
+    const uid = request.auth.uid;
+    const snap = await db
+      .collection("imageGenerations")
+      .doc(`${uid}__${blockId}`)
+      .collection("images")
+      .orderBy("createdAt", "asc")
+      .get();
+    const images = snap.docs.map((d) => {
+      const x = d.data();
+      return {
+        id: d.id,
+        prompt: x.prompt,
+        imageUrl: x.imageUrl,
+        mimeType: x.mimeType,
+        createdAt: x.createdAt?.toMillis?.() || null,
+      };
+    });
+    return { images };
   }
 );
 

@@ -7,6 +7,7 @@ import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
 import StreakDisplay from "../components/StreakDisplay";
 import { getWeightedOverall, CATEGORY_WEIGHTS, CATEGORY_LABELS, CATEGORY_COLORS, DEFAULT_CATEGORY } from "../lib/gradeCalc";
+import { ACTIVE_MARKING_PERIODS, getCurrentMarkingPeriod, getMarkingPeriod } from "../lib/markingPeriods";
 import { linkifyText } from "../lib/utils";
 
 const GRADE_TIERS = [
@@ -56,8 +57,9 @@ export default function StudentProgress() {
   const [xpConfig, setXpConfig] = useState(null);
   const [activityData, setActivityData] = useState({}); // { uid: { activityId: { activityScore, activityLabel, ... } } }
   const [unitFilter, setUnitFilter] = useState("all");
+  const [mpFilter, setMpFilter] = useState(() => getCurrentMarkingPeriod());
 
-  // Only show visible lessons; group by unit for filtering
+  // Only show visible lessons; group by unit + marking period for filtering
   const visibleLessons = useMemo(() => lessons.filter(l => l.visible !== false), [lessons]);
   const unitList = useMemo(() => {
     const seen = new Set();
@@ -68,10 +70,16 @@ export default function StudentProgress() {
     });
     return units;
   }, [visibleLessons]);
-  const filteredLessons = useMemo(() =>
-    unitFilter === "all" ? visibleLessons : visibleLessons.filter(l => (l.unit || "") === unitFilter),
-    [visibleLessons, unitFilter]
-  );
+  const filteredLessons = useMemo(() => {
+    return visibleLessons.filter((l) => {
+      if (unitFilter !== "all" && (l.unit || "") !== unitFilter) return false;
+      if (mpFilter !== "all") {
+        const mp = getMarkingPeriod(l.dueDate) || getCurrentMarkingPeriod();
+        if (mp !== mpFilter) return false;
+      }
+      return true;
+    });
+  }, [visibleLessons, unitFilter, mpFilter]);
 
   // Fetch courses on mount
   useEffect(() => {
@@ -1480,6 +1488,13 @@ export default function StudentProgress() {
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
           <h3 className="section-heading" style={{ marginBottom: 0 }}>Lesson Grades</h3>
+          {ACTIVE_MARKING_PERIODS.length > 1 && (
+            <select value={mpFilter} onChange={e => setMpFilter(e.target.value)}
+              style={{ background: "var(--surface)", color: "var(--text1)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>
+              <option value="all">All Marking Periods</option>
+              {ACTIVE_MARKING_PERIODS.map(mp => <option key={mp.id} value={mp.id}>{mp.label}</option>)}
+            </select>
+          )}
           {unitList.length > 1 && (
             <select value={unitFilter} onChange={e => setUnitFilter(e.target.value)}
               style={{ background: "var(--surface)", color: "var(--text1)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>
@@ -2140,6 +2155,16 @@ export default function StudentProgress() {
 
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                   <h3 className="section-heading" style={{ marginBottom: 0 }}>Lessons</h3>
+                  {ACTIVE_MARKING_PERIODS.length > 1 && (
+                    <select value={mpFilter} onChange={e => setMpFilter(e.target.value)}
+                      style={{ background: "var(--surface)", color: "var(--text1)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>
+                      <option value="all">All Marking Periods</option>
+                      {ACTIVE_MARKING_PERIODS.map(mp => {
+                        const count = visibleLessons.filter(l => (getMarkingPeriod(l.dueDate) || getCurrentMarkingPeriod()) === mp.id).length;
+                        return <option key={mp.id} value={mp.id}>{mp.label} ({count})</option>;
+                      })}
+                    </select>
+                  )}
                   {unitList.length > 1 && (
                     <select value={unitFilter} onChange={e => setUnitFilter(e.target.value)}
                       style={{ background: "var(--surface)", color: "var(--text1)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>

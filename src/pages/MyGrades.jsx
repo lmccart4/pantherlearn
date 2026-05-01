@@ -7,6 +7,7 @@ import { getStudentEnrolledCourseIds } from "../lib/enrollment";
 import { getLevelInfo, getStudentGamification } from "../lib/gamification";
 import { getWeightedOverall, CATEGORY_WEIGHTS, CATEGORY_LABELS, CATEGORY_COLORS, DEFAULT_CATEGORY } from "../lib/gradeCalc";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
+import { ACTIVE_MARKING_PERIODS, getCurrentMarkingPeriod, getMarkingPeriod } from "../lib/markingPeriods";
 
 const WRITTEN_LABELS = {
   0: { label: "Missing", color: "var(--text3)" },
@@ -25,6 +26,7 @@ export default function MyGrades() {
   const [reflections, setReflections] = useState({});
   const [activityData, setActivityData] = useState({}); // { activityId: { activityScore, activityLabel, activityTitle, ... } }
   const [gamification, setGamification] = useState(null);
+  const [selectedMp, setSelectedMp] = useState(() => getCurrentMarkingPeriod());
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
 
@@ -152,6 +154,31 @@ export default function MyGrades() {
   }, [selectedCourse, user]);
 
   // --- Helpers ---
+  // Marking-period filtering: a lesson belongs to the MP its dueDate falls in.
+  // Lessons with no dueDate are bucketed into the current MP so they still appear.
+  const lessonInSelectedMp = (lesson) => {
+    const mp = getMarkingPeriod(lesson.dueDate) || getCurrentMarkingPeriod();
+    return mp === selectedMp;
+  };
+  // Activities don't have a dueDate field — pull a date from any timestamp the
+  // doc carries (gradedAt / completedAt / submittedAt / recordedAt). If none,
+  // and the activity is tied to a lesson, defer to that lesson's MP. Final
+  // fallback: current MP.
+  const activityInSelectedMp = (data) => {
+    const ts = data.gradedAt || data.completedAt || data.submittedAt || data.recordedAt;
+    let datStr = null;
+    if (ts) {
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      if (!isNaN(d)) datStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+    if (!datStr && data.lessonId) {
+      const linkedLesson = lessons.find((l) => l.id === data.lessonId);
+      if (linkedLesson) return lessonInSelectedMp(linkedLesson);
+    }
+    const mp = getMarkingPeriod(datStr) || getCurrentMarkingPeriod();
+    return mp === selectedMp;
+  };
+
   const isDueDatePassed = (lesson) => {
     if (lesson.gradesReleased) return true; // teacher manually released grades
     if (!lesson.dueDate) return true; // no due date = always visible
@@ -235,6 +262,7 @@ export default function MyGrades() {
   const getOverall = () => {
     const lessonGrades = [];
     lessons.forEach((lesson) => {
+      if (!lessonInSelectedMp(lesson)) return; // only count selected marking period
       if (!isDueDatePassed(lesson)) return; // don't include unreleased grades
       if (progressData[lesson.id]?.exempt) return; // skip exempt lessons
       const result = getLessonGrade(lesson.id);
@@ -248,6 +276,7 @@ export default function MyGrades() {
     const activityGrades = [];
     Object.entries(activityData).forEach(([actId, data]) => {
       if (data.exempt) return; // skip exempt activities
+      if (!activityInSelectedMp(data)) return;
       if (data.activityScore !== null && data.activityScore !== undefined) {
         activityGrades.push({ percentage: Math.round(data.activityScore * 100) });
       }
@@ -256,7 +285,8 @@ export default function MyGrades() {
   };
 
   const getCompletionCount = () =>
-    lessons.filter((l) => progressData[l.id]?.completed).length;
+    lessons.filter((l) => lessonInSelectedMp(l) && progressData[l.id]?.completed).length;
+  const getMpLessonCount = () => lessons.filter(lessonInSelectedMp).length;
 
   const getReflectionCount = () =>
     Object.values(reflections).filter((r) => r.valid).length;
@@ -307,11 +337,12 @@ export default function MyGrades() {
   const reflectionCount = getReflectionCount();
   const level = gamification ? getLevelInfo(gamification.totalXP || 0) : null;
 
-  // Group lessons by unit
+  // Group lessons by unit (filtered to the selected marking period)
   const unitGroups = [];
   let currentUnit = null;
   let currentGroup = null;
   for (const lesson of lessons) {
+    if (!lessonInSelectedMp(lesson)) continue;
     const unit = lesson.unit || ui(20, "General");
     if (unit !== currentUnit) {
       currentUnit = unit;
@@ -320,6 +351,7 @@ export default function MyGrades() {
     }
     currentGroup.lessons.push(lesson);
   }
+  const mpLessonCount = getMpLessonCount();
 
   return (
     <main id="main-content" className="page-wrapper page-wrapper--narrow">
@@ -340,6 +372,21 @@ export default function MyGrades() {
                 onClick={() => setSelectedCourse(c.id)}
               >
                 {c.icon || "📚"} {c.title}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Marking period tabs */}
+        {ACTIVE_MARKING_PERIODS.length > 1 && (
+          <div className="tab-bar" style={{ marginBottom: 24 }}>
+            {ACTIVE_MARKING_PERIODS.map((mp) => (
+              <button
+                key={mp.id}
+                className={`tab-item ${selectedMp === mp.id ? "active" : ""}`}
+                onClick={() => setSelectedMp(mp.id)}
+              >
+                {mp.label}
               </button>
             ))}
           </div>
@@ -370,7 +417,7 @@ export default function MyGrades() {
               <div className="card mg-stat">
                 <div className="mg-stat-icon"><span aria-hidden="true">✅</span></div>
                 <div className="mg-stat-value" style={{ color: "var(--cyan)" }}>
-                  {completedCount}/{lessons.length}
+                  {completedCount}/{mpLessonCount}
                 </div>
                 <div className="mg-stat-label" data-translatable>{ui(3, "Lessons Done")}</div>
               </div>
@@ -648,12 +695,13 @@ export default function MyGrades() {
                 </div>
               </div>
             ))}
-            {/* Activities & Evidence grades */}
-            {Object.keys(activityData).length > 0 && (
+            {/* Activities & Evidence grades (filtered to selected marking period) */}
+            {Object.entries(activityData).filter(([, d]) => activityInSelectedMp(d)).length > 0 && (
               <div className="mg-unit-group">
                 <h3 className="mg-unit-title" data-translatable>{ui(17, "Activities & Evidence")}</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {Object.entries(activityData)
+                    .filter(([, d]) => activityInSelectedMp(d))
                     .sort((a, b) => (a[1].activityTitle || a[0]).localeCompare(b[1].activityTitle || b[0]))
                     .map(([actId, data]) => {
                       const hasScore = data.activityScore !== null && data.activityScore !== undefined;
