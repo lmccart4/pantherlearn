@@ -54,7 +54,7 @@ const lesson = {
     {
       id: "w34vdg-text-sharing-model",
       type: "text",
-      content: "## Part 1 — The Charge-Sharing Model\n\nWhen two **equal-size conductors** touch, their charges redistribute evenly. The charge on each after they separate is:\n\n$$q_f = \\frac{q_1 + q_2}{2}$$\n\n**Worked example:** One sphere carries $+3$ units; another carries $-7$ units. When they touch:\n\n$$q_f = \\frac{(+3) + (-7)}{2} = \\frac{-4}{2} = -2$$\n\nBoth spheres end up with $-2$ units each. The total charge ($-4$) is conserved — it just redistributes equally.\n\n*Assumption: equal-size objects. Good enough for high school, and close enough for the real-world objects you'll use today.*"
+      content: "## Part 1 — The Charge-Sharing Model\n\nWhen two **equal-size conductors** touch, their charges redistribute evenly. The charge on each after they separate is:\n\n$$q_f = \\frac{q_1 + q_2}{2}$$\n\n**Worked example:** One sphere carries +3 units; another carries −7 units. When they touch:\n\n$$q_f = \\frac{(+3) + (-7)}{2} = \\frac{-4}{2} = -2$$\n\nBoth spheres end up with −2 units each. The total charge (−4) is conserved — it just redistributes equally.\n\n*Assumption: equal-size objects. Good enough for high school, and close enough for the real-world objects you'll use today.*"
     },
     // ── Block 5 ──────────────────────────────────────────────────────────
     // correctIndex: 1 → answer is at position B
@@ -70,7 +70,7 @@ const lesson = {
         "−2"
       ],
       correctIndex: 1,
-      explanation: "$q_f = \\frac{(+6) + (-2)}{2} = \\frac{+4}{2} = +2$. Each sphere ends up with $+2$.",
+      explanation: "$$q_f = \\frac{(+6) + (-2)}{2} = \\frac{+4}{2} = +2$$\n\nEach sphere ends up with +2.",
       difficulty: "apply"
     },
     // ── Block 6 ──────────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ const lesson = {
         "+1"
       ],
       correctIndex: 2,
-      explanation: "Neutral means $q = 0$. So $q_f = \\frac{(+4) + 0}{2} = +2$. Half the charge moves to the neutral sphere; both leave with $+2$.",
+      explanation: "Neutral means q = 0.\n\n$$q_f = \\frac{(+4) + 0}{2} = +2$$\n\nHalf the charge moves to the neutral sphere; both leave with +2.",
       difficulty: "apply"
     },
     // ── Block 7 ──────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ const lesson = {
         "−3"
       ],
       correctIndex: 3,
-      explanation: "$q_f = \\frac{(-5) + (-1)}{2} = \\frac{-6}{2} = -3$. Both spheres end up with $-3$.",
+      explanation: "$$q_f = \\frac{(-5) + (-1)}{2} = \\frac{-6}{2} = -3$$\n\nBoth spheres end up with −3.",
       difficulty: "apply"
     },
     // ── Block 8 ──────────────────────────────────────────────────────────
