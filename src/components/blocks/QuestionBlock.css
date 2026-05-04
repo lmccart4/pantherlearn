@@ -1,0 +1,245 @@
+/* QuestionBlock — Savanna-tokenized inline-style replacement.
+   Block chrome (.question-block / .mc-option / .sa-input / .question-badge)
+   still lives in the global blocks stylesheet. Only the inline styles
+   that this component produced are migrated here. */
+
+.qb-relative {
+  position: relative;
+}
+
+.qb-row {
+  display: flex;
+  align-items: center;
+}
+
+.qb-xp-toast {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--amber-display);
+  color: var(--fg-onink);
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: var(--t-sm);
+  padding: 4px 10px;
+  border-radius: 12px;
+  animation: xpFloat 1.5s ease-out forwards;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.qb-bloom-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Graded badge — tiered by score band */
+.qb-graded-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: var(--space-2);
+}
+.qb-graded {
+  font-size: var(--t-sm);
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: var(--r-sm);
+}
+.qb-graded.tier-perfect {
+  background: color-mix(in oklab, var(--status-success) 14%, transparent);
+  color: var(--status-success-display);
+}
+.qb-graded.tier-strong {
+  background: color-mix(in oklab, var(--status-info) 14%, transparent);
+  color: var(--status-info);
+}
+.qb-graded.tier-ok {
+  background: color-mix(in oklab, var(--status-warn) 14%, transparent);
+  color: var(--status-warn-display);
+}
+.qb-graded.tier-weak {
+  background: color-mix(in oklab, var(--status-danger) 14%, transparent);
+  color: var(--status-danger-display);
+}
+.qb-graded.tier-pending {
+  background: var(--bg-sunken);
+  color: var(--fg-muted);
+}
+
+/* Feedback panel from autograde */
+.qb-feedback {
+  margin-top: var(--space-3);
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  background: color-mix(in oklab, var(--accent-hero) 6%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent-hero) 14%, transparent);
+  font-size: var(--t-sm);
+  line-height: 1.6;
+  color: var(--fg-default);
+}
+.qb-feedback-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-hero-ink);
+  margin-bottom: 4px;
+}
+
+/* Manual review request form */
+.qb-review-pending {
+  margin-top: var(--space-3);
+  font-size: var(--t-micro);
+  color: var(--fg-muted);
+}
+.qb-review-form {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qb-review-textarea {
+  font-size: var(--t-sm);
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-soft);
+  color: var(--fg-default);
+  resize: none;
+  font-family: inherit;
+}
+.qb-review-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.qb-review-submit {
+  font-size: var(--t-micro);
+  padding: 6px 14px;
+  background: color-mix(in oklab, var(--status-warn) 14%, transparent);
+  color: var(--status-warn-display);
+  border: 1px solid color-mix(in oklab, var(--status-warn) 28%, transparent);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-weight: 600;
+}
+.qb-review-submit:disabled { opacity: 0.6; cursor: default; }
+.qb-review-cancel {
+  font-size: var(--t-micro);
+  color: var(--fg-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.qb-review-trigger {
+  margin-top: var(--space-3);
+  font-size: var(--t-micro);
+  color: var(--status-warn-display);
+  background: transparent;
+  border: 1px solid color-mix(in oklab, var(--status-warn) 22%, transparent);
+  border-radius: var(--r-sm);
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+/* Ranking rows */
+.qb-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--space-4);
+}
+.qb-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  transition: background 0.15s, border-color 0.15s;
+}
+.qb-rank-row.is-correct {
+  background: color-mix(in oklab, var(--status-success) 10%, transparent);
+  border-color: var(--status-success);
+}
+.qb-rank-row.is-wrong {
+  background: color-mix(in oklab, var(--status-danger) 10%, transparent);
+  border-color: var(--status-danger);
+}
+.qb-rank-num {
+  font-size: var(--t-sm);
+  font-weight: 700;
+  color: var(--fg-muted);
+  min-width: 20px;
+}
+.qb-rank-text {
+  flex: 1;
+  font-size: var(--t-base);
+}
+.qb-rank-mark.is-correct { color: var(--status-success-display); }
+.qb-rank-mark.is-wrong { color: var(--status-danger-display); }
+.qb-rank-controls {
+  display: flex;
+  gap: 4px;
+}
+.qb-rank-btn {
+  background: none;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  padding: 2px 8px;
+  color: var(--fg-muted);
+}
+.qb-rank-btn:disabled { opacity: 0.3; cursor: default; }
+.qb-rank-score {
+  font-size: var(--t-sm);
+  color: var(--fg-muted);
+  margin-top: var(--space-2);
+}
+
+/* Linked question — prior answer card */
+.qb-prior {
+  background: var(--bg-sunken);
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+  margin-bottom: var(--space-3);
+  border: 1px solid var(--border-soft);
+  font-size: var(--t-sm);
+}
+.qb-prior-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fg-muted);
+  margin-bottom: 4px;
+}
+.qb-prior-text {
+  color: var(--fg-default);
+}
+
+/* Submission row (textarea actions) */
+.qb-submit-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.qb-save-status {
+  font-size: 11px;
+}
+.qb-save-status.is-error { color: var(--status-warn-display); }
+.qb-save-status.is-saved { color: var(--fg-muted); }
+
+/* Special-tone question badges (purple ranking, blue linked) */
+.question-badge.qb-badge-ranking {
+  background: color-mix(in oklab, var(--accent-alt) 14%, transparent);
+  color: var(--accent-alt-display);
+}
+.question-badge.qb-badge-linked {
+  background: color-mix(in oklab, var(--status-info) 14%, transparent);
+  color: var(--status-info);
+}
