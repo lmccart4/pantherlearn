@@ -1,6 +1,7 @@
 // src/components/blocks/VideoBlock.jsx
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 import { renderMarkdown } from "../../lib/utils";
+import "./VideoBlock.css";
 
 /**
  * Converts any YouTube URL format to an embed URL.
@@ -48,56 +49,31 @@ export default function VideoBlock({ block }) {
   if (!embedUrl) return null;
 
   return (
-    <div style={{ margin: "24px 0" }}>
-      <div style={{
-        position: "relative",
-        paddingBottom: "56.25%",
-        height: 0,
-        overflow: "hidden",
-        borderRadius: "var(--radius, 12px)",
-        border: "1px solid var(--border, #2a2f3d)",
-        background: "#000",
-      }}>
+    <div className="video-block">
+      <div className="video-block-frame">
         {isDirectVideo ? (
           <video
+            className="video-block-media"
             src={embedUrl}
             controls
             playsInline
             preload="metadata"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              background: "#000",
-            }}
           />
         ) : (
           <iframe
+            className="video-block-iframe"
             src={embedUrl}
             title={translatedCaption || "Video"}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              border: "none",
-            }}
             allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
         )}
       </div>
       {translatedCaption && (
-        <p style={{
-          fontSize: 13,
-          color: "var(--text3, #888)",
-          marginTop: 8,
-          fontStyle: "italic",
-        }} dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedCaption) }} />
+        <p
+          className="video-block-caption"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedCaption) }}
+        />
       )}
     </div>
   );
