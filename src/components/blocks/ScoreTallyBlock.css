@@ -1,0 +1,46 @@
+.score-tally-pending {
+  margin: var(--space-6) 0;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-sunken);
+  text-align: center;
+  color: var(--fg-muted);
+  font-size: var(--t-base);
+}
+
+.score-tally {
+  margin: var(--space-6) 0;
+  padding: var(--space-6) var(--space-6);
+  border-radius: var(--r-md);
+  border: 2px solid;
+  background: var(--bg-sunken);
+  text-align: center;
+}
+.score-tally.tier-perfect { border-color: var(--status-success); }
+.score-tally.tier-strong  { border-color: var(--status-info); }
+.score-tally.tier-ok      { border-color: var(--status-warn); }
+.score-tally.tier-weak    { border-color: var(--status-danger); }
+
+.score-tally-fraction {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.score-tally.tier-perfect .score-tally-fraction { color: var(--status-success-display); }
+.score-tally.tier-strong  .score-tally-fraction { color: var(--status-info); }
+.score-tally.tier-ok      .score-tally-fraction { color: var(--status-warn-display); }
+.score-tally.tier-weak    .score-tally-fraction { color: var(--status-danger-display); }
+
+.score-tally-pct {
+  font-size: var(--t-base);
+  color: var(--fg-muted);
+  margin-top: 4px;
+}
+
+.score-tally-message {
+  margin-top: var(--space-4);
+  font-size: var(--t-md);
+  color: var(--fg-default);
+  font-weight: 500;
+}
