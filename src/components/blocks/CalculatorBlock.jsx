@@ -6,12 +6,12 @@ import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase.jsx";
 import { useAuth } from "../../hooks/useAuth.jsx";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
+import "./CalculatorBlock.css";
 
 export default function CalculatorBlock({ block, lessonId, courseId }) {
   const { user } = useAuth();
   const translatedTitle = useTranslatedText(block.title);
 
-  // Initialize input values from block definition
   const [values, setValues] = useState(() => {
     const init = {};
     (block.inputs || []).forEach((inp) => {
@@ -23,7 +23,6 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  // Auto-save function for inputs
   const performSave = useCallback(async () => {
     if (!user || !db || !lessonId || !courseId) return;
     const ref = doc(db, "courses", courseId, "lessons", lessonId, "responses", user.uid, "blocks", block.id);
@@ -39,20 +38,13 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
     }, { merge: true });
   }, [user, lessonId, courseId, block, values, result]);
 
-  const { markDirty, saveNow, lastSaved, saving } = useAutoSave(performSave);
+  const { markDirty, saveNow, lastSaved } = useAutoSave(performSave);
 
-  // Load previously saved values if they exist
   useEffect(() => {
     if (!user || !db || !lessonId || !courseId) return;
     const loadSaved = async () => {
       try {
-        const ref = doc(
-          db,
-          "courses", courseId,
-          "lessons", lessonId,
-          "responses", user.uid,
-          "blocks", block.id
-        );
+        const ref = doc(db, "courses", courseId, "lessons", lessonId, "responses", user.uid, "blocks", block.id);
         const snap = await getDoc(ref);
         if (snap.exists()) {
           const data = snap.data();
@@ -73,10 +65,8 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
     markDirty();
   };
 
-  // Safe math parser — supports +, -, *, /, ^, parentheses, and Math functions
   const SAFE_FUNCTIONS = { sqrt: Math.sqrt, abs: Math.abs, pow: Math.pow, round: Math.round, floor: Math.floor, ceil: Math.ceil, sin: Math.sin, cos: Math.cos, tan: Math.tan, log: Math.log, PI: Math.PI };
   const evaluate = (formula, vals) => {
-    // Replace "Math.fn" with just "fn" for simpler parsing
     let expr = formula.replace(/Math\./g, "");
     for (const [name, val] of Object.entries(vals)) {
       const num = parseFloat(val);
@@ -84,7 +74,6 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
       expr = expr.replace(new RegExp(`\\b${name}\\b`, "g"), `(${num})`);
     }
 
-    // Tokenize: numbers, operators, parentheses, function names, commas
     const tokens = [];
     let i = 0;
     while (i < expr.length) {
@@ -102,12 +91,11 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
         let name = "";
         while (i < expr.length && /[a-zA-Z_]/.test(expr[i])) name += expr[i++];
         if (name in SAFE_FUNCTIONS) { tokens.push({ fn: name }); continue; }
-        return null; // unknown identifier
+        return null;
       }
-      return null; // unexpected character
+      return null;
     }
 
-    // Recursive descent parser
     let pos = 0;
     const peek = () => tokens[pos];
     const next = () => tokens[pos++];
@@ -150,24 +138,23 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
     }
 
     function parsePrimary() {
-      // Function call: fn(arg) or fn(arg1, arg2)
       if (peek() && typeof peek() === "object" && peek().fn) {
         const fnName = next().fn;
         const fn = SAFE_FUNCTIONS[fnName];
-        if (typeof fn === "number") return fn; // Constants like PI
+        if (typeof fn === "number") return fn;
         if (peek() !== "(") return null;
-        next(); // consume (
+        next();
         const arg1 = parseExpr();
         if (arg1 === null) return null;
         if (peek() === ",") {
-          next(); // consume ,
+          next();
           const arg2 = parseExpr();
           if (arg2 === null || peek() !== ")") return null;
-          next(); // consume )
+          next();
           return fn(arg1, arg2);
         }
         if (peek() !== ")") return null;
-        next(); // consume )
+        next();
         return fn(arg1);
       }
       if (peek() === "(") {
@@ -192,7 +179,6 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
   };
 
   const handleCalculate = async () => {
-    // Validate all inputs are filled
     const empty = (block.inputs || []).filter((inp) => values[inp.name] === "" || values[inp.name] === undefined);
     if (empty.length > 0) {
       setError(`Please fill in: ${empty.map((e) => e.label).join(", ")}`);
@@ -208,13 +194,10 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
     setResult(res);
     setError(null);
 
-    // Save immediately after calculating
     markDirty();
-    // Small delay so state updates, then save
     setTimeout(() => saveNow(), 100);
   };
 
-  // Format result with appropriate decimal places
   const formatResult = (val) => {
     if (val === null || val === undefined) return "";
     if (Number.isInteger(val)) return val.toString();
@@ -222,74 +205,24 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
   };
 
   return (
-    <div className="calculator-block" style={{
-      margin: "24px 0",
-      borderRadius: "var(--radius, 12px)",
-      border: "1px solid var(--border, #2a2f3d)",
-      overflow: "hidden",
-      background: "var(--surface, #1a1e2e)",
-    }}>
-      {/* Header */}
-      <div style={{
-        padding: "14px 20px",
-        background: "var(--surface-alt, #222738)",
-        borderBottom: "1px solid var(--border, #2a2f3d)",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-      }}>
-        <span style={{ fontSize: 20 }}>🧮</span>
-        <span style={{
-          fontSize: 15,
-          fontWeight: 600,
-          color: "var(--text, #e2e8f0)",
-        }}>
-          {translatedTitle || "Calculator"}
-        </span>
+    <div className="calc-block">
+      <div className="calc-header">
+        <span className="calc-icon" aria-hidden>🧮</span>
+        <span className="calc-title">{translatedTitle || "Calculator"}</span>
       </div>
 
-      {/* Inputs */}
-      <div style={{ padding: "20px" }}>
+      <div className="calc-body">
         {block.description && (
-          <p style={{
-            fontSize: 13,
-            color: "var(--text2, #a0aec0)",
-            marginBottom: 16,
-            lineHeight: 1.5,
-          }}>
+          <p className="calc-desc">
             <span dangerouslySetInnerHTML={{ __html: renderMarkdown(block.description) }} />
           </p>
         )}
 
-        <div style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 16,
-          marginBottom: 20,
-        }}>
+        <div className="calc-inputs">
           {(block.inputs || []).map((inp) => (
-            <div key={inp.name} style={{
-              flex: "1 1 180px",
-              minWidth: 150,
-            }}>
-              <label style={{
-                display: "block",
-                fontSize: 12,
-                fontWeight: 600,
-                color: "var(--text2, #a0aec0)",
-                marginBottom: 6,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-                {inp.label} {inp.unit && (
-                  <span style={{
-                    fontWeight: 400,
-                    textTransform: "none",
-                    color: "var(--text3, #718096)",
-                  }}>
-                    ({inp.unit})
-                  </span>
-                )}
+            <div key={inp.name} className="calc-input-cell">
+              <label className="calc-input-label">
+                {inp.label} {inp.unit && <span className="calc-input-unit">({inp.unit})</span>}
               </label>
               <input
                 type="number"
@@ -297,119 +230,34 @@ export default function CalculatorBlock({ block, lessonId, courseId }) {
                 value={values[inp.name]}
                 onChange={(e) => handleChange(inp.name, e.target.value)}
                 placeholder={`Enter ${inp.label.toLowerCase()}`}
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  borderRadius: 8,
-                  border: "1px solid var(--border, #2a2f3d)",
-                  background: "var(--bg, #0f1219)",
-                  color: "var(--text, #e2e8f0)",
-                  fontSize: 16,
-                  fontFamily: "var(--font-body, system-ui)",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-                onFocus={(e) => e.target.style.borderColor = "var(--cyan, #06b6d4)"}
-                onBlur={(e) => { e.target.style.borderColor = "var(--border, #2a2f3d)"; saveNow(); }}
+                className="calc-input"
+                onBlur={saveNow}
               />
             </div>
           ))}
         </div>
 
-        {/* Formula display (optional) */}
         {block.showFormula && (
-          <div style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            background: "var(--bg, #0f1219)",
-            fontSize: 13,
-            color: "var(--text3, #718096)",
-            marginBottom: 16,
-            fontFamily: "monospace",
-          }}>
+          <div className="calc-formula">
             Formula: {block.output?.label || "Result"} = {block.formula}
           </div>
         )}
 
-        {/* Calculate button */}
-        <button
-          onClick={handleCalculate}
-          style={{
-            padding: "10px 24px",
-            borderRadius: 8,
-            border: "none",
-            background: "linear-gradient(135deg, var(--cyan, #06b6d4), var(--blue, #3b82f6))",
-            color: "white",
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "opacity 0.15s, transform 0.15s",
-          }}
-          onMouseOver={(e) => { e.target.style.opacity = "0.9"; e.target.style.transform = "translateY(-1px)"; }}
-          onMouseOut={(e) => { e.target.style.opacity = "1"; e.target.style.transform = "translateY(0)"; }}
-        >
+        <button onClick={handleCalculate} className="calc-go">
           Calculate
         </button>
 
-        {/* Error */}
-        {error && (
-          <div style={{
-            marginTop: 12,
-            padding: "10px 14px",
-            borderRadius: 8,
-            background: "rgba(239, 68, 68, 0.1)",
-            border: "1px solid rgba(239, 68, 68, 0.3)",
-            color: "#f87171",
-            fontSize: 13,
-          }}>
-            {error}
-          </div>
-        )}
+        {error && <div className="calc-error">{error}</div>}
 
-        {/* Result */}
         {result !== null && (
-          <div style={{
-            marginTop: 16,
-            padding: "16px 20px",
-            borderRadius: 10,
-            background: "rgba(6, 182, 212, 0.08)",
-            border: "1px solid rgba(6, 182, 212, 0.25)",
-            display: "flex",
-            alignItems: "baseline",
-            gap: 10,
-          }}>
-            <span style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--cyan, #06b6d4)",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}>
-              {block.output?.label || "Result"}
-            </span>
-            <span style={{
-              fontSize: 28,
-              fontWeight: 700,
-              color: "var(--text, #e2e8f0)",
-              fontFamily: "Georgia, serif",
-            }}>
-              {formatResult(result)}
-            </span>
+          <div className="calc-result">
+            <span className="calc-result-label">{block.output?.label || "Result"}</span>
+            <span className="calc-result-value">{formatResult(result)}</span>
             {block.output?.unit && (
-              <span style={{
-                fontSize: 16,
-                color: "var(--text2, #a0aec0)",
-              }}>
-                {block.output.unit}
-              </span>
+              <span className="calc-result-unit">{block.output.unit}</span>
             )}
             {lastSaved && (
-              <span style={{
-                marginLeft: "auto",
-                fontSize: 11,
-                color: "var(--green, #10b981)",
-                fontWeight: 500,
-              }}>
+              <span className="calc-saved">
                 ✓ Saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
               </span>
             )}
