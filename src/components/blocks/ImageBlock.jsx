@@ -1,6 +1,7 @@
 // src/components/blocks/ImageBlock.jsx
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 import { renderMarkdown } from "../../lib/utils";
+import "./ImageBlock.css";
 
 // Convert Google Drive sharing URLs to direct image URLs
 function normalizeImageUrl(url) {
@@ -33,35 +34,31 @@ export default function ImageBlock({ block }) {
 
   if (!block.url) return null;
 
-  // Use explicit dimensions when provided to prevent CLS; fall back to aspect-ratio CSS
   const hasExplicitDims = block.width && block.height;
   const aspectRatio = hasExplicitDims ? `${block.width} / ${block.height}` : "16 / 9";
 
+  // width/aspectRatio remain inline — they're driven by authored values per-image
+  const imgStyle = {
+    width: hasExplicitDims ? block.width : "auto",
+    aspectRatio: hasExplicitDims ? undefined : aspectRatio,
+  };
+
   return (
-    <div style={{ margin: "24px 0", textAlign: "center" }}>
+    <div className="image-block">
       <img
+        className="image-block-img"
         src={imgUrl}
         alt={block.alt || translatedCaption || "Lesson image"}
         loading="lazy"
         width={block.width || undefined}
         height={block.height || undefined}
-        style={{
-          maxWidth: "100%",
-          width: hasExplicitDims ? block.width : "auto",
-          maxHeight: 500,
-          aspectRatio: hasExplicitDims ? undefined : aspectRatio,
-          borderRadius: "var(--radius, 12px)",
-          border: "1px solid var(--border, #2a2f3d)",
-        }}
+        style={imgStyle}
       />
       {translatedCaption && (
-        <p style={{
-          fontSize: 13,
-          color: "var(--text3, #888)",
-          marginTop: 8,
-          fontStyle: "italic",
-          textAlign: "center",
-        }} dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedCaption) }} />
+        <p
+          className="image-block-caption"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedCaption) }}
+        />
       )}
     </div>
   );

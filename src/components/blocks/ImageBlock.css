@@ -1,0 +1,19 @@
+.image-block {
+  margin: var(--space-6) 0;
+  text-align: center;
+}
+
+.image-block-img {
+  max-width: 100%;
+  max-height: 500px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-soft);
+}
+
+.image-block-caption {
+  font-size: var(--t-sm);
+  color: var(--fg-muted);
+  margin-top: var(--space-2);
+  font-style: italic;
+  text-align: center;
+}
