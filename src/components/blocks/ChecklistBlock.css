@@ -1,0 +1,97 @@
+/* src/components/blocks/ChecklistBlock.css
+   Savanna-tokenized styles for the checklist block.
+   No hardcoded colors — all values come from the design system. */
+
+.checklist-block {
+  margin: var(--space-5) 0;
+}
+
+.checklist-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: var(--t-md);
+  color: var(--fg-default);
+  margin: 0 0 var(--space-3);
+  letter-spacing: -0.01em;
+}
+
+.checklist-progress {
+  margin-bottom: var(--space-4);
+}
+.checklist-progress-text {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+  margin: 6px 0 0;
+  letter-spacing: 0.04em;
+}
+
+.checklist-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+.checklist-item:hover {
+  background: color-mix(in oklab, var(--fg-default) 4%, transparent);
+}
+.checklist-item.is-done {
+  background: color-mix(in oklab, var(--accent-hero) 10%, transparent);
+}
+
+.checklist-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.checklist-box {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 6px;
+  border: 1.5px solid var(--fg-default);
+  background: var(--bg-surface);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: var(--accent-hero-ink);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.checklist-item.is-done .checklist-box {
+  background: var(--accent-hero);
+  border-color: var(--fg-default);
+}
+.checklist-input:focus-visible + .checklist-box {
+  outline: 2px solid var(--status-info);
+  outline-offset: 2px;
+}
+
+.checklist-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--t-base);
+  line-height: 1.55;
+  color: var(--fg-default);
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+.checklist-item.is-done .checklist-text {
+  color: var(--fg-muted);
+  text-decoration: line-through;
+}

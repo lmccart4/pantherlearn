@@ -1,8 +1,11 @@
 // src/components/blocks/ChecklistBlock.jsx
+// Migrated to Savanna primitives — uses Card + ProgressBar and savanna tokens
+// instead of inline-styled hardcoded colors.
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
-import { useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
+import { useTranslatedText, useTranslatedTexts } from "../../hooks/useTranslatedText.jsx";
 import { renderMarkdown } from "../../lib/utils";
+import { Card, ProgressBar } from "../savanna/index.jsx";
+import "./ChecklistBlock.css";
 
 export default function ChecklistBlock({ block, studentData = {}, onAnswer }) {
   const translatedTitle = useTranslatedText(block.title);
@@ -42,94 +45,50 @@ export default function ChecklistBlock({ block, studentData = {}, onAnswer }) {
   const doneCount = Object.values(checked).filter(Boolean).length;
 
   return (
-    <div style={{
-      margin: "24px 0",
-      padding: "20px 24px",
-      background: "var(--surface, #1e2132)",
-      borderRadius: "var(--radius, 12px)",
-      border: "1px solid var(--border, #2a2f3d)",
-    }}>
+    <Card className="checklist-block">
       {translatedTitle && (
-        <h3 style={{
-          fontFamily: "var(--font-display, 'DM Sans', sans-serif)",
-          fontSize: 16,
-          fontWeight: 700,
-          color: "var(--text, #e0e0e0)",
-          marginBottom: 12,
-        }}>
-          📋 {translatedTitle}
+        <h3 className="checklist-title">
+          <span aria-hidden>📋</span>
+          <span>{translatedTitle}</span>
         </h3>
       )}
 
-      {/* Progress bar */}
       {items.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <div style={{
-            height: 4, borderRadius: 2,
-            background: "var(--border, #2a2f3d)",
-            overflow: "hidden",
-          }}>
-            <div style={{
-              height: "100%",
-              width: `${(doneCount / items.length) * 100}%`,
-              background: "var(--green, #22c55e)",
-              borderRadius: 2,
-              transition: "width 0.3s ease",
-            }} />
-          </div>
-          <p style={{ fontSize: 11, color: "var(--text3, #888)", marginTop: 4 }}>
+        <div className="checklist-progress">
+          <ProgressBar
+            value={doneCount}
+            max={items.length}
+            size="sm"
+            label={`${doneCount} of ${items.length} completed`}
+          />
+          <p className="checklist-progress-text">
             {doneCount}/{items.length} completed
           </p>
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className="checklist-items">
         {items.map((item, i) => (
           <label
             key={i}
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 10,
-              padding: "8px 10px",
-              borderRadius: 8,
-              cursor: "pointer",
-              background: checked[i] ? "rgba(34, 197, 94, 0.08)" : "transparent",
-              transition: "background 0.15s",
-            }}
+            className={`checklist-item ${checked[i] ? "is-done" : ""}`}
           >
             <input
               type="checkbox"
               checked={!!checked[i]}
               onChange={() => toggle(i)}
-              style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
+              className="checklist-input"
             />
-            <span
-              role="presentation"
-              aria-hidden="true"
-              style={{
-                width: 22, height: 22, minWidth: 22,
-                borderRadius: 6,
-                border: checked[i] ? "2px solid var(--green, #22c55e)" : "2.5px solid var(--text3, #888)",
-                background: checked[i] ? "var(--green, #22c55e)" : "transparent",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 13, color: "#fff",
-                transition: "all 0.15s",
-                marginTop: 1,
-              }}
-            >
+            <span className="checklist-box" aria-hidden>
               {checked[i] ? "✓" : ""}
             </span>
-            <span style={{
-              fontSize: 14,
-              color: checked[i] ? "var(--text3, #888)" : "var(--text, #e0e0e0)",
-              textDecoration: checked[i] ? "line-through" : "none",
-              transition: "all 0.15s",
-              lineHeight: 1.5,
-            }} dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedItems[i] ?? item) }} />
+            <span
+              className="checklist-text"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedItems[i] ?? item) }}
+            />
           </label>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
