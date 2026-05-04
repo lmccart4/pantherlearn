@@ -1,0 +1,60 @@
+/* BarChartBlock — per-section colors driven by semantic tokens.
+   Three sections (initial / delta / final) share structural CSS in
+   src/blocks.css; only the color scheme lives here. */
+
+.bar-chart-block {
+  flex: 1;
+}
+.bc-container { user-select: none; }
+
+/* Section flex weights */
+.bc-section--initial { flex: 4; }
+.bc-section--delta   { flex: 1.5; }
+.bc-section--final   { flex: 4; }
+
+/* Section background tints */
+.bc-section--initial { background-color: color-mix(in oklab, var(--status-success) 12%, transparent); }
+.bc-section--delta   {
+  background-color: color-mix(in oklab, var(--status-info) 12%, transparent);
+  border-left: 6px solid var(--status-info);
+  border-right: 6px solid var(--status-info);
+}
+.bc-section--final   { background-color: color-mix(in oklab, var(--status-danger) 12%, transparent); }
+
+/* Section header pill */
+.bc-section--initial .bc-header-box { background-color: var(--status-success); color: var(--status-success-ink); }
+.bc-section--final   .bc-header-box { background-color: var(--status-danger); color: var(--status-danger-ink); }
+
+/* Bar fills/borders */
+.bc-section--initial .bc-bar {
+  background-color: color-mix(in oklab, var(--status-success) 70%, var(--bg-inverse));
+  border-color: color-mix(in oklab, var(--status-success) 90%, var(--bg-inverse));
+}
+.bc-section--delta .bc-bar {
+  background-color: var(--status-info);
+  border-color: color-mix(in oklab, var(--status-info) 80%, var(--bg-inverse));
+}
+.bc-section--final .bc-bar {
+  background-color: color-mix(in oklab, var(--status-danger) 70%, var(--bg-inverse));
+  border-color: color-mix(in oklab, var(--status-danger) 90%, var(--bg-inverse));
+}
+
+/* Bar value text — readable against the bar fill */
+.bc-section--initial .bc-bar-value { color: color-mix(in oklab, var(--status-success) 30%, var(--paper)); }
+.bc-section--delta   .bc-bar-value { color: color-mix(in oklab, var(--status-info) 30%, var(--paper)); }
+.bc-section--final   .bc-bar-value { color: color-mix(in oklab, var(--status-danger) 30%, var(--paper)); }
+
+/* Positive bars sit above the axis, negative below */
+.bc-bar.is-positive { bottom: 50%; top: auto; }
+.bc-bar.is-negative { top: 50%; bottom: auto; }
+.bc-bar.is-positive .bc-bar-value { top: 2px; bottom: auto; }
+.bc-bar.is-negative .bc-bar-value { bottom: 2px; top: auto; }
+
+/* Labels per section */
+.bc-section--initial .bc-label-display,
+.bc-section--initial .bc-label-input { color: color-mix(in oklab, var(--status-success) 80%, var(--bg-inverse)); }
+.bc-section--delta .bc-label-display,
+.bc-section--delta .bc-label-input { color: var(--status-info); }
+.bc-section--delta .bc-delta-symbol { color: var(--status-info); }
+.bc-section--final .bc-label-display,
+.bc-section--final .bc-label-input { color: color-mix(in oklab, var(--status-danger) 80%, var(--bg-inverse)); }

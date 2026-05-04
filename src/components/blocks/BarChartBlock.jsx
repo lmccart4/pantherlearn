@@ -7,10 +7,10 @@
 // Values are unclamped — any number is allowed; the Y-axis rescales dynamically.
 // Labels rendered with KaTeX for proper math typesetting (K_{E,i} etc.).
 
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
+import "./BarChartBlock.css";
 
-// Lazy-load KaTeX (~130KB) only when this component mounts
 let katexModule = null;
 const loadKatex = () => {
   if (katexModule) return Promise.resolve(katexModule);
@@ -21,33 +21,6 @@ const loadKatex = () => {
     katexModule = mod.default;
     return katexModule;
   });
-};
-
-const COLORS = {
-  initial: {
-    bg: "rgba(136,204,85,0.12)",
-    header: "#88cc55",
-    bar: "#557733",
-    border: "#446622",
-    label: "#557733",
-    valueText: "#d0eeb0",
-  },
-  delta: {
-    bg: "rgba(51,51,204,0.12)",
-    divider: "#5555ee",
-    bar: "#5555ee",
-    border: "#3333aa",
-    label: "#5555ee",
-    valueText: "#c0c0ff",
-  },
-  final: {
-    bg: "rgba(204,85,68,0.12)",
-    header: "#cc5544",
-    bar: "#aa3322",
-    border: "#882211",
-    label: "#aa3322",
-    valueText: "#f5c0b8",
-  },
 };
 
 const makeBar = () => ({ value: 0, label: "", subscript: "" });
@@ -63,7 +36,7 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
   const [deltaLabel, setDeltaLabel] = useState(() => saved.deltaLabel || "");
   const [editingBar, setEditingBar] = useState(null);
   const [editingValue, setEditingValue] = useState("");
-  const [editingLabel, setEditingLabel] = useState(null); // "section-idx" or null
+  const [editingLabel, setEditingLabel] = useState(null);
   const hydrated = useRef(false);
 
   useEffect(() => {
@@ -86,11 +59,10 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     if (saved.deltaLabel !== undefined) setDeltaLabel(saved.deltaLabel);
   }, [studentData, block.id, defaultCount]);
 
-  const [katexReady, setKatexReady] = useState(!!katexModule);
+  const [, setKatexReady] = useState(!!katexModule);
   const containerRef = useRef(null);
   const dragRef = useRef({ active: false, section: null, barIdx: null, el: null });
 
-  // Load KaTeX on mount
   useEffect(() => {
     if (!katexModule) loadKatex().then(() => setKatexReady(true));
   }, []);
@@ -117,32 +89,23 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
 
   const { markDirty, saveNow } = useAutoSave(performSave);
 
-  // --- Auto-scale (no fixed limits — any value works) ---
   const allValues = [
     ...initialBars.map((b) => b.value),
     ...deltaBars.map((b) => b.value),
     ...finalBars.map((b) => b.value),
   ];
   const maxAbs = Math.max(1, ...allValues.map(Math.abs));
-  // Tallest bar fills 42% of full chart height (= 84% of half). Keeps room
-  // for the value label inside the bar and prevents overflow.
   const scaledPercent = (rawValue) => (Math.abs(rawValue) / maxAbs) * 42;
 
   const getSetter = (s) => (s === "initial" ? setInitialBars : s === "delta" ? setDeltaBars : setFinalBars);
   const getBars = (s) => (s === "initial" ? initialBars : s === "delta" ? deltaBars : finalBars);
 
-  // Map pointer Y → raw value. Uses the ".bc-chart-area" as coordinate
-  // reference so the midpoint always matches the drawn axis line.
-  // The drag range maps the full chart-area half-height to the current maxAbs,
-  // so the user can always drag beyond existing values to increase the scale.
   const clientYToValue = (clientY, barColEl) => {
     const area = barColEl.closest(".bc-chart-area");
     if (!area) return 0;
     const rect = area.getBoundingClientRect();
     const axisY = rect.top + rect.height / 2;
     const halfH = rect.height / 2;
-    // No clamping — allow any value. Scale so current maxAbs fills 42% of half.
-    // Dragging to the very edge = maxAbs / 0.42 ≈ 2.38× current max.
     const raw = ((axisY - clientY) / halfH) * (maxAbs / 0.42);
     return Math.round(raw);
   };
@@ -201,8 +164,7 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     markDirty();
   };
 
-  // Build KaTeX HTML from label + subscript. E.g. label="K", sub="E,i" → "K_{E,i}"
-  const renderKatex = (label, subscript, color) => {
+  const renderKatex = (label, subscript) => {
     if (!label && !subscript) return null;
     let tex = label || "\\;";
     if (subscript) tex += `_{${subscript}}`;
@@ -214,8 +176,7 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     }
   };
 
-  // --- Render label row (sits OUTSIDE chart-area so it doesn't offset the axis) ---
-  const renderLabelRow = (bars, section, color, canRemove) => (
+  const renderLabelRow = (bars, section, canRemove) => (
     <div className="bc-label-row">
       {bars.map((bar, idx) => {
         const editKey = `${section}-${idx}`;
@@ -225,29 +186,21 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
         return (
           <div key={editKey} className="bc-label-cell" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
             {isEditing ? (
-              /* Edit mode: two inline inputs */
               <div className="bc-label-edit">
                 <input type="text" className="bc-label-input" value={bar.label}
                   onChange={(e) => updateBarField(section, idx, "label", e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { setEditingLabel(null); saveNow(); } }}
-                  placeholder="label"
-                  autoFocus
-                  style={{ color: color.label }} />
+                  placeholder="label" autoFocus />
                 <input type="text" className="bc-label-input bc-label-input-sub" value={bar.subscript}
                   onChange={(e) => updateBarField(section, idx, "subscript", e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { setEditingLabel(null); saveNow(); } }}
                   onBlur={() => { setEditingLabel(null); saveNow(); }}
-                  placeholder="sub"
-                  style={{ color: color.label }} />
+                  placeholder="sub" />
               </div>
             ) : (
-              /* Display mode: KaTeX-rendered math, click to edit */
-              <div className="bc-label-display"
-                onClick={() => setEditingLabel(editKey)}
-                style={{ color: color.label }}
-              >
+              <div className="bc-label-display" onClick={() => setEditingLabel(editKey)}>
                 {hasContent ? (
-                  <span dangerouslySetInnerHTML={renderKatex(bar.label, bar.subscript, color)} />
+                  <span dangerouslySetInnerHTML={renderKatex(bar.label, bar.subscript)} />
                 ) : (
                   <span className="bc-label-placeholder">+</span>
                 )}
@@ -264,35 +217,27 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     </div>
   );
 
-  // --- Render a single bar column (just the draggable bar, no label) ---
-  const renderBarCol = (bar, idx, section, color) => {
+  const renderBarCol = (bar, idx, section) => {
     const val = bar.value;
     const pct = scaledPercent(val);
     const isPos = val >= 0;
     const editKey = `${section}-${idx}`;
     const isEditing = editingBar === editKey;
+    const dirCls = isPos ? "is-positive" : "is-negative";
 
     return (
       <div key={editKey} className="bc-bar-col"
         onMouseDown={(e) => handlePointerDown(e, section, idx)}
         onTouchStart={(e) => handlePointerDown(e, section, idx)}
       >
-        {/* The bar rectangle */}
-        <div className="bc-bar" style={{
-          backgroundColor: color.bar,
-          borderColor: color.border,
-          height: `${pct}%`,
-          ...(isPos ? { bottom: "50%", top: "auto" } : { top: "50%", bottom: "auto" }),
-        }}>
+        <div className={`bc-bar ${dirCls}`} style={{ height: `${pct}%` }}>
           {val !== 0 && !isEditing && (
-            <span className="bc-bar-value" style={{
-              color: color.valueText,
-              ...(isPos ? { top: 2 } : { bottom: 2 }),
-            }}>{Number.isInteger(val) ? val : parseFloat(val.toFixed(4))}</span>
+            <span className="bc-bar-value">
+              {Number.isInteger(val) ? val : parseFloat(val.toFixed(4))}
+            </span>
           )}
         </div>
 
-        {/* Manual input overlay */}
         {isEditing && (
           <div className="bc-value-input-container">
             <input type="number" step="any" className="bc-value-input" value={editingValue}
@@ -309,13 +254,8 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     );
   };
 
-  // --- Render a section (initial / delta / final) ---
-  const renderSection = (bars, section, color, headerContent, sectionClass, flexVal, showAddBtn) => (
-    <div className={`bc-section ${sectionClass}`} style={{
-      backgroundColor: color.bg, flex: flexVal,
-      ...(section === "delta" ? { borderLeft: `6px solid ${color.divider}`, borderRight: `6px solid ${color.divider}` } : {}),
-    }}>
-      {/* Header row */}
+  const renderSection = (bars, section, headerContent, sectionClass, showAddBtn) => (
+    <div className={`bc-section bc-section--${section} ${sectionClass}`}>
       <div className="bc-header-row">
         {headerContent}
         {showAddBtn && bars.length < 6 && (
@@ -323,21 +263,16 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
         )}
       </div>
 
-      {/* Label row — OUTSIDE chart-area so bars align with axis */}
-      {renderLabelRow(bars, section, color, showAddBtn)}
+      {renderLabelRow(bars, section, showAddBtn)}
 
-      {/* Chart area — grid + axis + bars only, no labels */}
       <div className="bc-chart-area" data-section={section}>
-        {/* Grid lines */}
         {Array.from({ length: 11 }, (_, i) => (
           <div key={i} className="bc-grid-line" style={{ top: `${i * 10}%` }} />
         ))}
-        {/* Axis */}
         <div className="bc-axis-line" />
 
-        {/* Bar columns */}
         <div className="bc-bar-row">
-          {bars.map((bar, i) => renderBarCol(bar, i, section, color))}
+          {bars.map((bar, i) => renderBarCol(bar, i, section))}
         </div>
       </div>
     </div>
@@ -347,24 +282,23 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     <div className="bar-chart-block" ref={containerRef}>
       {block.title && <div className="bc-title">{block.title}</div>}
 
-      <div className="bc-container" style={{ userSelect: "none" }}>
-        {renderSection(initialBars, "initial", COLORS.initial,
-          <div className="bc-header-box" style={{ backgroundColor: COLORS.initial.header }}>
-            {block.initialLabel || "Initial State"}
-          </div>, "bc-section-initial", 4, true)}
+      <div className="bc-container">
+        {renderSection(initialBars, "initial",
+          <div className="bc-header-box">{block.initialLabel || "Initial State"}</div>,
+          "bc-section-initial", true)}
 
-        {renderSection(deltaBars, "delta", COLORS.delta,
+        {renderSection(deltaBars, "delta",
           <div className="bc-delta-header-group">
             <span className="bc-delta-symbol">&Delta;</span>
             <input type="text" className="bc-delta-input" value={deltaLabel}
               onChange={(e) => { setDeltaLabel(e.target.value); markDirty(); }}
               onBlur={saveNow} placeholder="Label" />
-          </div>, "bc-section-delta", 1.5, false)}
+          </div>,
+          "bc-section-delta", false)}
 
-        {renderSection(finalBars, "final", COLORS.final,
-          <div className="bc-header-box bc-header-final" style={{ backgroundColor: COLORS.final.header }}>
-            {block.finalLabel || "Final State"}
-          </div>, "bc-section-final", 4, true)}
+        {renderSection(finalBars, "final",
+          <div className="bc-header-box bc-header-final">{block.finalLabel || "Final State"}</div>,
+          "bc-section-final", true)}
       </div>
 
       <div className="bc-hint">
