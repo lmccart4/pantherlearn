@@ -1,0 +1,57 @@
+.block-error {
+  padding: var(--space-4);
+  background: color-mix(in oklab, var(--status-danger) 6%, transparent);
+  border: 1px solid color-mix(in oklab, var(--status-danger) 25%, transparent);
+  border-radius: var(--r-md);
+  margin: var(--space-2) 0;
+  color: var(--fg-muted);
+  font-size: var(--t-sm);
+}
+
+.block-error-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-2);
+}
+.block-error-head strong {
+  color: var(--status-danger-display);
+  font-size: var(--t-base);
+}
+
+.block-error-msg {
+  font-size: var(--t-micro);
+  color: var(--fg-muted);
+  margin: 0 0 var(--space-3);
+  line-height: 1.4;
+}
+
+.block-error-retry {
+  padding: 6px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-surface);
+  color: var(--fg-default);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  cursor: pointer;
+}
+.block-error-retry:hover {
+  background: var(--bg-sunken);
+}
+
+.block-error-details {
+  margin-top: var(--space-3);
+}
+.block-error-details summary {
+  cursor: pointer;
+  font-size: var(--t-micro);
+  color: var(--fg-muted);
+}
+.block-error-details pre {
+  font-size: 10px;
+  margin-top: 6px;
+  color: var(--fg-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
