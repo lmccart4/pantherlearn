@@ -7,7 +7,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 import { renderMarkdown } from "../../lib/utils";
+import "./SketchBlock.css";
 
+// Drawing palette — these are functional pen colors written into the saved
+// stroke record, NOT UI theme colors. Don't tokenize them or canvases drawn
+// in light mode will repaint when a student switches to dark.
 const COLORS = [
   "#000000", "#ffffff", "#ef4444", "#f59e0b",
   "#22c55e", "#3b82f6",
@@ -671,14 +675,9 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
             <label className="sketch-color-custom" title="Custom color">
               <input type="color" value={color}
                 onChange={(e) => { setColor(e.target.value); if (tool === "eraser") setTool("pen"); }}
-                style={{ opacity: 0, position: "absolute", width: 0, height: 0 }}
+                className="sketch-color-input"
               />
-              <span style={{
-                width: 26, height: 26, borderRadius: "50%",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                background: "conic-gradient(red, yellow, lime, aqua, blue, magenta, red)",
-                cursor: "pointer", fontSize: 11, fontWeight: 700,
-              }}>⊕</span>
+              <span className="sketch-color-rainbow">⊕</span>
             </label>
           </div>
 
@@ -691,8 +690,9 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
               className="sketch-size-slider" />
             <span className="sketch-size-value">{brushSize}</span>
             <div className="sketch-size-preview" style={{
-              width: Math.min(brushSize * 1.5, 20), height: Math.min(brushSize * 1.5, 20),
-              background: tool === "eraser" ? "var(--text3)" : color,
+              width: Math.min(brushSize * 1.5, 20),
+              height: Math.min(brushSize * 1.5, 20),
+              background: tool === "eraser" ? "var(--fg-muted)" : color,
               opacity: tool === "marker" ? 0.4 : 1,
             }} />
           </div>
@@ -707,18 +707,19 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
         </div>
       </div>
 
-      <div className="sketch-canvas-container" ref={containerRef} style={{ position: "relative" }}>
+      <div className="sketch-canvas-container" ref={containerRef}>
         <canvas ref={canvasRef} className="sketch-canvas"
           onClick={handleCanvasClick}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={(e) => { if (drawingRef.current) handlePointerUp(e); }}
-          style={{ touchAction: "none", cursor: getCursor() }}
+          style={{ cursor: getCursor() }}
         />
         {textInput && (
           <div
-            style={{ position: "absolute", left: textInput.x, top: textInput.y, zIndex: 20 }}
+            className="sketch-text-overlay"
+            style={{ left: textInput.x, top: textInput.y }}
             onPointerDown={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
           >
@@ -730,14 +731,10 @@ export default function SketchBlock({ block, studentData, onAnswer }) {
               }}
               onBlur={commitText}
               placeholder="Type here..."
+              className="sketch-text-input"
               style={{
-                minWidth: 150, minHeight: 36, padding: "6px 8px",
                 fontSize: Math.max(14, brushSize * 3) + "px",
-                fontFamily: "inherit", color: color === "#ffffff" ? "#000000" : color,
-                background: "rgba(255,255,255,0.95)",
-                border: "2px solid var(--amber)", borderRadius: 6,
-                outline: "none", resize: "both", lineHeight: 1.3,
-                boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
+                color: color === "#ffffff" ? "#000000" : color,
               }}
             />
           </div>
