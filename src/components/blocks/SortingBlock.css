@@ -1,0 +1,255 @@
+.sb-block {
+  padding: 28px 24px;
+  overflow: visible;
+}
+
+.sb-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.sb-icon { font-size: 22px; }
+.sb-title {
+  font-family: var(--serif);
+  font-size: var(--t-md);
+  font-weight: 700;
+  margin: 0;
+  color: var(--fg-default);
+}
+
+.sb-instructions {
+  color: var(--fg-muted);
+  font-size: 14px;
+  margin-bottom: var(--space-4);
+  line-height: 1.5;
+}
+
+.sb-progress {
+  height: 6px;
+  background: var(--bg-sunken);
+  border-radius: 3px;
+  margin-bottom: var(--space-5);
+  overflow: hidden;
+}
+.sb-progress-fill {
+  height: 100%;
+  background: var(--status-warn);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.sb-arena {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: var(--space-4);
+  min-height: 200px;
+}
+
+.sb-bucket {
+  flex: 0 0 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  border-radius: var(--r-md);
+  background: var(--bg-sunken);
+  border: 2px solid transparent;
+  transition: background 0.3s ease, border-color 0.3s ease;
+  --glow: 0;
+}
+.sb-bucket.is-active { transition: none; }
+.sb-bucket-left.is-active {
+  background: color-mix(in oklab, var(--status-danger) calc(var(--glow) * 18%), transparent);
+  border-color: color-mix(in oklab, var(--status-danger) calc(var(--glow) * 60%), transparent);
+}
+.sb-bucket-right.is-active {
+  background: color-mix(in oklab, var(--status-success) calc(var(--glow) * 18%), transparent);
+  border-color: color-mix(in oklab, var(--status-success) calc(var(--glow) * 60%), transparent);
+}
+.sb-bucket-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-default);
+  text-align: center;
+  line-height: 1.3;
+}
+.sb-bucket-count {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--fg-muted);
+}
+
+.sb-bucket-item {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  width: 100%;
+  text-align: center;
+  border: 1px solid;
+}
+.sb-bucket-item.is-correct {
+  background: color-mix(in oklab, var(--status-success) 15%, transparent);
+  color: var(--status-success-display);
+  border-color: color-mix(in oklab, var(--status-success) 30%, transparent);
+}
+.sb-bucket-item.is-wrong {
+  background: color-mix(in oklab, var(--status-danger) 15%, transparent);
+  color: var(--status-danger-display);
+  border-color: color-mix(in oklab, var(--status-danger) 30%, transparent);
+}
+
+.sb-stack {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 180px;
+}
+
+.sb-ghost {
+  position: absolute;
+  border-radius: var(--r-lg);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-soft);
+}
+.sb-ghost-back {
+  width: 85%;
+  height: 85%;
+  transform: scale(0.92);
+  opacity: 0.3;
+}
+.sb-ghost-mid {
+  width: 90%;
+  height: 90%;
+  transform: scale(0.96);
+  opacity: 0.5;
+}
+
+.sb-card {
+  position: relative;
+  width: 90%;
+  min-height: 140px;
+  padding: 24px 20px;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-soft);
+  border-radius: var(--r-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  gap: 0;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.4;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  box-shadow: 0 8px 30px color-mix(in oklab, var(--bg-inverse) 20%, transparent);
+}
+.sb-card.has-image {
+  flex-direction: column;
+  gap: 12px;
+}
+.sb-card.is-dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.sb-card-img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: var(--r-md);
+  pointer-events: none;
+}
+
+.sb-swipe-tag {
+  position: absolute;
+  top: 12px;
+  padding: 4px 12px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 700;
+  border: 2px solid;
+  z-index: 2;
+}
+.sb-swipe-tag-left {
+  left: 12px;
+  background: color-mix(in oklab, var(--status-danger) 15%, transparent);
+  color: var(--status-danger-display);
+  border-color: var(--status-danger);
+  transform: rotate(-12deg);
+}
+.sb-swipe-tag-right {
+  right: 12px;
+  background: color-mix(in oklab, var(--status-success) 15%, transparent);
+  color: var(--status-success-display);
+  border-color: var(--status-success);
+  transform: rotate(12deg);
+}
+
+.sb-finish {
+  text-align: center;
+}
+.sb-finish-icon {
+  font-size: 36px;
+  margin-bottom: var(--space-3);
+}
+.sb-finish-msg {
+  font-size: 14px;
+  color: var(--fg-muted);
+  margin-bottom: var(--space-4);
+}
+.sb-score {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: var(--serif);
+  margin-bottom: 4px;
+}
+.sb-score.tier-perfect { color: var(--status-success-display); }
+.sb-score.tier-strong  { color: var(--status-warn-display); }
+.sb-score.tier-weak    { color: var(--status-danger-display); }
+
+.sb-empty {
+  color: var(--fg-muted);
+  font-size: 14px;
+}
+
+.sb-swipe-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.sb-swipe-btn {
+  padding: 10px 24px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid;
+}
+.sb-swipe-btn-left {
+  border-color: var(--status-danger);
+  background: color-mix(in oklab, var(--status-danger) 10%, transparent);
+  color: var(--status-danger-display);
+}
+.sb-swipe-btn-right {
+  border-color: var(--status-success);
+  background: color-mix(in oklab, var(--status-success) 10%, transparent);
+  color: var(--status-success-display);
+}
+
+.sb-remaining {
+  text-align: center;
+  margin-top: var(--space-3);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
