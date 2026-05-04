@@ -17,6 +17,7 @@ import {
   AI_BOT_UID,
 } from "../../lib/guessWho";
 import { supportsAI } from "../../lib/guessWhoAI";
+import "./GuessWhoBlock.css";
 
 export default function GuessWhoBlock({ block, courseId, lessonId }) {
   const { user, userRole } = useAuth();
@@ -29,12 +30,10 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
 
   const isTeacher = userRole === "teacher";
 
-  // Get characters for this block
   const characters = block.characterSet === "custom" && block.customCharacters?.length >= 2
     ? block.customCharacters.map((c, i) => ({ id: c.id || `custom_${i}`, name: c.name, imageUrl: c.imageUrl }))
     : DEFAULT_CHARACTERS;
 
-  // Subscribe to games for this block
   useEffect(() => {
     if (!courseId || !block.id) return;
     const unsub = subscribeToBlockGames(courseId, block.id, (data) => {
@@ -51,7 +50,6 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
     return () => unsub();
   }, [courseId, block.id]);
 
-  // Fetch classmates for direct challenge picker (includes teacher for students, includes students for teacher)
   useEffect(() => {
     if (!courseId || !user) return;
     const fetchClassmates = async () => {
@@ -67,7 +65,6 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
           })
           .map((e) => ({ uid: e.uid || e.studentUid, name: e.displayName || e.name || "Student" }));
 
-        // Add the course owner (teacher) to the list so students can challenge them
         if (!isTeacher) {
           try {
             const courseDoc = await getDoc(doc(db, "courses", courseId));
@@ -80,7 +77,7 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
                 }
               }
             }
-          } catch (_) { /* ignore — teacher lookup is best-effort */ }
+          } catch (_) {}
         }
 
         setClassmates(enrolled);
@@ -91,7 +88,6 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
     fetchClassmates();
   }, [courseId, user, isTeacher]);
 
-  // Categorize games
   const openChallenges = games.filter((g) =>
     g.status === "waiting" && g.challengeType === "open" && g.challengerUid !== user?.uid
   );
@@ -206,82 +202,43 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
   };
 
   return (
-    <div style={{
-      background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
-      padding: 24, marginBottom: 16,
-    }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <span style={{ fontSize: 28 }}>{block.icon || "🎭"}</span>
+    <div className="gw-block">
+      <div className="gw-head">
+        <span className="gw-icon" aria-hidden>{block.icon || "🎭"}</span>
         <div>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-display)" }}>
-            {block.title || "Guess Who?"}
-          </h3>
-          {block.instructions && (
-            <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text2)", lineHeight: 1.5 }}>
-              {block.instructions}
-            </p>
-          )}
+          <h3 className="gw-title">{block.title || "Guess Who?"}</h3>
+          {block.instructions && <p className="gw-instructions">{block.instructions}</p>}
         </div>
       </div>
 
-      {/* XP Info */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, fontSize: 12, color: "var(--text3)" }}>
+      <div className="gw-meta">
         <span>🏆 Win: +{block.xpForWin || 50} XP</span>
         <span>🎮 Play: +{block.xpForPlay || 10} XP</span>
         <span>👥 {characters.length} characters</span>
       </div>
 
-      {/* Challenge Buttons */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="gw-actions">
         {canPlayAI && (
-          <button onClick={handlePlayAI} disabled={creating}
-            style={{
-              padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer",
-              background: "var(--green)", color: "#1a1a1a", fontWeight: 700, fontSize: 14,
-              opacity: creating ? 0.5 : 1,
-            }}>
+          <button onClick={handlePlayAI} disabled={creating} className="gw-btn gw-btn-ai">
             🤖 Play vs AI
           </button>
         )}
-        <button onClick={handleCreateOpen} disabled={creating}
-          style={{
-            padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer",
-            background: "var(--amber)", color: "#1a1a1a", fontWeight: 700, fontSize: 14,
-            opacity: creating ? 0.5 : 1,
-          }}>
+        <button onClick={handleCreateOpen} disabled={creating} className="gw-btn gw-btn-open">
           ⚔️ Challenge Anyone
         </button>
-        <div style={{ position: "relative" }}>
-          <button onClick={() => setShowDirectPicker(!showDirectPicker)} disabled={creating}
-            style={{
-              padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)",
-              cursor: "pointer", background: "var(--bg)", color: "var(--text)", fontWeight: 600, fontSize: 14,
-              opacity: creating ? 0.5 : 1,
-            }}>
+        <div className="gw-direct-wrap">
+          <button onClick={() => setShowDirectPicker(!showDirectPicker)} disabled={creating} className="gw-btn gw-btn-direct">
             🎯 {isTeacher ? "Challenge Student" : "Challenge Classmate"}
           </button>
           {showDirectPicker && (
-            <div style={{
-              position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 20,
-              background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12,
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4)", maxHeight: 240, overflowY: "auto",
-              minWidth: 220, padding: 4,
-            }}>
+            <div className="gw-picker">
               {classmates.length === 0 && (
-                <p style={{ padding: 12, fontSize: 12, color: "var(--text3)", textAlign: "center" }}>
+                <p className="gw-picker-empty">
                   {isTeacher ? "No students found" : "No classmates found"}
                 </p>
               )}
               {classmates.map((c) => (
-                <button key={c.uid} onClick={() => handleCreateDirect(c)}
-                  style={{
-                    display: "block", width: "100%", padding: "8px 12px", border: "none",
-                    background: "transparent", color: "var(--text)", cursor: "pointer",
-                    textAlign: "left", borderRadius: 8, fontSize: 13,
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = "rgba(245,166,35,0.08)"}
-                  onMouseLeave={(e) => e.target.style.background = "transparent"}>
+                <button key={c.uid} onClick={() => handleCreateDirect(c)} className="gw-picker-row">
                   {c.name}
                 </button>
               ))}
@@ -290,97 +247,81 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
         </div>
       </div>
 
-      {/* Error display */}
-      {error && (
-        <div style={{
-          marginBottom: 12, padding: "8px 12px", borderRadius: 8,
-          background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
-          color: "var(--red)", fontSize: 12,
-        }}>
-          ⚠️ {error}
-        </div>
-      )}
+      {error && <div className="gw-error">⚠️ {error}</div>}
 
-      {/* Direct Challenges to Me */}
       {directToMe.length > 0 && (
-        <Section title="🎯 Challenges for You" color="var(--amber)">
+        <Section title="🎯 Challenges for You" tone="warn">
           {directToMe.map((g) => (
-            <GameRow key={g.id} style={{ background: "rgba(245,166,35,0.06)" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+            <GameRow key={g.id} highlight="warn">
+              <span className="gw-row-text">
                 {g.challengerName} challenged you!
               </span>
-              <div style={{ display: "flex", gap: 6 }}>
-                <SmallBtn color="var(--green)" onClick={() => handleAccept(g.id)}>Accept</SmallBtn>
-                <SmallBtn color="var(--red)" onClick={() => handleDecline(g.id)}>Decline</SmallBtn>
+              <div className="gw-row-actions">
+                <SmallBtn tone="success" onClick={() => handleAccept(g.id)}>Accept</SmallBtn>
+                <SmallBtn tone="danger" onClick={() => handleDecline(g.id)}>Decline</SmallBtn>
               </div>
             </GameRow>
           ))}
         </Section>
       )}
 
-      {/* Open Challenges */}
       {openChallenges.length > 0 && (
         <Section title="⚔️ Open Challenges">
           {openChallenges.map((g) => (
             <GameRow key={g.id}>
-              <span style={{ fontSize: 13, color: "var(--text)" }}>
+              <span className="gw-row-text">
                 <strong>{g.challengerName}</strong> is looking for an opponent
-                <span style={{ color: "var(--text3)", fontSize: 11, marginLeft: 6 }}>{timeAgo(g.createdAt)}</span>
+                <span className="gw-row-time">{timeAgo(g.createdAt)}</span>
               </span>
-              <SmallBtn color="var(--amber)" onClick={() => handleAccept(g.id)}>Accept</SmallBtn>
+              <SmallBtn tone="warn" onClick={() => handleAccept(g.id)}>Accept</SmallBtn>
             </GameRow>
           ))}
         </Section>
       )}
 
-      {/* My Waiting Challenges */}
       {myWaiting.length > 0 && (
         <Section title="⏳ Your Pending Challenges">
           {myWaiting.map((g) => (
             <GameRow key={g.id}>
-              <span style={{ fontSize: 13, color: "var(--text2)" }}>
+              <span className="gw-row-muted">
                 {g.challengeType === "direct" ? `Waiting for ${g.targetOpponentName}...` : "Waiting for opponent..."}
-                <span style={{ color: "var(--text3)", fontSize: 11, marginLeft: 6 }}>{timeAgo(g.createdAt)}</span>
+                <span className="gw-row-time">{timeAgo(g.createdAt)}</span>
               </span>
-              <SmallBtn color="var(--red)" onClick={() => handleCancel(g.id)}>Cancel</SmallBtn>
+              <SmallBtn tone="danger" onClick={() => handleCancel(g.id)}>Cancel</SmallBtn>
             </GameRow>
           ))}
         </Section>
       )}
 
-      {/* Active Games */}
       {activeGames.length > 0 && (
-        <Section title="🎮 Active Games" color="var(--green)">
+        <Section title="🎮 Active Games" tone="success">
           {activeGames.map((g) => {
             const isAI = g.opponentUid === AI_BOT_UID || g.challengerUid === AI_BOT_UID;
             const opponent = (g.challengerUid === user?.uid ? g.opponentName : g.challengerName) + (isAI ? " 🤖" : "");
             const isMyTurn = (g.challengerUid === user?.uid && g.turn === "challenger")
               || (g.opponentUid === user?.uid && g.turn === "opponent");
-            // Check if there's an unanswered question
             const lastMove = g.moves?.length > 0 ? g.moves[g.moves.length - 1] : null;
             const waitingForAnswer = lastMove?.type === "question" && lastMove?.answer === null;
             const myTurnToAnswer = waitingForAnswer && lastMove.playerUid !== user?.uid;
 
             return (
-              <GameRow key={g.id} style={{ cursor: "pointer" }}
-                onClick={() => navigate(`/guess-who/${courseId}/${g.id}`)}>
-                <span style={{ fontSize: 13, color: "var(--text)" }}>
+              <GameRow key={g.id} clickable onClick={() => navigate(`/guess-who/${courseId}/${g.id}`)}>
+                <span className="gw-row-text">
                   vs. <strong>{opponent}</strong>
                   {myTurnToAnswer
-                    ? <span style={{ color: "var(--amber)", fontWeight: 700, marginLeft: 8 }}>Answer their question!</span>
+                    ? <span className="gw-turn-warn">Answer their question!</span>
                     : isMyTurn
-                      ? <span style={{ color: "var(--green)", fontWeight: 700, marginLeft: 8 }}>Your turn!</span>
-                      : <span style={{ color: "var(--text3)", marginLeft: 8 }}>Waiting...</span>
+                      ? <span className="gw-turn-go">Your turn!</span>
+                      : <span className="gw-turn-wait">Waiting...</span>
                   }
                 </span>
-                <span style={{ color: "var(--text3)", fontSize: 18 }}>→</span>
+                <span className="gw-arrow">→</span>
               </GameRow>
             );
           })}
         </Section>
       )}
 
-      {/* Recent Results */}
       {recentFinished.length > 0 && (
         <Section title="📊 Recent Results">
           {recentFinished.map((g) => {
@@ -388,14 +329,13 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
             const opponent = (g.challengerUid === user?.uid ? g.opponentName : g.challengerName) + (isAI ? " 🤖" : "");
             const won = g.winnerUid === user?.uid;
             return (
-              <GameRow key={g.id} style={{ cursor: "pointer" }}
-                onClick={() => navigate(`/guess-who/${courseId}/${g.id}`)}>
-                <span style={{ fontSize: 13, color: "var(--text)" }}>
+              <GameRow key={g.id} clickable onClick={() => navigate(`/guess-who/${courseId}/${g.id}`)}>
+                <span className="gw-row-text">
                   vs. <strong>{opponent}</strong>
-                  <span style={{ marginLeft: 8, fontWeight: 700, color: won ? "var(--green)" : "var(--red)" }}>
+                  <span className={`gw-result ${won ? "is-win" : "is-loss"}`}>
                     {won ? "Won!" : "Lost"}
                   </span>
-                  <span style={{ color: "var(--text3)", fontSize: 11, marginLeft: 6 }}>{timeAgo(g.updatedAt || g.createdAt)}</span>
+                  <span className="gw-row-time">{timeAgo(g.updatedAt || g.createdAt)}</span>
                 </span>
               </GameRow>
             );
@@ -403,7 +343,6 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
         </Section>
       )}
 
-      {/* Teacher spectating view — only games the teacher is NOT playing in */}
       {isTeacher && (() => {
         const spectatableGames = games.filter((g) =>
           g.status === "active" && g.challengerUid !== user?.uid && g.opponentUid !== user?.uid
@@ -411,68 +350,53 @@ export default function GuessWhoBlock({ block, courseId, lessonId }) {
         return spectatableGames.length > 0 ? (
           <Section title="👁 Active Games (Spectate)">
             {spectatableGames.map((g) => (
-              <GameRow key={g.id} style={{ cursor: "pointer" }}
-                onClick={() => navigate(`/guess-who/${courseId}/${g.id}`)}>
-                <span style={{ fontSize: 13, color: "var(--text)" }}>
+              <GameRow key={g.id} clickable onClick={() => navigate(`/guess-who/${courseId}/${g.id}`)}>
+                <span className="gw-row-text">
                   <strong>{g.challengerName}</strong> vs. <strong>{g.opponentName}</strong>
-                  <span style={{ color: "var(--text3)", fontSize: 11, marginLeft: 6 }}>
+                  <span className="gw-row-time">
                     {g.moves?.length || 0} moves
                   </span>
                 </span>
-                <span style={{ color: "var(--text3)", fontSize: 12 }}>Spectate →</span>
+                <span className="gw-spectate">Spectate →</span>
               </GameRow>
             ))}
           </Section>
         ) : null;
       })()}
 
-      {/* Empty state */}
       {games.length === 0 && (
-        <p style={{ textAlign: "center", color: "var(--text3)", fontSize: 13, padding: 16 }}>
-          No games yet. Be the first to issue a challenge!
-        </p>
+        <p className="gw-empty">No games yet. Be the first to issue a challenge!</p>
       )}
     </div>
   );
 }
 
-// ─── Subcomponents ───
-
-function Section({ title, color, children }) {
+function Section({ title, tone, children }) {
   return (
-    <div style={{ marginBottom: 12 }}>
-      <h4 style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: color || "var(--text2)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-        {title}
-      </h4>
+    <div className="gw-section">
+      <h4 className={`gw-section-title ${tone ? `gw-tone-${tone}` : ""}`}>{title}</h4>
       {children}
     </div>
   );
 }
 
-function GameRow({ children, style, onClick }) {
+function GameRow({ children, highlight, clickable, onClick }) {
   return (
-    <div onClick={onClick} style={{
-      display: "flex", justifyContent: "space-between", alignItems: "center",
-      padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)",
-      marginBottom: 4, transition: "background 0.15s",
-      ...(onClick ? { cursor: "pointer" } : {}),
-      ...style,
-    }}
-      onMouseEnter={(e) => { if (onClick) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
-      onMouseLeave={(e) => { if (onClick) e.currentTarget.style.background = style?.background || "transparent"; }}>
+    <div
+      onClick={onClick}
+      className={`gw-row ${clickable ? "is-clickable" : ""} ${highlight ? `gw-row-${highlight}` : ""}`}
+    >
       {children}
     </div>
   );
 }
 
-function SmallBtn({ children, color, onClick }) {
+function SmallBtn({ children, tone = "warn", onClick }) {
   return (
-    <button onClick={(e) => { e.stopPropagation(); onClick(); }}
-      style={{
-        padding: "4px 12px", borderRadius: 6, border: "none",
-        background: color || "var(--amber)", color: "#1a1a1a",
-        fontWeight: 700, fontSize: 11, cursor: "pointer",
-      }}>
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className={`gw-small-btn gw-small-${tone}`}
+    >
       {children}
     </button>
   );
