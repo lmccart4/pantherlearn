@@ -1,0 +1,110 @@
+.slide-submit {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.slide-submit-prompt {
+  font-size: 0.95rem;
+  color: var(--fg-default);
+  margin-bottom: var(--space-3);
+  line-height: 1.6;
+}
+
+.slide-submit-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-canvas);
+  color: var(--fg-default);
+  font-size: 0.9rem;
+  outline: none;
+  margin-bottom: var(--space-2);
+}
+.slide-submit-input.has-error {
+  border-color: var(--status-danger);
+}
+.slide-submit-input:focus {
+  border-color: var(--focus-ring);
+}
+
+.slide-submit-error {
+  font-size: 0.8rem;
+  color: var(--status-danger-display);
+  margin-bottom: var(--space-2);
+}
+
+.slide-submit-btn {
+  padding: 8px 20px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: var(--accent-hero);
+  color: var(--accent-hero-ink);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.slide-submit-btn[data-saving="true"] {
+  background: var(--bg-deep);
+  color: var(--fg-muted);
+  cursor: wait;
+}
+
+.slide-submit-done {
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-3);
+}
+.slide-submit-check {
+  color: var(--status-success-display);
+  font-weight: 700;
+}
+.slide-submit-link {
+  color: var(--accent-hero-ink);
+  text-decoration: none;
+  word-break: break-all;
+}
+.slide-submit-link:hover { text-decoration: underline; }
+
+.slide-submit-frame {
+  margin-top: var(--space-3);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+  aspect-ratio: 16 / 9;
+}
+.slide-submit-frame iframe {
+  border: none;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.slide-submit-canva-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--fg-muted);
+  padding: var(--space-4);
+}
+.slide-submit-canva-fallback p {
+  font-size: var(--t-sm);
+  text-align: center;
+  max-width: 400px;
+}
+.slide-submit-canva-fallback a {
+  color: var(--status-warn-display);
+  font-weight: 600;
+  font-size: var(--t-base);
+  text-decoration: none;
+}
+.slide-submit-canva-fallback a:hover { text-decoration: underline; }
