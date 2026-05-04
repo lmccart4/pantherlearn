@@ -1,0 +1,47 @@
+.eab-block { padding: 24px 20px; }
+.eab-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: var(--space-3);
+}
+.eab-icon {
+  font-size: 28px;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.eab-tone-warn    { background: color-mix(in oklab, var(--status-warn) 12%, transparent); }
+.eab-tone-info    { background: color-mix(in oklab, var(--status-info) 12%, transparent); }
+.eab-tone-alt     { background: color-mix(in oklab, var(--accent-alt) 12%, transparent); }
+.eab-tone-hero    { background: color-mix(in oklab, var(--accent-hero) 12%, transparent); }
+.eab-tone-neutral { background: color-mix(in oklab, var(--fg-default) 6%, transparent); }
+
+.eab-title-wrap { flex: 1; }
+.eab-title {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: var(--t-md);
+  color: var(--fg-default);
+}
+
+.eab-instructions {
+  color: var(--fg-muted);
+  font-size: 14px;
+  margin-bottom: var(--space-4);
+  line-height: 1.5;
+}
+
+.eab-go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  width: 100%;
+}
