@@ -1,0 +1,41 @@
+.mml-block { padding: 24px 20px; }
+.mml-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: var(--space-3);
+}
+.mml-icon {
+  font-size: 28px;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--status-info) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mml-title-wrap { flex: 1; }
+.mml-title {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: var(--t-md);
+  color: var(--fg-default);
+}
+.mml-meta {
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+.mml-instructions {
+  color: var(--fg-muted);
+  font-size: 14px;
+  margin-bottom: var(--space-4);
+  line-height: 1.5;
+}
+.mml-go {
+  width: 100%;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 700;
+}

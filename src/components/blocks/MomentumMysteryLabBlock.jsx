@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { db } from "../../lib/firebase";
 import { getStudentBestAttempt } from "../../lib/momentumStore";
+import "./MomentumMysteryLabBlock.css";
 
 export default function MomentumMysteryLabBlock({ block, courseId, lessonId }) {
   const { user } = useAuth();
@@ -20,20 +21,13 @@ export default function MomentumMysteryLabBlock({ block, courseId, lessonId }) {
   }, [user, courseId]);
 
   return (
-    <div className="card" style={{ padding: "24px 20px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
-        <div style={{
-          fontSize: 28, width: 52, height: 52, borderRadius: 12,
-          background: "rgba(96, 165, 250, 0.12)", display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          {block.icon || "\u{1F52D}"}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18 }}>
-            {block.title || "Momentum Mystery Lab"}
-          </div>
+    <div className="card mml-block">
+      <div className="mml-head">
+        <div className="mml-icon" aria-hidden>{block.icon || "🔭"}</div>
+        <div className="mml-title-wrap">
+          <div className="mml-title">{block.title || "Momentum Mystery Lab"}</div>
           {bestAttempt && (
-            <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>
+            <div className="mml-meta">
               Best: {bestAttempt.bestXP} XP — {bestAttempt.activityLabel}
             </div>
           )}
@@ -41,16 +35,10 @@ export default function MomentumMysteryLabBlock({ block, courseId, lessonId }) {
       </div>
 
       {block.instructions && (
-        <p style={{ color: "var(--text2)", fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>
-          {block.instructions}
-        </p>
+        <p className="mml-instructions">{block.instructions}</p>
       )}
 
-      <button
-        className="btn btn-primary"
-        onClick={() => navigate(`/momentum-mystery-lab/${courseId}`)}
-        style={{ width: "100%", padding: "12px 20px", fontSize: 15, fontWeight: 700 }}
-      >
+      <button className="btn btn-primary mml-go" onClick={() => navigate(`/momentum-mystery-lab/${courseId}`)}>
         Open Lab →
       </button>
     </div>

@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { db } from "../../lib/firebase";
 import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import "./SpaceRescueBlock.css";
 
 export default function SpaceRescueBlock({ block, courseId, lessonId }) {
   const { user, userRole } = useAuth();
@@ -38,38 +39,23 @@ export default function SpaceRescueBlock({ block, courseId, lessonId }) {
   }, [user, courseId]);
 
   return (
-    <div className="card" style={{ padding: "24px 20px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
-        <div style={{
-          fontSize: 28, width: 52, height: 52, borderRadius: 12,
-          background: "rgba(0, 212, 255, 0.12)", display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          {block.icon || "🧑‍🚀"}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18 }}>
-            {block.title || "Space Rescue Mission"}
-          </div>
+    <div className="card sr-block">
+      <div className="sr-head">
+        <div className="sr-icon" aria-hidden>{block.icon || "🧑‍🚀"}</div>
+        <div className="sr-title-wrap">
+          <div className="sr-title">{block.title || "Space Rescue Mission"}</div>
           {levelsCompleted !== null && levelsCompleted > 0 && (
-            <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>
-              {levelsCompleted} of 4 missions completed
-            </div>
+            <div className="sr-meta">{levelsCompleted} of 4 missions completed</div>
           )}
         </div>
       </div>
 
       {block.instructions && (
-        <p style={{ color: "var(--text2)", fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>
-          {block.instructions}
-        </p>
+        <p className="sr-instructions">{block.instructions}</p>
       )}
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <button
-          className="btn btn-primary"
-          onClick={() => navigate(`/space-rescue/${courseId}`)}
-          style={{ flex: 1, padding: "12px 20px", fontSize: 15, fontWeight: 700 }}
-        >
+      <div className="sr-actions">
+        <button className="btn btn-primary sr-go" onClick={() => navigate(`/space-rescue/${courseId}`)}>
           Launch Mission →
         </button>
       </div>

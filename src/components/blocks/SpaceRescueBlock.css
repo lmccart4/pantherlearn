@@ -1,0 +1,42 @@
+.sr-block { padding: 24px 20px; }
+.sr-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: var(--space-3);
+}
+.sr-icon {
+  font-size: 28px;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--status-info) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sr-title-wrap { flex: 1; }
+.sr-title {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: var(--t-md);
+  color: var(--fg-default);
+}
+.sr-meta {
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+.sr-instructions {
+  color: var(--fg-muted);
+  font-size: 14px;
+  margin-bottom: var(--space-4);
+  line-height: 1.5;
+}
+.sr-actions { display: flex; gap: 10px; }
+.sr-go {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 700;
+}
