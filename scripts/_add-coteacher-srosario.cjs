@@ -1,7 +1,7 @@
 /**
  * Silently add SROSARIO@paps.net as co-teacher on every PantherLearn
  * course owned by lucamccarthy@paps.net. No emails, no notifications —
- * just a Firestore write that grants Stacy Rosario teacher-level access
+ * just a Firestore write that grants Stephanie Rosario teacher-level access
  * for the 2025-2026 summative evaluation.
  *
  * Usage: cd ~/pantherlearn && node scripts/_add-coteacher-srosario.cjs
@@ -33,14 +33,14 @@ async function getOrCreateUid(email) {
   const created = await auth.createUser({
     email,
     emailVerified: false,
-    displayName: "S. Rosario",
+    displayName: "Stephanie Rosario",
     disabled: false,
   });
   console.log(`  ✓ Auth user created: ${created.uid}`);
   // 3) Seed minimal user doc so PantherLearn UI can resolve display name
   await db.collection("users").doc(created.uid).set({
     email,
-    displayName: "S. Rosario",
+    displayName: "Stephanie Rosario",
     role: "teacher",
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     note: "Added as evaluator co-teacher for 2025-2026 summative review",
@@ -58,7 +58,7 @@ async function main() {
   const targetUid = await getOrCreateUid(TARGET_EMAIL);
   const lukeUid   = await ownerUid(OWNER_EMAIL);
   console.log(`  Luke uid: ${lukeUid}`);
-  console.log(`  Stacy uid: ${targetUid}`);
+  console.log(`  Stephanie uid: ${targetUid}`);
 
   console.log(`\n▸ Finding Luke's courses`);
   const snap = await db.collection("courses").where("ownerUid", "==", lukeUid).get();
@@ -90,7 +90,7 @@ async function main() {
   for (const u of updates) {
     console.log(`  ${u.already ? "·" : "+"} ${u.id}  ${u.title}${u.already ? "  (already a co-teacher)" : ""}`);
   }
-  console.log(`\n✅ Stacy Rosario added to ${updates.filter(u => !u.already).length} courses (${updates.filter(u => u.already).length} already had her).`);
+  console.log(`\n✅ Stephanie Rosario added to ${updates.filter(u => !u.already).length} courses (${updates.filter(u => u.already).length} already had her).`);
   console.log(`   No emails sent. Reversible by replacing arrayUnion with arrayRemove.`);
   process.exit(0);
 }

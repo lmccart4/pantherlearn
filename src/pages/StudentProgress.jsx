@@ -7,7 +7,7 @@ import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
 import StreakDisplay from "../components/StreakDisplay";
 import { getWeightedOverall, CATEGORY_WEIGHTS, CATEGORY_LABELS, CATEGORY_COLORS, DEFAULT_CATEGORY } from "../lib/gradeCalc";
-import { ACTIVE_MARKING_PERIODS, getCurrentMarkingPeriod, getMarkingPeriod } from "../lib/markingPeriods";
+import { ACTIVE_MARKING_PERIODS, getCurrentMarkingPeriod, getMarkingPeriod, getLessonMarkingPeriod } from "../lib/markingPeriods";
 import { linkifyText } from "../lib/utils";
 
 const GRADE_TIERS = [
@@ -74,7 +74,7 @@ export default function StudentProgress() {
     return visibleLessons.filter((l) => {
       if (unitFilter !== "all" && (l.unit || "") !== unitFilter) return false;
       if (mpFilter !== "all") {
-        const mp = getMarkingPeriod(l.dueDate) || getCurrentMarkingPeriod();
+        const mp = getLessonMarkingPeriod(l);
         if (mp !== mpFilter) return false;
       }
       return true;
@@ -1858,6 +1858,7 @@ export default function StudentProgress() {
                 ))}
                 <th style={{ textAlign: "center", padding: "10px 8px", fontWeight: 600, color: "var(--text3)", fontSize: 11 }}>💭</th>
                 <th style={{ textAlign: "center", padding: "10px 8px", fontWeight: 600, color: "var(--text3)", fontSize: 11 }}>✅</th>
+                <th style={{ textAlign: "center", padding: "10px 8px", fontWeight: 600, color: "var(--text3)", fontSize: 11 }} title="View as student">👁</th>
               </tr>
             </thead>
             <tbody>
@@ -1976,6 +1977,23 @@ export default function StudentProgress() {
                         </td>
                       );
                     })()}
+                    <td style={{ textAlign: "center", padding: "8px" }} onClick={(e) => e.stopPropagation()}>
+                      <a
+                        href={`/lesson/${selectedCourse}/${lesson.id}?viewAsUid=${s.uid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`View lesson as ${s.displayName} would see it`}
+                        style={{
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                          width: 24, height: 24, borderRadius: 6,
+                          background: "rgba(99,102,241,0.12)", color: "var(--accent, #6366f1)",
+                          fontSize: 13, textDecoration: "none", fontWeight: 600,
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "rgba(99,102,241,0.25)"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "rgba(99,102,241,0.12)"}
+                      >👁</a>
+                    </td>
                   </tr>
                 );
               })}
@@ -2160,7 +2178,7 @@ export default function StudentProgress() {
                       style={{ background: "var(--surface)", color: "var(--text1)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>
                       <option value="all">All Marking Periods</option>
                       {ACTIVE_MARKING_PERIODS.map(mp => {
-                        const count = visibleLessons.filter(l => (getMarkingPeriod(l.dueDate) || getCurrentMarkingPeriod()) === mp.id).length;
+                        const count = visibleLessons.filter(l => getLessonMarkingPeriod(l) === mp.id).length;
                         return <option key={mp.id} value={mp.id}>{mp.label} ({count})</option>;
                       })}
                     </select>

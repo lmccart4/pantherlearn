@@ -108,5 +108,9 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules",
+    "bucket": "pantherlearn-d6f7c.firebasestorage.app"
   }
 }

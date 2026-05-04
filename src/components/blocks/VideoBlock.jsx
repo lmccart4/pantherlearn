@@ -42,7 +42,8 @@ function toEmbedUrl(url) {
 
 export default function VideoBlock({ block }) {
   const translatedCaption = useTranslatedText(block.caption);
-  const embedUrl = toEmbedUrl(block.url);
+  const isDirectVideo = /\.(mp4|webm|mov|m4v)(\?|$)/i.test(block.url || "");
+  const embedUrl = isDirectVideo ? block.url : toEmbedUrl(block.url);
 
   if (!embedUrl) return null;
 
@@ -55,21 +56,40 @@ export default function VideoBlock({ block }) {
         overflow: "hidden",
         borderRadius: "var(--radius, 12px)",
         border: "1px solid var(--border, #2a2f3d)",
+        background: "#000",
       }}>
-        <iframe
-          src={embedUrl}
-          title={translatedCaption || "Video"}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            border: "none",
-          }}
-          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
+        {isDirectVideo ? (
+          <video
+            src={embedUrl}
+            controls
+            playsInline
+            preload="metadata"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              background: "#000",
+            }}
+          />
+        ) : (
+          <iframe
+            src={embedUrl}
+            title={translatedCaption || "Video"}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              border: "none",
+            }}
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        )}
       </div>
       {translatedCaption && (
         <p style={{

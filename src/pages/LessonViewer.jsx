@@ -1,7 +1,7 @@
 // src/pages/LessonViewer.jsx
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
-import { doc, setDoc, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+import { useParams, Link, useSearchParams } from "react-router-dom";
+import { doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import BlockRenderer from "../components/blocks/BlockRenderer";
@@ -19,6 +19,23 @@ export default function LessonViewer() {
   const { user, userRole, isTestStudent, getToken } = useAuth();
   const { isPreview } = usePreview();
   const isStudent = userRole === "student";
+  const isTeacher = userRole === "teacher";
+
+  // Teacher "View as student" mode: ?viewAsUid={uid} loads that student's
+  // progress data and renders the lesson read-only — no writes, no submits.
+  const [searchParams] = useSearchParams();
+  const viewAsUid = isTeacher ? searchParams.get("viewAsUid") : null;
+  const isViewAsStudent = !!viewAsUid;
+  const [viewAsName, setViewAsName] = useState("");
+  useEffect(() => {
+    if (!viewAsUid) { setViewAsName(""); return; }
+    (async () => {
+      try {
+        const userDoc = await getDoc(doc(db, "users", viewAsUid));
+        setViewAsName(userDoc.exists() ? (userDoc.data().displayName || userDoc.data().email || viewAsUid) : viewAsUid);
+      } catch { setViewAsName(viewAsUid); }
+    })();
+  }, [viewAsUid]);
   const { seconds: engagementSeconds } = useEngagementTimer(
     isStudent ? courseId : null,
     isStudent ? lessonId : null
@@ -57,9 +74,11 @@ export default function LessonViewer() {
   // Real-time student progress — uses onSnapshot so locally-queued writes
   // (from beforeunload / unmount saves) are visible immediately on reload,
   // even before they sync to the server.
+  // In view-as-student mode, listens to the target student's progress instead.
   useEffect(() => {
     if (!user) return;
-    const progressRef = doc(db, "progress", user.uid, "courses", courseId, "lessons", lessonId);
+    const targetUid = viewAsUid || user.uid;
+    const progressRef = doc(db, "progress", targetUid, "courses", courseId, "lessons", lessonId);
     const unsub = onSnapshot(progressRef, (snap) => {
       if (snap.exists()) {
         const serverAnswers = snap.data().answers || {};
@@ -101,7 +120,7 @@ export default function LessonViewer() {
       }
     }, (err) => console.error("Progress listener error:", err));
     return () => unsub();
-  }, [courseId, lessonId, user]);
+  }, [courseId, lessonId, user, viewAsUid]);
 
   // Track latest student data for Firestore writes without stale closures
   const studentDataRef = useRef({});
@@ -117,6 +136,7 @@ export default function LessonViewer() {
 
   const handleAnswer = useCallback(
     async (blockId, data) => {
+      if (isViewAsStudent) return; // teacher viewing as student — read only
       if (isPreviewActive) {
         setRealStudentData((prev) => ({ ...prev, [blockId]: data }));
         return;
@@ -188,7 +208,7 @@ export default function LessonViewer() {
         }
       }
     },
-    [user, courseId, lessonId, isPreviewActive]
+    [user, courseId, lessonId, isPreviewActive, isViewAsStudent]
   );
 
   // Student requests manual review of an AI-graded answer.
@@ -196,7 +216,7 @@ export default function LessonViewer() {
   // because that overwrites the entire answer object including grading data.
   const handleRequestReview = useCallback(
     async (blockId, note) => {
-      if (!user || isPreviewActive) return;
+      if (!user || isPreviewActive || isViewAsStudent) return;
       const progressRef = doc(
         db, "progress", user.uid, "courses", courseId, "lessons", lessonId
       );
@@ -215,7 +235,7 @@ export default function LessonViewer() {
         },
       }));
     },
-    [user, courseId, lessonId, isPreviewActive]
+    [user, courseId, lessonId, isPreviewActive, isViewAsStudent]
   );
 
   const handleChatLog = useCallback((blockId, messages) => {
@@ -291,6 +311,9 @@ export default function LessonViewer() {
       if (block.type === "evidence_upload" || block.type === "media_upload") {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
+        extraProps.courseId = courseId;
+        extraProps.lessonId = lessonId;
+        extraProps.readOnly = isViewAsStudent;
       }
       if (block.type === "simulation") {
         extraProps.studentData = studentData;
@@ -349,7 +372,7 @@ export default function LessonViewer() {
       }
       return { block, extraProps };
     });
-  }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted, handleRequestReview]);
+  }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted, handleRequestReview, isViewAsStudent, user, isTestStudent]);
 
   if (loading) {
     return (
@@ -434,6 +457,21 @@ export default function LessonViewer() {
             </div>
           )}
 
+          {/* View-as-student banner — teacher viewing a specific student's submission */}
+          {isViewAsStudent && (
+            <div role="status" style={{
+              background: "rgba(99,102,241,0.12)", border: "1px solid var(--accent, #6366f1)",
+              borderRadius: 10, padding: "10px 16px", marginBottom: 16,
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontSize: 13,
+              color: "var(--accent, #6366f1)", fontWeight: 600,
+            }}>
+              <span>👁 Viewing as {viewAsName || "student"} — read only. Every block shows what they see.</span>
+              <Link to={`/student-progress?student=${viewAsUid}&course=${courseId}`} style={{
+                fontSize: 12, color: "var(--accent, #6366f1)", textDecoration: "underline",
+              }}>← back to progress</Link>
+            </div>
+          )}
+
           {/* Save error banner — visible when Firestore writes fail after retries */}
           {saveError && (
             <div role="alert" style={{
@@ -492,8 +530,8 @@ export default function LessonViewer() {
             ))}
           </div>
 
-          {/* Complete Lesson — students and teacher preview */}
-          {(userRole !== "teacher" || isPreview) && (
+          {/* Complete Lesson — students and teacher preview only (not in view-as mode) */}
+          {(userRole !== "teacher" || isPreview) && !isViewAsStudent && (
             <LessonCompleteButton
               lesson={lesson}
               studentData={studentData}

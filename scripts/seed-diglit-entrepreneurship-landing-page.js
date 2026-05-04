@@ -50,7 +50,7 @@ const lesson = {
       items: [
         "Explain why every online business needs a central hub beyond just social profiles",
         "Identify the 5 essential elements of an effective landing page",
-        "Build a simple landing page for your business using Carrd.co or Google Sites"
+        "Build a simple landing page for your business using Google Sites"
       ]
     },
 
@@ -107,7 +107,17 @@ const lesson = {
     {
       id: "b-build-intro",
       type: "text",
-      content: "You'll build your landing page using **Carrd.co** (free, no-code, looks professional) or **Google Sites** (fallback if Carrd is blocked).\n\n**Carrd.co:** Create a free account at carrd.co with your school email. The free tier allows 3 pages — more than enough.\n\n**Your landing page must include:**\n- Headline from your value proposition (Lesson 34)\n- Your brand colors and logo (Lesson 35)\n- At least 1 CTA button\n- Links to your social profiles (can be placeholders)\n- A brief 'About' section (2-3 sentences)\n\n**Milestones:** Headline done by min 5 → CTA by min 10 → links + about by min 15. Don't get lost customizing fonts before the structure is complete."
+      content: "You'll build your landing page using **Google Sites** — free, no-code, and already part of your school Google account. No new sign-up, no payment, no extension blocked.\n\n**Google Sites:** Open the link below, sign in with your school account, and click **+ Blank** to start a new site. Pick a theme, drop in text and images, and publish when you're ready.\n\n**Your landing page must include:**\n- Headline from your value proposition (Lesson 34)\n- Your brand colors and logo (Lesson 35)\n- At least 1 CTA button\n- Links to your social profiles (can be placeholders)\n- A brief 'About' section (2-3 sentences)\n\n**Milestones:** Headline done by min 5 → CTA by min 10 → links + about by min 15. Don't get lost customizing fonts before the structure is complete."
+    },
+    {
+      id: "link-google-sites",
+      type: "external_link",
+      icon: "🌐",
+      title: "Google Sites",
+      url: "https://sites.google.com/new",
+      description: "Sign in with your school account and click + Blank to start your landing page.",
+      buttonLabel: "Open Google Sites",
+      openInNewTab: true
     },
     {
       id: "q-headline-check",

@@ -7,7 +7,7 @@ import { getStudentEnrolledCourseIds } from "../lib/enrollment";
 import { getLevelInfo, getStudentGamification } from "../lib/gamification";
 import { getWeightedOverall, CATEGORY_WEIGHTS, CATEGORY_LABELS, CATEGORY_COLORS, DEFAULT_CATEGORY } from "../lib/gradeCalc";
 import { useTranslatedTexts } from "../hooks/useTranslatedText.jsx";
-import { ACTIVE_MARKING_PERIODS, getCurrentMarkingPeriod, getMarkingPeriod } from "../lib/markingPeriods";
+import { ACTIVE_MARKING_PERIODS, getCurrentMarkingPeriod, getMarkingPeriod, getLessonMarkingPeriod, toDateStr } from "../lib/markingPeriods";
 
 const WRITTEN_LABELS = {
   0: { label: "Missing", color: "var(--text3)" },
@@ -154,29 +154,24 @@ export default function MyGrades() {
   }, [selectedCourse, user]);
 
   // --- Helpers ---
-  // Marking-period filtering: a lesson belongs to the MP its dueDate falls in.
-  // Lessons with no dueDate are bucketed into the current MP so they still appear.
+  // Marking-period filtering: a lesson is bucketed by its dueDate, or by its
+  // createdAt as fallback. If neither resolves to a marking period, the lesson
+  // is hidden from MP-toggled views (no dumping into the current MP).
   const lessonInSelectedMp = (lesson) => {
-    const mp = getMarkingPeriod(lesson.dueDate) || getCurrentMarkingPeriod();
-    return mp === selectedMp;
+    const mp = getLessonMarkingPeriod(lesson);
+    return mp !== null && mp === selectedMp;
   };
-  // Activities don't have a dueDate field — pull a date from any timestamp the
-  // doc carries (gradedAt / completedAt / submittedAt / recordedAt). If none,
-  // and the activity is tied to a lesson, defer to that lesson's MP. Final
-  // fallback: current MP.
+  // Activities: try the activity's own timestamp first, then defer to the
+  // linked lesson's MP if any. If still unresolvable, hide.
   const activityInSelectedMp = (data) => {
     const ts = data.gradedAt || data.completedAt || data.submittedAt || data.recordedAt;
-    let datStr = null;
-    if (ts) {
-      const d = ts.toDate ? ts.toDate() : new Date(ts);
-      if (!isNaN(d)) datStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    }
-    if (!datStr && data.lessonId) {
+    const mpFromTs = getMarkingPeriod(toDateStr(ts));
+    if (mpFromTs) return mpFromTs === selectedMp;
+    if (data.lessonId) {
       const linkedLesson = lessons.find((l) => l.id === data.lessonId);
       if (linkedLesson) return lessonInSelectedMp(linkedLesson);
     }
-    const mp = getMarkingPeriod(datStr) || getCurrentMarkingPeriod();
-    return mp === selectedMp;
+    return false;
   };
 
   const isDueDatePassed = (lesson) => {

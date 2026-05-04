@@ -1,0 +1,30 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper: check if requester is a teacher per Firestore users doc.
+    function isTeacher() {
+      return request.auth != null
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+
+    // Student media uploads: uploads/{courseId}/{lessonId}/{blockId}/{uid}/{filename}
+    match /uploads/{courseId}/{lessonId}/{blockId}/{uid}/{allPaths=**} {
+
+      // Students can write to their own folder; image/video only, max 50 MB.
+      allow create, update: if request.auth != null
+                            && request.auth.uid == uid
+                            && request.resource.size < 50 * 1024 * 1024
+                            && (request.resource.contentType.matches('image/.*')
+                                || request.resource.contentType.matches('video/.*'));
+
+      // Students can delete their own uploads.
+      allow delete: if request.auth != null && request.auth.uid == uid;
+
+      // Students can read their own. Teachers can read any.
+      allow read: if (request.auth != null && request.auth.uid == uid)
+                  || isTeacher()
+                  || (request.auth != null && request.auth.token.role == 'teacher');
+    }
+  }
+}

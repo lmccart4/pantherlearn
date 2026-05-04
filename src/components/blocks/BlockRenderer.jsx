@@ -41,6 +41,8 @@ const MomentumMysteryLabBlock = lazy(() => import("./MomentumMysteryLabBlock"));
 const ConnectFourBlock = lazy(() => import("./ConnectFourBlock"));
 const SlideSubmitBlock = lazy(() => import("./SlideSubmitBlock"));
 const ImageGenBlock = lazy(() => import("./ImageGenBlock"));
+const RubricBlock = lazy(() => import("./RubricBlock"));
+const ExemplarCompareBlock = lazy(() => import("./ExemplarCompareBlock"));
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -84,6 +86,8 @@ const BLOCK_MAP = {
   case_cards: CaseCardsBlock,
   slide_submit: SlideSubmitBlock,
   image_gen: ImageGenBlock,
+  rubric: RubricBlock,
+  exemplar_compare: ExemplarCompareBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {
