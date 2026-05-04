@@ -1,0 +1,72 @@
+.cw-block { padding: 24px 20px; }
+
+.cw-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: var(--space-3);
+}
+
+.cw-icon {
+  font-size: 28px;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--accent-alt) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cw-title-wrap { flex: 1; }
+.cw-title {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: var(--t-md);
+  color: var(--fg-default);
+}
+.cw-meta {
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+
+.cw-instructions {
+  color: var(--fg-muted);
+  font-size: 14px;
+  margin-bottom: var(--space-4);
+  line-height: 1.5;
+}
+
+.cw-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.cw-go {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.cw-secondary {
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  background: none;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.cw-arcade:hover {
+  border-color: var(--status-warn);
+  color: var(--status-warn-display);
+}
+.cw-dashboard:hover {
+  border-color: var(--status-info);
+  color: var(--status-info);
+}
