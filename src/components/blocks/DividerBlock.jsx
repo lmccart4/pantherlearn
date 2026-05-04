@@ -1,11 +1,6 @@
 // src/components/blocks/DividerBlock.jsx
+import "./DividerBlock.css";
+
 export default function DividerBlock() {
-  return (
-    <hr style={{
-      border: "none",
-      height: 1,
-      background: "var(--border, #2a2f3d)",
-      margin: "32px 0",
-    }} />
-  );
+  return <hr className="divider-block" />;
 }

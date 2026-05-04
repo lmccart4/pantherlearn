@@ -1,0 +1,6 @@
+.divider-block {
+  border: none;
+  height: 1px;
+  background: var(--border-soft);
+  margin: var(--space-7) 0;
+}
