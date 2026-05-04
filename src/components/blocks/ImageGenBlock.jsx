@@ -5,6 +5,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import "./ImageGenBlock.css";
 
 const functions = getFunctions();
 const generateImageFn = httpsCallable(functions, "generateImage");
@@ -13,7 +14,6 @@ const getSavedImageGenerationsFn = httpsCallable(functions, "getSavedImageGenera
 
 const DEFAULT_CAP = 10;
 
-/** Prefer persisted URL; fall back to in-session base64. */
 function imgSrc(img) {
   return img.imageUrl || `data:${img.mimeType};base64,${img.data}`;
 }
@@ -31,14 +31,13 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
   const cap = typeof block?.cap === "number" && block.cap > 0 ? Math.floor(block.cap) : DEFAULT_CAP;
   const [prompt, setPrompt] = useState("");
   const [images, setImages] = useState([]);
-  const [serverUsed, setServerUsed] = useState(0); // lifetime count from server
+  const [serverUsed, setServerUsed] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [tipIndex, setTipIndex] = useState(0);
   const promptRef = useRef(null);
 
-  // Hydrate lifetime usage from server on mount
   useEffect(() => {
     if (!block?.id) return;
     let cancelled = false;
@@ -48,12 +47,10 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
         const used = Math.max(0, Number(res?.data?.used) || 0);
         setServerUsed(used);
       })
-      .catch(() => { /* fail open — server will still enforce on generate */ });
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [block?.id, cap]);
 
-  // If this block persists images, hydrate the student's prior gallery from Firestore
-  // so they can see what they made in earlier sessions.
   useEffect(() => {
     if (!block?.id || !block.persist) return;
     let cancelled = false;
@@ -62,7 +59,6 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
         if (cancelled) return;
         const saved = Array.isArray(res?.data?.images) ? res.data.images : [];
         if (!saved.length) return;
-        // Map server shape → client shape (client uses `data` for base64; here we use imageUrl)
         const hydrated = saved.map((s) => ({
           id: s.id,
           prompt: s.prompt,
@@ -71,14 +67,13 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
           text: "",
         }));
         setImages(hydrated);
-        // Subtract these from the server counter so totalUsed doesn't double-count
         setServerUsed((u) => Math.max(0, u - hydrated.length));
       })
-      .catch(() => { /* quiet: gallery just won't rehydrate */ });
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [block?.id, block?.persist]);
 
-  const totalUsed = serverUsed + images.length; // server count + newly generated this session
+  const totalUsed = serverUsed + images.length;
   const remaining = Math.max(0, cap - totalUsed);
 
   const generate = useCallback(async () => {
@@ -113,7 +108,6 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
       setImages(updated);
       setTipIndex((tipIndex + 1) % TIPS.length);
 
-      // Participation grading: any generation = full credit (1/1), doesn't matter how many.
       if (onAnswer) {
         const totalDone = serverUsed + updated.length;
         onAnswer(block.id, {
@@ -159,29 +153,12 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
   };
 
   return (
-    <div style={{
-      background: "var(--surface, #1B2838)",
-      borderRadius: 12,
-      padding: 24,
-      margin: "16px 0",
-    }}>
-      {/* Prompt Tip */}
-      <div style={{
-        background: "rgba(2, 195, 154, 0.08)",
-        border: "1px solid rgba(2, 195, 154, 0.2)",
-        borderRadius: 8,
-        padding: "12px 16px",
-        marginBottom: 16,
-        fontSize: 13,
-        color: "var(--text-muted, #94a3b8)",
-        lineHeight: 1.5,
-      }}>
-        <strong style={{ color: "var(--accent, #02C39A)" }}>Prompt tip:</strong>{" "}
-        {TIPS[tipIndex]}
+    <div className="ig-block">
+      <div className="ig-tip">
+        <strong>Prompt tip:</strong> {TIPS[tipIndex]}
       </div>
 
-      {/* Prompt Input */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div className="ig-prompt-row">
         <textarea
           ref={promptRef}
           value={prompt}
@@ -191,209 +168,56 @@ export default function ImageGenBlock({ block, studentData = {}, onAnswer }) {
           maxLength={500}
           rows={2}
           disabled={loading}
-          style={{
-            flex: 1,
-            background: "var(--bg, #0D1B2A)",
-            color: "var(--text, #E8F4F0)",
-            border: "1px solid var(--border, #2a3a4a)",
-            borderRadius: 8,
-            padding: "12px 14px",
-            fontSize: 14,
-            fontFamily: "inherit",
-            resize: "vertical",
-            minHeight: 48,
-            outline: "none",
-            transition: "border-color 0.15s",
-          }}
-          onFocus={(e) => e.target.style.borderColor = "var(--accent, #02C39A)"}
-          onBlur={(e) => e.target.style.borderColor = "var(--border, #2a3a4a)"}
+          className="ig-prompt"
         />
         <button
           onClick={generate}
           disabled={loading || !prompt.trim() || remaining <= 0}
-          style={{
-            background: loading ? "var(--border, #2a3a4a)" : "var(--accent, #02C39A)",
-            color: loading ? "var(--text-muted, #94a3b8)" : "#0D1B2A",
-            border: "none",
-            borderRadius: 8,
-            padding: "12px 20px",
-            fontWeight: 700,
-            fontSize: 14,
-            cursor: loading ? "wait" : (remaining <= 0 ? "not-allowed" : "pointer"),
-            whiteSpace: "nowrap",
-            alignSelf: "flex-end",
-            minHeight: 48,
-            transition: "all 0.15s",
-            opacity: (!prompt.trim() || remaining <= 0) ? 0.5 : 1,
-          }}
+          className="ig-go"
         >
           {loading ? "Generating..." : (remaining <= 0 ? "Cap reached" : "Generate")}
         </button>
       </div>
 
-      {/* Character count */}
-      <div style={{
-        fontSize: 11,
-        color: "var(--text-muted, #94a3b8)",
-        textAlign: "right",
-        marginTop: -12,
-        marginBottom: 12,
-      }}>
+      <div className="ig-counts">
         {prompt.length}/500 · {totalUsed}/{cap} images · {remaining} left
       </div>
 
-      {/* Error */}
-      {error && (
-        <div style={{
-          background: "rgba(239, 68, 68, 0.1)",
-          border: "1px solid rgba(239, 68, 68, 0.3)",
-          borderRadius: 8,
-          padding: "10px 14px",
-          marginBottom: 16,
-          fontSize: 13,
-          color: "#f87171",
-        }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="ig-error">{error}</div>}
 
-      {/* Gallery */}
       {images.length > 0 && (
         <div>
-          <div style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text-muted, #94a3b8)",
-            marginBottom: 10,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-          }}>
-            Your Gallery ({images.length})
-          </div>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-            gap: 12,
-          }}>
+          <div className="ig-gallery-label">Your Gallery ({images.length})</div>
+          <div className="ig-gallery">
             {images.map((img) => (
-              <div
-                key={img.id}
-                onClick={() => setSelectedImage(img)}
-                style={{
-                  borderRadius: 8,
-                  overflow: "hidden",
-                  cursor: "pointer",
-                  border: "2px solid transparent",
-                  transition: "border-color 0.15s, transform 0.15s",
-                  position: "relative",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "var(--accent, #02C39A)";
-                  e.currentTarget.style.transform = "scale(1.02)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "transparent";
-                  e.currentTarget.style.transform = "scale(1)";
-                }}
-              >
-                <img
-                  src={imgSrc(img)}
-                  alt={img.prompt}
-                  style={{
-                    width: "100%",
-                    height: 180,
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-                <div style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  background: "linear-gradient(transparent, rgba(0,0,0,0.8))",
-                  padding: "20px 8px 6px",
-                  fontSize: 11,
-                  color: "#ccc",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}>
-                  {img.prompt}
-                </div>
+              <div key={img.id} onClick={() => setSelectedImage(img)} className="ig-thumb">
+                <img src={imgSrc(img)} alt={img.prompt} />
+                <div className="ig-thumb-caption">{img.prompt}</div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Lightbox */}
       {selectedImage && (
-        <div
-          onClick={() => setSelectedImage(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            background: "rgba(0,0,0,0.85)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-            cursor: "pointer",
-          }}
-        >
+        <div onClick={() => setSelectedImage(null)} className="ig-lightbox">
           <img
             src={imgSrc(selectedImage)}
             alt={selectedImage.prompt}
-            style={{
-              maxWidth: "90%",
-              maxHeight: "70vh",
-              borderRadius: 12,
-              boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-            }}
+            className="ig-lightbox-img"
             onClick={(e) => e.stopPropagation()}
           />
-          <div style={{
-            color: "#ccc",
-            fontSize: 14,
-            marginTop: 16,
-            maxWidth: 600,
-            textAlign: "center",
-            lineHeight: 1.5,
-          }}>
-            <strong style={{ color: "var(--accent, #02C39A)" }}>Prompt:</strong> {selectedImage.prompt}
+          <div className="ig-lightbox-caption">
+            <strong>Prompt:</strong> {selectedImage.prompt}
           </div>
-          <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+          <div className="ig-lightbox-actions">
             <button
               onClick={(e) => { e.stopPropagation(); refineFrom(selectedImage); }}
-              style={{
-                background: "var(--accent, #02C39A)",
-                color: "#0D1B2A",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 20px",
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: "pointer",
-              }}
+              className="ig-lightbox-primary"
             >
               Refine This Prompt
             </button>
-            <button
-              onClick={() => setSelectedImage(null)}
-              style={{
-                background: "rgba(255,255,255,0.1)",
-                color: "#ccc",
-                border: "1px solid rgba(255,255,255,0.2)",
-                borderRadius: 8,
-                padding: "10px 20px",
-                fontWeight: 600,
-                fontSize: 13,
-                cursor: "pointer",
-              }}
-            >
+            <button onClick={() => setSelectedImage(null)} className="ig-lightbox-secondary">
               Close
             </button>
           </div>
