@@ -4,6 +4,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
 import { renderMarkdown } from "../../lib/utils";
+import "./SimulationBlock.css";
 
 export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
   const data = (studentData && studentData[block.id]) || {};
@@ -48,17 +49,16 @@ export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
       {block.url ? (
         <div className="sim-iframe-wrap">
           <iframe
+            className="sim-iframe"
             src={block.url}
             title={block.title || "Simulation"}
-            style={{ width: "100%", height: block.height || 500, border: "none", borderRadius: 10 }}
+            style={{ height: block.height || 500 }}
             allowFullScreen
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
           />
         </div>
       ) : (
-        <div style={{ padding: 40, textAlign: "center", color: "var(--text3)", background: "var(--surface2)", borderRadius: 10 }}>
-          No simulation URL configured
-        </div>
+        <div className="sim-empty">No simulation URL configured</div>
       )}
 
       {block.observationPrompt && (
@@ -72,27 +72,16 @@ export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
             onBlur={saveNow}
             placeholder="Write your observations here..."
           />
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+          <div className="sim-actions">
             <button
+              className={`sim-submit ${submitted ? "is-submitted" : ""}`}
               onClick={handleSubmit}
               disabled={!observation.trim()}
-              style={{
-                padding: "8px 20px",
-                borderRadius: 8,
-                border: "none",
-                background: submitted ? "var(--green, #22c55e)" : "var(--accent, #6366f1)",
-                color: "#fff",
-                fontWeight: 600,
-                fontSize: 14,
-                cursor: observation.trim() ? "pointer" : "not-allowed",
-                opacity: observation.trim() ? 1 : 0.5,
-                transition: "all 0.15s",
-              }}
             >
               {submitted ? "Submitted" : "Submit Response"}
             </button>
             {lastSaved && (
-              <span style={{ fontSize: 11, color: "var(--text3)" }}>
+              <span className="sim-saved">
                 Saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
               </span>
             )}

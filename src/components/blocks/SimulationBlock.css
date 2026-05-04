@@ -1,0 +1,45 @@
+.sim-iframe {
+  width: 100%;
+  border: none;
+  border-radius: var(--r-md);
+}
+
+.sim-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--fg-muted);
+  background: var(--bg-sunken);
+  border-radius: var(--r-md);
+}
+
+.sim-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: var(--space-2);
+}
+
+.sim-submit {
+  padding: 8px 20px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: var(--status-info);
+  color: var(--status-info-ink);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.sim-submit.is-submitted {
+  background: var(--status-success);
+  color: var(--status-success-ink);
+}
+.sim-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.sim-saved {
+  font-size: 11px;
+  color: var(--fg-muted);
+}
