@@ -1,0 +1,150 @@
+.dt-wrapper {
+  margin: var(--space-6) 0;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-soft);
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+.dt-header {
+  padding: 14px 20px;
+  background: var(--bg-sunken);
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dt-header-icon { font-size: 20px; }
+.dt-title {
+  font-size: var(--t-base);
+  font-weight: 600;
+  color: var(--fg-default);
+}
+
+.dt-scroll { overflow-x: auto; }
+.dt-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dt-thead-row {
+  background: color-mix(in oklab, var(--status-danger) 12%, transparent);
+  border-bottom: 2px solid color-mix(in oklab, var(--status-danger) 30%, transparent);
+}
+.dt-th {
+  padding: 12px 10px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--status-danger-display);
+  text-align: center;
+  vertical-align: bottom;
+}
+.dt-th-object {
+  text-align: left;
+  width: 160px;
+}
+.dt-th-sub {
+  display: block;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 400;
+  margin-top: 2px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: color-mix(in oklab, var(--status-danger) 65%, var(--fg-default));
+}
+
+.dt-row {
+  border-bottom: 1px solid var(--border-soft);
+}
+.dt-row.is-alt {
+  background: color-mix(in oklab, var(--fg-default) 1.5%, transparent);
+}
+
+.dt-summary-row {
+  background: color-mix(in oklab, var(--status-info) 6%, transparent);
+  border-bottom: 2px solid var(--border-soft);
+  border-top: 1px solid color-mix(in oklab, var(--status-info) 20%, transparent);
+}
+
+.dt-spacer {
+  height: 18px;
+  background: transparent;
+  border-bottom: none;
+}
+
+.dt-td {
+  padding: 10px 10px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.dt-label-cell {
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--fg-default);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.dt-summary-label-cell {
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--status-info);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.dt-input {
+  width: 80px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-canvas);
+  color: var(--fg-default);
+  font-size: var(--t-base);
+  text-align: center;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+.dt-input:focus { border-color: var(--status-info); }
+
+.dt-computed {
+  font-size: var(--t-base);
+  font-weight: 600;
+  color: var(--fg-default);
+}
+.dt-dash {
+  font-size: var(--t-base);
+  color: var(--fg-muted);
+}
+.dt-summary-value {
+  font-size: var(--t-base);
+  font-weight: 700;
+  color: var(--status-info);
+}
+
+.dt-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.dt-saved {
+  font-size: 11px;
+  color: var(--status-success-display);
+  font-weight: 500;
+}
+.dt-save-error {
+  font-size: 11px;
+  color: var(--status-warn-display);
+  font-weight: 500;
+}

@@ -5,38 +5,8 @@ import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase.jsx";
 import { useAuth } from "../../hooks/useAuth.jsx";
 import useAutoSave from "../../hooks/useAutoSave.jsx";
+import "./DataTableBlock.css";
 
-/*
-  Block JSON shape (momentum preset):
-  {
-    id: "dt1",
-    type: "data_table",
-    preset: "momentum",       // future: "kinematics", "energy", "custom"
-    title: "Momentum Data Table",
-    trials: 1,                // number of before/after pairs (default 1)
-  }
-
-  For future "custom" preset:
-  {
-    type: "data_table",
-    preset: "custom",
-    title: "...",
-    columns: [
-      { key: "mass", label: "Mass", unit: "kg", input: true },
-      { key: "accel", label: "Acceleration", unit: "m/s²", input: true },
-      { key: "force", label: "Force", unit: "N", formula: "mass * accel" },
-    ],
-    rows: [
-      { key: "obj1", label: "Object 1" },
-      { key: "obj2", label: "Object 2" },
-    ],
-    summaryRows: [
-      { key: "total", label: "System Total", formula: "sum" },
-    ]
-  }
-*/
-
-// --- Momentum preset definition ---
 const ALL_MOMENTUM_COLUMNS = [
   { key: "mass", label: "Mass", unit: "kg", sublabel: "m", input: true, width: 110, group: "input" },
   { key: "speed", label: "Speed", unit: "m/s", sublabel: "|v|", input: true, width: 110, group: "scalar" },
@@ -118,162 +88,16 @@ function sumColumn(data, rowKeys, col) {
   return hasValue ? Math.round(total * 10000) / 10000 : null;
 }
 
-// --- Styles ---
-const styles = {
-  wrapper: {
-    margin: "24px 0",
-    borderRadius: "var(--radius, 12px)",
-    border: "1px solid var(--border, #2a2f3d)",
-    overflow: "hidden",
-    background: "var(--surface, #1a1e2e)",
-  },
-  header: {
-    padding: "14px 20px",
-    background: "var(--surface-alt, #222738)",
-    borderBottom: "1px solid var(--border, #2a2f3d)",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-  },
-  title: {
-    fontSize: 15,
-    fontWeight: 600,
-    color: "var(--text, #e2e8f0)",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-  thRow: {
-    background: "rgba(239, 68, 68, 0.12)",
-    borderBottom: "2px solid rgba(239, 68, 68, 0.3)",
-  },
-  th: {
-    padding: "12px 10px 6px",
-    fontSize: 11,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    color: "#f87171",
-    textAlign: "center",
-    verticalAlign: "bottom",
-  },
-  thSub: {
-    display: "block",
-    fontSize: 13,
-    fontStyle: "italic",
-    fontWeight: 400,
-    marginTop: 2,
-    letterSpacing: 0,
-    textTransform: "none",
-    color: "#fca5a5",
-  },
-  objectTh: {
-    padding: "12px 10px 6px",
-    fontSize: 11,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    color: "#f87171",
-    textAlign: "left",
-    verticalAlign: "bottom",
-    width: 160,
-  },
-  row: {
-    borderBottom: "1px solid var(--border, #2a2f3d)",
-  },
-  rowAlt: {
-    borderBottom: "1px solid var(--border, #2a2f3d)",
-    background: "rgba(255,255,255,0.015)",
-  },
-  summaryRow: {
-    background: "rgba(6, 182, 212, 0.06)",
-    borderBottom: "2px solid var(--border, #2a2f3d)",
-    borderTop: "1px solid rgba(6, 182, 212, 0.2)",
-  },
-  spacerRow: {
-    height: 18,
-    background: "transparent",
-    borderBottom: "none",
-  },
-  td: {
-    padding: "10px 10px",
-    textAlign: "center",
-    verticalAlign: "middle",
-  },
-  labelCell: {
-    padding: "10px 16px",
-    fontWeight: 600,
-    fontSize: 14,
-    color: "var(--text, #e2e8f0)",
-    textAlign: "left",
-    whiteSpace: "nowrap",
-  },
-  summaryLabelCell: {
-    padding: "10px 16px",
-    fontWeight: 700,
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    color: "var(--cyan, #06b6d4)",
-    textAlign: "right",
-    whiteSpace: "nowrap",
-  },
-  input: {
-    width: 80,
-    padding: "8px 10px",
-    borderRadius: 8,
-    border: "1px solid var(--border, #2a2f3d)",
-    background: "var(--bg, #0f1219)",
-    color: "var(--text, #e2e8f0)",
-    fontSize: 15,
-    textAlign: "center",
-    fontFamily: "var(--font-body, system-ui)",
-    outline: "none",
-    boxSizing: "border-box",
-  },
-  computed: {
-    fontSize: 15,
-    fontWeight: 600,
-    color: "var(--text, #e2e8f0)",
-  },
-  dash: {
-    fontSize: 15,
-    color: "var(--text3, #718096)",
-  },
-  summaryValue: {
-    fontSize: 15,
-    fontWeight: 700,
-    color: "var(--cyan, #06b6d4)",
-  },
-  footer: {
-    padding: "12px 20px",
-    borderTop: "1px solid var(--border, #2a2f3d)",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  savedTag: {
-    fontSize: 11,
-    color: "var(--green, #10b981)",
-    fontWeight: 500,
-  },
-};
-
 export default function DataTableBlock({ block, lessonId, courseId, studentData = {}, onAnswer }) {
   const { user } = useAuth();
   const translatedTitle = useTranslatedText(block.title);
   const [data, setData] = useState({});
 
-  // These must be declared before performSave since it references them
   const sections = useMemo(() => buildMomentumRows(block.trials || 1, block), [block.trials, block.labelA, block.labelB]);
   const columns = useMemo(() => getMomentumColumns(block), [block.showScalar, block.showVector, block.columnOverrides]);
   const summaryColKeys = columns.filter((c) => !c.input).map((c) => c.key);
   const inputColCount = columns.filter((c) => c.input).length;
 
-  // Auto-save function — writes to BOTH the detailed responses path (for table data)
-  // AND the standard progress path via onAnswer (so the grading system can see it).
-  // Previously only wrote to responses/, which the grading system never reads.
   const performSave = useCallback(async () => {
     if (!user || !db || !lessonId || !courseId) return;
     const showScalar = block.showScalar !== false;
@@ -295,7 +119,6 @@ export default function DataTableBlock({ block, lessonId, courseId, studentData 
       allRows[section.summary.key] = summaryData;
     });
 
-    // 1. Save detailed table data to responses path (for data analysis / export)
     const ref = doc(db, "courses", courseId, "lessons", lessonId, "responses", user.uid, "blocks", block.id);
     await setDoc(ref, {
       type: "data_table",
@@ -308,7 +131,6 @@ export default function DataTableBlock({ block, lessonId, courseId, studentData 
       submittedAt: serverTimestamp(),
     }, { merge: true });
 
-    // 2. Save a summary to the standard progress path so grading system sees it
     if (onAnswer) {
       const filledCells = Object.values(data).reduce(
         (acc, row) => acc + Object.values(row || {}).filter((v) => v !== "" && v !== undefined).length, 0
@@ -323,21 +145,18 @@ export default function DataTableBlock({ block, lessonId, courseId, studentData 
     }
   }, [user, lessonId, courseId, block, data, sections, onAnswer]);
 
-  const { markDirty, saveNow, lastSaved, saveError } = useAutoSave(performSave);
+  const { saveNow, lastSaved, saveError, markDirty } = useAutoSave(performSave);
 
-  // Load saved data — try responses path first (detailed), fall back to progress path
   useEffect(() => {
     if (!user || !db || !lessonId || !courseId) return;
     const load = async () => {
       try {
-        // Primary: detailed table data from responses path
         const ref = doc(db, "courses", courseId, "lessons", lessonId, "responses", user.uid, "blocks", block.id);
         const snap = await getDoc(ref);
         if (snap.exists() && snap.data().tableData) {
           setData(snap.data().tableData);
           return;
         }
-        // Fallback: summary data from progress path (if responses path is empty)
         const progressData = studentData?.[block.id];
         if (progressData?.answer?.tableData) {
           setData(progressData.answer.tableData);
@@ -347,7 +166,7 @@ export default function DataTableBlock({ block, lessonId, courseId, studentData 
       }
     };
     load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, lessonId, courseId, block.id]);
 
   const handleInput = useCallback((rowKey, colKey, value) => {
@@ -359,33 +178,31 @@ export default function DataTableBlock({ block, lessonId, courseId, studentData 
   }, [markDirty]);
 
   const renderValue = (val) => {
-    if (val === null || val === undefined) return <span style={styles.dash}>–</span>;
-    return <span style={styles.computed}>{val}</span>;
+    if (val === null || val === undefined) return <span className="dt-dash">–</span>;
+    return <span className="dt-computed">{val}</span>;
   };
 
   const renderSummaryValue = (val) => {
-    if (val === null || val === undefined) return <span style={styles.dash}>–</span>;
-    return <span style={styles.summaryValue}>{val}</span>;
+    if (val === null || val === undefined) return <span className="dt-dash">–</span>;
+    return <span className="dt-summary-value">{val}</span>;
   };
 
   return (
-    <div style={styles.wrapper}>
-      {/* Header */}
-      <div style={styles.header}>
-        <span style={{ fontSize: 20 }}>📊</span>
-        <span style={styles.title}>{translatedTitle || "Data Table"}</span>
+    <div className="dt-wrapper">
+      <div className="dt-header">
+        <span className="dt-header-icon" aria-hidden>📊</span>
+        <span className="dt-title">{translatedTitle || "Data Table"}</span>
       </div>
 
-      {/* Table */}
-      <div style={{ overflowX: "auto" }}>
-        <table style={styles.table}>
+      <div className="dt-scroll">
+        <table className="dt-table">
           <thead>
-            <tr style={styles.thRow}>
-              <th style={styles.objectTh}>Object</th>
+            <tr className="dt-thead-row">
+              <th className="dt-th dt-th-object">Object</th>
               {columns.map((col) => (
-                <th key={col.key} style={{ ...styles.th, width: col.width }}>
+                <th key={col.key} className="dt-th" style={{ width: col.width }}>
                   {col.label}
-                  <span style={styles.thSub}>{col.sublabel}</span>
+                  <span className="dt-th-sub">{col.sublabel}</span>
                 </th>
               ))}
             </tr>
@@ -393,29 +210,26 @@ export default function DataTableBlock({ block, lessonId, courseId, studentData 
           <tbody>
             {sections.map((section, si) => (
               <React.Fragment key={si}>
-                {/* Spacer between before/after groups */}
                 {si > 0 && (
-                  <tr><td colSpan={1 + columns.length} style={styles.spacerRow} /></tr>
+                  <tr><td colSpan={1 + columns.length} className="dt-spacer" /></tr>
                 )}
 
-                {/* Data rows */}
                 {section.rows.map((row, ri) => {
                   const rd = data[row.key] || {};
                   const comp = computeMomentum(rd);
                   return (
-                    <tr key={row.key} style={ri % 2 === 0 ? styles.row : styles.rowAlt}>
-                      <td style={styles.labelCell}>{row.label}</td>
+                    <tr key={row.key} className={`dt-row ${ri % 2 === 0 ? "" : "is-alt"}`}>
+                      <td className="dt-label-cell">{row.label}</td>
                       {columns.map((col) => (
-                        <td key={col.key} style={styles.td}>
+                        <td key={col.key} className="dt-td">
                           {col.input ? (
                             <input
                               type="number"
                               step="any"
                               value={rd[col.key] || ""}
                               onChange={(e) => handleInput(row.key, col.key, e.target.value)}
-                              onBlur={(e) => { e.target.style.borderColor = ''; saveNow(); }}
-                              style={styles.input}
-                              onFocus={(e) => e.target.style.borderColor = "#06b6d4"}
+                              onBlur={saveNow}
+                              className="dt-input"
                             />
                           ) : (
                             renderValue(comp[col.key])
@@ -426,13 +240,12 @@ export default function DataTableBlock({ block, lessonId, courseId, studentData 
                   );
                 })}
 
-                {/* Summary row */}
-                <tr style={styles.summaryRow}>
-                  <td colSpan={1 + inputColCount} style={styles.summaryLabelCell}>
+                <tr className="dt-summary-row">
+                  <td colSpan={1 + inputColCount} className="dt-summary-label-cell">
                     {section.summary.label}
                   </td>
                   {summaryColKeys.map((colKey) => (
-                    <td key={colKey} style={styles.td}>
+                    <td key={colKey} className="dt-td">
                       {renderSummaryValue(sumColumn(data, section.rows.map((r) => r.key), colKey))}
                     </td>
                   ))}
@@ -443,15 +256,12 @@ export default function DataTableBlock({ block, lessonId, courseId, studentData 
         </table>
       </div>
 
-      {/* Footer with auto-save status */}
       {(lastSaved || saveError) && (
-        <div style={styles.footer}>
+        <div className="dt-footer">
           {saveError ? (
-            <span style={{ fontSize: 11, color: "var(--amber, #f5a623)", fontWeight: 500 }}>
-              {saveError}
-            </span>
+            <span className="dt-save-error">{saveError}</span>
           ) : (
-            <span style={styles.savedTag}>
+            <span className="dt-saved">
               ✓ Auto-saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
             </span>
           )}
