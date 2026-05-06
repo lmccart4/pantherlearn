@@ -249,6 +249,12 @@ async function syncCourse(courseId, classroomCourseId) {
   const lessonGrades = {};
   for (const lesson of lessons) {
     if (EXCLUDED_LESSONS.has(lesson.id)) continue;
+    {
+      const lt = (lesson.title || '').toLowerCase();
+      const lid = (lesson.id || '').toLowerCase();
+      if (lt.includes('evidence log')) continue;
+      if (lid.includes('evidence-log') || lid.includes('evidence_log') || lid.startsWith('weekly-evidence-')) continue;
+    }
     const mc = getMC(lesson);
     const sa = getSA(lesson);
     const ranking = getRanking(lesson);
@@ -356,7 +362,8 @@ async function syncCourse(courseId, classroomCourseId) {
       //   to Classroom. Flip the skip off when Luke wants them back.
       if (actId.startsWith('weekly-evidence-')) continue;
       const actTitle = (data.activityTitle || actId).toLowerCase();
-      if (actTitle.startsWith('evidence log')) continue;
+      if (actTitle.includes('evidence log')) continue;
+      if (actId.includes('evidence-log') || actId.includes('evidence_log')) continue;
       if (actTitle.includes('battleship') && actTitle.includes('energy')) continue;
       if (!allActivities[actId]) allActivities[actId] = data.activityTitle || actId;
       if (!activityGrades[actId]) activityGrades[actId] = {};
