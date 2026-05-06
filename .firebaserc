@@ -31,6 +31,9 @@
         ],
         "ai-training-sim-paps": [
           "ai-training-sim-paps"
+        ],
+        "paps-ai-builds": [
+          "paps-ai-builds"
         ]
       }
     }

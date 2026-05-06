@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Mark XLII Interface</title>
+    <script>
+      window.__firebase_config = JSON.stringify({
+        apiKey: "AIzaSyAlxvGxLIBUrVO3WWmEcslFpSygeYVeHpY",
+        authDomain: "pantherlearn-d6f7c.firebaseapp.com",
+        projectId: "pantherlearn-d6f7c",
+        storageBucket: "pantherlearn-d6f7c.firebasestorage.app",
+        messagingSenderId: "293205883325",
+        appId: "1:293205883325:web:c0c21ece0b4fc26f673ad4"
+      });
+      window.__app_id = 'paps-ai-builds-jarvis';
+      let _uid = localStorage.getItem('jarvisUid');
+      if (!_uid) { _uid = crypto.randomUUID(); localStorage.setItem('jarvisUid', _uid); }
+      window.__jarvis_uid = _uid;
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --cyan: #00f2ff;
+            --blue: #0066ff;
+            --dark-bg: #020617;
+            --glass: rgba(0, 242, 255, 0.05);
+            --border: rgba(0, 242, 255, 0.2);
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--cyan);
+            font-family: 'Share Tech Mono', monospace;
+            height: 100vh;
+            margin: 0;
+            background-image:
+                radial-gradient(circle at 50% 50%, rgba(0, 102, 255, 0.15) 0%, transparent 80%),
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 100%, 100% 2px, 3px 100%;
+            background-attachment: fixed;
+            overflow: hidden;
+        }
+
+        .orbitron { font-family: 'Orbitron', sans-serif; }
+
+        .panel {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            position: relative;
+            backdrop-filter: blur(4px);
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px; width: 10px; height: 10px;
+            border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan);
+        }
+
+        .glow-text { text-shadow: 0 0 10px var(--cyan); }
+
+        .reactor-container {
+            width: 180px;
+            height: 180px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            user-select: none;
+        }
+
+        .core-glow {
+            position: absolute;
+            width: 50px; height: 50px;
+            background: var(--cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 40px 15px var(--cyan);
+            animation: pulse 2s infinite ease-in-out;
+            pointer-events: none;
+        }
+
+        .speaking .core-glow {
+            animation: speaking-pulse 0.4s infinite alternate;
+            box-shadow: 0 0 60px 20px var(--cyan);
+        }
+
+        .listening .core-glow {
+            background: #ff3333;
+            box-shadow: 0 0 60px 25px rgba(255, 51, 51, 0.8);
+            animation: listening-pulse 0.2s infinite alternate;
+        }
+
+        @keyframes speaking-pulse { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.2); opacity: 1; } }
+        @keyframes listening-pulse { from { transform: scale(1.1); opacity: 0.9; } to { transform: scale(1.3); opacity: 1; } }
+        @keyframes pulse { 0%, 100% { opacity: 0.8; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
+
+        .ring-rotate {
+            position: absolute;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            animation: spin var(--d) linear infinite;
+            pointer-events: none;
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--cyan); }
+
+        .wave-active {
+            animation: text-pulse 1.5s infinite ease-in-out;
+        }
+        @keyframes text-pulse {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; text-shadow: 0 0 8px var(--cyan); }
+            100% { opacity: 0.3; }
+        }
+
+        #image-preview-container {
+            display: none;
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            border: 1px solid var(--cyan);
+            background: rgba(0,0,0,0.8);
+            padding: 4px;
+            z-index: 40;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6 flex flex-col h-screen" id="main-interface">
+    <header class="flex justify-between items-start mb-4 z-10">
+        <div class="flex flex-col gap-2">
+            <div class="panel p-2 md:p-3 min-w-[140px]">
+                <p class="text-[8px] opacity-50 mb-1">USER AUTH</p>
+                <p class="orbitron text-[10px] md:text-sm font-bold tracking-widest uppercase">T. STARK - ALPHA 1</p>
+            </div>
+            <div class="flex gap-2">
+                <div id="latency-tag" class="text-[8px] panel px-2 py-1 flex items-center gap-1">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                    NEURAL LINK: ESTABLISHED
+                </div>
+            </div>
+        </div>
+        <div class="text-right">
+            <div class="panel p-2 md:p-3">
+                <p class="orbitron text-lg md:text-2xl font-bold glow-text" id="clock">00:00:00</p>
+                <p class="text-[8px] opacity-70">INTELLIGENCE MATRIX ONLINE</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-24">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+            <div class="lg:col-span-3 flex flex-col gap-6">
+                <div class="panel p-6 flex flex-col items-center justify-center min-h-[200px]">
+                    <div class="w-full space-y-2 text-[10px]">
+                        <div class="flex justify-between"><span>PERSONALITY CORE</span><span class="text-green-400">JARVIS-OS v42.1</span></div>
+                        <div class="flex justify-between"><span>MIC STATUS</span><span id="stt-status" class="text-blue-400">READY</span></div>
+                        <div class="flex justify-between"><span>WAKE WORD DETECTOR</span><span id="wake-status-panel" class="text-gray-500">OFFLINE</span></div>
+                        <div class="flex justify-between"><span>MEMORY BANK</span><span id="memory-status" class="text-cyan-400">SYNCED</span></div>
+                        <div class="flex justify-between"><span>CPU TEMPERATURE</span><span class="text-blue-400">Optimal</span></div>
+                        <div class="w-full h-1 bg-blue-900 relative mt-2">
+                            <div class="h-full bg-cyan-400 transition-all duration-300" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel p-4 h-[300px] flex flex-col">
+                    <p class="text-[10px] opacity-50 mb-2 border-b border-cyan-900/50 uppercase">Neural Activity Log</p>
+                    <div class="space-y-1 text-[10px] opacity-80 overflow-y-auto flex-1 custom-scrollbar" id="log-container"></div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-6 flex flex-col items-center justify-center gap-6">
+                <div class="panel flex flex-col items-center justify-center p-4 w-full min-h-[450px]">
+                    <div class="absolute top-4 right-4 flex items-center gap-2">
+                        <span class="text-[10px] opacity-50 orbitron">WAKE PROTOCOL</span>
+                        <button id="toggle-listen" class="w-10 h-5 rounded-full bg-cyan-900/50 border border-cyan-400/30 relative transition-colors">
+                            <div class="absolute left-1 top-1 w-3 h-3 bg-cyan-400 rounded-full transition-all" id="toggle-knob"></div>
+                        </button>
+                    </div>
+
+                    <div class="reactor-container mb-6" id="arc-reactor-btn">
+                        <div class="core-glow"></div>
+                        <div class="ring-rotate w-full h-full" style="--d: 15s; border-style: double; border-width: 4px;"></div>
+                        <div class="ring-rotate w-[70%] h-[70%]" style="--d: 8s; border-style: dashed; border-width: 1px;"></div>
+                        <div class="z-10 orbitron text-[10px] font-bold" id="core-text">BOOT SYSTEM</div>
+                    </div>
+
+                    <div id="response-container" class="w-full text-center px-4">
+                        <p id="jarvis-output" class="text-xl md:text-2xl glow-text leading-tight min-h-[3em] font-light">
+                            Click anywhere or press any key to boot JARVIS.
+                        </p>
+                        <p id="boot-hint" class="text-[10px] opacity-60 mt-3 tracking-widest orbitron uppercase">
+                            Audio requires one interaction · browser policy
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3 flex flex-col gap-6">
+                <div class="panel p-4 h-[120px]">
+                    <p class="text-[10px] opacity-50 mb-2 uppercase">Vocal signature</p>
+                    <canvas id="audio-viz" class="w-full h-full"></canvas>
+                </div>
+                <div class="panel p-4 flex-1 flex flex-col min-h-[300px]">
+                    <p class="text-[10px] opacity-50 mb-2 uppercase border-b border-cyan-900/50 pb-1">Neural Memory Bank</p>
+                    <div id="memory-list" class="space-y-2 mt-4 text-[10px] overflow-y-auto max-h-[200px] custom-scrollbar">
+                        <div class="opacity-40 italic">Scanning archives...</div>
+                    </div>
+                    <div class="mt-auto panel bg-black/40 p-2 text-[9px] italic opacity-60" id="grounding-info">
+                        Sensitivity: HIGH. Listening for "JARVIS".
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="image-preview-container" class="panel">
+        <img id="image-preview" src="" alt="Preview" class="max-w-[150px] max-h-[150px] object-cover">
+        <button id="remove-image" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center">X</button>
+    </div>
+
+    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90vw] max-w-2xl z-30">
+        <div class="panel p-2 flex items-center gap-4 bg-black/80 shadow-[0_0_20px_rgba(0,242,255,0.1)]">
+            <button id="upload-btn" class="w-10 h-10 flex items-center justify-center hover:bg-cyan-500/20 text-cyan-400 transition-colors">
+                <i class="fa-solid fa-camera"></i>
+            </button>
+            <input type="file" id="image-input" accept="image/*" class="hidden">
+            <input type="text" id="user-input" placeholder="SAY 'JARVIS' OR TYPE TO COMMAND..."
+                class="bg-transparent flex-1 border-none outline-none text-lg uppercase tracking-widest placeholder-cyan-900/40 px-4">
+            <button id="send-btn" class="w-10 h-10 flex items-center justify-center hover:bg-cyan-500/20 text-cyan-400 transition-colors">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+        <div id="wake-status-indicator" class="text-[8px] text-center mt-2 opacity-0 transition-opacity tracking-[0.2em] orbitron">PASSIVE LISTENING ACTIVE</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        let db = null;
+        const appId = window.__app_id;
+        const uid = window.__jarvis_uid;
+        try {
+          const cfg = JSON.parse(window.__firebase_config);
+          const app = initializeApp(cfg);
+          db = getFirestore(app);
+        } catch (e) { console.error('Firebase init failed', e); }
+        const apiKey = "AIzaSyB6_pcDHmXQt5FukJtTEF4zpRHglGkOyZw";
+
+        const jarvisOutput = document.getElementById('jarvis-output');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const uploadBtn = document.getElementById('upload-btn');
+        const imageInput = document.getElementById('image-input');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const removeImageBtn = document.getElementById('remove-image');
+        const arcReactorBtn = document.getElementById('arc-reactor-btn');
+        const logContainer = document.getElementById('log-container');
+        const memoryList = document.getElementById('memory-list');
+        const clock = document.getElementById('clock');
+        const audioCanvas = document.getElementById('audio-viz');
+        const actx_viz = audioCanvas.getContext('2d');
+        const sttStatus = document.getElementById('stt-status');
+        const wakeStatusPanel = document.getElementById('wake-status-panel');
+        const toggleListen = document.getElementById('toggle-listen');
+        const toggleKnob = document.getElementById('toggle-knob');
+        const wakeStatusIndicator = document.getElementById('wake-status-indicator');
+        const groundingInfo = document.getElementById('grounding-info');
+
+        let isBusy = false;
+        let speechActive = false;
+        let listeningActive = false;
+        let continuousListen = true;
+        let mainRecognition = null;
+        let audioContextInitialized = false;
+        let selectedImageBase64 = null;
+        const ttsAudio = new Audio();
+        ttsAudio.playbackRate = 1.18;
+        ttsAudio.crossOrigin = "anonymous";
+
+        let audioCtx = null;
+        let ttsAnalyser = null;
+        let micAnalyser = null;
+        let micStream = null;
+
+        const initAuth = async () => {};
+
+        if (db) setupMemoryListener(uid);
+        else memoryList.innerHTML = '<div class="opacity-40 italic">Memory bank offline.</div>';
+
+        function setupMemoryListener(uid) {
+            const memoryCol = collection(db, 'artifacts', appId, 'users', uid, 'memories');
+            onSnapshot(memoryCol, (snapshot) => {
+                memoryList.innerHTML = '';
+                if (snapshot.empty) {
+                    memoryList.innerHTML = '<div class="opacity-40 italic">Memory bank empty.</div>';
+                    return;
+                }
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-start border-l border-cyan-500/50 pl-2 py-1 hover:bg-cyan-500/10 group cursor-default";
+                    item.innerHTML = `
+                        <span>${data.text}</span>
+                        <button class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity" data-id="${docSnap.id}">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    `;
+                    item.querySelector('button').onclick = () => deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'memories', docSnap.id));
+                    memoryList.appendChild(item);
+                });
+            }, (err) => addLog("Memory link failed", "error"));
+        }
+
+        async function saveMemory(text) {
+            if (!db) return;
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'users', uid, 'memories'), {
+                    text: text,
+                    timestamp: serverTimestamp()
+                });
+                addLog("Neural memory updated.");
+            } catch (e) { addLog("Storage failure", "error"); console.error(e); }
+        }
+
+        function addLog(msg, type = 'info') {
+            const p = document.createElement('p');
+            p.className = type === 'error' ? 'text-red-400 font-bold' : (type === 'user' ? 'text-blue-400' : 'text-cyan-400');
+            p.textContent = `> ${msg.toUpperCase()}`;
+            logContainer.prepend(p);
+            if (logContainer.children.length > 20) logContainer.lastChild.remove();
+        }
+
+        function updateClock() {
+            clock.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+        }
+        setInterval(updateClock, 1000);
+
+        function pcmToWav(base64Data, sampleRate) {
+            const binaryString = atob(base64Data);
+            const buffer = new ArrayBuffer(binaryString.length);
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+            const wav = new ArrayBuffer(44 + buffer.byteLength);
+            const view = new DataView(wav);
+            const writeString = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+            writeString(0, 'RIFF'); view.setUint32(4, 36 + buffer.byteLength, true);
+            writeString(8, 'WAVE'); writeString(12, 'fmt ');
+            view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true); writeString(36, 'data');
+            view.setUint32(40, buffer.byteLength, true);
+            new Uint8Array(wav, 44).set(new Uint8Array(buffer));
+            return new Blob([wav], { type: 'audio/wav' });
+        }
+
+        async function speak(text) {
+            if (speechActive) return;
+            speechActive = true;
+            arcReactorBtn.classList.add('speaking');
+            const cleanText = text.replace(/[*#_]/g, '');
+            try {
+                const result = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Witty sophisticated British accent, fast delivery: ${cleanText}` }] }],
+                        generationConfig: {
+                            responseModalities: ["AUDIO"],
+                            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Fenrir" } } }
+                        }
+                    })
+                });
+                const resJson = await result.json();
+                const audioData = resJson.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                if (audioData) {
+                    const audioBlob = pcmToWav(audioData, 24000);
+                    ttsAudio.src = URL.createObjectURL(audioBlob);
+                    await new Promise((resolve) => {
+                        ttsAudio.oncanplaythrough = () => ttsAudio.play().catch(resolve);
+                        ttsAudio.onended = resolve;
+                        ttsAudio.onerror = resolve;
+                    });
+                }
+            } catch (e) { addLog("Vocal error", "error"); } finally {
+                speechActive = false;
+                arcReactorBtn.classList.remove('speaking');
+                // After JARVIS finishes speaking, jump straight into active listening
+                // so the user can reply without re-saying the wake word.
+                if (continuousListen) setTimeout(startListening, 250);
+            }
+        }
+
+        async function processCommand(cmd) {
+            if (isBusy) return;
+            isBusy = true;
+            const currentCmd = cmd || userInput.value;
+            if (!currentCmd.trim()) { isBusy = false; return; }
+            userInput.value = "";
+            addLog(currentCmd, 'user');
+            jarvisOutput.classList.add('opacity-30');
+
+            try {
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: currentCmd }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                reply: { type: "string" },
+                                should_remember: { type: "boolean" },
+                                memory_text: { type: "string" }
+                            },
+                            required: ["reply"]
+                        }
+                    },
+                    systemInstruction: {
+                        parts: [{
+                            text: `You are JARVIS. Brisk, professional, dryly sarcastic British tone.
+                            - Extract tasks into memory if requested.
+                            - Efficiency is key.
+                            - Address as Sir.`
+                        }]
+                    }
+                };
+
+                if (selectedImageBase64) {
+                    payload.contents[0].parts.push({ inlineData: { mimeType: "image/png", data: selectedImageBase64 } });
+                    clearImage();
+                }
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const resJson = await response.json();
+                if (resJson.error) { console.error('Gemini error:', resJson.error); throw new Error(resJson.error.message); }
+                const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+                const data = JSON.parse(rawText);
+
+                jarvisOutput.textContent = data.reply;
+                if (data.should_remember && data.memory_text) {
+                    saveMemory(data.memory_text);
+                }
+                speak(data.reply);
+            } catch (e) {
+                addLog("Neural error", "error");
+                jarvisOutput.textContent = "Processing failure, Sir.";
+            } finally {
+                isBusy = false;
+                jarvisOutput.classList.remove('opacity-30');
+            }
+        }
+
+        function clearImage() {
+            selectedImageBase64 = null;
+            imageInput.value = "";
+            imagePreviewContainer.style.display = "none";
+        }
+
+        uploadBtn.addEventListener('click', () => imageInput.click());
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                selectedImageBase64 = event.target.result.split(',')[1];
+                imagePreview.src = event.target.result;
+                imagePreviewContainer.style.display = "block";
+                addLog("Visual input received.");
+            };
+            reader.readAsDataURL(file);
+        });
+
+        removeImageBtn.addEventListener('click', clearImage);
+
+        function stopAllRecognition() {
+            if (mainRecognition) {
+                mainRecognition.onend = null;
+                try { mainRecognition.stop(); } catch(e) {}
+                mainRecognition = null;
+            }
+            listeningActive = false;
+            arcReactorBtn.classList.remove('listening');
+            sttStatus.textContent = "READY";
+            sttStatus.className = "text-blue-400";
+            wakeStatusPanel.textContent = "OFFLINE";
+            wakeStatusPanel.className = "text-gray-500";
+            wakeStatusIndicator.style.opacity = "0";
+            userInput.classList.remove('wave-active');
+        }
+
+        function startListening() {
+            if (speechActive || isBusy) return;
+            stopAllRecognition();
+            const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!Rec) return;
+            const rec = new Rec();
+            rec.lang = 'en-US';
+            rec.onstart = () => {
+                listeningActive = true;
+                arcReactorBtn.classList.add('listening');
+                sttStatus.textContent = "ACTIVE";
+                sttStatus.className = "text-red-400";
+            };
+            rec.onresult = (e) => processCommand(e.results[0][0].transcript);
+            rec.onerror = () => {
+                 listeningActive = false;
+                 arcReactorBtn.classList.remove('listening');
+                 if (continuousListen) initContinuousListen();
+            };
+            rec.onend = () => {
+                listeningActive = false;
+                arcReactorBtn.classList.remove('listening');
+                if (continuousListen) initContinuousListen();
+            };
+            rec.start();
+        }
+
+        function initContinuousListen() {
+            if (!continuousListen || isBusy || speechActive || listeningActive) return;
+            const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!Rec) return;
+
+            if (mainRecognition) {
+                try { mainRecognition.stop(); } catch(e) {}
+            }
+
+            mainRecognition = new Rec();
+            mainRecognition.continuous = true;
+            mainRecognition.interimResults = false;
+            mainRecognition.lang = 'en-US';
+
+            wakeStatusIndicator.style.opacity = "1";
+            wakeStatusPanel.textContent = "ACTIVE";
+            wakeStatusPanel.className = "text-green-400 animate-pulse";
+            userInput.classList.add('wave-active');
+
+            mainRecognition.onresult = (e) => {
+                const results = e.results;
+                const text = results[results.length - 1][0].transcript.toLowerCase();
+                if (text.includes("jarvis")) {
+                    addLog("Vocal prompt detected.");
+                    stopAllRecognition();
+                    startListening();
+                }
+            };
+
+            mainRecognition.onerror = (event) => {
+                if (event.error === 'no-speech' || event.error === 'aborted') return;
+                addLog("Wake word link jitter: " + event.error, "info");
+            };
+
+            mainRecognition.onend = () => {
+                if (continuousListen && !speechActive && !listeningActive && !isBusy) {
+                    setTimeout(initContinuousListen, 100);
+                }
+            };
+
+            try { mainRecognition.start(); } catch(e) {}
+        }
+
+        function drawViz() {
+            // Make canvas drawing buffer match its CSS size for crisp bars
+            if (audioCanvas.width !== audioCanvas.clientWidth || audioCanvas.height !== audioCanvas.clientHeight) {
+                audioCanvas.width = audioCanvas.clientWidth;
+                audioCanvas.height = audioCanvas.clientHeight;
+            }
+            actx_viz.clearRect(0, 0, audioCanvas.width, audioCanvas.height);
+            const bars = 32;
+            const step = audioCanvas.width / bars;
+            const analyser = speechActive ? ttsAnalyser : (listeningActive ? micAnalyser : null);
+
+            let heights;
+            if (analyser) {
+                const data = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(data);
+                // Bucket the FFT bins into bars (use lower 60% — most vocal energy)
+                const usable = Math.floor(data.length * 0.6);
+                const perBar = Math.max(1, Math.floor(usable / bars));
+                heights = new Array(bars).fill(0).map((_, i) => {
+                    let sum = 0;
+                    for (let j = 0; j < perBar; j++) sum += data[i * perBar + j] || 0;
+                    const avg = sum / perBar;
+                    return (avg / 255) * audioCanvas.height;
+                });
+            } else {
+                heights = new Array(bars).fill(0).map(() => Math.random() * audioCanvas.height * 0.12);
+            }
+
+            actx_viz.fillStyle = listeningActive ? '#ff3333' : (speechActive ? '#ffffff' : 'rgba(0, 242, 255, 0.35)');
+            for (let i = 0; i < bars; i++) {
+                const h = Math.max(2, heights[i]);
+                actx_viz.fillRect(i * step, audioCanvas.height - h, step - 2, h);
+            }
+            requestAnimationFrame(drawViz);
+        }
+
+        function setupTtsAnalyser() {
+            if (ttsAnalyser || !audioCtx) return;
+            try {
+                const src = audioCtx.createMediaElementSource(ttsAudio);
+                ttsAnalyser = audioCtx.createAnalyser();
+                ttsAnalyser.fftSize = 256;
+                src.connect(ttsAnalyser);
+                ttsAnalyser.connect(audioCtx.destination);
+            } catch (e) { console.warn('TTS analyser setup failed', e); }
+        }
+
+        async function setupMicAnalyser() {
+            if (micAnalyser || !audioCtx) return;
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const src = audioCtx.createMediaStreamSource(micStream);
+                micAnalyser = audioCtx.createAnalyser();
+                micAnalyser.fftSize = 256;
+                src.connect(micAnalyser);
+            } catch (e) { console.warn('Mic analyser setup failed', e); }
+        }
+
+        async function initializeSystem() {
+            if (audioContextInitialized) return;
+            audioContextInitialized = true;
+            const hint = document.getElementById('boot-hint');
+            if (hint) hint.style.display = 'none';
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') await audioCtx.resume();
+                setupTtsAnalyser();
+            } catch (e) {}
+            // Unlock audio playback within the user gesture (Safari autoplay policy)
+            try {
+                ttsAudio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+                await ttsAudio.play();
+                ttsAudio.pause();
+                ttsAudio.currentTime = 0;
+            } catch (e) {}
+            setupMicAnalyser();
+            // Reflect the default-on continuous listen state in the toggle UI
+            toggleKnob.style.transform = 'translateX(20px)';
+            initContinuousListen();
+            document.getElementById('core-text').textContent = "ARC CORE";
+            addLog("System online.");
+            await initAuth();
+            speak("Welcome back, Sir. Neural sensitivity has been boosted for reliable wake-word detection.");
+        }
+
+        toggleListen.addEventListener('click', () => {
+            initializeSystem();
+            continuousListen = !continuousListen;
+            toggleKnob.style.transform = continuousListen ? 'translateX(20px)' : 'translateX(0)';
+            if (continuousListen) initContinuousListen(); else stopAllRecognition();
+        });
+
+        sendBtn.addEventListener('click', () => { initializeSystem(); processCommand(); });
+        userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { initializeSystem(); processCommand(); } });
+        arcReactorBtn.addEventListener('click', () => { initializeSystem(); startListening(); });
+
+        // Any click/key/touch anywhere on the page boots the system (one-time)
+        const bootOnAnyGesture = () => initializeSystem();
+        document.addEventListener('pointerdown', bootOnAnyGesture, { once: true });
+        document.addEventListener('keydown', bootOnAnyGesture, { once: true });
+        document.addEventListener('touchstart', bootOnAnyGesture, { once: true });
+
+        window.onload = () => { drawViz(); addLog("Interface ready"); updateClock(); };
+    </script>
+</body>
+</html>

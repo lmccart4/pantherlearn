@@ -1,6 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Secret Chat signaling — ephemeral SDP/ICE exchange for WebRTC peer connections.
+    // Open read/write by design (no auth on student build site). Isolated to its own
+    // collection; no PII or grade data stored. Docs are short-lived.
+    match /secretChatSignaling/{roomCode} {
+      allow read, write: if true;
+      match /{subcol}/{docId} {
+        allow read, write: if true;
+      }
+    }
+
+    // PAPS AI Builds — JARVIS memory bank. Open read/write scoped to the
+    // paps-ai-builds-jarvis app id. Each browser uses a localStorage UUID;
+    // no auth, no PII, isolated from production data.
+    match /artifacts/paps-ai-builds-jarvis/users/{uid}/memories/{docId} {
+      allow read, write: if true;
+    }
+
     function isLoggedIn() {
       return request.auth != null;
     }

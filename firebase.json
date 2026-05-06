@@ -99,6 +99,11 @@
       "target": "ai-training-sim-paps",
       "public": "ai-training-sim",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    },
+    {
+      "target": "paps-ai-builds",
+      "public": "paps-ai-builds-public",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
   ],
   "functions": {
