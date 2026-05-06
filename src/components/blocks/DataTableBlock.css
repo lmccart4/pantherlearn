@@ -148,3 +148,70 @@
   color: var(--status-warn-display);
   font-weight: 500;
 }
+
+.dt-dropdown-table .dt-th {
+  text-align: left;
+  padding-left: 16px;
+}
+.dt-dropdown-table .dt-td {
+  text-align: left;
+  padding: 10px 16px;
+}
+.dt-select {
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-canvas);
+  color: var(--fg-default);
+  font-size: var(--t-base);
+  font-family: inherit;
+  outline: none;
+  min-width: 180px;
+  cursor: pointer;
+}
+.dt-select:focus { border-color: var(--status-info); }
+.dt-select:disabled { cursor: default; opacity: 0.85; }
+.dt-select.is-correct {
+  border-color: var(--status-success);
+  background: color-mix(in oklab, var(--status-success) 8%, var(--bg-canvas));
+}
+.dt-select.is-wrong {
+  border-color: var(--status-danger);
+  background: color-mix(in oklab, var(--status-danger) 8%, var(--bg-canvas));
+}
+.dt-correct-hint {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--status-success-display);
+  font-weight: 500;
+}
+.dt-mark {
+  font-size: 18px;
+  font-weight: 700;
+}
+.dt-mark-ok { color: var(--status-success-display); }
+.dt-mark-bad { color: var(--status-danger-display); }
+.dt-dropdown-score {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--status-info);
+}
+.dt-submit-btn {
+  padding: 8px 16px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: var(--status-info);
+  color: white;
+  font-size: var(--t-base);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.dt-submit-btn:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--status-info) 80%, black);
+}
+.dt-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

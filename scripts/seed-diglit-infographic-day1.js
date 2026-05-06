@@ -40,6 +40,22 @@ const lesson = {
         "**Question of the Day:** Two infographics on the same topic are sitting next to each other. One you 'get' in 5 seconds. The other you have to study. What's actually different about them?",
     },
     {
+      id: "img-warmup-good",
+      type: "image",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/infographic-good-example.jpg",
+      alt:
+        "A clean infographic about teen sleep with one giant 73% headline stat, three small icon-stat pairs, and a tiny source line — restrained 3-color palette and generous whitespace.",
+      caption: "Infographic A — read it. How long did it take?",
+    },
+    {
+      id: "img-warmup-bad",
+      type: "image",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/infographic-bad-example.jpg",
+      alt:
+        "A cluttered infographic about teen sleep crammed with 8+ mismatched fonts, rainbow colors, and a wall of decorative clip-art with no clear focal point.",
+      caption: "Infographic B — try to read it. What happens to your eye?",
+    },
+    {
       id: "q-warmup",
       type: "question",
       questionType: "short_answer",
@@ -79,32 +95,32 @@ const lesson = {
       id: "b-references",
       type: "text",
       content:
-        "**Three real infographics that get this right:**\n\n- **Information Is Beautiful — *What Makes a Hit Song*.** One headline question. A clean visual breakdown by feature (tempo, danceability, valence). You walk away with one takeaway: hit songs share measurable patterns.\n- **The New York Times — *How the Virus Got Out* (2020).** A single animated graphic that traces COVID's spread out of Wuhan in dots and arcs. You understand the entire story in 15 seconds, before you read a word of body copy.\n- **ProPublica — school segregation pieces.** A giant headline number ('60+ years after *Brown v. Board*, X% of Black students still attend majority-Black schools'), supporting stats below it, sources cited at the bottom. Newsroom-grade restraint.\n\nAll three follow the same recipe: one message, one focal point, sources visible.",
+        "**Three real infographics that get this right:**\n\n- **Information Is Beautiful — *What Makes a Hit Song*.** One headline question. A clean visual breakdown by feature (tempo, danceability, valence). You walk away with one takeaway: hit songs share measurable patterns.\n- **The New York Times — *How the Virus Got Out* (2020).** A single animated graphic that traces COVID's spread out of Wuhan in dots and arcs. You understand the entire story in 15 seconds, before you read a word of body copy.\n- **Pew Research — *Teens, Social Media and Technology 2023*.** One slope chart. YouTube sits at the very top of the page — the only line above 90%, in bold red — while every other platform trails below. The headline above the chart names the takeaway directly: 'YouTube continues to be top platform among teens.' Source, sample, and survey dates sit in small print at the bottom. Newsroom-grade restraint.\n\nAll three follow the same recipe: one message, one focal point, sources visible.",
     },
     {
-      id: "img-good-vs-bad",
+      id: "img-pew-teens-2023",
       type: "image",
-      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/infographic-day1-good-vs-bad-comparison.jpg",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/pew-teens-social-media-2023.png",
       alt:
-        "Side-by-side comparison: a clean infographic with a giant headline statistic and three supporting numbers next to a cluttered rainbow infographic with mismatched fonts and no clear focal point.",
+        "Pew Research Center slope chart titled 'YouTube continues to be top platform among teens, followed by TikTok, Snapchat and Instagram.' Lines track US teen platform use from 2014-15 to 2023. YouTube sits at the top in bold red at 95% (2022) and 93% (2023). TikTok 63%, Snapchat 60%, Instagram 59% in 2023. Facebook fell from 71% to 33%. Source line at bottom: 'Survey of U.S. teens conducted Sept. 26–Oct. 23, 2023.'",
       caption:
-        "Good (left) vs. bad (right). Same topic — only one of these tells you something in five seconds.",
+        "Pew Research Center, *Teens, Social Media and Technology 2023*. One message, one focal point (YouTube at the top), source and sample size visible at the bottom.",
     },
     {
       id: "q-hierarchy",
       type: "question",
       questionType: "multiple_choice",
       prompt:
-        "Look at a strong infographic — say, ProPublica's school segregation graphic with a giant '60%' at the top. Why is that number printed so much larger than everything else on the page?",
+        "Look at the Pew Research chart above. The YouTube line sits at the very top of the chart, bolded in red, well above every other platform. The headline above it just says 'YouTube continues to be top platform among teens.' Why did the designer pull YouTube out visually like that instead of giving every platform equal weight?",
       options: [
-        "Because larger text always looks more professional",
-        "To establish visual hierarchy — the largest element is the headline stat the reader is supposed to remember",
-        "Because the designer ran out of room for the other stats",
+        "Because red lines always look more professional than other colors",
+        "To establish visual hierarchy — position, color, and weight all signal to the reader: 'this is the takeaway, read this first'",
+        "Because YouTube paid Pew to feature them at the top",
         "It's a stylistic choice with no real effect on how readers process the page",
       ],
       correctIndex: 1,
       explanation:
-        "Visual hierarchy is the whole point. The largest element on the page is a signal to the reader: this is the takeaway. Supporting stats sit below it in a smaller size. Body text smaller than that. Sources tiny at the bottom. Size literally tells the reader the order to read in.",
+        "Visual hierarchy is the whole point. Position (top of the chart), color (bold red while others are muted), and label weight all push the reader's eye to YouTube first. Everything else on the page is secondary by design. Supporting stats sit below in smaller, less saturated treatments. Source and methodology shrink to the bottom. The visual treatment literally tells the reader the order to process the information.",
       difficulty: "understand",
     },
     {
@@ -233,12 +249,12 @@ const lesson = {
         "A masterclass in visual hierarchy. One animated map, one story, no clutter. Study how your eye is led through it.",
     },
     {
-      id: "link-propublica",
+      id: "link-pew-teens-2023",
       type: "external_link",
-      url: "https://www.propublica.org/series/segregation-now",
-      title: "ProPublica — Segregation Now (school segregation reporting)",
+      url: "https://www.pewresearch.org/internet/2023/12/11/teens-social-media-and-technology-2023/",
+      title: "Pew Research — Teens, Social Media & Technology 2023",
       description:
-        "Newsroom-grade graphics with one giant headline number, supporting stats, and sources visible. Reference example.",
+        "Reference example: one giant headline stat ('95% of US teens use YouTube') anchors the page, supporting bars below, methodology and sample size visible at the bottom.",
     },
 
     // ─── EXIT TICKET ────────────────────────────────────────
@@ -269,18 +285,6 @@ const lesson = {
         "**Coming next class (Thursday 5/14):** Day 2 — Design. Bring your source-tracking doc filled in with at least 3 stats and full citations. We'll be in Canva all period building the actual layout. No data tomorrow = no design tomorrow.",
     },
 
-    // ─── REFLECTION ─────────────────────────────────────────
-
-    {
-      id: "q-reflection",
-      type: "question",
-      questionType: "reflection",
-      prompt:
-        "Reflection: Before today, where would you have grabbed stats for a project — Google? TikTok? The first link that came up? Now that you know the difference between a sourced stat and a 'data ghost,' which of your old habits do you need to drop, and what's one thing you'll do differently the next time you have to find a real number?",
-      placeholder:
-        "Where I used to grab stats: ...\nWhat I'm dropping: ...\nWhat I'll do differently: ...",
-      difficulty: "reflect",
-    },
   ],
 };
 

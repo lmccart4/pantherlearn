@@ -88,7 +88,14 @@ function sumColumn(data, rowKeys, col) {
   return hasValue ? Math.round(total * 10000) / 10000 : null;
 }
 
-export default function DataTableBlock({ block, lessonId, courseId, studentData = {}, onAnswer }) {
+export default function DataTableBlock(props) {
+  if (props.block?.preset === "dropdown") {
+    return <DropdownTablePreset {...props} />;
+  }
+  return <MomentumTablePreset {...props} />;
+}
+
+function MomentumTablePreset({ block, lessonId, courseId, studentData = {}, onAnswer }) {
   const { user } = useAuth();
   const translatedTitle = useTranslatedText(block.title);
   const [data, setData] = useState({});
@@ -267,6 +274,175 @@ export default function DataTableBlock({ block, lessonId, courseId, studentData 
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function DropdownTablePreset({ block, studentData = {}, onAnswer, readOnly }) {
+  const translatedTitle = useTranslatedText(block.title);
+  const existing = studentData?.[block.id];
+  const wasSubmitted = !!existing?.submitted;
+  const [data, setData] = useState(() => existing?.answer?.tableData || {});
+  const [submitted, setSubmitted] = useState(wasSubmitted);
+
+  const columns = block.columns || [];
+  const rows = block.rows || [];
+  const inputColumns = columns.filter((c) => c.input === "dropdown");
+  const totalCells = rows.length * inputColumns.length;
+
+  const computeScore = (current) => {
+    let correct = 0;
+    rows.forEach((row, ri) => {
+      inputColumns.forEach((col) => {
+        const studentVal = current?.[ri]?.[col.key];
+        if (studentVal && studentVal === row[col.key]) correct += 1;
+      });
+    });
+    return correct;
+  };
+
+  const filledCount = useMemo(() => {
+    let n = 0;
+    rows.forEach((_, ri) => {
+      inputColumns.forEach((col) => {
+        if (data?.[ri]?.[col.key]) n += 1;
+      });
+    });
+    return n;
+  }, [data, rows, inputColumns]);
+
+  const handleChange = useCallback((rowIdx, colKey, value) => {
+    if (submitted || readOnly) return;
+    setData((prev) => {
+      const next = { ...prev, [rowIdx]: { ...(prev[rowIdx] || {}), [colKey]: value } };
+      if (onAnswer) {
+        onAnswer(block.id, {
+          answer: { tableData: next },
+          submitted: false,
+          savedAt: new Date().toISOString(),
+        });
+      }
+      return next;
+    });
+  }, [block.id, onAnswer, submitted, readOnly]);
+
+  const handleSubmit = () => {
+    if (submitted || readOnly) return;
+    const correct = computeScore(data);
+    const weight = typeof block.weight === "number" ? block.weight : totalCells;
+    const score = totalCells > 0 ? Math.round((correct / totalCells) * weight * 100) / 100 : 0;
+    setSubmitted(true);
+    if (onAnswer) {
+      onAnswer(block.id, {
+        answer: { tableData: data },
+        submitted: true,
+        correct: correct === totalCells,
+        score,
+        maxScore: weight,
+        cellsCorrect: correct,
+        cellsTotal: totalCells,
+        submittedAt: new Date().toISOString(),
+      });
+    }
+  };
+
+  const correctCount = submitted ? computeScore(data) : null;
+
+  return (
+    <div className="dt-wrapper">
+      <div className="dt-header">
+        <span className="dt-header-icon" aria-hidden>📊</span>
+        <span className="dt-title">{translatedTitle || "Data Table"}</span>
+        {submitted && (
+          <span className="dt-dropdown-score">
+            {correctCount} / {totalCells} correct
+          </span>
+        )}
+      </div>
+
+      <div className="dt-scroll">
+        <table className="dt-table dt-dropdown-table">
+          <thead>
+            <tr className="dt-thead-row">
+              {columns.map((col) => (
+                <th key={col.key} className="dt-th">
+                  {col.label}
+                </th>
+              ))}
+              {submitted && <th className="dt-th" style={{ width: 60 }}>Result</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => {
+              const studentRow = data[ri] || {};
+              return (
+                <tr key={ri} className={`dt-row ${ri % 2 === 0 ? "" : "is-alt"}`}>
+                  {columns.map((col) => {
+                    const isInput = col.input === "dropdown";
+                    const studentVal = studentRow[col.key] || "";
+                    const correctVal = row[col.key];
+                    const isCorrect = submitted && isInput && studentVal === correctVal;
+                    return (
+                      <td key={col.key} className={`dt-td ${isInput ? "" : "dt-label-cell"}`}>
+                        {isInput ? (
+                          <select
+                            className={`dt-select ${submitted ? (isCorrect ? "is-correct" : "is-wrong") : ""}`}
+                            value={studentVal}
+                            onChange={(e) => handleChange(ri, col.key, e.target.value)}
+                            disabled={submitted || readOnly}
+                          >
+                            <option value="">— select —</option>
+                            {(col.options || []).map((opt) => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span>{row[col.key]}</span>
+                        )}
+                        {submitted && isInput && !isCorrect && correctVal && (
+                          <div className="dt-correct-hint">Correct: {correctVal}</div>
+                        )}
+                      </td>
+                    );
+                  })}
+                  {submitted && (
+                    <td className="dt-td">
+                      {inputColumns.every((col) => studentRow[col.key] === row[col.key]) ? (
+                        <span className="dt-mark dt-mark-ok">✓</span>
+                      ) : (
+                        <span className="dt-mark dt-mark-bad">✗</span>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="dt-footer">
+        {!submitted ? (
+          <>
+            <span className="dt-saved">
+              {filledCount} / {totalCells} cells filled
+            </span>
+            <button
+              type="button"
+              className="dt-submit-btn"
+              onClick={handleSubmit}
+              disabled={readOnly || filledCount < totalCells}
+              title={filledCount < totalCells ? "Fill in every dropdown before submitting" : "Submit your answers"}
+            >
+              Submit Data Table
+            </button>
+          </>
+        ) : (
+          <span className="dt-saved">
+            ✓ Submitted — {correctCount} / {totalCells} correct
+          </span>
+        )}
+      </div>
     </div>
   );
 }

@@ -203,6 +203,8 @@ export default function MyGrades() {
     const mc = getMCQuestions(lesson);
     const sa = getSAQuestions(lesson);
     const embeds = getEmbedBlocks(lesson);
+    const checkpoints = (lesson.blocks || []).filter((b) => b.type === "teacher_checkpoint");
+    const dataTables = (lesson.blocks || []).filter((b) => b.type === "data_table" && b.preset === "dropdown" && b.scored !== false);
     const hasReflection = lessonHasReflection(lessonId);
 
     // Embed weighting: use explicit weight if set, otherwise dynamic 50/50 split
@@ -213,7 +215,11 @@ export default function MyGrades() {
       totalEmbedPts += w;
       return w;
     });
-    let totalPoints = nonEmbedPts + totalEmbedPts;
+    const checkpointWeights = checkpoints.map((b) => (typeof b.weight === "number" ? b.weight : 5));
+    const totalCheckpointPts = checkpointWeights.reduce((s, w) => s + w, 0);
+    const dataTableWeights = dataTables.map((b) => (typeof b.weight === "number" ? b.weight : 1));
+    const totalDataTablePts = dataTableWeights.reduce((s, w) => s + w, 0);
+    let totalPoints = nonEmbedPts + totalEmbedPts + totalCheckpointPts + totalDataTablePts;
     if (totalPoints === 0) return null;
 
     let earnedPoints = 0;
@@ -236,6 +242,19 @@ export default function MyGrades() {
       const a = answers[q.id];
       if (a?.writtenScore != null) {
         earnedPoints += a.writtenScore * embedWeights[i];
+      }
+    });
+
+    // Teacher checkpoints: full weight when approved, else 0
+    checkpoints.forEach((b, i) => {
+      if (answers[b.id]?.approved === true) earnedPoints += checkpointWeights[i];
+    });
+
+    // Data tables: prorated by submitted score / maxScore
+    dataTables.forEach((b, i) => {
+      const a = answers[b.id];
+      if (a?.submitted && typeof a.score === "number") {
+        earnedPoints += a.score;
       }
     });
 

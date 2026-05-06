@@ -40,6 +40,15 @@ const lesson = {
         "**Question of the Day:** FlowingData's Nathan Yau makes a living doing this. What separates his work from a Canva default — what choices is he making that beginners aren't?",
     },
     {
+      id: "img-flowingdata-tiles",
+      type: "image",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/flowingdata-tile-charts.png",
+      alt:
+        "FlowingData small-multiples chart: a 4x3 grid of identical-format mini line charts on a clean gray background, each tile showing a single purple line above a dashed baseline. No tile titles, no axis labels per tile, no decoration — every visual element earns its place.",
+      caption:
+        "*FlowingData — small-multiples comparison (Nathan Yau, 2025).* Look at what's NOT here: no tile titles, no axis labels per tile, no clip-art, no decorative shapes, no gradient backgrounds. [See more on flowingdata.com](https://flowingdata.com/).",
+    },
+    {
       id: "q-warmup",
       type: "question",
       questionType: "short_answer",
@@ -169,30 +178,6 @@ const lesson = {
       difficulty: "apply",
     },
 
-    // ─── ACTIVITY — GALLERY WALK ─────────────────────────────
-
-    {
-      id: "section-gallery",
-      type: "section_header",
-      icon: "🖼️",
-      title: "Gallery Walk + Class Vote",
-      subtitle: "~10 minutes",
-    },
-    {
-      id: "b-gallery",
-      type: "text",
-      content:
-        "**Print your PNG** (Mr. McCarthy will run prints during peer feedback so they're ready by now).\n\n**Tape your printout on the wall** in the gallery area. No names yet — designs go up unsigned for a clean vote.\n\n**Walk the gallery for 5 minutes.** Look at every design. Don't rush.\n\n**Vote with two sticky notes:**\n\n- **One sticky note:** 'Most clear' — the design where the takeaway lands fastest. You understand the message in under 10 seconds.\n- **One sticky note:** 'Most surprising stat' — the design where the headline number actually stopped you in your tracks.\n\nYou cannot vote for your own design. Place stickies on the printouts themselves.",
-    },
-    {
-      id: "img-gallery",
-      type: "image",
-      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/infographic-day3-gallery-walk.jpg",
-      alt:
-        "Classroom hallway gallery wall lined with student-made infographic posters, each printed at full poster size with sticky-note votes attached to several of them.",
-      caption:
-        "Top 5 (teacher pick + class vote winners) get hung in the hallway through end of MP4. Names credited.",
-    },
     {
       id: "img-portfolio",
       type: "image",
@@ -259,21 +244,9 @@ const lesson = {
       style: "info",
       icon: "📅",
       content:
-        "**Submitted today (Friday 5/15) by end of period:** Canva share link AND portfolio PNG, both attached to this assignment in PantherLearn. Top 5 (teacher pick + class vote winners) get printed and hung in the hallway outside Room ___ through the end of MP4. Names credited. **No homework — sprint is done.**",
+        "**Submitted today (Friday 5/15) by end of period:** Canva share link AND portfolio PNG, both attached to this assignment in PantherLearn. Top 5 (teacher pick) get printed and hung in the hallway outside Room ___ through the end of MP4. Names credited. **No homework — sprint is done.**",
     },
 
-    // ─── REFLECTION ─────────────────────────────────────────
-
-    {
-      id: "q-reflection",
-      type: "question",
-      questionType: "reflection",
-      prompt:
-        "Reflection on the full 3-day sprint: What's the one thing you'll remember a year from now — the data sourcing, the hierarchy rule, the type pairing, or something else? What was the hardest moment of the three days, and what did you do to push through it? If a freshman next year asked you for ONE piece of advice before starting this project, what would you tell them?",
-      placeholder:
-        "What I'll remember in a year: ...\nHardest moment + how I pushed through: ...\nAdvice for next year's freshman: ...",
-      difficulty: "reflect",
-    },
   ],
 };
 

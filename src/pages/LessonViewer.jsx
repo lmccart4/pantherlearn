@@ -370,6 +370,9 @@ export default function LessonViewer() {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
       }
+      if (block.type === "teacher_checkpoint") {
+        extraProps.studentData = studentData;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted, handleRequestReview, isViewAsStudent, user, isTestStudent]);

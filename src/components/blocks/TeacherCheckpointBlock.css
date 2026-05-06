@@ -1,0 +1,56 @@
+.tc-block {
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-sunken);
+  padding: var(--space-3) var(--space-4);
+}
+.tc-block.is-pending {
+  border-color: var(--status-warn);
+  background: color-mix(in oklab, var(--status-warn) 8%, var(--bg-sunken));
+}
+.tc-block.is-approved {
+  border-color: var(--status-success);
+  background: color-mix(in oklab, var(--status-success) 10%, var(--bg-sunken));
+}
+.tc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-2);
+}
+.tc-icon { font-size: 24px; }
+.tc-title {
+  font-family: var(--serif);
+  font-size: var(--t-md);
+  font-weight: 700;
+  color: var(--fg-default);
+}
+.tc-prompt {
+  font-size: var(--t-sm);
+  color: var(--fg-muted);
+  margin: 4px 0 var(--space-3);
+  line-height: 1.5;
+}
+.tc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.tc-status.is-pending {
+  background: color-mix(in oklab, var(--status-warn) 18%, transparent);
+  color: var(--status-warn-display);
+}
+.tc-status.is-approved {
+  background: color-mix(in oklab, var(--status-success) 18%, transparent);
+  color: var(--status-success-display);
+}
+.tc-meta {
+  font-size: 11px;
+  color: var(--fg-muted);
+  margin-top: 6px;
+}

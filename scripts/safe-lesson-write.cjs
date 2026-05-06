@@ -8,13 +8,24 @@
 // If the lesson already exists with student progress, this remaps new block IDs
 // to existing ones (by type + content similarity) so student answers stay linked.
 
+function buildAuditFields(action) {
+  const path = require("path");
+  const script = process.argv[1] ? path.basename(process.argv[1]) : "(unknown)";
+  return {
+    lastEditedBy: script,
+    lastEditedHost: require("os").hostname(),
+    editAction: action,
+    updatedAt: new Date()
+  };
+}
+
 async function safeLessonWrite(db, courseId, lessonId, newLesson) {
   const lessonRef = db.collection("courses").doc(courseId).collection("lessons").doc(lessonId);
   const existing = await lessonRef.get();
 
   if (!existing.exists) {
     // New lesson — write directly
-    await lessonRef.set(newLesson);
+    await lessonRef.set({ ...newLesson, ...buildAuditFields("created") });
     return { action: "created", preserved: 0 };
   }
 
@@ -22,7 +33,7 @@ async function safeLessonWrite(db, courseId, lessonId, newLesson) {
   const newBlocks = newLesson.blocks || [];
 
   if (oldBlocks.length === 0) {
-    await lessonRef.set(newLesson);
+    await lessonRef.set({ ...newLesson, ...buildAuditFields("updated") });
     return { action: "updated", preserved: 0 };
   }
 
@@ -30,7 +41,7 @@ async function safeLessonWrite(db, courseId, lessonId, newLesson) {
   const hasProgress = await checkForProgress(db, courseId, lessonId);
   if (!hasProgress) {
     // No student progress — safe to overwrite
-    await lessonRef.set(newLesson);
+    await lessonRef.set({ ...newLesson, ...buildAuditFields("updated") });
     return { action: "updated", preserved: 0 };
   }
 
@@ -64,7 +75,7 @@ async function safeLessonWrite(db, courseId, lessonId, newLesson) {
     return block;
   });
 
-  const updatedLesson = { ...newLesson, blocks: remappedBlocks };
+  const updatedLesson = { ...newLesson, blocks: remappedBlocks, ...buildAuditFields("updated-preserved") };
   await lessonRef.set(updatedLesson);
   return { action: "updated-preserved", preserved };
 }

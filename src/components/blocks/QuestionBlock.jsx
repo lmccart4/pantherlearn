@@ -124,7 +124,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
         if (isFullReset) {
           setSubmitted(false);
           if (block.questionType === "multiple_choice") setSelected(null);
-          if (block.questionType === "short_answer" || block.questionType === "linked") setTextAnswer("");
+          if (block.questionType === "short_answer" || block.questionType === "linked" || block.questionType === "reflection") setTextAnswer("");
           if (block.questionType === "ranking") setRankingOrder(null);
           hydrated.current = false;
         }
@@ -137,7 +137,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
       setSubmitted(true);
       if (hasAnswer) {
         if (block.questionType === "multiple_choice") setSelected(d.answer);
-        if (block.questionType === "short_answer" || block.questionType === "linked") setTextAnswer(d.answer);
+        if (block.questionType === "short_answer" || block.questionType === "linked" || block.questionType === "reflection") setTextAnswer(d.answer);
         if (block.questionType === "ranking") setRankingOrder(d.answer);
       }
       return;
@@ -147,7 +147,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
     hydrated.current = true;
     if (hasAnswer) {
       if (block.questionType === "multiple_choice") setSelected(d.answer);
-      if (block.questionType === "short_answer" || block.questionType === "linked") setTextAnswer(d.answer);
+      if (block.questionType === "short_answer" || block.questionType === "linked" || block.questionType === "reflection") setTextAnswer(d.answer);
       if (block.questionType === "ranking") setRankingOrder(d.answer);
     }
   }, [studentData, block.id, block.questionType]);
@@ -178,7 +178,7 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
   const performDraftSave = useCallback(() => {
     if (submitted) return;
 
-    if (block.questionType === "short_answer" || block.questionType === "linked") {
+    if (block.questionType === "short_answer" || block.questionType === "linked" || block.questionType === "reflection") {
       if (!textAnswer.trim()) return;
       return onAnswer(block.id, { answer: textAnswer, submitted: false, draft: true });
     }
@@ -358,12 +358,13 @@ export default function QuestionBlock({ block, studentData = {}, onAnswer, onReq
     );
   }
 
-  if (block.questionType === "short_answer") {
+  if (block.questionType === "short_answer" || block.questionType === "reflection") {
+    const isReflection = block.questionType === "reflection";
     return (
-      <div className={`question-block qb-relative ${submitted ? "submitted-sa" : ""}`}>
+      <div className={`question-block qb-relative ${submitted ? "submitted-sa" : ""} ${isReflection ? "qb-reflection" : ""}`}>
         {xpToast && <div className="qb-xp-toast">+{xpToast} XP</div>}
         <div className="qb-row">
-          <div className="question-badge sa" data-translatable>{ui(1) || "Written Response"}</div>
+          <div className="question-badge sa" data-translatable>{isReflection ? "Reflection" : (ui(1) || "Written Response")}</div>
           {diffBadge}
         </div>
         <p className="question-prompt" data-translatable dangerouslySetInnerHTML={{ __html: renderMarkdown(translatedPrompt) }} />

@@ -73,6 +73,7 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
   const checklistBlocks = blocks.filter((b) => b.type === "checklist");
   const scoredEmbedBlocks = blocks.filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
   const slideSubmitBlocks = blocks.filter((b) => b.type === "slide_submit");
+  const checkpointBlocks = blocks.filter((b) => b.type === "teacher_checkpoint");
 
   const allQuestionsAnswered = questionBlocks.every((b) => studentData[b.id]?.submitted);
   const allChatbotsUsed = chatbotBlocks.every((b) => studentData[b.id]?.submitted || chatLogs[b.id]?.length > 0);
@@ -85,7 +86,10 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
   const allEmbedsComplete = scoredEmbedBlocks.every((b) => studentData[b.id]?.submitted === true);
   const allSlidesSubmitted = slideSubmitBlocks.every((b) => studentData[b.id]?.submitted);
 
-  const allComplete = allQuestionsAnswered && allChatbotsUsed && allChecklistsDone && allEmbedsComplete && allSlidesSubmitted;
+  const pendingCheckpoints = checkpointBlocks.filter((b) => studentData[b.id]?.approved !== true);
+  const allCheckpointsApproved = pendingCheckpoints.length === 0;
+
+  const allComplete = allQuestionsAnswered && allChatbotsUsed && allChecklistsDone && allEmbedsComplete && allSlidesSubmitted && allCheckpointsApproved;
 
   const remaining = [];
   const unansweredQ = questionBlocks.filter((b) => !studentData[b.id]?.submitted).length;
@@ -103,6 +107,7 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
   if (incompleteEmbeds) remaining.push(`${incompleteEmbeds} activit${incompleteEmbeds > 1 ? "ies" : "y"}`);
   const unsubmittedSlides = slideSubmitBlocks.filter((b) => !studentData[b.id]?.submitted).length;
   if (unsubmittedSlides) remaining.push(`${unsubmittedSlides} presentation${unsubmittedSlides > 1 ? "s" : ""}`);
+  if (pendingCheckpoints.length) remaining.push(`${pendingCheckpoints.length} teacher checkpoint${pendingCheckpoints.length > 1 ? "s" : ""}`);
 
   const handleClickComplete = () => {
     if (!allComplete || completing) return;
@@ -330,9 +335,25 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
         marginTop: 48, paddingTop: 32, borderTop: "1px solid var(--border)",
         display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
       }}>
+        {pendingCheckpoints.length > 0 && (
+          <div style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: "rgba(245, 166, 35, 0.1)",
+            border: "1px solid rgba(245, 166, 35, 0.3)",
+            color: "var(--amber, #f5a623)",
+            fontSize: 13,
+            fontWeight: 600,
+            textAlign: "center",
+            maxWidth: 520,
+          }}>
+            ⏳ Waiting on teacher approval for: {pendingCheckpoints.map((b) => b.title || "Checkpoint").join(", ")}
+          </div>
+        )}
         <button
           onClick={handleClickComplete}
           disabled={completing || !allComplete}
+          title={pendingCheckpoints.length > 0 ? `Waiting on teacher approval for: ${pendingCheckpoints.map((b) => b.title || "Checkpoint").join(", ")}` : undefined}
           style={{
             padding: "14px 48px",
             fontSize: 16,

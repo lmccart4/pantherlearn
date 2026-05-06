@@ -262,6 +262,50 @@ export default function StudentProgress() {
     return [...sa, ...slides];
   };
   const getEmbedBlocks = (lesson) => (lesson.blocks || []).filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
+  const getCheckpointBlocks = (lesson) => (lesson.blocks || []).filter((b) => b.type === "teacher_checkpoint");
+
+  const approveCheckpoint = async (studentUid, lessonId, block, approved) => {
+    if (userRole !== "teacher") return;
+    const ref = doc(db, "progress", studentUid, "courses", selectedCourse, "lessons", lessonId);
+    const weight = block.weight || 5;
+    const payload = approved
+      ? {
+          approved: true,
+          approvedAt: new Date().toISOString(),
+          approvedBy: user.uid,
+          approvedByEmail: user.email,
+          submitted: true,
+          score: weight,
+          maxScore: weight,
+          needsApproval: true,
+        }
+      : {
+          approved: false,
+          approvedAt: null,
+          approvedBy: null,
+          approvedByEmail: null,
+          submitted: false,
+          score: 0,
+          maxScore: weight,
+          needsApproval: true,
+        };
+    try {
+      await setDoc(ref, { answers: { [block.id]: payload } }, { merge: true });
+      setProgressData((prev) => ({
+        ...prev,
+        [studentUid]: {
+          ...prev[studentUid],
+          [lessonId]: {
+            ...prev[studentUid]?.[lessonId],
+            [block.id]: { ...(prev[studentUid]?.[lessonId]?.[block.id] || {}), ...payload },
+          },
+        },
+      }));
+    } catch (e) {
+      console.error("approveCheckpoint failed", e);
+      alert("Failed to update checkpoint approval. See console.");
+    }
+  };
 
   // --- NEW: Blended grade calculation ---
   const getStudentLessonGrade = (studentUid, lessonId) => {
@@ -318,6 +362,32 @@ export default function StudentProgress() {
       }
     });
 
+    // Teacher checkpoints: weight points if approved, 0/weight if past due unapproved, else excluded
+    const checkpointBlocks = (lesson.blocks || []).filter((b) => b.type === "teacher_checkpoint");
+    const checkpointItems = [];
+    checkpointBlocks.forEach((b) => {
+      const a = answers[b.id];
+      const weight = typeof b.weight === "number" ? b.weight : 5;
+      if (a?.approved === true) {
+        checkpointItems.push({ type: "checkpoint", prompt: b.title || "Checkpoint", points: weight, max: weight, approved: true });
+      } else if (isPastDue) {
+        checkpointItems.push({ type: "checkpoint", prompt: b.title || "Checkpoint", points: 0, max: weight, missing: true });
+      }
+    });
+
+    // Data table (dropdown preset): submitted score / weight, 0/weight if past due unsubmitted
+    const dataTableBlocks = (lesson.blocks || []).filter((b) => b.type === "data_table" && b.preset === "dropdown" && b.scored !== false);
+    const dataTableItems = [];
+    dataTableBlocks.forEach((b) => {
+      const a = answers[b.id];
+      const weight = typeof b.weight === "number" ? b.weight : 1;
+      if (a?.submitted && typeof a.score === "number" && typeof a.maxScore === "number" && a.maxScore > 0) {
+        dataTableItems.push({ type: "data_table", prompt: b.title || "Data table", points: a.score, max: a.maxScore });
+      } else if (isPastDue) {
+        dataTableItems.push({ type: "data_table", prompt: b.title || "Data table", points: 0, max: weight, missing: true });
+      }
+    });
+
     // Reflection: 1 point if valid, 0 if skipped, excluded if not yet completed (unless past due)
     let reflectionItem = null;
     if (reflection) {
@@ -345,6 +415,8 @@ export default function StudentProgress() {
       ...mcItems,
       ...saItems.filter((i) => !i.ungraded),
       ...embedItems.filter((i) => i.points != null),
+      ...checkpointItems,
+      ...dataTableItems,
       ...(reflectionItem ? [reflectionItem] : []),
     ];
     if (gradedItems.length === 0) return null;
@@ -361,6 +433,8 @@ export default function StudentProgress() {
       mcItems,
       saItems,
       embedItems,
+      checkpointItems,
+      dataTableItems,
       reflectionItem,
       mcCorrect: mcItems.filter((i) => i.correct).length,
       mcTotal: mcItems.length,
@@ -376,9 +450,15 @@ export default function StudentProgress() {
     const lessonBreakdowns = [];
     const activityBreakdowns = [];
 
+    const inSelectedMP = (lesson) => {
+      if (mpFilter === "all") return true;
+      return getLessonMarkingPeriod(lesson) === mpFilter;
+    };
+
     visibleLessons.forEach((lesson) => {
       // Skip exempt lessons entirely
       if (progressData[studentUid]?.[lesson.id]?._exempt) return;
+      if (!inSelectedMP(lesson)) return;
       const result = getStudentLessonGrade(studentUid, lesson.id);
       if (result) {
         lessonBreakdowns.push({ lessonId: lesson.id, title: lesson.title, category: lesson.gradeCategory || DEFAULT_CATEGORY, ...result });
@@ -1688,6 +1768,44 @@ export default function StudentProgress() {
                     </div>
                   );
                 })}
+
+                {(() => {
+                  const checkpoints = getCheckpointBlocks(lesson);
+                  if (checkpoints.length === 0) return null;
+                  const approved = checkpoints.filter((cp) => answers[cp.id]?.approved).length;
+                  return (
+                    <div style={{ marginTop: 10, background: "var(--bg)", borderRadius: 8, padding: "10px 14px", border: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", marginBottom: 8 }}>
+                        ✋ Teacher Checkpoints — {approved}/{checkpoints.length} approved
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {checkpoints.map((cp) => {
+                          const a = answers[cp.id];
+                          const isApproved = !!a?.approved;
+                          const label = cp.prompt || cp.label || cp.caption || "Show me";
+                          return (
+                            <div key={cp.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ flex: 1, fontSize: 12, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {isApproved ? "✓" : "⏳"} {label}
+                              </span>
+                              {isApproved ? (
+                                <button onClick={() => approveCheckpoint(s.uid, lesson.id, cp, false)}
+                                  style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text2)", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                                  Undo
+                                </button>
+                              ) : (
+                                <button onClick={() => approveCheckpoint(s.uid, lesson.id, cp, true)}
+                                  style={{ background: "var(--green)", border: "1px solid var(--green)", color: "#fff", borderRadius: 6, padding: "3px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                                  Approve ✓
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
@@ -1806,6 +1924,96 @@ export default function StudentProgress() {
                   ))}
                 </div>
               )}
+            </div>
+          );
+        })()}
+
+        {(() => {
+          const checkpoints = getCheckpointBlocks(lesson);
+          if (checkpoints.length === 0) return null;
+          const sortedStudents = [...filteredStudents].sort((a, b) => {
+            const al = (a.lastName || a.displayName?.split(" ").pop() || "").toLowerCase();
+            const bl = (b.lastName || b.displayName?.split(" ").pop() || "").toLowerCase();
+            return al.localeCompare(bl);
+          });
+          let pendingCount = 0;
+          let approvedCount = 0;
+          const rows = [];
+          sortedStudents.forEach((s) => {
+            checkpoints.forEach((cp) => {
+              const a = progressData[s.uid]?.[lesson.id]?.[cp.id];
+              const isApproved = !!a?.approved;
+              if (isApproved) approvedCount++;
+              else pendingCount++;
+              rows.push({ student: s, block: cp, approved: isApproved, approvedAt: a?.approvedAt });
+            });
+          });
+          const total = rows.length;
+          return (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10 }}>
+                <h3 className="section-heading" style={{ marginBottom: 0 }}>✋ Teacher Checkpoints</h3>
+                <span style={{ fontSize: 12, color: "var(--text3)" }}>
+                  {approvedCount}/{total} approved{pendingCount > 0 ? ` · ${pendingCount} pending` : ""}
+                </span>
+              </div>
+              {checkpoints.length > 1 && (
+                <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 10 }}>
+                  {checkpoints.length} checkpoint(s):{" "}
+                  {checkpoints.map((b, i) => (
+                    <span key={b.id}>{i > 0 ? " · " : ""}<em>{b.prompt || b.label || b.caption || "Show me"}</em></span>
+                  ))}
+                </div>
+              )}
+              <div className="card" style={{ padding: "10px 4px" }}>
+                {rows.map(({ student, block, approved, approvedAt }, i) => {
+                  const label = block.prompt || block.label || block.caption || "Show me";
+                  const ts = approvedAt ? new Date(approvedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : null;
+                  return (
+                    <div key={`${student.uid}-${block.id}`} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "8px 14px",
+                      borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none",
+                    }}>
+                      {student.photoURL ? (
+                        <img src={student.photoURL} alt="" style={{ width: 24, height: 24, borderRadius: "50%", border: "1px solid var(--border)", flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "var(--text3)", flexShrink: 0 }}>👤</div>
+                      )}
+                      <span
+                        style={{ fontSize: 13, fontWeight: 600, color: "var(--text2)", cursor: "pointer", minWidth: 140, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 0 }}
+                        onClick={() => { setSelectedStudent(student.uid); setView("student"); }}
+                        title="View this student"
+                      >
+                        {student.displayName}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.4, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {approved ? "✓" : "⏳"} {label}
+                      </span>
+                      {approved ? (
+                        <>
+                          {ts && <span style={{ fontSize: 10, color: "var(--text3)", flexShrink: 0 }}>Approved {ts}</span>}
+                          <button
+                            onClick={() => approveCheckpoint(student.uid, lesson.id, block, false)}
+                            style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text2)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+                            title="Undo approval"
+                          >
+                            Undo
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => approveCheckpoint(student.uid, lesson.id, block, true)}
+                          style={{ background: "var(--green)", border: "1px solid var(--green)", color: "#fff", borderRadius: 6, padding: "4px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
+                          title="Approve checkpoint"
+                        >
+                          Approve ✓
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })()}

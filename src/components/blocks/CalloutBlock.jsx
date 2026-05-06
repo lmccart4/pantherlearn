@@ -20,7 +20,7 @@ export default function CalloutBlock({ block }) {
   const translated = useTranslatedText(block.content);
   const tone = TONE_MAP[block.style] || "info";
   return (
-    <Callout tone={tone} icon={block.icon}>
+    <Callout tone={tone} icon={block.icon} title={block.title}>
       <div
         data-translatable
         dangerouslySetInnerHTML={{ __html: renderMarkdown(translated) }}

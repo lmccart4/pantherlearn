@@ -43,6 +43,7 @@ const SlideSubmitBlock = lazy(() => import("./SlideSubmitBlock"));
 const ImageGenBlock = lazy(() => import("./ImageGenBlock"));
 const RubricBlock = lazy(() => import("./RubricBlock"));
 const ExemplarCompareBlock = lazy(() => import("./ExemplarCompareBlock"));
+const TeacherCheckpointBlock = lazy(() => import("./TeacherCheckpointBlock"));
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -88,6 +89,7 @@ const BLOCK_MAP = {
   image_gen: ImageGenBlock,
   rubric: RubricBlock,
   exemplar_compare: ExemplarCompareBlock,
+  teacher_checkpoint: TeacherCheckpointBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {

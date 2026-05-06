@@ -40,6 +40,15 @@ const lesson = {
         "**Question of the Day:** When you look at the NYT *'How the Virus Got Out'* graphic, what's the first thing your eye lands on? Second? Third? Why did the designer order it that way?",
     },
     {
+      id: "img-nyt-virus",
+      type: "image",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/nyt-virus-got-out.jpg",
+      alt:
+        "New York Times graphic 'How the Virus Got Out' showing a world map with red dots radiating outward from Wuhan, China, tracing the early spread of COVID-19 in early 2020 through arcs and dot density.",
+      caption:
+        "*The New York Times — 'How the Virus Got Out' (March 22, 2020).* Open the [interactive original](https://www.nytimes.com/interactive/2020/03/22/world/coronavirus-spread.html) to see the animation in motion.",
+    },
+    {
       id: "q-warmup",
       type: "question",
       questionType: "short_answer",
@@ -85,7 +94,7 @@ const lesson = {
       id: "b-rule-hierarchy",
       type: "text",
       content:
-        "**Rule 3: Visual hierarchy — size says importance.**\n\nThis is the most important rule of the three. Your reader's eye should travel through the page in a fixed order, controlled entirely by size:\n\n$$\\text{Headline stat} > \\text{Supporting stats} > \\text{Body text} > \\text{Sources}$$\n\n- **Headline stat:** huge. Like 100-200pt huge. The biggest number on the page. *'73%'*, *'1 in 4'*, *'$0.003 per stream.'*\n- **Supporting stats:** medium. Three or four numbers that back up the headline. Maybe 36-48pt.\n- **Body text / explanation:** small. 14-18pt. The reader only gets here if they care.\n- **Sources:** tiny. 8-10pt. At the bottom of the page. They're for credibility, not for reading.\n\nIf every element is the same size, there's no hierarchy. The reader's eye has nowhere to land first. They bounce.",
+        "**Rule 3: Visual hierarchy — size says importance.**\n\nThis is the most important rule of the three. Your reader's eye should travel through the page in a fixed order, controlled entirely by size:\n\n**Headline stat → Supporting stats → Body text → Sources**\n\n- **Headline stat:** huge. Like 100-200pt huge. The biggest number on the page. *'73%'*, *'1 in 4'*, *'$0.003 per stream.'*\n- **Supporting stats:** medium. Three or four numbers that back up the headline. Maybe 36-48pt.\n- **Body text / explanation:** small. 14-18pt. The reader only gets here if they care.\n- **Sources:** tiny. 8-10pt. At the bottom of the page. They're for credibility, not for reading.\n\nIf every element is the same size, there's no hierarchy. The reader's eye has nowhere to land first. They bounce.",
     },
     {
       id: "img-hierarchy",
@@ -241,18 +250,6 @@ const lesson = {
         "**Coming next class (Friday 5/15):** Day 3 — Polish + Showcase. Peer feedback in pairs (12 min), final polish (15 min), gallery walk + class vote (10 min). Top 5 designs get printed and hung in the hallway through the end of MP4. **Bring your Canva link in working order.**",
     },
 
-    // ─── REFLECTION ─────────────────────────────────────────
-
-    {
-      id: "q-reflection",
-      type: "question",
-      questionType: "reflection",
-      prompt:
-        "Reflection: What was harder today — finding the right data yesterday, or laying it out cleanly today? What's one design move you made today that you'll steal for the next time you have to make a flyer, slide deck, or anything visual? And — be honest — did you have to fight the urge to add Canva clipart that didn't belong?",
-      placeholder:
-        "Harder day: ...\nDesign move I'll steal: ...\nClipart confession: ...",
-      difficulty: "reflect",
-    },
   ],
 };
 
