@@ -2607,6 +2607,118 @@ exports.donateMana = onCall(
     return { success: true, newSenderBalance };
   }
 );
+// ─── PAPS AI Builds: Public Gemini proxy ──────────────────────────────────────
+// Pass-through proxy for the unauthenticated paps-ai-builds.web.app student tools.
+// Origin-locked, model-allowlisted, IP rate-limited so the API key stays server-side.
+const PAPS_AI_BUILDS_ORIGINS = [
+  "https://paps-ai-builds.web.app",
+  "https://paps-ai-builds.firebaseapp.com",
+];
+const PAPS_AI_BUILDS_MODEL_ALLOWLIST = new Set([
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-flash-preview-tts",
+  "gemini-2.5-pro",
+]);
+
+exports.papsAiBuildsProxy = onRequest(
+  {
+    cors: PAPS_AI_BUILDS_ORIGINS,
+    secrets: [geminiApiKey],
+    maxInstances: 10,
+    timeoutSeconds: 60,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
+    const origin = req.headers.origin || "";
+    if (!PAPS_AI_BUILDS_ORIGINS.includes(origin)) {
+      return res.status(403).json({ error: "Origin not allowed" });
+    }
+
+    const { model, payload } = req.body || {};
+    if (!model || !payload) return res.status(400).json({ error: "Missing model or payload" });
+    if (!PAPS_AI_BUILDS_MODEL_ALLOWLIST.has(model)) {
+      return res.status(400).json({ error: `Model not allowed: ${model}` });
+    }
+
+    // IP-based rate limit: 30 requests / 60s per source IP
+    const ip = (req.headers["x-forwarded-for"] || req.ip || "unknown").toString().split(",")[0].trim();
+    const ipKey = `papsAiBuilds_${ip.replace(/[^a-zA-Z0-9]/g, "_")}`;
+    const rateRef = db.collection("rateLimits").doc(ipKey);
+    const now = Date.now();
+    try {
+      const rateLimited = await db.runTransaction(async (t) => {
+        const snap = await t.get(rateRef);
+        const recent = (snap.data()?.timestamps || []).filter((ts) => now - ts < 60_000);
+        if (recent.length >= 30) return true;
+        t.set(rateRef, { timestamps: [...recent, now] });
+        return false;
+      });
+      if (rateLimited) return res.status(429).json({ error: "Rate limit: 30 req/min" });
+    } catch (e) { console.warn("[papsAiBuildsProxy] rate limit check failed", e); }
+
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey.value()}`;
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await r.json();
+      return res.status(r.status).json(data);
+    } catch (err) {
+      console.error("[papsAiBuildsProxy] error:", err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 // ─── Heartbeat watcher (scheduled-task-watchdog) ──────────────────────────────
 exports.heartbeatWatcher = require("./heartbeat-watcher").heartbeatWatcher;
+
+// ─── Secret Chat signaling cleanup ────────────────────────────────────────────
+// Rooms older than 1 hour that never connected leave stale offers + ICE
+// candidates. Sweep them hourly so room codes can be reused.
+exports.cleanupSecretChatSignaling = onSchedule("every 60 minutes", async () => {
+  const cutoff = admin.firestore.Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
+  const stale = await db
+    .collection("secretChatSignaling")
+    .where("createdAt", "<", cutoff)
+    .get();
+
+  let wiped = 0;
+  for (const roomDoc of stale.docs) {
+    for (const sub of ["callerCandidates", "calleeCandidates"]) {
+      const snap = await roomDoc.ref.collection(sub).get();
+      await Promise.all(snap.docs.map((d) => d.ref.delete()));
+    }
+    await roomDoc.ref.delete();
+    wiped++;
+  }
+  console.log(`secretChatSignaling cleanup: wiped ${wiped} stale room(s)`);
+});
+
+// Secret Chat (Firestore relay) — purge rooms + messages older than 24h.
+exports.cleanupSecretChatRooms = onSchedule("every 60 minutes", async () => {
+  const cutoff = admin.firestore.Timestamp.fromMillis(Date.now() - 24 * 60 * 60 * 1000);
+  const rooms = await db.collection("secretChatRooms").get();
+
+  let wipedRooms = 0;
+  let wipedMsgs = 0;
+  for (const roomDoc of rooms.docs) {
+    const msgsRef = roomDoc.ref.collection("messages");
+    const oldMsgs = await msgsRef.where("createdAt", "<", cutoff).get();
+    await Promise.all(oldMsgs.docs.map((d) => d.ref.delete()));
+    wipedMsgs += oldMsgs.size;
+
+    const remaining = await msgsRef.limit(1).get();
+    const created = roomDoc.data().createdAt;
+    if (remaining.empty && created && created.toMillis() < cutoff.toMillis()) {
+      await roomDoc.ref.delete();
+      wipedRooms++;
+    }
+  }
+  console.log(`secretChatRooms cleanup: wiped ${wipedMsgs} msg(s), ${wipedRooms} empty room(s)`);
+});
 

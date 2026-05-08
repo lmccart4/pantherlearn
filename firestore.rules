@@ -11,6 +11,15 @@ service cloud.firestore {
       }
     }
 
+    // Secret Chat (Firestore relay) — encrypted message bus for the
+    // student build site. Payloads are AES-GCM ciphertext; server cannot read.
+    match /secretChatRooms/{roomId} {
+      allow read, write: if true;
+      match /messages/{msgId} {
+        allow read, write: if true;
+      }
+    }
+
     // PAPS AI Builds — JARVIS memory bank. Open read/write scoped to the
     // paps-ai-builds-jarvis app id. Each browser uses a localStorage UUID;
     // no auth, no PII, isolated from production data.

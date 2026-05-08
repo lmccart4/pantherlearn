@@ -27,6 +27,7 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
   const [resetting, setResetting] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [wasReset, setWasReset] = useState(false);
+  const [reviewCleared, setReviewCleared] = useState(false);
   const { getStudentName, getStudentEmail, getStudentPhoto, getBlockPrompt, lessonMap, responses } = helpers;
 
   const wasAutoGraded = !!(item.autogradeOriginal || item.gradedBy === "autograde-agent");
@@ -50,6 +51,9 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
 
   const handleGradeClick = (tier) => {
     if (grading) return;
+    // Clear review-requested badge immediately on click — Firestore clear
+    // happens in saveGrade, but optimistic UI prevents lag against snapshot.
+    if (item.reviewRequested) setReviewCleared(true);
     // If item was auto-graded, show override reason selector before saving
     if (wasAutoGraded) {
       setPendingTier(tier);
@@ -330,7 +334,7 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
             {item.gradedBy === "autograde-agent" ? "🤖 Auto-graded" : "👩‍🏫 Teacher"}
           </span>
         )}
-        {item.reviewRequested && (
+        {item.reviewRequested && !reviewCleared && (
           <span style={{
             fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 4, marginLeft: 4,
             background: "rgba(245,166,35,0.12)", color: "var(--amber)",
@@ -394,7 +398,7 @@ export default function WrittenResponseCard({ item, helpers, onSelectStudent, se
       )}
 
       {/* Student review note */}
-      {item.reviewRequested && item.reviewNote && (
+      {item.reviewRequested && item.reviewNote && !reviewCleared && (
         <div style={{
           padding: "8px 12px", marginBottom: 8, borderRadius: 6,
           background: "rgba(245,166,35,0.06)", border: "1px solid rgba(245,166,35,0.15)",
