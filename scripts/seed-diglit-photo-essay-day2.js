@@ -17,37 +17,22 @@ const lesson = {
   unit: "Photo Essay Sprint",
   order: 61.1,
   visible: false,
-  questionOfTheDay: "If you cover the caption on a Humans of New York post and only see the photo — what changes when you finally read the words?",
+  questionOfTheDay: "You shot 30+ photos this weekend. Only 6-8 make the final essay. How do you decide which ones live and which ones die?",
   blocks: [
 
-    // ─── WARM UP ─────────────────────────────────────────────
+    // ─── SUB-DAY BANNER ──────────────────────────────────────
 
     {
-      id: "section-warmup",
-      type: "section_header",
-      icon: "🃏",
-      title: "Warm Up",
-      subtitle: "~5 minutes"
-    },
-    {
-      id: "callout-qotd",
+      id: "callout-sub-day",
       type: "callout",
-      style: "question",
-      icon: "❓",
-      content: "**Question of the Day:** Mr. McCarthy is going to pull up a Humans of New York post on the projector with the **caption covered.** You'll see the photo only. Make your assumptions. Then he'll uncover the caption — and you'll see how wrong (or right) you were."
+      style: "warning",
+      icon: "📋",
+      content: "**Mr. McCarthy is out today.** This lesson runs entirely on its own. Read each section carefully, do the work, scroll all the way to the bottom, and submit your reflection before the bell. The sub is here for behavior, not for content questions — everything you need is on this page.\n\n**No photos from Friday's shoot?** Scroll down to Work Time → there's a fallback option that lets you still complete today's work."
     },
     {
-      id: "b-warmup-context",
+      id: "b-today",
       type: "text",
-      content: "Photos are interpreted, not received. Your viewer fills in a story from facial expression, clothing, setting, light, posture — and they fill it in *fast,* in the first second. Then a caption either confirms what they thought, surprises them, or completely flips the meaning of the image.\n\nThe best photo essays use that gap on purpose. The photo sets one expectation. The caption either lands the punch or quietly turns the room sideways."
-    },
-    {
-      id: "q-warmup",
-      type: "question",
-      questionType: "short_answer",
-      prompt: "After the reveal: what did the photo make you assume? What did the caption actually reveal? Did the caption confirm your guess, surprise you, or completely flip the meaning? Be specific.",
-      placeholder: "I assumed: ...\nThe caption revealed: ...\nWhat changed: ...",
-      difficulty: "analyze"
+      content: "**Today's job:** take the 30+ photos you shot over the weekend and cut them down to a finished 6-8 photo essay draft — sequenced and captioned — by the end of the period. That draft goes in your Google Slides template and stays there for tomorrow's layout + showcase day."
     },
     {
       id: "b-objectives",
@@ -67,7 +52,7 @@ const lesson = {
       id: "section-curate",
       type: "section_header",
       icon: "✂️",
-      title: "Curate — Kill Your Darlings",
+      title: "Curate — Choose Your Best Shots",
       subtitle: "~5 minutes"
     },
     {
@@ -210,14 +195,21 @@ const lesson = {
     {
       id: "b-work-steps",
       type: "text",
-      content: "**Open Google Slides on your Chromebook. Open the class slide deck (link in Google Classroom).**\n\n1. **Make a copy** of the photo essay template — *File → Make a copy → save it as \"YourName — Photo Essay\"*\n2. **Star + cut** in your phone Photos app: top 12 → 8 → 6-8 final\n3. **One photo per slide** — drag each final photo into its own slide in your draft\n4. **Decide the order** — drag slides in the left panel up/down. First photo = opener. Last photo = closer.\n5. **Caption box under each photo** — type your draft caption right now. 1-2 sentences. Use the recipe.\n6. Don't worry about cover page or artist statement yet — that's tomorrow."
+      content: "**Step-by-step — do these in order:**\n\n1. **Click the template link below.** It will prompt you to *Make a copy.* Click the blue *Make a copy* button. The copy lands in your Drive automatically.\n2. **Rename the copy** — top-left of Slides — to *\"YourName — Photo Essay.\"*\n3. **Open your phone Photos app or your Drive folder** with your weekend shots. **Star + cut:** top 12 → 8 → 6-8 final.\n4. **One photo per slide** — drag each final photo into its own slide in your copy (Insert → Image → Upload from phone or Drive).\n5. **Decide the order** — drag slides in the left panel up/down. First photo = opener. Last photo = closer.\n6. **Caption box under each photo** — type your draft caption right now. 1-2 sentences. Use the recipe.\n7. **Don't worry about cover page or artist statement yet** — that's tomorrow.\n\n**No photos from Friday's shoot?** Use the fallback link below — pick 6-8 photos from the free stock pool, sequence them as if you shot them, and write specific captions for each. You'll still get full credit today, but you owe Mr. McCarthy your own shoot before showcase day."
     },
     {
-      id: "external-slides",
+      id: "external-slides-template",
       type: "external_link",
-      url: "https://slides.google.com/",
-      title: "Google Slides",
-      description: "Open this on your Chromebook and start your draft. Use the class template Mr. McCarthy will share in Classroom."
+      url: "https://docs.google.com/presentation/d/1GZf2X9znpJkIgpG-DT9Ys-6B_4MngSC9QNaw0XOkolg/copy",
+      title: "📋 Photo Essay Template — Make a Copy",
+      description: "Click here first. This opens the class template and prompts you to Make a copy. The copy is yours — work in it today and tomorrow."
+    },
+    {
+      id: "external-fallback-photos",
+      type: "external_link",
+      url: "https://unsplash.com/s/photos/everyday-life",
+      title: "🔁 Fallback Photo Pool (only if you didn't shoot)",
+      description: "If you have no photos from Friday's shoot, browse Unsplash 'everyday life' and download 8-10 photos that could read as one cohesive theme. Treat them as if you shot them — sequence and caption them with the same care."
     },
     {
       id: "external-canva",
@@ -234,11 +226,11 @@ const lesson = {
       description: "When you get stuck, scroll through real photo essays here. Look at how the pros sequence — opener, middle, closer. Look at the captions."
     },
     {
-      id: "external-hony",
+      id: "external-atlantic-photo",
       type: "external_link",
-      url: "https://www.humansofnewyork.com/",
-      title: "Humans of New York — caption inspiration",
-      description: "When your captions feel generic, come back here. Notice how Brandon Stanton's captions almost always include a name, an age or time, and a specific detail."
+      url: "https://www.theatlantic.com/photo/",
+      title: "The Atlantic — In Focus (caption inspiration)",
+      description: "When your captions feel generic, come back here. Notice how the captions almost always include a name or location, a time, and a specific detail that the photo alone wouldn't tell you."
     },
 
     // ─── EXIT ────────────────────────────────────────────────

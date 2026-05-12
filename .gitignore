@@ -72,3 +72,4 @@ serviceAccountKey.json
 .dataconnect
 dist/
 .DS_Store
+.claude/worktrees/

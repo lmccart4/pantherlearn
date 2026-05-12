@@ -3,11 +3,18 @@ import { useState } from "react";
 import ChatLogCard from "./ChatLogCard";
 import WrittenResponseCard from "./WrittenResponseCard";
 import SearchSortBar from "./SearchSortBar";
+import RubricScorerModal from "./RubricScorerModal";
 
-export default function LessonView({ courseResponses, courseLogs, selectedLesson, activeTab, setSelectedStudent, helpers }) {
+export default function LessonView({ courseResponses, courseLogs, selectedLesson, activeTab, setSelectedStudent, helpers, courseId }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("recent");
-  const { getStudentName, getStudentEmail, getStudentPhoto, getLessonTitle } = helpers;
+  const [rubricTarget, setRubricTarget] = useState(null); // { studentId, studentName } or null
+  const { getStudentName, getStudentEmail, getStudentPhoto, getLessonTitle, lessonMap } = helpers;
+
+  // Find a rubric block on the currently-selected lesson (if any). Used to
+  // show the per-student "Score Rubric" button on each student card.
+  const selectedLessonObj = lessonMap?.[selectedLesson];
+  const rubricBlock = (selectedLessonObj?.blocks || []).find((b) => b.type === "rubric");
 
   const lessonWritten = courseResponses.filter((r) => r.lessonId === selectedLesson);
   const lessonLogs = courseLogs.filter((l) => l.lessonId === selectedLesson);
@@ -73,14 +80,42 @@ export default function LessonView({ courseResponses, courseLogs, selectedLesson
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{getStudentName(uid)}</div>
                 <div style={{ fontSize: 11, color: "var(--text3)" }}>{getStudentEmail(uid)}</div>
               </div>
-              <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
+              <div style={{ display: "flex", gap: 10, fontSize: 12, alignItems: "center" }}>
                 {written > 0 && <span style={{ color: "var(--amber)", fontWeight: 600 }}>✏️ {written}</span>}
                 {chats > 0 && <span style={{ color: "var(--cyan)", fontWeight: 600 }}>💬 {chats}</span>}
+                {rubricBlock && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setRubricTarget({ studentId: uid, studentName: getStudentName(uid) }); }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(245,166,35,0.2)"; e.currentTarget.style.borderColor = "var(--amber)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(245,166,35,0.08)"; e.currentTarget.style.borderColor = "rgba(245,166,35,0.4)"; }}
+                    title="Score this student's rubric for this lesson"
+                    style={{
+                      fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6,
+                      border: "1px solid rgba(245,166,35,0.4)", background: "rgba(245,166,35,0.08)",
+                      color: "var(--amber)", cursor: "pointer", transition: "all 0.12s",
+                    }}
+                  >
+                    📋 Score Rubric
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Rubric scorer modal */}
+      {rubricBlock && rubricTarget && courseId && (
+        <RubricScorerModal
+          rubricBlock={rubricBlock}
+          studentId={rubricTarget.studentId}
+          studentName={rubricTarget.studentName}
+          courseId={courseId}
+          lessonId={selectedLesson}
+          onClose={() => setRubricTarget(null)}
+          onSaved={() => { /* live updates flow through Firestore subscriptions; nothing else needed */ }}
+        />
+      )}
 
       {/* Content */}
       {activeTab === "written" ? (

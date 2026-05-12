@@ -18,7 +18,7 @@ const lesson = {
   unit: "Photo Essay Sprint",
   order: 61,
   visible: false,
-  questionOfTheDay: "What makes a Humans of New York caption hit so hard? What would the photo lose without it?",
+  questionOfTheDay: "Look at a photo. Read the caption. What does the caption do that the picture alone can't?",
   blocks: [
 
     // ─── WARM UP ─────────────────────────────────────────────
@@ -35,18 +35,54 @@ const lesson = {
       type: "callout",
       style: "question",
       icon: "❓",
-      content: "**Question of the Day:** Mr. McCarthy is going to pull up *@humansofny* on the projector and show you 3 posts. What makes the caption hit? What would the photo lose if you stripped the caption away?"
+      content: "**Question of the Day:** Below are 3 published photo essays from *The Atlantic*'s **In Focus** column. Each one is a gallery of professional photos with real captions. Open each one, scroll the photos *and* read the captions. What does the caption do that the photo alone can't?"
     },
     {
       id: "b-warmup-context",
       type: "text",
-      content: "Brandon Stanton — the photographer behind **Humans of New York** — built one of the biggest accounts on the internet by doing two things at once: shooting strangers in a way that respects them, and writing captions that turn a single photo into a whole story.\n\nA photo essay does the same thing on purpose, with intention. Photo + caption + sequence = a story you can hold in your hand.\n\nThis week you build one of your own."
+      content: "A photo essay is a sequence of images that tells a story. Captions aren't decoration — they're half the story. A picture shows you *what*. A caption tells you *why it matters*.\n\n*The Atlantic*'s **In Focus** column, run by editor Alan Taylor, is one of the cleanest examples of this online: a single theme, 20-30 photos, a caption under each one that gives you the context the photo can't give you on its own.\n\nThis week you build a photo essay of your own."
+    },
+    {
+      id: "b-essay1-setup",
+      type: "text",
+      content: "### Essay 1 — Search-and-Rescue Dogs at Work\n\nA gallery of working dogs and their handlers — earthquakes, avalanches, building collapses, training drills. Without captions, these are just pictures of dogs in rubble or snow. With captions, each photo tells you *which* disaster, *which* dog, and what they were searching for.\n\nOpen the gallery, scroll a few photos, and read the captions."
+    },
+    {
+      id: "external-essay1",
+      type: "external_link",
+      url: "https://www.theatlantic.com/photo/2025/04/photos-search-and-rescue-dogs/682265/",
+      title: "The Atlantic — Search-and-Rescue Dogs at Work",
+      description: "Captions transform photos of dogs into rescue stories. Scroll at least 6 photos."
+    },
+    {
+      id: "b-essay2-setup",
+      type: "text",
+      content: "### Essay 2 — British Wildlife Photography Awards 2025\n\nWinning photos from a national wildlife contest. This is where photo + caption is unbeatable: the photo gives you the moment, the caption gives you the *behavior* — what the animal was doing, how long the photographer waited, why the shot is rare.\n\nPay attention to how each caption changes a 'cool nature photo' into something specific."
+    },
+    {
+      id: "external-essay2",
+      type: "external_link",
+      url: "https://www.theatlantic.com/photo/2025/03/winners-british-wildlife-photography-awards-2025/682085/",
+      title: "The Atlantic — British Wildlife Photography Awards 2025",
+      description: "Read the captions to learn the photographer's intent. Scroll at least 6 photos."
+    },
+    {
+      id: "b-essay3-setup",
+      type: "text",
+      content: "### Essay 3 — The View from Greenland\n\nA place-based essay: portraits, landscapes, and street scenes from Greenland during a national election. Without captions, these are just pretty travel photos. With captions, you learn what's actually happening — protests, autonomy debates, daily life under global political pressure. The caption is the *context* that makes the photo a story.\n\nOpen the gallery, scroll a few photos, and read the captions."
+    },
+    {
+      id: "external-essay3",
+      type: "external_link",
+      url: "https://www.theatlantic.com/photo/2025/03/photos-greenland/682067/",
+      title: "The Atlantic — The View from Greenland",
+      description: "Captions turn 'travel photos' into a political story. Scroll at least 6 photos.",
     },
     {
       id: "q-warmup",
       type: "question",
       questionType: "short_answer",
-      prompt: "Pick one of the three Humans of New York posts Mr. McCarthy showed. In 2-3 sentences, describe what the caption did that the photo alone couldn't. Be specific — name what changed when you read the words.",
+      prompt: "Pick ONE photo from any of the three essays above. In 2-3 sentences, describe what the caption added that the photo alone couldn't. Be specific — name the essay, name the photo (briefly), and say exactly what changed when you read the caption.",
       placeholder: "The photo alone showed... but the caption added... so now I see...",
       difficulty: "analyze"
     },
@@ -92,6 +128,13 @@ const lesson = {
       id: "b-leading-lines",
       type: "text",
       content: "### 2. Leading Lines\n\nA leading line is anything in the frame that **points toward your subject** — a hallway, a railing, a road, the edge of a table, a row of lockers, a sidewalk crack. Your eye follows lines whether you want to or not.\n\n- **In school:** the long hallway, the cafeteria tables, the bleachers, the gym floor stripes, the staircase rails. PAHS is full of them.\n- **The classic shot:** Steve McCurry's train-track photos — two parallel rails pulling your eye to a single figure in the distance. You can't *not* look at them.\n- **Practical move:** find a long line in the building and place your subject where the line ends or bends. Shoot from low so the line takes up more of the frame."
+    },
+    {
+      id: "img-leading-lines",
+      type: "image",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/photo-essay-day1-leading-lines-example.jpg",
+      alt: "A long high school hallway with locker doors and ceiling lines converging toward a single student standing at the far end. The parallel lines of the lockers and the floor pull the eye straight to the subject.",
+      caption: "Leading lines — the lockers and floor seams converge toward the figure at the end of the hallway. Your eye has nowhere else to go."
     },
     {
       id: "b-framing",
@@ -178,7 +221,14 @@ const lesson = {
       type: "callout",
       style: "tip",
       icon: "✏️",
-      content: "**Right now:** open the class slide deck (link in Google Classroom). Find the slide with your name. Type your theme in the title box. That's your commitment for the weekend."
+      content: "**Right now:** open the **Class Photo Wall** (link below). Find the slide with your name (or add one if it's not there). Type your theme in the title box. That's your commitment for the weekend."
+    },
+    {
+      id: "external-class-photo-wall",
+      type: "external_link",
+      url: "https://docs.google.com/presentation/d/18xtTmFe0JGdRg25hWcly8A1bBAMMFwNZEUdEiRc4P4M/edit",
+      title: "📸 Class Photo Wall — Day 1",
+      description: "The shared deck for this lesson. Anyone with the link can edit. Add your slide, post your remakes, post your theme. Bring it back Monday with your weekend shoot."
     },
 
     // ─── IN-CLASS SHOOT ──────────────────────────────────────
@@ -186,19 +236,54 @@ const lesson = {
     {
       id: "section-shoot",
       type: "section_header",
-      icon: "🚶",
-      title: "In-Class Shoot Challenge",
+      icon: "📸",
+      title: "Remake the Flat Photo — In-Class Challenge",
       subtitle: "~17 minutes"
     },
     {
       id: "b-shoot-rules",
       type: "text",
-      content: "Phones out. You'll leave the room **in pairs** (Mr. McCarthy will pair you up — no solo wandering, no groups of 4+).\n\n**The challenge:** shoot **5 photos** in or around the building that demonstrate **all 3 composition techniques** (rule of thirds, leading lines, framing). At least one of those photos has to be of a **person** — and you have to ask permission first. \"Can I take your photo for a class project?\" works fine.\n\n**Rules:**\n- No selfies\n- No flash unless you have an intentional reason (and you'll have to defend it)\n- No staying inside the same room — at least move\n- Keep it to public/common areas — hallways, courtyard, gym entrance, cafeteria, library\n- Be back when the timer hits zero. If you're late, your partner gets penalized too. Don't do that to them."
+      content: "Phones out. We're staying in the room. Below are **4 deliberately bad photos** — flat, centered, flash-blown, no thought behind them. Your job: **pick at least 3 of the 4** and remake each one in this classroom using one of the three composition techniques you just learned.\n\n**The deliverable:** 3 remake photos, AirDropped or uploaded to your slide in the class deck. Under each remake, write one line: *\"Original: ___. My remake uses ___ (thirds / leading lines / framing) because ___.\"*\n\n**Rules:**\n- Stay in the classroom — no hallway, no bathroom, no \"just gonna step out\"\n- No selfies\n- No flash unless you can defend it\n- Each remake must use a **different** technique — don't do thirds three times\n- You can use anything in the room: desks, chairs, window light, the whiteboard, your own backpack, a partner who said yes"
     },
     {
-      id: "b-shoot-prompts",
+      id: "b-flat-ref-intro",
       type: "text",
-      content: "**Try at least three of these as starting points:**\n\n- **Thirds:** a portrait of your partner with their eyes on the upper third of the frame, lots of negative space on one side\n- **Leading lines:** a hallway shot from low, looking down the line of lockers, person standing where the line ends\n- **Framing:** shoot through a doorway, through a fence diamond, through a hand cupped at the lens\n- **Layered:** find a window where the reflection adds a second layer to the photo\n- **Wild card:** shoot something nobody else in this class will think to shoot"
+      content: "### The 4 flat references\n\nHere are the originals. Notice what's wrong with each one — centered subject, flat lighting, no depth, no leading line, no frame, no layers. Pick at least 3 to remake."
+    },
+    {
+      id: "img-flat-ref-backpack",
+      type: "image",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/photo-essay-day1-flat-ref-backpack.jpg?v=2",
+      alt: "A black backpack sitting dead-center on a classroom desk, lit by harsh on-camera flash, shot straight-on from desk level. The composition is flat and lifeless.",
+      caption: "Reference 1 — The Backpack. Centered, flash-blown, dead-on. Your remake: place a backpack (yours, a partner's) somewhere in the room and shoot it with intention."
+    },
+    {
+      id: "img-flat-ref-waterbottle",
+      type: "image",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/photo-essay-day1-flat-ref-waterbottle.jpg?v=2",
+      alt: "A clear water bottle standing on a classroom desk in front of a blank cinderblock wall, lit by overhead fluorescents, shot dead-on with no depth or angle.",
+      caption: "Reference 2 — The Water Bottle. Flat, centered, blank background. Your remake: same object class, but use natural window light and a frame or leading line."
+    },
+    {
+      id: "img-flat-ref-whiteboard",
+      type: "image",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/photo-essay-day1-flat-ref-whiteboard.jpg?v=2",
+      alt: "A classroom whiteboard filling the entire frame, shot perfectly perpendicular to the wall with no angle, no perspective, and harsh fluorescent glare.",
+      caption: "Reference 3 — The Whiteboard. Subject parallel to the lens, no depth, no human element. Your remake: whiteboard or wall art, but shoot at an angle, add a foreground frame, or include a person interacting with it."
+    },
+    {
+      id: "img-flat-ref-portrait",
+      type: "image",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/photo-essay-day1-flat-ref-portrait.jpg?v=2",
+      alt: "A teenage student standing dead-center against a blank cinderblock wall, harsh flash on the face, ID-photo style with no composition or expression.",
+      caption: "Reference 4 — The Portrait. Centered, flash-blown, ID-photo energy. Your remake: ask a partner first (\"can I take your photo for a class project?\"), then put their eyes on the upper third, use natural window light, and find a frame or layer behind them."
+    },
+    {
+      id: "callout-remake-rules",
+      type: "callout",
+      style: "tip",
+      icon: "💡",
+      content: "**You are NOT bound to these subjects for the weekend.** Over the weekend you free-shoot your own theme. The classroom remake is just a 17-minute drill to lock the techniques in your hands before you walk into your real shoot."
     },
     {
       id: "b-shoot-tools",
@@ -225,7 +310,7 @@ const lesson = {
     {
       id: "b-exit-share",
       type: "text",
-      content: "**Exit ticket — last 5 minutes of class:**\n\n1. Pick your favorite of the 5 photos you just shot.\n2. AirDrop it (or upload via the Google Slides link) onto **your slide** in the class deck.\n3. Add one line under it: *\"Technique: rule of thirds / leading lines / framing — and here's where I shot it.\"*\n4. Mr. McCarthy will pull a few up for a quick share. Be ready to defend your composition choice in one sentence."
+      content: "**Exit ticket — last 5 minutes of class:**\n\n1. Open the **Class Photo Wall** (link in the Theme section above, or in Google Classroom).\n2. Drop all 3 remakes onto your slide. Under each one, write: *\"Original: ___. Technique: thirds / leading lines / framing. Why it works: ___.\"*\n3. Star your **best** remake."
     },
     {
       id: "callout-weekend-shoot",
@@ -245,11 +330,11 @@ const lesson = {
       subtitle: "Open these on your phone before you shoot"
     },
     {
-      id: "external-hony",
+      id: "external-atlantic-photo",
       type: "external_link",
-      url: "https://www.humansofnewyork.com/",
-      title: "Humans of New York — Brandon Stanton",
-      description: "The standard-setter for portrait + caption photo essays. Scroll the homepage. Notice: shallow depth of field, eye contact, off-center subjects, captions that turn the photo into a story."
+      url: "https://www.theatlantic.com/photo/",
+      title: "The Atlantic — In Focus (photo column)",
+      description: "Alan Taylor's running photo column. New themed photo essay every few days, every photo captioned. Open any post and study how the captions carry the story."
     },
     {
       id: "external-natgeo-yourshot",

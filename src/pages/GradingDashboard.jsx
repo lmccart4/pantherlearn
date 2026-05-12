@@ -1081,6 +1081,7 @@ export default function GradingDashboard() {
                 activeTab={activeTab}
                 setSelectedStudent={setSelectedStudent}
                 helpers={helpers}
+                courseId={selectedCourse}
               />
             ) : (
               <CourseOverview

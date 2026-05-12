@@ -143,7 +143,7 @@ export default function TeacherManaRequests() {
 
   byStage.new.sort((a, b) => ts(b.createdAt) - ts(a.createdAt));
   byStage.priced.sort((a, b) => ts(a.pricedAt || a.createdAt) - ts(b.pricedAt || b.createdAt));
-  byStage.accepted.sort((a, b) => ts(a.acceptedAt || a.createdAt) - ts(b.acceptedAt || b.createdAt));
+  byStage.accepted.sort((a, b) => ts(a.acceptedAt) - ts(b.acceptedAt));
   byStage.fulfilled.sort((a, b) => ts(b.fulfilledAt) - ts(a.fulfilledAt));
 
   async function run(fn, row) {

@@ -18,7 +18,7 @@ const lesson = {
   unit: "Photo Essay Sprint",
   order: 61.2,
   visible: false,
-  questionOfTheDay: "Two Canva layouts side by side — one cluttered, one breathing. Which one do you stay on longer? Why?",
+  questionOfTheDay: "Layout day. Your job is to make the photos the thing the viewer looks at — not the design around them. What's one design choice you're making to get out of the photos' way?",
   blocks: [
 
     // ─── WARM UP ─────────────────────────────────────────────
@@ -28,27 +28,12 @@ const lesson = {
       type: "section_header",
       icon: "🖼️",
       title: "Warm Up",
-      subtitle: "~3 minutes"
-    },
-    {
-      id: "callout-qotd",
-      type: "callout",
-      style: "question",
-      icon: "❓",
-      content: "**Question of the Day:** Mr. McCarthy is going to show two Canva layouts side by side on the projector — one cluttered (every corner filled, multiple fonts, photos overlapping), one *breathing* (one photo per page, white space, one font). Which one do you actually stay on longer? Why?"
+      subtitle: "~2 minutes"
     },
     {
       id: "b-warmup-context",
       type: "text",
       content: "Designers have a phrase for this: **\"the design is done when there's nothing left to take away.\"** Most beginner layouts fail in the same direction — too much. Too many fonts, too many colors, photos crammed edge to edge, captions in three different sizes.\n\nA photo essay layout's job is to **disappear** so the photos can be the thing the viewer looks at. That's the whole game today."
-    },
-    {
-      id: "q-warmup",
-      type: "question",
-      questionType: "short_answer",
-      prompt: "Which of the two layouts on the projector did you stay on longer? Pick one specific design choice that made the difference (font size, white space, photo placement, color, alignment) and explain why it worked. One paragraph.",
-      placeholder: "I stayed longer on: ...\nThe choice that made the difference: ...\nWhy it worked: ...",
-      difficulty: "evaluate"
     },
     {
       id: "b-objectives",
@@ -163,14 +148,14 @@ const lesson = {
     {
       id: "b-work-steps",
       type: "text",
-      content: "**Open your draft from Monday — Canva or Google Slides, your choice.**\n\n**Build order:**\n\n1. **Cover page** — title, name, theme line. Clean. (3 min)\n2. **Photo pages** — one per slide. Drag photos full-size onto each slide. Same caption font, size, position on every page. (10 min)\n3. **Artist's statement** — final page. 3-5 real sentences. (5 min)\n4. **Polish pass** — check spelling, alignment, consistency. Read every caption out loud. If you stumble, rewrite. (2 min)\n5. **Export to PDF.** *File → Download → PDF Document* (Slides). *Share → Download → PDF Standard* (Canva). (1 min)\n6. **Drop the PDF in the class Drive folder.** Link in Google Classroom. Filename format: `lastname-firstname-photo-essay.pdf`. (1 min)"
+      content: "**Open your draft from Monday — Canva or Google Slides, your choice.**\n\n**Build order:**\n\n1. **Cover page** — title, name, theme line. Clean. (3 min)\n2. **Photo pages** — one per slide. Drag photos full-size onto each slide. Same caption font, size, position on every page. (10 min)\n3. **Artist's statement** — final page. 3-5 real sentences. (5 min)\n4. **Polish pass** — check spelling, alignment, consistency. Read every caption out loud. If you stumble, rewrite. (2 min)\n5. **Get your share link.**\n   - **Google Slides:** *File → Download → PDF Document* (saves to your Downloads), **then** upload that PDF to your Drive and *Share → General access: Anyone with the link → Viewer → Copy link.* Or, if you'd rather submit the live Slides, *Share → Anyone with the link → Viewer → Copy link.*\n   - **Canva:** *Share → Download → File type: PDF Standard,* upload the PDF to Drive, then *Share → Anyone with the link → Viewer → Copy link.*\n6. **Paste your link into the submission box below.** (1 min)"
     },
     {
       id: "callout-export",
       type: "callout",
       style: "warning",
       icon: "⚠️",
-      content: "**Don't forget the PDF.** A `.pptx` file or a Canva share link is not what we're submitting. It must be a **PDF** in the class Drive folder before the gallery walk starts. If you didn't export, you don't show. No exceptions — Mr. McCarthy will not chase you down for it."
+      content: "**Submission must be a working link.** Before you click *anywhere else,* paste your share link into the submission box below and open it in an incognito tab to confirm it loads. If your link is set to *Restricted* instead of *Anyone with the link,* Mr. McCarthy can't open it and you don't get credit. No exceptions — fix the sharing setting now."
     },
     {
       id: "external-slides",
@@ -192,6 +177,24 @@ const lesson = {
       url: "https://fonts.google.com/",
       title: "Google Fonts — pairing browser",
       description: "If you want one nicer font for your title, browse here. Pick one. Don't pick three. Filter to 'serif' or 'display' for titles, 'sans-serif' for captions."
+    },
+
+    // ─── SUBMIT ──────────────────────────────────────────────
+
+    {
+      id: "section-submit",
+      type: "section_header",
+      icon: "📤",
+      title: "Submit Your Final Project",
+      subtitle: "Paste your link before the gallery walk"
+    },
+    {
+      id: "q-submit-link",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "Paste the share link to your final photo essay. Accepts a Google Drive PDF link **or** a Google Slides share link. **Set sharing to \"Anyone with the link → Viewer\" before pasting** — if Mr. McCarthy can't open it, it doesn't count. Test it in an incognito tab first.",
+      placeholder: "https://drive.google.com/...   or   https://docs.google.com/presentation/d/...",
+      difficulty: "apply"
     },
 
     // ─── GALLERY WALK ────────────────────────────────────────
@@ -228,7 +231,7 @@ const lesson = {
     {
       id: "b-checklist",
       type: "text",
-      content: "**Before the bell:**\n\n- [ ] Cover page: title, name, theme line\n- [ ] 6-8 photo pages, one per slide, sequenced opener → middle → closer\n- [ ] Caption under every photo — same font, same size, same position throughout\n- [ ] Artist's statement on final page (3-5 sentences, your voice)\n- [ ] Exported as PDF\n- [ ] PDF dropped in class Drive folder, named `lastname-firstname-photo-essay.pdf`\n- [ ] Wrote 3 specific sticky-note compliments on 3 different classmates' essays during the gallery walk\n\nAll of those checked = you're done. Grades go in the rubric this week (out of 20: Composition 5 + Story/Sequencing 5 + Captions 5 + Polish 5)."
+      content: "**Before the bell:**\n\n- [ ] Cover page: title, name, theme line\n- [ ] 6-8 photo pages, one per slide, sequenced opener → middle → closer\n- [ ] Caption under every photo — same font, same size, same position throughout\n- [ ] Artist's statement on final page (3-5 sentences, your voice)\n- [ ] Exported as PDF (or Slides set to *Anyone with the link*)\n- [ ] Share link pasted in the submission box above — tested in an incognito tab\n- [ ] Wrote 3 specific sticky-note compliments on 3 different classmates' essays during the gallery walk\n\nAll of those checked = you're done. Grades go in the rubric this week (out of 20: Composition 5 + Story/Sequencing 5 + Captions 5 + Polish 5)."
     },
 
     // ─── REFLECTION ──────────────────────────────────────────

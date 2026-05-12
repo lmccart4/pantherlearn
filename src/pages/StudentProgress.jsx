@@ -6,7 +6,7 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
 import StreakDisplay from "../components/StreakDisplay";
-import { getWeightedOverall, CATEGORY_WEIGHTS, CATEGORY_LABELS, CATEGORY_COLORS, DEFAULT_CATEGORY } from "../lib/gradeCalc";
+import { getWeightedOverall, CATEGORY_WEIGHTS, CATEGORY_LABELS, CATEGORY_COLORS, DEFAULT_CATEGORY, computeRubricGrade } from "../lib/gradeCalc";
 import { ACTIVE_MARKING_PERIODS, getCurrentMarkingPeriod, getMarkingPeriod, getLessonMarkingPeriod } from "../lib/markingPeriods";
 import { linkifyText } from "../lib/utils";
 
@@ -173,7 +173,7 @@ export default function StudentProgress() {
               const progDoc = lessonDocsById[lesson.id];
               if (progDoc?.exists()) {
                 const data = progDoc.data();
-                progress[student.uid][lesson.id] = { ...data.answers, _completed: data.completed || false, _completedAt: data.completedAt || null, _exempt: !!data.exempt, _gradeBonus: data.gradeBonus || 0 };
+                progress[student.uid][lesson.id] = { ...data.answers, _completed: data.completed || false, _completedAt: data.completedAt || null, _exempt: !!data.exempt, _gradeBonus: data.gradeBonus || 0, _rubricScore: data.rubricScore || null };
               } else {
                 progress[student.uid][lesson.id] = {};
               }
@@ -312,6 +312,35 @@ export default function StudentProgress() {
     const answers = progressData[studentUid]?.[lessonId] || {};
     const lesson = lessons.find((l) => l.id === lessonId);
     if (!lesson) return null;
+
+    // RUBRIC OVERRIDE — if the lesson has a rubric block and the teacher has
+    // scored the rubric for this student, the rubric grade IS the lesson grade.
+    // Auto-graded MC/SA/embeds become informational only.
+    const rubricBlock = (lesson.blocks || []).find((b) => b.type === "rubric");
+    const rubricScore = answers?._rubricScore;
+    if (rubricBlock && rubricScore && Object.keys(rubricScore).some((k) => k.startsWith("c") && typeof rubricScore[k] === "number")) {
+      const r = computeRubricGrade(rubricBlock, rubricScore);
+      if (r) {
+        const bonus = answers?._gradeBonus || 0;
+        return {
+          grade: r.grade + bonus,
+          earned: r.grade,
+          possible: 100,
+          isRubric: true,
+          rubricFullyScored: r.fullyScored,
+          rubricScored: r.scored,
+          rubricTotal: r.total,
+          rubricScore,
+          rubricCriteria: rubricBlock.criteria || [],
+          rubricGradedAt: rubricScore.gradedAt || null,
+          rubricGradedBy: rubricScore.gradedByName || rubricScore.gradedBy || null,
+          // Empty stubs so callers that expect these keys don't break.
+          mcItems: [], saItems: [], embedItems: [], checkpointItems: [], dataTableItems: [], reflectionItem: null,
+          mcCorrect: 0, mcTotal: 0, mcPossible: 0,
+          saGraded: 0, saTotal: 0, saUngraded: 0,
+        };
+      }
+    }
 
     const mc = getMCQuestions(lesson);
     const sa = getSAQuestions(lesson);
@@ -1121,10 +1150,39 @@ export default function StudentProgress() {
           )}
           {result && (
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
-            <span>Total</span>
+            <span>Total {result.isRubric && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "rgba(245,166,35,0.15)", color: "var(--amber)", marginLeft: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>📋 Rubric-Scored</span>}</span>
             <span style={{ color: gradeColor(result.grade) }}>{result.earned} / {result.possible} pts = {result.grade}%</span>
           </div>)}
-          {result && <>
+          {result && result.isRubric && (
+            <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 4 }}>
+              {result.rubricFullyScored
+                ? `Graded by ${result.rubricGradedBy || "teacher"}${result.rubricGradedAt ? ` on ${new Date(result.rubricGradedAt).toLocaleDateString()}` : ""} — rubric overrides auto-graded blocks.`
+                : `Partially scored (${result.rubricScored}/${result.rubricTotal} criteria) — finish in the Grading Dashboard.`}
+            </div>
+          )}
+          {result && result.isRubric && (
+            <>
+              <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 4 }}>
+                Rubric Criteria
+              </div>
+              {result.rubricCriteria.map((c, idx) => {
+                const chosen = result.rubricScore?.[`c${idx}`];
+                const lvl = (c.levels || []).find((l) => l.score === chosen);
+                return (
+                  <div key={c.name || idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0" }}>
+                    <span style={{ color: "var(--text2)", flex: 1 }}>
+                      {c.name || `Criterion ${idx + 1}`} <span style={{ color: "var(--text3)", marginLeft: 4 }}>({c.weight}%)</span>
+                    </span>
+                    <span style={{ fontWeight: 600, color: chosen ? "var(--text)" : "var(--text3)", marginLeft: 8 }}>
+                      {chosen ? `${lvl?.label || `Level ${chosen}`} (${chosen}/4)` : "—"}
+                    </span>
+                  </div>
+                );
+              })}
+            </>
+          )}
+          {result && !result.isRubric && <>
           <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
 
           {result.mcItems.length > 0 && (
