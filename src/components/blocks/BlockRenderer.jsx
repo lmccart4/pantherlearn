@@ -40,6 +40,7 @@ const ConceptBuilderBlock = lazy(() => import("./ConceptBuilderBlock"));
 const MomentumMysteryLabBlock = lazy(() => import("./MomentumMysteryLabBlock"));
 const ConnectFourBlock = lazy(() => import("./ConnectFourBlock"));
 const SlideSubmitBlock = lazy(() => import("./SlideSubmitBlock"));
+const StoryboardSubmitBlock = lazy(() => import("./StoryboardSubmitBlock"));
 const ImageGenBlock = lazy(() => import("./ImageGenBlock"));
 const RubricBlock = lazy(() => import("./RubricBlock"));
 const ExemplarCompareBlock = lazy(() => import("./ExemplarCompareBlock"));
@@ -86,6 +87,7 @@ const BLOCK_MAP = {
   score_tally: ScoreTallyBlock,
   case_cards: CaseCardsBlock,
   slide_submit: SlideSubmitBlock,
+  storyboard_submit: StoryboardSubmitBlock,
   image_gen: ImageGenBlock,
   rubric: RubricBlock,
   exemplar_compare: ExemplarCompareBlock,

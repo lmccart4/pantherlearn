@@ -92,7 +92,159 @@ export default function DataTableBlock(props) {
   if (props.block?.preset === "dropdown") {
     return <DropdownTablePreset {...props} />;
   }
+  if (props.block?.preset === "numeric") {
+    return <NumericTablePreset {...props} />;
+  }
   return <MomentumTablePreset {...props} />;
+}
+
+function NumericTablePreset({ block, lessonId, courseId, studentData = {}, onAnswer }) {
+  const { user } = useAuth();
+  const translatedTitle = useTranslatedText(block.title);
+  const [data, setData] = useState({});
+
+  const rows = block.rows || [];
+  const columns = block.columns || [];
+
+  const performSave = useCallback(async () => {
+    if (!user || !db || !lessonId || !courseId) return;
+    const filledCells = Object.values(data).reduce(
+      (acc, row) => acc + Object.values(row || {}).filter((v) => v !== "" && v !== undefined && v !== null).length, 0
+    );
+    const ref = doc(db, "courses", courseId, "lessons", lessonId, "responses", user.uid, "blocks", block.id);
+    await setDoc(ref, {
+      type: "data_table",
+      preset: "numeric",
+      blockId: block.id,
+      tableData: data,
+      studentId: user.uid,
+      studentName: user.displayName || "Unknown",
+      submittedAt: serverTimestamp(),
+    }, { merge: true });
+
+    if (onAnswer) {
+      onAnswer(block.id, {
+        submitted: filledCells > 0,
+        answer: { tableData: data },
+        filledCells,
+        writtenScore: filledCells > 0 ? 1 : 0,
+        savedAt: new Date().toISOString(),
+      });
+    }
+  }, [user, lessonId, courseId, block.id, data, onAnswer]);
+
+  const { saveNow, lastSaved, saveError, markDirty } = useAutoSave(performSave);
+
+  useEffect(() => {
+    if (!user || !db || !lessonId || !courseId) return;
+    const load = async () => {
+      try {
+        const ref = doc(db, "courses", courseId, "lessons", lessonId, "responses", user.uid, "blocks", block.id);
+        const snap = await getDoc(ref);
+        if (snap.exists() && snap.data().tableData) {
+          setData(snap.data().tableData);
+          return;
+        }
+        const progressData = studentData?.[block.id];
+        if (progressData?.answer?.tableData) {
+          setData(progressData.answer.tableData);
+        }
+      } catch (e) {
+        console.warn("Failed to load data table:", e);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, lessonId, courseId, block.id]);
+
+  const handleInput = useCallback((rowKey, colKey, value) => {
+    setData((prev) => ({
+      ...prev,
+      [rowKey]: { ...(prev[rowKey] || {}), [colKey]: value },
+    }));
+    markDirty();
+  }, [markDirty]);
+
+  return (
+    <div className="dt-wrapper">
+      <div className="dt-header">
+        <span className="dt-header-icon" aria-hidden>📊</span>
+        <span className="dt-title">{translatedTitle || "Data Table"}</span>
+      </div>
+
+      <div className="dt-scroll">
+        <table className="dt-table">
+          <thead>
+            <tr className="dt-thead-row">
+              <th className="dt-th dt-th-object">{block.rowHeader || "Element"}</th>
+              {columns.map((col) => (
+                <th key={col.key} className="dt-th" style={col.width ? { width: col.width } : undefined}>
+                  {col.unit ? `${col.label} (${col.unit})` : col.label}
+                  {col.sublabel && <span className="dt-th-sub">{col.sublabel}</span>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => {
+              const rd = data[row.key] || {};
+              return (
+                <tr key={row.key} className={`dt-row ${ri % 2 === 0 ? "" : "is-alt"}`}>
+                  <td className="dt-label-cell">{row.label}</td>
+                  {columns.map((col) => (
+                    <td key={col.key} className="dt-td">
+                      {col.type === "select" ? (
+                        <select
+                          className="dt-select"
+                          value={rd[col.key] || ""}
+                          onChange={(e) => handleInput(row.key, col.key, e.target.value)}
+                          onBlur={saveNow}
+                        >
+                          <option value="">— select —</option>
+                          {(col.options || []).map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : col.type === "text" ? (
+                        <input
+                          type="text"
+                          value={rd[col.key] || ""}
+                          onChange={(e) => handleInput(row.key, col.key, e.target.value)}
+                          onBlur={saveNow}
+                          className="dt-input"
+                        />
+                      ) : (
+                        <input
+                          type="number"
+                          step="any"
+                          value={rd[col.key] || ""}
+                          onChange={(e) => handleInput(row.key, col.key, e.target.value)}
+                          onBlur={saveNow}
+                          className="dt-input"
+                        />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {(lastSaved || saveError) && (
+        <div className="dt-footer">
+          {saveError ? (
+            <span className="dt-save-error">{saveError}</span>
+          ) : (
+            <span className="dt-saved">
+              ✓ Auto-saved {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function MomentumTablePreset({ block, lessonId, courseId, studentData = {}, onAnswer }) {

@@ -366,6 +366,13 @@ export default function LessonViewer() {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
       }
+      if (block.type === "storyboard_submit") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+        extraProps.courseId = courseId;
+        extraProps.lessonId = lessonId;
+        extraProps.readOnly = isViewAsStudent;
+      }
       if (block.type === "image_gen") {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;

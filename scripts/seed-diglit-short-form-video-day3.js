@@ -5,6 +5,9 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
@@ -13,7 +16,7 @@ const LESSON_ID = "short-form-video-day3-edit-capcut";
 const COURSE_ID = "digital-literacy";
 
 const lesson = {
-  title: "Short-Form Video Sprint — Day 3: Edit in CapCut",
+  title: "Short-Form Video Sprint — Day 3: Edit (CapCut or WeVideo)",
   questionOfTheDay: "Why are hard cuts almost always better than fancy transitions in short-form video?",
   course: "Digital Literacy",
   unit: "Short-Form Video Sprint",
@@ -50,7 +53,7 @@ const lesson = {
       type: "objectives",
       title: "Learning Objectives",
       items: [
-        "Build a CapCut timeline by importing, splitting, and arranging clips into the storyboard order",
+        "Build a timeline in CapCut (phone) or WeVideo (Chromebook) by importing, splitting, and arranging clips in storyboard order",
         "Add on-screen text and auto-captions, then fix caption errors and styling",
         "Sync at least one cut to a music beat (snap to playhead)",
         "Justify when to use a transition vs. a hard cut, applying the 90/10 rule"
@@ -63,8 +66,15 @@ const lesson = {
       id: "section-main",
       type: "section_header",
       icon: "✂️",
-      title: "CapCut, Step by Step",
+      title: "Edit Your Video, Step by Step",
       subtitle: "~12 minutes"
+    },
+    {
+      id: "callout-editor-choice",
+      type: "callout",
+      style: "insight",
+      icon: "🛠️",
+      content: "**Pick your editor — both are fine:**\n\n- **CapCut** (phone) — the walkthrough below uses CapCut's exact buttons. Use this if you'd rather edit on your phone where your clips already live.\n- **WeVideo** (Chromebook) — same concepts, different buttons. Timeline, splits, captions, music, beat sync all exist in WeVideo too. Use this if you'd rather edit in the browser on your school device. Import your footage from Google Drive at the start of class.\n\nThe rest of this lesson walks through CapCut. WeVideo's UI is similar enough that you can follow along — the *concepts* are the same."
     },
     {
       id: "b-import",
@@ -173,7 +183,7 @@ const lesson = {
     {
       id: "b-edit-block",
       type: "text",
-      content: "## Headphones In. Heads Down.\n\nLuke and Lachlan circulate the room. Tap shoulder if you're stuck — it's faster than guessing for 5 minutes.\n\n## Target by end of class:\n\n- **Rough cut** assembled — clips in storyboard order, dead time killed, total length 30-60 seconds\n- **Captions** added (auto-captions fixed, OR manually typed)\n- **Music** added with at least one cut snapped to a beat\n- **Hard cuts** used everywhere by default; if you used a transition, you can name what it adds\n\n## If You Finish Early\n\n- Tighten the hook — re-cut your first 3 seconds and ask a neighbor: \"would you swipe past this?\"\n- Color grade — CapCut → Adjust → bump contrast and saturation slightly\n- **Export draft** to your phone as a checkpoint (Day 4 you do the final export)"
+      content: "## Headphones In. Heads Down.\n\nMr. McCarthy circulates the room. Tap shoulder if you're stuck — it's faster than guessing for 5 minutes.\n\n## Target by end of class:\n\n- **Rough cut** assembled — clips in storyboard order, dead time killed, total length 30-60 seconds\n- **Captions** added (auto-captions fixed, OR manually typed)\n- **Music** added with at least one cut snapped to a beat\n- **Hard cuts** used everywhere by default; if you used a transition, you can name what it adds\n\n## If You Finish Early\n\n- Tighten the hook — re-cut your first 3 seconds and ask a neighbor: \"would you swipe past this?\"\n- Color grade — CapCut → Adjust → bump contrast and saturation slightly\n- **Export draft** to your phone as a checkpoint (Day 4 you do the final export)"
     },
     {
       id: "b-resources",
@@ -230,7 +240,7 @@ const lesson = {
       type: "callout",
       style: "note",
       icon: "📅",
-      content: "**Save before you leave:** Save your CapCut project. If CapCut auto-saves to cloud (it usually does on the same login), you're safe. If not, export a draft .mp4 to your phone as a backup.\n\n**Tomorrow (Day 4):** polish + showcase. Final export → upload → showcase on the projector → vote → mana for winners."
+      content: "**Save before you leave — same rule for both editors:**\n\n- **CapCut path:** Export a draft .mp4 to your phone, then **upload that .mp4 to Google Drive before you leave.** That's how you get tomorrow's video onto a Chromebook for the final submission. CapCut's cloud sync only works phone-to-phone — Drive is the bridge.\n- **WeVideo path:** Your project auto-saves to your Google account. Just confirm it shows up when you reopen WeVideo in a new tab before you leave.\n\n**Tomorrow (Day 4):** polish + showcase. Final export → upload to PantherLearn → showcase on the projector → vote → mana for winners."
     },
     {
       id: "q-exit",
@@ -277,16 +287,19 @@ const lesson = {
 
 async function seed() {
   try {
-    await db
-      .collection("courses")
-      .doc(COURSE_ID)
-      .collection("lessons")
-      .doc(LESSON_ID)
-      .set(lesson);
+    const existing = await db.collection("courses").doc(COURSE_ID)
+      .collection("lessons").doc(LESSON_ID).get();
+    if (existing.exists) {
+      const d = existing.data();
+      if (d.visible !== undefined) lesson.visible = d.visible;
+      if (d.dueDate !== undefined) lesson.dueDate = d.dueDate;
+      if (d.gradesReleased !== undefined) lesson.gradesReleased = d.gradesReleased;
+    }
+    const result = await safeLessonWrite(db, COURSE_ID, LESSON_ID, lesson);
     console.log(`✅ Lesson seeded: "${lesson.title}"`);
     console.log(`   Path: courses/${COURSE_ID}/lessons/${LESSON_ID}`);
-    console.log(`   Blocks: ${lesson.blocks.length}`);
-    console.log(`   Order: ${lesson.order}`);
+    console.log(`   Blocks: ${lesson.blocks.length} | Order: ${lesson.order} | visible: ${lesson.visible}`);
+    console.log(`   safeLessonWrite: ${result.action} (preserved ${result.preserved} block IDs)`);
     process.exit(0);
   } catch (err) {
     console.error("❌ Error:", err);

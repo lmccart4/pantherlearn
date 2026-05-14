@@ -5,6 +5,9 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
@@ -56,6 +59,12 @@ const lesson = {
         "Build a 6-panel storyboard with shot type, on-screen text, and sound for each panel"
       ]
     },
+    {
+      id: "v-mrbeast-short",
+      type: "video",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-videos/digital-literacy/04-mrbeast-short-hook.mp4",
+      caption: "Teaser: watch this MrBeast Short before we deconstruct anything. Count how many hook elements he stacks in the first 2 seconds — we'll come back to this."
+    },
 
     // ─── MAIN: DECONSTRUCTION ───────────────────────────────
 
@@ -77,21 +86,39 @@ const lesson = {
       content: "## Example 1 — Khaby Lame: \"Life Hack\" Debunk\n\n**Format:** Reaction + visual debunk. No words.\n\n- **Hook (0:00–0:03):** A weird life-hack video plays in the corner — someone doing something needlessly complicated (cutting an apple with a sewing machine, opening a banana with a hammer, etc.).\n- **Payoff (~0:08):** Khaby shrugs, walks in, does the thing the simple way, hits his signature open-palm gesture.\n- **Why the algorithm rewards it:**\n  - Zero words = works in **every language** = global completion rate\n  - Setup → punchline → signature gesture = **clean watch-time loop** (people re-watch the gesture)\n  - Universal frustration (\"why is this complicated\") = high **share signal** (\"this is so true\")\n  - 10–15 seconds long = high **completion rate** (most viewers finish)"
     },
     {
+      id: "v-khaby-clip",
+      type: "video",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-videos/digital-literacy/01-khaby-pizza-hack.mp4",
+      caption: "Khaby Lame debunking a pizza life-hack. Notice: no words, signature gesture, complete watch-time loop in under 15 seconds."
+    },
+    {
       id: "b-mrbeast",
       type: "text",
       content: "## Example 2 — MrBeast: \"$1 vs $1,000,000 Hotel Room\" Opener\n\n**Format:** Contrast + escalation promise.\n\n- **Hook (0:00–0:02):** \"This is a $1 hotel room.\" Cut to a horrible room. Title card flashes the contrast.\n- **Payoff:** Promised escalation — viewer wants to see the $10 room, the $100 room, all the way up.\n- **Why the algorithm rewards it:**\n  - **Hook density** is brutal — number, contrast, and visual all land in <2 seconds\n  - The **promise** (\"we'll show you 8 more rooms, each crazier\") locks in watch time\n  - Curiosity gap = **comment signal** (\"I need to see the million dollar one\")\n  - The structure works in any short-form re-cut — algorithm pushes the original AND the clip"
     },
     {
+      id: "v-mrbeast-hotel",
+      type: "video",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-videos/digital-literacy/02-mrbeast-1-vs-1m-hotel.mp4",
+      caption: "MrBeast's \"$1 vs $1,000,000 Hotel Room\" opener. Watch how the contrast hook and escalation promise both land before the 3-second mark."
+    },
+    {
       id: "b-local",
       type: "text",
-      content: "## Example 3 — Local Latin TikTok Creator\n\n**Format:** Cultural specificity. The hook IS the relatability.\n\nLuke will pull up a specific creator on the projector — could be an abuela cooking, a PA-area street creator, or barbershop content.\n\n- **Hook:** Something that lands instantly with this room — a Spanish phrase, a familiar food, a local spot, a sound everyone in this class has heard at home.\n- **Payoff:** Recognition + warmth. \"This is MY world on screen.\"\n- **Why the algorithm rewards it:**\n  - **Cultural specificity** = strong completion + share signal inside that audience\n  - Comments fire (\"my abuela does this exactly\") — comment signal feeds the loop\n  - Audio often goes viral on its own → algorithm tracks **sound trends** and pushes anyone using it\n\n**The lesson:** specificity beats generality. \"Universal\" content gets ignored. Content that feels like it was made for *you* gets watched twice."
+      content: "## Example 3 — LeJuan James: Latino Family Sketch\n\n**Format:** Cultural specificity. The hook IS the relatability.\n\nLeJuan James built a following of millions playing every member of a Latino family — the mom, the dad, the cousin, the abuela — in short scripted sketches. The humor doesn't translate to a general audience. It doesn't have to. It lands hard with the people it's actually made for.\n\n- **Hook:** A Spanish phrase, a familiar family dynamic, a specific dish, a sound everyone in this room has heard at home growing up.\n- **Payoff:** Recognition + warmth. \"This is MY world on screen.\"\n- **Why the algorithm rewards it:**\n  - **Cultural specificity** = strong completion + share signal inside that audience\n  - Comments fire (\"my mom does this EXACT thing\") — comment signal feeds the loop\n  - Audio often goes viral on its own → algorithm tracks **sound trends** and pushes anyone using it\n\n**The lesson:** specificity beats generality. \"Universal\" content gets ignored. Content that feels like it was made for *you* gets watched twice."
+    },
+    {
+      id: "v-lejuan-clip",
+      type: "video",
+      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-videos/digital-literacy/03-lejuan-room-chilling.mp4",
+      caption: "LeJuan James playing the cousin chilling in the room. Cultural specificity in action — the family dynamic, the Spanish phrasing, the energy. Every detail lands harder with the audience it was made for."
     },
     {
       id: "callout-teacher-note",
       type: "callout",
       style: "note",
       icon: "📌",
-      content: "**TEACHER NOTE:** Pick a specific creator before class — abuela cooking, PA-area, or barbershop content. Hit Luke up on Discord if stuck."
+      content: "**TEACHER NOTE:** LeJuan James clip embedded below. If you want to swap in a different creator with stronger PA-specific resonance (someone the room actually follows), pause the embedded clip and pull yours up on the projector instead."
     },
     {
       id: "img-hook-3-seconds",
@@ -158,7 +185,7 @@ const lesson = {
     {
       id: "b-pick-format",
       type: "text",
-      content: "## Pick Your Format (5 min)\n\nPick ONE of these formats for your 30-60 second video. You can change it later — but pick one to plan around right now.\n\n- **Explainer** — Teach something quickly (a skill, a concept, how something works).\n- **Reaction** — React to a clip, an image, or a claim. Khaby-style works here.\n- **Day-in-life** — Snippets from your day, school, neighborhood, practice.\n- **Sketch** — Short scripted bit. Has a setup and a punchline.\n- **Tutorial** — Show somebody how to do one specific thing in 30 seconds.\n- **Local pride** — Something specific to PAHS, Perth Amboy, or your community.\n- **Your own (approved)** — Pitch it to Luke before storyboarding.\n\n## Pick Your Topic\n\nPick something you actually know or care about. The algorithm rewards specificity — \"my abuela's three rules for sazón\" beats \"cooking tips\" every single time."
+      content: "## Pick Your Format (5 min)\n\nPick ONE of these formats for your 30-60 second video. You can change it later — but pick one to plan around right now.\n\n- **Explainer** — Teach something quickly (a skill, a concept, how something works).\n- **Reaction** — React to a clip, an image, or a claim. Khaby-style works here.\n- **Day-in-life** — Snippets from your day, school, neighborhood, practice.\n- **Sketch** — Short scripted bit. Has a setup and a punchline.\n- **Tutorial** — Show somebody how to do one specific thing in 30 seconds.\n- **Local pride** — Something specific to PAHS, Perth Amboy, or your community.\n- **Your own (approved)** — Pitch it to Mr. McCarthy before storyboarding.\n\n## Pick Your Topic\n\nPick something you actually know or care about. The algorithm rewards specificity — \"my abuela's three rules for sazón\" beats \"cooking tips\" every single time."
     },
     {
       id: "img-storyboard",
@@ -170,26 +197,19 @@ const lesson = {
     {
       id: "b-storyboard-howto",
       type: "text",
-      content: "## Storyboard Your Video (12 min)\n\nGrab a piece of paper. Draw 6 boxes in a 2×3 or 3×2 grid. Each box = **one shot** in your video.\n\nFor each box, write three things underneath:\n\n1. **Shot type** — close-up on face, wide of room, over-the-shoulder, screen recording, B-roll, etc.\n2. **On-screen text** — what caption appears in this shot? (Even if it's none, write \"none.\")\n3. **Sound** — music, voiceover, ambient (room sound), or silent\n\n**Required:**\n- **Panel 1 = your hook.** The first shot has to stop the scroll inside 3 seconds.\n- **Panel 5 or 6 = your payoff.** The promise from the hook gets delivered.\n- The middle panels build the loop — they have to keep the viewer watching toward the payoff.\n\n**Last 2 minutes:** Show your storyboard to ONE neighbor. They should be able to tell you the hook out loud after one look. If they can't — the hook isn't clear enough yet."
+      content: "## Storyboard Your Video (12 min)\n\n6 boxes in a 2×3 or 3×2 grid. Each box = **one shot** in your video.\n\nPick how you want to build it — all three work the same way for grading:\n\n- 📝 **Paper** — grab a sheet, draw 6 boxes by hand\n- ✏️ **Whiteboard + markers** — pull one off the stack, sketch the 6 boxes\n- 💻 **Google Slides or Canva** — 6 slides or 6 frames; cleaner if you'd rather build digitally\n\nFor each box, label three things:\n\n1. **Shot type** — close-up on face, wide of room, over-the-shoulder, screen recording, B-roll, etc.\n2. **On-screen text** — what caption appears in this shot? (Even if it's none, write \"none.\")\n3. **Sound** — music, voiceover, ambient (room sound), or silent\n\n**Required:**\n- **Panel 1 = your hook.** The first shot has to stop the scroll inside 3 seconds.\n- **Panel 5 or 6 = your payoff.** The promise from the hook gets delivered.\n- The middle panels build the loop — they have to keep the viewer watching toward the payoff.\n\n**Last 2 minutes:** Show your storyboard to ONE neighbor. They should be able to tell you the hook out loud after one look. If they can't — the hook isn't clear enough yet.\n\nWhen your storyboard is done, submit it in the block below. Paper or whiteboard = upload a photo. Slides or Canva = paste the share link. Either way, you only submit ONE."
+    },
+    {
+      id: "sb-storyboard-submit",
+      type: "storyboard_submit",
+      scored: true,
+      weight: 5,
+      prompt: "**Submit Your Storyboard**\n\nPick the option that matches how you built it. You can switch or undo any time before submitting."
     },
     {
       id: "b-resources",
       type: "text",
       content: "## Resources for Today\n\nWe're not editing yet — that's Day 3. But if you want to look ahead at trending hooks and what's working right now, the links below are good places to study examples without doom-scrolling."
-    },
-    {
-      id: "ext-tiktok-creator-portal",
-      type: "external_link",
-      url: "https://www.tiktok.com/creators/creator-portal/en-us/",
-      title: "TikTok Creator Portal — Hooks and Watch Time",
-      description: "Official TikTok creator resource on hook structure, watch time, and what the algorithm rewards. Skim the \"Foundations\" section."
-    },
-    {
-      id: "ext-mrbeast-leaked",
-      type: "external_link",
-      url: "https://www.youtube.com/watch?v=8XzejMPGmFU",
-      title: "MrBeast on the First 3 Seconds (interview clip)",
-      description: "MrBeast explaining how he writes hooks. Watch the first 5 minutes — every short-form rule he describes applies to your project."
     },
 
     // ─── CLOSING ────────────────────────────────────────────
@@ -206,7 +226,7 @@ const lesson = {
       type: "callout",
       style: "warning",
       icon: "🛡️",
-      content: "**Content Guardrails — read before you storyboard:**\n\n- **No personal attacks, no shaming classmates, no filming anyone who didn't agree to be on camera.**\n- **No PII** — no last names, phone numbers, addresses, schedules, license plates, school IDs.\n- **PAPS AUP applies** — no copyrighted music if you're posting publicly. Use CapCut's royalty-free library on Day 3.\n- **Posting publicly is optional.** In-class submission to PantherLearn is the only required upload. Anyone under 18 needs parent consent before posting to a public account.\n- **Sensitive topics** (mental health, family, identity) — talk to Luke before shooting."
+      content: "**Content Guardrails — read before you storyboard:**\n\n- **No personal attacks, no shaming classmates, no filming anyone who didn't agree to be on camera.**\n- **No PII** — no last names, phone numbers, addresses, schedules, license plates, school IDs.\n- **PAPS AUP applies** — no copyrighted music if you're posting publicly. Use CapCut's royalty-free library on Day 3.\n- **Posting publicly is optional.** In-class submission to PantherLearn is the only required upload. Anyone under 18 needs parent consent before posting to a public account.\n- **Sensitive topics** (mental health, family, identity) — talk to Mr. McCarthy before shooting."
     },
     {
       id: "callout-due-date",
@@ -259,16 +279,20 @@ const lesson = {
 
 async function seed() {
   try {
-    await db
-      .collection("courses")
-      .doc(COURSE_ID)
-      .collection("lessons")
-      .doc(LESSON_ID)
-      .set(lesson);
+    // Preserve admin-managed fields (visible, dueDate, gradesReleased) from existing doc
+    const existing = await db.collection("courses").doc(COURSE_ID)
+      .collection("lessons").doc(LESSON_ID).get();
+    if (existing.exists) {
+      const d = existing.data();
+      if (d.visible !== undefined) lesson.visible = d.visible;
+      if (d.dueDate !== undefined) lesson.dueDate = d.dueDate;
+      if (d.gradesReleased !== undefined) lesson.gradesReleased = d.gradesReleased;
+    }
+    const result = await safeLessonWrite(db, COURSE_ID, LESSON_ID, lesson);
     console.log(`✅ Lesson seeded: "${lesson.title}"`);
     console.log(`   Path: courses/${COURSE_ID}/lessons/${LESSON_ID}`);
-    console.log(`   Blocks: ${lesson.blocks.length}`);
-    console.log(`   Order: ${lesson.order}`);
+    console.log(`   Blocks: ${lesson.blocks.length} | Order: ${lesson.order} | visible: ${lesson.visible}`);
+    console.log(`   safeLessonWrite: ${result.action} (preserved ${result.preserved} block IDs)`);
     process.exit(0);
   } catch (err) {
     console.error("❌ Error:", err);

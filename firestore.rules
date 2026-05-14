@@ -79,6 +79,15 @@ service cloud.firestore {
       match /lessons/{lessonId} {
         allow read: if isTeacher() || isEnrolledStudent(courseId);
         allow write: if isCourseTeacher(courseId);
+
+        // Per-student block responses (data tables, etc.)
+        // Path: lessons/{lessonId}/responses/{uid}/blocks/{blockId}
+        match /responses/{uid} {
+          allow read, write: if isOwner(uid) || isCourseTeacher(courseId);
+          match /blocks/{blockId} {
+            allow read, write: if isOwner(uid) || isCourseTeacher(courseId);
+          }
+        }
       }
       // Announcements: enrolled students + teacher can read, course teachers can write
       match /announcements/{annId} {

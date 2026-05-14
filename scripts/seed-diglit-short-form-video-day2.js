@@ -5,6 +5,9 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
@@ -53,7 +56,7 @@ const lesson = {
         "Distinguish when a video needs a script vs. a beat sheet",
         "Apply vertical-first shooting rules (1080×1920, rule of thirds, get close)",
         "Capture at least 5 usable clips with multiple takes per shot",
-        "Upload all footage to your CapCut project so nothing is stuck on one device"
+        "Get all footage off your phone — either into your CapCut project (Path A) or into Google Drive for WeVideo on your Chromebook (Path B)"
       ]
     },
 
@@ -158,12 +161,12 @@ const lesson = {
     {
       id: "b-shoot-block",
       type: "text",
-      content: "## Phones Out. Spread Out.\n\nWith Luke's pass, you can shoot in the hallway, near your locker, or in any agreed-upon spot. Stay where Luke can see you or check in by the start of each 5-minute interval.\n\n## Minimum Deliverables (must be done by end of period):\n\n- **At least 5 usable clips** that map to your storyboard panels\n- **At least 2 B-roll clips** as backup\n- **Multiple takes** of your hook shot (panel 1) and your payoff shot (panel 5 or 6) — at least 3 takes each\n- **Re-shoot** any clip that's shaky, out of focus, or has bad audio\n\n## Sound Tips\n\n- If you have voice in your video: shoot in a quiet spot, hold the phone close to your face (within arm's length)\n- If your video uses music only (no dialogue): the room sound doesn't matter — but make sure no one is talking in the background that shouldn't be in your video\n- AirPods/earbuds can act as a mic — plug them in and clip the mic near your collar"
+      content: "## Phones Out. Spread Out (Inside the Room).\n\nAll shooting today happens **inside this classroom**. No hallway, no locker, no leaving for any reason — that's a separate conversation for another day. Pick a corner of the room, the front board, a desk setup, the back wall, near the window — work the space you have.\n\nIf your storyboard has a shot that ONLY works in another location (your kitchen, the lunchroom, the practice field, your neighborhood block), that shot is **homework**. Capture it tonight or before class tomorrow and AirDrop/upload it to your CapCut project. You can still build everything else today.\n\n## Minimum Deliverables (must be done by end of period):\n\n- **At least 5 usable clips** that map to your storyboard panels (shot in this room)\n- **At least 2 B-roll clips** as backup (classroom objects, hands, details, ambient room shots)\n- **Multiple takes** of your hook shot (panel 1) and your payoff shot (panel 5 or 6) — at least 3 takes each\n- **Re-shoot** any clip that's shaky, out of focus, or has bad audio\n- Any location-only shots: shoot tonight as homework, upload before Day 3\n\n## Working a Small Space\n\n- Move desks out of frame if you need a clean background\n- Use the whiteboard, posters, or a window for visual variety\n- Shoot closeups (hands, an object on the desk, a face) — short-form rewards tight framing anyway\n- Different corners of the room = different \"locations\" if you reframe carefully\n\n## Sound Tips\n\n- If you have voice in your video: shoot during a quieter moment, hold the phone close to your face (within arm's length)\n- If your video uses music only (no dialogue): room sound doesn't matter — but make sure no one is talking in the background that shouldn't be in your video\n- AirPods/earbuds can act as a mic — plug them in and clip the mic near your collar"
     },
     {
       id: "b-wrap-upload",
       type: "text",
-      content: "## Wrap (last 2 minutes)\n\nAirDrop or upload all your clips to your CapCut project. Do NOT leave footage stuck on one device — phones break, get lost, get reset overnight. Tomorrow you edit. If your footage isn't in CapCut by the bell, you'll be re-shooting on Day 3.\n\nThe links below show how to start a CapCut project and import clips so they're ready for editing tomorrow."
+      content: "## Wrap (last 2 minutes)\n\nGet all your clips off your phone and into a place you can edit from tomorrow. Pick ONE path:\n\n- **Path A — CapCut on your phone:** Upload all clips into your CapCut project. CapCut syncs to cloud automatically when you're logged in. Tomorrow you'll edit on the phone.\n- **Path B — WeVideo on your Chromebook:** AirDrop / upload your clips to Google Drive. Tomorrow you'll open WeVideo on your Chromebook and import them from Drive. WeVideo is the school-approved Chromebook editor — works the same way as CapCut, just in the browser.\n\nDo NOT leave footage stuck on one device with no backup — phones break, get lost, get reset overnight. If your footage isn't accessible from your editing device by tomorrow, you'll lose half of Day 3 re-shooting in this room.\n\nThe links below cover both editors."
     },
     {
       id: "ext-capcut-getting-started",
@@ -171,6 +174,13 @@ const lesson = {
       url: "https://www.capcut.com/tools/desktop-video-editor",
       title: "CapCut — Getting Started (desktop + mobile)",
       description: "Official CapCut walkthrough. Covers project setup, importing clips, and saving your work to the cloud so it syncs across devices."
+    },
+    {
+      id: "ext-wevideo-chromebook",
+      type: "external_link",
+      url: "https://www.wevideo.com/education",
+      title: "WeVideo — Editing on a Chromebook",
+      description: "WeVideo runs in the browser and is school-approved for Chromebooks. Same concepts as CapCut — timeline, splits, captions, music. Use this path if you prefer editing on your school device."
     },
     {
       id: "ext-airdrop",
@@ -194,7 +204,7 @@ const lesson = {
       type: "callout",
       style: "warning",
       icon: "🛡️",
-      content: "**Content guardrails — re-read before shooting:**\n\n- **Don't film classmates without their okay.** A nod isn't enough — get a clear yes.\n- **No PII in frame** — no last names on jerseys, no schedule cards, no addresses, no license plates.\n- **PAPS AUP** — no inappropriate hand gestures, no profanity in audio if you plan to post publicly, no minors visible without consent.\n- **Sensitive topics** (mental health, family, identity) — talk to Luke before continuing.\n- **Posting publicly is optional.** Submission to PantherLearn is the only required upload."
+      content: "**Content guardrails — re-read before shooting:**\n\n- **Don't film classmates without their okay.** A nod isn't enough — get a clear yes.\n- **No PII in frame** — no last names on jerseys, no schedule cards, no addresses, no license plates.\n- **PAPS AUP** — no inappropriate hand gestures, no profanity in audio if you plan to post publicly, no minors visible without consent.\n- **Sensitive topics** (mental health, family, identity) — talk to Mr. McCarthy before continuing.\n- **Posting publicly is optional.** Submission to PantherLearn is the only required upload."
     },
     {
       id: "callout-due-date",
@@ -247,16 +257,19 @@ const lesson = {
 
 async function seed() {
   try {
-    await db
-      .collection("courses")
-      .doc(COURSE_ID)
-      .collection("lessons")
-      .doc(LESSON_ID)
-      .set(lesson);
+    const existing = await db.collection("courses").doc(COURSE_ID)
+      .collection("lessons").doc(LESSON_ID).get();
+    if (existing.exists) {
+      const d = existing.data();
+      if (d.visible !== undefined) lesson.visible = d.visible;
+      if (d.dueDate !== undefined) lesson.dueDate = d.dueDate;
+      if (d.gradesReleased !== undefined) lesson.gradesReleased = d.gradesReleased;
+    }
+    const result = await safeLessonWrite(db, COURSE_ID, LESSON_ID, lesson);
     console.log(`✅ Lesson seeded: "${lesson.title}"`);
     console.log(`   Path: courses/${COURSE_ID}/lessons/${LESSON_ID}`);
-    console.log(`   Blocks: ${lesson.blocks.length}`);
-    console.log(`   Order: ${lesson.order}`);
+    console.log(`   Blocks: ${lesson.blocks.length} | Order: ${lesson.order} | visible: ${lesson.visible}`);
+    console.log(`   safeLessonWrite: ${result.action} (preserved ${result.preserved} block IDs)`);
     process.exit(0);
   } catch (err) {
     console.error("❌ Error:", err);

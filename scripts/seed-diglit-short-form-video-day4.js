@@ -5,6 +5,9 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { safeLessonWrite } = require("./safe-lesson-write.cjs");
 
 initializeApp({ projectId: "pantherlearn-d6f7c" });
 const db = getFirestore();
@@ -81,7 +84,7 @@ const lesson = {
     {
       id: "b-export",
       type: "text",
-      content: "## Final Export\n\n- Tap **Export** (top right in CapCut)\n- Resolution: **1080p**\n- Frame rate: **30 fps** (60 fps fine if your phone supports it)\n- Aspect ratio: **9:16 (vertical)** — should be set automatically since you shot vertical\n- Wait for the export bar to finish\n- Save the .mp4 to your phone\n\n## Upload to PantherLearn\n\nGo to today's lesson submission block on PantherLearn (it'll appear here once Luke flips it visible). Upload the final .mp4. **This is the only required submission** — public posting to TikTok/Reels is optional and needs parent consent if you're under 18."
+      content: "## Final Export — pick your path\n\n**Path A — CapCut on your phone:**\n- Tap **Export** (top right in CapCut)\n- Resolution: **1080p**, Frame rate: **30 fps** (60 fps fine if your phone supports it)\n- Aspect ratio: **9:16 (vertical)**\n- Wait for the export bar, save the .mp4 to your phone\n- **Upload the .mp4 to your Google Drive** so you can grab it from your Chromebook for the next step\n\n**Path B — WeVideo on your Chromebook:**\n- Click **Finish** in the top right\n- Set resolution to **1080p**, frame rate to **30 fps**, vertical (9:16) layout\n- Wait for the render bar, then click **Download** to save the .mp4 to your Chromebook\n\n## Upload to PantherLearn\n\nGo to today's lesson submission block on PantherLearn (Mr. McCarthy will open it for upload when it's time). Upload the final .mp4 from your Chromebook (or from your phone if you stayed on CapCut and didn't need the Drive bridge). **This is the only required submission** — public posting to TikTok/Reels is optional and needs parent consent if you're under 18."
     },
     {
       id: "callout-tieback",
@@ -196,7 +199,7 @@ const lesson = {
       type: "callout",
       style: "warning",
       icon: "🛡️",
-      content: "**Final guardrail check before you submit OR post publicly:**\n\n- **No PII** — last names, phone numbers, addresses, schedule cards, license plates anywhere in the video?\n- **Anyone on camera consented?**\n- **Music is royalty-free or in-app?** (Critical if you post publicly.)\n- **No shaming, no personal attacks?**\n- **PAPS AUP followed?**\n- **Posting publicly?** Under 18 = parent consent required first. Talk to Luke if you're unsure."
+      content: "**Final guardrail check before you submit OR post publicly:**\n\n- **No PII** — last names, phone numbers, addresses, schedule cards, license plates anywhere in the video?\n- **Anyone on camera consented?**\n- **Music is royalty-free or in-app?** (Critical if you post publicly.)\n- **No shaming, no personal attacks?**\n- **PAPS AUP followed?**\n- **Posting publicly?** Under 18 = parent consent required first. Talk to Mr. McCarthy if you're unsure."
     },
     {
       id: "callout-due-date",
@@ -249,16 +252,19 @@ const lesson = {
 
 async function seed() {
   try {
-    await db
-      .collection("courses")
-      .doc(COURSE_ID)
-      .collection("lessons")
-      .doc(LESSON_ID)
-      .set(lesson);
+    const existing = await db.collection("courses").doc(COURSE_ID)
+      .collection("lessons").doc(LESSON_ID).get();
+    if (existing.exists) {
+      const d = existing.data();
+      if (d.visible !== undefined) lesson.visible = d.visible;
+      if (d.dueDate !== undefined) lesson.dueDate = d.dueDate;
+      if (d.gradesReleased !== undefined) lesson.gradesReleased = d.gradesReleased;
+    }
+    const result = await safeLessonWrite(db, COURSE_ID, LESSON_ID, lesson);
     console.log(`✅ Lesson seeded: "${lesson.title}"`);
     console.log(`   Path: courses/${COURSE_ID}/lessons/${LESSON_ID}`);
-    console.log(`   Blocks: ${lesson.blocks.length}`);
-    console.log(`   Order: ${lesson.order}`);
+    console.log(`   Blocks: ${lesson.blocks.length} | Order: ${lesson.order} | visible: ${lesson.visible}`);
+    console.log(`   safeLessonWrite: ${result.action} (preserved ${result.preserved} block IDs)`);
     process.exit(0);
   } catch (err) {
     console.error("❌ Error:", err);
