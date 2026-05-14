@@ -242,6 +242,7 @@ function NotesSection({ row }) {
   const [privInput, setPrivInput] = useState("");
   const [savingPub, setSavingPub] = useState(false);
   const [savingPriv, setSavingPriv] = useState(false);
+  const [publicNotes, setPublicNotes] = useState(row.publicNotes || []);
 
   const loadPrivate = async () => {
     try {
@@ -252,8 +253,6 @@ function NotesSection({ row }) {
   };
 
   useEffect(() => { loadPrivate(); }, [row.courseId, row.id]);
-
-  const publicNotes = row.publicNotes || [];
 
   const fmt = (v) => {
     const d = toDate(v);
@@ -267,7 +266,7 @@ function NotesSection({ row }) {
     try {
       await addPublicNote(row.courseId, row.id, text);
       setPubInput("");
-      row.publicNotes = [...publicNotes, { text, createdAt: new Date().toISOString() }];
+      setPublicNotes((prev) => [...prev, { text, createdAt: new Date().toISOString() }]);
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {
