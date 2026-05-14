@@ -11,6 +11,9 @@ import {
   priceQuote,
   declineQuote,
   cancelQuote,
+  addPublicNote,
+  addPrivateNote,
+  getPrivateNotes,
 } from "../lib/manaRequests";
 
 // Powers that are handled automatically and should NOT surface on this page.
@@ -233,6 +236,111 @@ export default function TeacherManaRequests() {
   );
 }
 
+function NotesSection({ row }) {
+  const [privateNotes, setPrivateNotes] = useState([]);
+  const [pubInput, setPubInput] = useState("");
+  const [privInput, setPrivInput] = useState("");
+  const [savingPub, setSavingPub] = useState(false);
+  const [savingPriv, setSavingPriv] = useState(false);
+
+  const loadPrivate = async () => {
+    try {
+      setPrivateNotes(await getPrivateNotes(row.courseId, row.id));
+    } catch (err) {
+      console.warn("[ManaNotes] private load failed", err?.code || err?.message);
+    }
+  };
+
+  useEffect(() => { loadPrivate(); }, [row.courseId, row.id]);
+
+  const publicNotes = row.publicNotes || [];
+
+  const fmt = (v) => {
+    const d = toDate(v);
+    return d ? d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  };
+
+  const addPub = async () => {
+    const text = pubInput.trim();
+    if (!text) return;
+    setSavingPub(true);
+    try {
+      await addPublicNote(row.courseId, row.id, text);
+      setPubInput("");
+      row.publicNotes = [...publicNotes, { text, createdAt: new Date().toISOString() }];
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setSavingPub(false);
+    }
+  };
+
+  const addPriv = async () => {
+    const text = privInput.trim();
+    if (!text) return;
+    setSavingPriv(true);
+    try {
+      await addPrivateNote(row.courseId, row.id, text);
+      setPrivInput("");
+      await loadPrivate();
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setSavingPriv(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 10, borderTop: "1px solid #e2e8f0", paddingTop: 8 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#0891b2", textTransform: "uppercase", letterSpacing: 0.4 }}>
+        Public notes — student sees these
+      </div>
+      {publicNotes.map((n, i) => (
+        <div key={i} style={noteEntry}>
+          <div style={{ whiteSpace: "pre-wrap" }}>{n.text}</div>
+          <div style={noteTime}>{fmt(n.createdAt)}</div>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+        <input
+          type="text"
+          placeholder="Add a public note"
+          value={pubInput}
+          onChange={(e) => setPubInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") addPub(); }}
+          style={noteInput}
+        />
+        <button onClick={addPub} disabled={savingPub || !pubInput.trim()} style={btn("#0891b2", savingPub)}>
+          Add
+        </button>
+      </div>
+
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.4, marginTop: 10 }}>
+        Private notes — only you
+      </div>
+      {privateNotes.map((n) => (
+        <div key={n.id} style={noteEntry}>
+          <div style={{ whiteSpace: "pre-wrap" }}>{n.text}</div>
+          <div style={noteTime}>{fmt(n.createdAt)}</div>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+        <input
+          type="text"
+          placeholder="Add a private note"
+          value={privInput}
+          onChange={(e) => setPrivInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") addPriv(); }}
+          style={noteInput}
+        />
+        <button onClick={addPriv} disabled={savingPriv || !privInput.trim()} style={btn("#64748b", savingPriv)}>
+          Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Card({
   row, stage, highlight, printIndex, busy,
   quoteInput, setQuoteInput,
@@ -363,6 +471,8 @@ function Card({
           </button>
         </div>
       )}
+
+      <NotesSection row={row} />
     </div>
   );
 }
@@ -398,6 +508,16 @@ const priceInput = {
   width: 70, padding: "5px 8px",
   borderRadius: 6, border: "1px solid #cbd5e1",
   fontSize: 12, textAlign: "center",
+};
+const noteEntry = {
+  fontSize: 11, color: "#0f172a", marginTop: 4,
+  padding: "5px 8px", background: "#f8fafc",
+  border: "1px solid #e2e8f0", borderRadius: 6, lineHeight: 1.4,
+};
+const noteTime = { fontSize: 9, color: "#94a3b8", marginTop: 2 };
+const noteInput = {
+  flex: 1, padding: "5px 8px", borderRadius: 6,
+  border: "1px solid #cbd5e1", fontSize: 11,
 };
 
 function btn(color, busy, variant) {
