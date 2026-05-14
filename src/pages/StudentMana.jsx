@@ -361,6 +361,7 @@ export default function StudentMana() {
 
   // Pending priced requests
   const [pricedRequests, setPricedRequests] = useState([]);
+  const [acceptedRequests, setAcceptedRequests] = useState([]);
 
   // Mage/Enchantress state
   const [poolState, setPoolState] = useState(null);
@@ -475,6 +476,8 @@ export default function StudentMana() {
         const allRequests = await getManaRequests(courseId);
         const priced = allRequests.filter(r => r.studentUid === user.uid && r.status === "priced");
         setPricedRequests(priced);
+        const accepted = allRequests.filter(r => r.studentUid === user.uid && r.status === "accepted");
+        setAcceptedRequests(accepted);
       } catch (e) { console.warn("Failed to load requests:", e); }
 
       const isTestStudent = user.email === "lmccart4@gmail.com";
@@ -1228,6 +1231,11 @@ export default function StudentMana() {
               <div style={{ fontSize: 12, color: MANA_TEXT_MUTED, marginTop: 2 }}>
                 "{req.description}"
               </div>
+              {(req.publicNotes || []).map((n, i) => (
+                <div key={i} style={{ fontSize: 12, color: MANA_TEXT, marginTop: 4, paddingLeft: 8, borderLeft: `2px solid ${GOLD}66` }}>
+                  {n.text}
+                </div>
+              ))}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button
@@ -1268,6 +1276,32 @@ export default function StudentMana() {
               >
                 Decline
               </button>
+            </div>
+          </div>
+        ))}
+
+        {/* In-Progress Request Banners */}
+        {acceptedRequests.map((req) => (
+          <div key={req.id} style={{
+            background: `${ACCENT}08`, border: `1px solid ${ACCENT}44`, borderRadius: 12,
+            padding: "14px 18px", marginBottom: 16, display: "flex", alignItems: "flex-start",
+            gap: 12, flexWrap: "wrap",
+          }}>
+            <span style={{ fontSize: 22 }}>🛠️</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: MANA_TEXT }}>
+                {req.powerName || "Custom 3D Print"} — in the print queue
+              </div>
+              {req.description && (
+                <div style={{ fontSize: 12, color: MANA_TEXT_MUTED, marginTop: 2 }}>
+                  "{req.description}"
+                </div>
+              )}
+              {(req.publicNotes || []).map((n, i) => (
+                <div key={i} style={{ fontSize: 12, color: MANA_TEXT, marginTop: 4, paddingLeft: 8, borderLeft: `2px solid ${ACCENT}66` }}>
+                  {n.text}
+                </div>
+              ))}
             </div>
           </div>
         ))}
