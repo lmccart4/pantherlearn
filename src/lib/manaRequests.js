@@ -2,7 +2,7 @@
 // Unified writer for all mana redemptions. Every spend path calls this so
 // (a) the launchd notifier sees every redemption, and (b) Luke has a single
 // audit trail.
-import { collection, addDoc, updateDoc, doc, getDocs, query, where } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, getDocs, query, where, arrayUnion, orderBy } from "firebase/firestore";
 import { db } from "./firebase";
 
 /**
@@ -101,5 +101,23 @@ export async function getPendingRequests(courseId) {
   const colRef = collection(db, "courses", courseId, "manaRequests");
   const q = query(colRef, where("status", "==", "pending"));
   const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function addPublicNote(courseId, requestId, text) {
+  const ref = doc(db, "courses", courseId, "manaRequests", requestId);
+  await updateDoc(ref, {
+    publicNotes: arrayUnion({ text, createdAt: new Date().toISOString() }),
+  });
+}
+
+export async function addPrivateNote(courseId, requestId, text) {
+  const colRef = collection(db, "courses", courseId, "manaRequests", requestId, "privateNotes");
+  await addDoc(colRef, { text, createdAt: new Date().toISOString() });
+}
+
+export async function getPrivateNotes(courseId, requestId) {
+  const colRef = collection(db, "courses", courseId, "manaRequests", requestId, "privateNotes");
+  const snap = await getDocs(query(colRef, orderBy("createdAt", "asc")));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
