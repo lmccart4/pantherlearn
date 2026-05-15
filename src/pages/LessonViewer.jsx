@@ -13,6 +13,7 @@ import { usePreviewData } from "../hooks/usePreviewData";
 import PreviewLauncher from "../components/PreviewLauncher";
 import { useEngagementTimer, formatEngagementTime } from "../hooks/useEngagementTimer";
 import { TelemetryProvider } from "../contexts/TelemetryContext";
+import { slugForCourseId } from "../config/courseSlugs";
 
 export default function LessonViewer() {
   const { courseId, lessonId } = useParams();
@@ -479,7 +480,7 @@ export default function LessonViewer() {
               color: "var(--accent, #6366f1)", fontWeight: 600,
             }}>
               <span>👁 Viewing as {viewAsName || "student"} — read only. Every block shows what they see.</span>
-              <Link to={`/student-progress?student=${viewAsUid}&course=${courseId}`} style={{
+              <Link to={`/progress/${slugForCourseId(courseId) || courseId}/lesson/${lessonId}`} style={{
                 fontSize: 12, color: "var(--accent, #6366f1)", textDecoration: "underline",
               }}>← back to progress</Link>
             </div>

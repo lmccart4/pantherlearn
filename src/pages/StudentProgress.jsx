@@ -1,9 +1,11 @@
 // src/pages/StudentProgress.jsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { collection, getDocs, getDocsFromServer, query, orderBy, where, doc, getDoc, setDoc, addDoc, deleteDoc, updateDoc, deleteField, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
+import { resolveCourseId, slugForCourseId } from "../config/courseSlugs";
 import { getLevelInfo, BADGES, awardXP, updateStudentGamification, getStudentGamification, getXPConfig, DEFAULT_XP_VALUES } from "../lib/gamification";
 import StreakDisplay from "../components/StreakDisplay";
 import { getWeightedOverall, CATEGORY_WEIGHTS, CATEGORY_LABELS, CATEGORY_COLORS, DEFAULT_CATEGORY, computeRubricGrade } from "../lib/gradeCalc";
@@ -28,8 +30,9 @@ function getTierInfo(score) {
 
 export default function StudentProgress() {
   const { user, userRole } = useAuth();
+  const navigate = useNavigate();
+  const { courseSlug, routeLessonId, routeUid } = useParams();
   const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
   const [students, setStudents] = useState([]);
   const [progressData, setProgressData] = useState({});
@@ -38,9 +41,27 @@ export default function StudentProgress() {
   const [reflectionData, setReflectionData] = useState({}); // { studentUid: { lessonId: { valid, response, ... } } }
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
-  const [view, setView] = useState("overview");
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [selectedLesson, setSelectedLesson] = useState(null);
+
+  // Derive view + selections from URL params
+  const selectedCourse = courseSlug ? resolveCourseId(courseSlug) : null;
+  const selectedLesson = routeLessonId || null;
+  const selectedStudent = routeUid || null;
+  const view = selectedStudent ? "student" : selectedLesson ? "lesson" : "overview";
+
+  // Nav helpers — single source of truth for /progress URLs
+  const navOverview = useCallback((courseId) => {
+    const slug = slugForCourseId(courseId);
+    navigate(slug ? `/progress/${slug}` : "/progress");
+  }, [navigate]);
+  const navLesson = useCallback((courseId, lessonId) => {
+    const slug = slugForCourseId(courseId);
+    navigate(`/progress/${slug}/lesson/${lessonId}`);
+  }, [navigate]);
+  const navStudent = useCallback((courseId, uid, lessonId) => {
+    const slug = slugForCourseId(courseId);
+    if (lessonId) navigate(`/progress/${slug}/student/${uid}/lesson/${lessonId}`);
+    else navigate(`/progress/${slug}/student/${uid}`);
+  }, [navigate]);
   const [sectionFilter] = useState("all");
   const [gradePopup, setGradePopup] = useState(null); // { studentUid, lessonId, x, y } or { studentUid, type: "overall", x, y }
   const [confirmComplete, setConfirmComplete] = useState(null); // { studentUid, lessonId, studentName, x, y }
@@ -89,11 +110,15 @@ export default function StudentProgress() {
       const snap = await getDocs(q);
       const c = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden);
       setCourses(c);
-      if (c.length > 0) setSelectedCourse(c[0].id);
+      // If no course in URL, redirect to the first one (replace so back button skips bare /progress)
+      if (!courseSlug && c.length > 0) {
+        const slug = slugForCourseId(c[0].id);
+        navigate(slug ? `/progress/${slug}` : "/progress", { replace: true });
+      }
       setLoading(false);
     };
     fetchCourses();
-  }, [userRole]);
+  }, [userRole, courseSlug, navigate]);
 
   // Fetch everything when course changes
   useEffect(() => {
@@ -1542,14 +1567,14 @@ export default function StudentProgress() {
 
   const renderBreadcrumb = () => (
     <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text3)", marginBottom: 20, flexWrap: "wrap" }}>
-      <button onClick={() => { setView("overview"); setSelectedStudent(null); setSelectedLesson(null); }}
+      <button onClick={() => navOverview(selectedCourse)}
         style={{ background: "none", border: "none", color: view === "overview" ? "var(--text)" : "var(--amber)", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: 13, padding: 0, fontWeight: 600 }}>
         {currentCourse?.icon} {currentCourse?.title || "Course"}
       </button>
       {(view === "lesson" || (view === "student" && selectedLesson)) && currentLesson && (
         <>
           <span style={{ color: "var(--text3)" }}>›</span>
-          <button onClick={() => { setView("lesson"); setSelectedStudent(null); }}
+          <button onClick={() => navLesson(selectedCourse, selectedLesson || currentLesson.id)}
             style={{ background: "none", border: "none", color: view === "lesson" && !selectedStudent ? "var(--text)" : "var(--amber)", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: 13, padding: 0, fontWeight: 600 }}>
             {currentLesson.title}
           </button>
@@ -1667,7 +1692,7 @@ export default function StudentProgress() {
 
             return (
               <div key={lesson.id} className="card" style={{ padding: "14px 20px", cursor: "pointer" }}
-                onClick={() => { setSelectedLesson(lesson.id); setView("lesson"); }}>
+                onClick={() => navLesson(selectedCourse, lesson.id)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>{lesson.title}</div>
                   <GradeCell studentUid={s.uid} lessonId={lesson.id} style={{
@@ -1991,7 +2016,7 @@ export default function StudentProgress() {
                       )}
                       <span
                         style={{ fontSize: 13, fontWeight: 600, color: "var(--text2)", cursor: "pointer", minWidth: 140, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 0 }}
-                        onClick={() => { setSelectedStudent(student.uid); setView("student"); }}
+                        onClick={() => navStudent(selectedCourse, student.uid)}
                         title="View this student"
                       >
                         {student.displayName}
@@ -2078,7 +2103,7 @@ export default function StudentProgress() {
                       )}
                       <span
                         style={{ fontSize: 13, fontWeight: 600, color: "var(--text2)", cursor: "pointer", minWidth: 140, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 0 }}
-                        onClick={() => { setSelectedStudent(student.uid); setView("student"); }}
+                        onClick={() => navStudent(selectedCourse, student.uid)}
                         title="View this student"
                       >
                         {student.displayName}
@@ -2173,10 +2198,13 @@ export default function StudentProgress() {
               }).map((s, i) => {
                 const result = getStudentLessonGrade(s.uid, lesson.id);
                 const answers = progressData[s.uid]?.[lesson.id] || {};
+                const viewAsHref = `/course/${selectedCourse}/lesson/${lesson.id}?viewAsUid=${s.uid}`;
+                const openViewAs = (e) => { e.stopPropagation(); window.location.href = viewAsHref; };
+                const cellClickStyle = { cursor: "pointer" };
                 return (
                   <tr key={s.uid}
                     style={{ borderBottom: i < filteredStudents.length - 1 ? "1px solid var(--border)" : "none", background: i % 2 === 0 ? "transparent" : "var(--surface)", cursor: "pointer" }}
-                    onClick={() => { setSelectedStudent(s.uid); setView("student"); }}>
+                    onClick={() => navStudent(selectedCourse, s.uid)}>
                     <td style={{ padding: "8px 16px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         {s.photoURL ? (
@@ -2187,7 +2215,7 @@ export default function StudentProgress() {
                         <span style={{ fontWeight: 500 }}>{s.displayName}</span>
                       </div>
                     </td>
-                    <td style={{ textAlign: "center", padding: "8px" }}>
+                    <td style={{ textAlign: "center", padding: "8px", ...cellClickStyle }} onClick={openViewAs} title={`Open this lesson as ${s.displayName}`}>
                       <GradeCell studentUid={s.uid} lessonId={lesson.id} style={{
                         fontFamily: "var(--font-display)", fontWeight: 700,
                         color: result ? gradeColor(result.grade) : "var(--text3)",
@@ -2196,7 +2224,7 @@ export default function StudentProgress() {
                     {mc.map((q) => {
                       const a = answers[q.id];
                       return (
-                        <td key={q.id} style={{ textAlign: "center", padding: "8px" }}>
+                        <td key={q.id} style={{ textAlign: "center", padding: "8px", ...cellClickStyle }} onClick={openViewAs} title={`Open this lesson as ${s.displayName}`}>
                           {a?.submitted ? (
                             <span style={{ fontWeight: 700, color: a.correct ? "var(--green)" : "var(--red)" }}>
                               {a.correct ? "✓" : "✗"}
@@ -2209,10 +2237,10 @@ export default function StudentProgress() {
                     })}
                     {sa.map((q) => {
                       const a = answers[q.id];
-                      if (!a?.submitted) return <td key={q.id} style={{ textAlign: "center", padding: "8px", color: "var(--text3)" }}>—</td>;
+                      if (!a?.submitted) return <td key={q.id} style={{ textAlign: "center", padding: "8px", color: "var(--text3)", ...cellClickStyle }} onClick={openViewAs} title={`Open this lesson as ${s.displayName}`}>—</td>;
                       const tier = a.writtenScore !== undefined && a.writtenScore !== null ? getTierInfo(a.writtenScore) : null;
                       return (
-                        <td key={q.id} style={{ textAlign: "center", padding: "8px" }}>
+                        <td key={q.id} style={{ textAlign: "center", padding: "8px", ...cellClickStyle }} onClick={openViewAs} title={`Open this lesson as ${s.displayName}`}>
                           {tier ? (
                             <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600, background: tier.bg, color: tier.color }}>
                               {a.writtenLabel || tier.label}
@@ -2283,7 +2311,7 @@ export default function StudentProgress() {
                     })()}
                     <td style={{ textAlign: "center", padding: "8px" }} onClick={(e) => e.stopPropagation()}>
                       <a
-                        href={`/lesson/${selectedCourse}/${lesson.id}?viewAsUid=${s.uid}`}
+                        href={viewAsHref}
                         target="_blank"
                         rel="noopener noreferrer"
                         title={`View lesson as ${s.displayName} would see it`}
@@ -2350,7 +2378,7 @@ export default function StudentProgress() {
                                   )}
                                   <span
                                     style={{ fontSize: 12, fontWeight: 600, color: "var(--text2)", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                                    onClick={() => { setSelectedStudent(s.uid); setView("student"); }}
+                                    onClick={() => navStudent(selectedCourse, s.uid)}
                                     title="View this student"
                                   >
                                     {s.displayName}
@@ -2427,7 +2455,7 @@ export default function StudentProgress() {
                 {courses.map((c) => (
                   <button key={c.id}
                     className={`top-nav-link ${selectedCourse === c.id ? "active" : ""}`}
-                    onClick={() => { setSelectedCourse(c.id); setView("overview"); setSelectedStudent(null); setSelectedLesson(null); setUnitFilter("all"); }}>
+                    onClick={() => { setUnitFilter("all"); navOverview(c.id); }}>
                     {c.icon} {c.title}
                   </button>
                 ))}
@@ -2511,7 +2539,7 @@ export default function StudentProgress() {
 
                     return (
                       <div key={lesson.id} className="card" style={{ cursor: "pointer", padding: "14px 16px", transition: "border-color 0.2s" }}
-                        onClick={() => { setSelectedLesson(lesson.id); setView("lesson"); }}
+                        onClick={() => navLesson(selectedCourse, lesson.id)}
                         onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--amber)"}
                         onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--border)"}>
                         <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>{lesson.title}</div>
@@ -2547,7 +2575,7 @@ export default function StudentProgress() {
                               textAlign: "center", padding: "10px 8px", fontWeight: 600, color: "var(--text3)", fontSize: 10,
                               textTransform: "uppercase", letterSpacing: "0.04em", maxWidth: 70, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                               cursor: "pointer",
-                            }} onClick={() => { setSelectedLesson(l.id); setView("lesson"); }}>
+                            }} onClick={() => navLesson(selectedCourse, l.id)}>
                               {l.title?.length > 10 ? l.title.slice(0, 10) + "…" : l.title}
                             </th>
                           ))}
@@ -2568,7 +2596,7 @@ export default function StudentProgress() {
                           return (
                             <tr key={s.uid}
                               style={{ borderBottom: i < filteredStudents.length - 1 ? "1px solid var(--border)" : "none", background: i % 2 === 0 ? "transparent" : "var(--surface)", cursor: "pointer" }}
-                              onClick={() => { setSelectedStudent(s.uid); setView("student"); }}>
+                              onClick={() => navStudent(selectedCourse, s.uid)}>
                               <td style={{ padding: "10px 16px" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                   {s.photoURL ? (

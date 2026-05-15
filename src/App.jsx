@@ -138,6 +138,10 @@ function AppRoutes() {
             <Route path="/grading" element={<GradingDashboard />} />
             <Route path="/rosters" element={<RosterSync />} />
             <Route path="/progress" element={<StudentProgress />} />
+            <Route path="/progress/:courseSlug" element={<StudentProgress />} />
+            <Route path="/progress/:courseSlug/lesson/:routeLessonId" element={<StudentProgress />} />
+            <Route path="/progress/:courseSlug/student/:routeUid" element={<StudentProgress />} />
+            <Route path="/progress/:courseSlug/student/:routeUid/lesson/:routeLessonId" element={<StudentProgress />} />
             <Route path="/xp-controls/:courseId" element={<XPControls />} />
             <Route path="/teams/:courseId" element={<TeamManager />} />
             <Route path="/mana/:courseId" element={<ManaManager />} />

@@ -27,6 +27,13 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Student notes UI (Lachlan-internal, obscure URL). Anonymous auth ok.
+    // Blocks unauthenticated API scans; only the UI which auto-anon-signs-in
+    // can read/write. Contains student notes for Suno song generation.
+    match /studentProfiles/{id} {
+      allow read, write: if request.auth != null;
+    }
+
     function isLoggedIn() {
       return request.auth != null;
     }
