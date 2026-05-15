@@ -1,769 +1,964 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JARVIS Mark XLII Interface</title>
-    <script>
-        // System Identification & Configuration
-        window.__firebase_config = JSON.stringify({
-            apiKey: "AIzaSyAlxvGxLIBUrVO3WWmEcslFpSygeYVeHpY",
-            authDomain: "pantherlearn-d6f7c.firebaseapp.com",
-            projectId: "pantherlearn-d6f7c",
-            storageBucket: "pantherlearn-d6f7c.firebasestorage.app",
-            messagingSenderId: "293205883325",
-            appId: "1:293205883325:web:c0c21ece0b4fc26f673ad4"
-        });
-        window.__app_id = 'paps-ai-builds-jarvis';
-        let _uid = localStorage.getItem('jarvisUid');
-        if (!_uid) { _uid = crypto.randomUUID(); localStorage.setItem('jarvisUid', _uid); }
-        window.__jarvis_uid = _uid;
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&display=swap');
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JARVIS Mark XLII Interface</title>
+<script>
+window.__firebase_config = JSON.stringify({
+  apiKey: "AIzaSyAlxvGxLIBUrVO3WWmEcslFpSygeYVeHpY",
+  authDomain: "pantherlearn-d6f7c.firebaseapp.com",
+  projectId: "pantherlearn-d6f7c",
+  storageBucket: "pantherlearn-d6f7c.firebasestorage.app",
+  messagingSenderId: "293205883325",
+  appId: "1:293205883325:web:c0c21ece0b4fc26f673ad4"
+});
+window.__app_id = 'paps-ai-builds-jarvis';
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&display=swap');
 
-        :root {
-            --cyan: #00f2ff;
-            --blue: #0066ff;
-            --dark-bg: #020617;
-            --glass: rgba(0, 242, 255, 0.05);
-            --border: rgba(0, 242, 255, 0.2);
-        }
+:root {
+  --cyan: #00f2ff;
+  --blue: #0066ff;
+  --dark-bg: #020617;
+  --glass: rgba(0, 242, 255, 0.05);
+  --border: rgba(0, 242, 255, 0.2);
+}
 
-        body {
-            background-color: var(--dark-bg);
-            color: var(--cyan);
-            font-family: 'Share Tech Mono', monospace;
-            height: 100vh;
-            margin: 0;
-            background-image:
-                radial-gradient(circle at 50% 50%, rgba(0, 102, 255, 0.15) 0%, transparent 80%),
-                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-                linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            background-size: 100% 100%, 100% 2px, 3px 100%;
-            background-attachment: fixed;
-            overflow: hidden;
-        }
+body {
+  background-color: var(--dark-bg);
+  color: var(--cyan);
+  font-family: 'Share Tech Mono', monospace;
+  height: 100vh;
+  margin: 0;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(0, 102, 255, 0.15) 0%, transparent 80%),
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 100%, 100% 2px, 3px 100%;
+  background-attachment: fixed;
+  overflow: hidden;
+}
 
-        .orbitron { font-family: 'Orbitron', sans-serif; }
+.orbitron { font-family: 'Orbitron', sans-serif; }
 
-        .panel {
-            background: var(--glass);
-            border: 1px solid var(--border);
-            position: relative;
-            backdrop-filter: blur(4px);
-        }
+.panel {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  position: relative;
+  backdrop-filter: blur(4px);
+}
 
-        .panel::before {
-            content: '';
-            position: absolute;
-            top: -1px; left: -1px; width: 10px; height: 10px;
-            border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan);
-        }
+.panel::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px; width: 10px; height: 10px;
+  border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan);
+}
 
-        .glow-text { text-shadow: 0 0 10px var(--cyan); }
+.glow-text { text-shadow: 0 0 10px var(--cyan); }
 
-        .reactor-container {
-            width: 180px;
-            height: 180px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            user-select: none;
-        }
+.reactor-container {
+  width: 180px;
+  height: 180px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  user-select: none;
+}
 
-        .core-glow {
-            position: absolute;
-            width: 50px; height: 50px;
-            background: var(--cyan);
-            border-radius: 50%;
-            box-shadow: 0 0 40px 15px var(--cyan);
-            animation: pulse 2s infinite ease-in-out;
-            pointer-events: none;
-        }
+.core-glow {
+  position: absolute;
+  width: 50px; height: 50px;
+  background: var(--cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 40px 15px var(--cyan);
+  animation: pulse 2s infinite ease-in-out;
+  pointer-events: none;
+}
 
-        .speaking .core-glow {
-            animation: speaking-pulse 0.4s infinite alternate;
-            box-shadow: 0 0 60px 20px var(--cyan);
-        }
+.speaking .core-glow {
+  animation: speaking-pulse 0.4s infinite alternate;
+  box-shadow: 0 0 60px 20px var(--cyan);
+}
 
-        .listening .core-glow {
-            background: #ff3333;
-            box-shadow: 0 0 60px 25px rgba(255, 51, 51, 0.8);
-            animation: listening-pulse 0.2s infinite alternate;
-        }
+.listening .core-glow {
+  background: #ff3333;
+  box-shadow: 0 0 60px 25px rgba(255, 51, 51, 0.8);
+  animation: listening-pulse 0.2s infinite alternate;
+}
 
-        @keyframes speaking-pulse { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.2); opacity: 1; } }
-        @keyframes listening-pulse { from { transform: scale(1.1); opacity: 0.9; } to { transform: scale(1.3); opacity: 1; } }
-        @keyframes pulse { 0%, 100% { opacity: 0.8; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
+@keyframes speaking-pulse { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.2); opacity: 1; } }
+@keyframes listening-pulse { from { transform: scale(1.1); opacity: 0.9; } to { transform: scale(1.3); opacity: 1; } }
+@keyframes pulse { 0%, 100% { opacity: 0.8; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
 
-        .ring-rotate {
-            position: absolute;
-            border: 2px solid var(--border);
-            border-radius: 50%;
-            animation: spin var(--d) linear infinite;
-            pointer-events: none;
-        }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.ring-rotate {
+  position: absolute;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  animation: spin var(--d) linear infinite;
+  pointer-events: none;
+}
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--cyan); }
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--cyan); }
 
-        #video-feed {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            mix-blend-mode: screen;
-            opacity: 0.7;
-            display: none;
-            transform: scaleX(-1);
-            transition: opacity 0.5s ease-in-out;
-        }
+#video-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: screen;
+  opacity: 0.7;
+  display: none;
+  transform: scaleX(-1);
+  transition: opacity 0.5s ease-in-out;
+}
 
-        .scan-line {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 2px;
-            background: var(--cyan);
-            box-shadow: 0 0 10px var(--cyan);
-            animation: scan 3s linear infinite;
-            z-index: 5;
-        }
+.scan-line {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 2px;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  animation: scan 3s linear infinite;
+  z-index: 5;
+}
 
-        @keyframes scan { from { top: 0; } to { top: 100%; } }
+@keyframes scan { from { top: 0; } to { top: 100%; } }
 
-        #camera-overlay {
-            position: absolute;
-            inset: 0;
-            background: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0, 242, 255, 0.05) 2px);
-            pointer-events: none;
-        }
+#camera-overlay {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0, 242, 255, 0.05) 2px);
+  pointer-events: none;
+}
 
-        .snap-flash {
-            position: absolute;
-            inset: 0;
-            background: white;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 50;
-        }
-        .flash-active { animation: flash-anim 0.3s ease-out; }
-        @keyframes flash-anim { 0% { opacity: 0.8; } 100% { opacity: 0; } }
+.snap-flash {
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+.flash-active { animation: flash-anim 0.3s ease-out; }
+@keyframes flash-anim { 0% { opacity: 0.8; } 100% { opacity: 0; } }
 
-        .wave-active {
-            animation: text-pulse 1.5s infinite ease-in-out;
-        }
-        @keyframes text-pulse {
-            0% { opacity: 0.3; }
-            50% { opacity: 1; text-shadow: 0 0 8px var(--cyan); }
-            100% { opacity: 0.3; }
-        }
+.hw-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: rgba(0, 242, 255, 0.05);
+  border: 1px solid rgba(0, 242, 255, 0.1);
+  font-size: 9px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.hw-status { width: 6px; height: 6px; border-radius: 50%; background: #333; transition: all 0.3s; }
+.hw-active .hw-status { background: var(--cyan); box-shadow: 0 0 5px var(--cyan); }
 
-        .hw-switch {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 4px 8px;
-            background: rgba(0, 242, 255, 0.05);
-            border: 1px solid rgba(0, 242, 255, 0.1);
-            font-size: 9px;
-            margin-bottom: 4px;
-        }
-        .hw-status { width: 6px; height: 6px; border-radius: 50%; background: #333; transition: all 0.3s; }
-        .hw-active .hw-status { background: var(--cyan); box-shadow: 0 0 5px var(--cyan); }
+.id-badge { display: flex; align-items: center; gap: 12px; }
+.auth-circle {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-circle svg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  animation: rotate-reverse 10s linear infinite;
+}
+@keyframes rotate-reverse { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+.biometric-lines {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--cyan);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.biometric-lines::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, var(--cyan) 3px);
+  opacity: 0.3;
+  animation: biometric-scroll 2s linear infinite;
+}
+@keyframes biometric-scroll { from { transform: translateY(-100%); } to { transform: translateY(100%); } }
 
-        .id-badge { display: flex; align-items: center; gap: 12px; }
-        .auth-circle {
-            position: relative;
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .auth-circle svg {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            animation: rotate-reverse 10s linear infinite;
-        }
-        @keyframes rotate-reverse { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+.typing::after {
+  content: '|';
+  animation: blink 0.7s infinite;
+  margin-left: 2px;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-        .biometric-lines {
-            width: 24px;
-            height: 24px;
-            border: 1px solid var(--cyan);
-            border-radius: 2px;
-            position: relative;
-            overflow: hidden;
-        }
-        .biometric-lines::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: repeating-linear-gradient(0deg, transparent, transparent 2px, var(--cyan) 3px);
-            opacity: 0.3;
-            animation: biometric-scroll 2s linear infinite;
-        }
-        @keyframes biometric-scroll { from { transform: translateY(-100%); } to { transform: translateY(100%); } }
+#tactical-map-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 40;
+  display: none;
+  flex-direction: column;
+  padding: 20px;
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+  backdrop-filter: blur(8px);
+}
 
-    </style>
+.map-frame {
+  position: relative;
+  flex: 1;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: #000;
+}
+
+#map-iframe {
+  filter: invert(1) hue-rotate(180deg) saturate(1.4) brightness(0.9) contrast(1.1);
+}
+
+.map-target-ui {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 220px;
+  background: rgba(0, 20, 30, 0.85);
+  border: 1px solid var(--cyan);
+  padding: 10px;
+  font-size: 10px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.map-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.map-crosshair::before, .map-crosshair::after {
+  content: '';
+  position: absolute;
+  background: var(--cyan);
+  opacity: 0.5;
+}
+.map-crosshair::before { width: 100%; height: 1px; top: 50%; left: 0; }
+.map-crosshair::after { height: 100%; width: 1px; left: 50%; top: 0; }
+
+.close-map-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: var(--dark-bg);
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+}
+
+.map-searching-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 15, 20, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 45;
+  flex-direction: column;
+  gap: 15px;
+}
+</style>
 </head>
 <body class="p-4 md:p-6 flex flex-col h-screen" id="main-interface">
-    <header class="flex justify-between items-start mb-4 z-10">
-        <div class="flex flex-col gap-2">
-            <div class="id-badge">
-                <div class="auth-circle">
-                    <svg viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="10 5" class="text-cyan-500/40"></circle>
-                    </svg>
-                    <div class="biometric-lines"></div>
-                </div>
-                <div class="panel p-2 md:p-3 min-w-[160px] border-l-4 border-l-cyan-500">
-                    <div class="flex justify-between items-center mb-1">
-                        <p class="text-[7px] opacity-60 tracking-widest">ENCRYPTED AUTH</p>
-                        <div class="w-1 h-1 bg-cyan-400 animate-ping"></div>
-                    </div>
-                    <p class="orbitron text-xs md:text-sm font-bold tracking-[0.2em] uppercase glow-text">J.A.R.V.I.S</p>
-                    <div class="mt-1 flex gap-1">
-                        <div class="h-[2px] w-8 bg-cyan-500"></div>
-                        <div class="h-[2px] w-2 bg-cyan-500/30"></div>
-                        <div class="h-[2px] w-2 bg-cyan-500/30"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <div id="latency-tag" class="text-[8px] panel px-2 py-1 flex items-center gap-1 border-dashed">
-                    <div id="status-light" class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></div>
-                    NEURAL LINK: <span id="status-text">COGNITIVE_BUFFER_ACTIVE</span>
-                </div>
-            </div>
+
+<div id="tactical-map-overlay">
+  <button class="close-map-btn" id="close-map-btn"><i class="fa-solid fa-xmark"></i></button>
+  <div class="flex justify-between items-end mb-4">
+    <div>
+      <p class="orbitron text-xs tracking-widest text-cyan-500/60">SATELLITE DOWNLINK // MARK.XLII</p>
+      <h2 class="orbitron text-xl glow-text" id="map-location-title">GLOBAL POSITIONING</h2>
+    </div>
+    <div class="text-right text-[10px] opacity-60">
+      <p id="map-coords">LAT: --.--- | LONG: --.---</p>
+      <p>SIGNAL: ENCRYPTED // STARK_NET</p>
+    </div>
+  </div>
+  <div class="map-frame">
+    <div id="map-searching" class="map-searching-overlay">
+      <div class="reactor-container scale-75">
+        <div class="core-glow"></div>
+        <div class="ring-rotate w-full h-full" style="--d: 2s; border-style: double;"></div>
+      </div>
+      <p class="orbitron tracking-[0.4em] animate-pulse">TRIANGULATING POSITION...</p>
+    </div>
+    <iframe id="map-iframe" width="100%" height="100%" frameborder="0" style="border:0;" allowfullscreen></iframe>
+    <div class="map-crosshair"></div>
+    <div class="map-target-ui">
+      <div class="flex justify-between border-b border-cyan-500/30 mb-2 pb-1">
+        <span>TARGET STATUS</span>
+        <span class="text-green-400">LOCKED</span>
+      </div>
+      <div class="space-y-1 opacity-80">
+        <p>TYPE: TOPOGRAPHICAL_DATA</p>
+        <p>SOURCE: OPENSTREETMAP</p>
+        <p>SENSOR: STARK_NET_OVERLAY</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<header class="flex justify-between items-start mb-4 z-10">
+  <div class="flex flex-col gap-2">
+    <div class="id-badge">
+      <div class="auth-circle">
+        <svg viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="10 5" class="text-cyan-500/40"></circle>
+        </svg>
+        <div class="biometric-lines"></div>
+      </div>
+      <div class="panel p-2 md:p-3 min-w-[160px] border-l-4 border-l-cyan-500">
+        <div class="flex justify-between items-center mb-1">
+          <p class="text-[7px] opacity-60 tracking-widest">ENCRYPTED AUTH</p>
+          <div class="w-1 h-1 bg-cyan-400 animate-ping"></div>
         </div>
-        <div class="text-right flex flex-col items-end">
-            <div class="panel p-2 md:p-3 mb-2">
-                <p class="orbitron text-lg md:text-2xl font-bold glow-text" id="clock">00:00:00</p>
-                <div class="flex justify-end gap-1 opacity-50">
-                    <div class="w-1 h-2 bg-cyan-500"></div>
-                    <div class="w-1 h-2 bg-cyan-500"></div>
-                    <div class="w-1 h-2 bg-cyan-500/20"></div>
-                    <p class="text-[8px] orbitron ml-1">UI.MARK.42</p>
-                </div>
-            </div>
-            <div class="text-[9px] opacity-40 orbitron uppercase tracking-[0.3em]">H.O.M.E Protocol</div>
+        <p class="orbitron text-xs md:text-sm font-bold tracking-[0.2em] uppercase glow-text">J.A.R.V.I.S</p>
+        <div class="mt-1 flex gap-1">
+          <div class="h-[2px] w-8 bg-cyan-500"></div>
+          <div class="h-[2px] w-2 bg-cyan-500/30"></div>
+          <div class="h-[2px] w-2 bg-cyan-500/30"></div>
         </div>
-    </header>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <div id="latency-tag" class="text-[8px] panel px-2 py-1 flex items-center gap-1 border-dashed">
+        <div id="status-light" class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></div>
+        NEURAL LINK: <span id="status-text">COGNITIVE_BUFFER_ACTIVE</span>
+      </div>
+    </div>
+  </div>
+  <div class="text-right flex flex-col items-end">
+    <div class="panel p-2 md:p-3 mb-2">
+      <p class="orbitron text-lg md:text-2xl font-bold glow-text" id="clock">00:00:00</p>
+      <div class="flex justify-end gap-1 opacity-50">
+        <div class="w-1 h-2 bg-cyan-500"></div>
+        <div class="w-1 h-2 bg-cyan-500"></div>
+        <div class="w-1 h-2 bg-cyan-500/20"></div>
+        <p class="text-[8px] orbitron ml-1">UI.MARK.42</p>
+      </div>
+    </div>
+    <div id="date-display" class="text-[9px] opacity-40 orbitron uppercase tracking-[0.3em]">H.O.M.E Protocol</div>
+  </div>
+</header>
 
-    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-24">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
-            <div class="lg:col-span-3 flex flex-col gap-6">
-                <div id="visual-sensor-panel" class="panel h-[200px] relative overflow-hidden group cursor-pointer border-cyan-500/30 hover:border-cyan-400">
-                    <div class="absolute top-2 left-2 z-10 text-[8px] orbitron bg-black/50 px-1 flex gap-2">
-                        <span>OPTICAL_FEED_01</span>
-                    </div>
-                    <div class="scan-line"></div>
-                    <div id="camera-overlay"></div>
-                    <div id="snap-flash" class="snap-flash"></div>
-                    <video id="video-feed" autoplay playsinline muted></video>
-                    <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-[10px] opacity-40 text-center p-4">
-                        <i class="fa-solid fa-camera mb-2 text-xl"></i>
-                        INITIALIZE OPTICAL SENSORS
-                    </div>
-                </div>
-
-                <div class="panel p-3">
-                    <p class="text-[9px] opacity-50 mb-2 uppercase tracking-tighter">Hardware Status</p>
-                    <div id="sw-optical" class="hw-switch"><span>OPTICAL SENSORS</span><div class="hw-status"></div></div>
-                    <div id="sw-wake" class="hw-switch"><span>WAKE PROTOCOL</span><div class="hw-status"></div></div>
-                    <div id="sw-audio" class="hw-switch"><span>VOCAL OUTPUT</span><div class="hw-status"></div></div>
-                </div>
-
-                <div class="panel p-4 h-[200px] flex flex-col">
-                    <p class="text-[10px] opacity-50 mb-2 border-b border-cyan-900/50 uppercase">Neural Activity Log</p>
-                    <div class="space-y-1 text-[10px] opacity-80 overflow-y-auto flex-1 custom-scrollbar" id="log-container"></div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-6 flex flex-col items-center justify-center gap-6">
-                <div class="panel flex flex-col items-center justify-center p-4 w-full min-h-[450px]">
-                    <div class="absolute top-4 right-4 flex items-center gap-2">
-                        <span class="text-[10px] opacity-50 orbitron">PASSIVE LISTEN</span>
-                        <button id="toggle-listen" class="w-10 h-5 rounded-full bg-cyan-900/50 border border-cyan-400/30 relative transition-colors">
-                            <div class="absolute left-1 top-1 w-3 h-3 bg-cyan-400 rounded-full transition-all" id="toggle-knob"></div>
-                        </button>
-                    </div>
-
-                    <div class="reactor-container mb-6" id="arc-reactor-btn">
-                        <div class="core-glow"></div>
-                        <div class="ring-rotate w-full h-full" style="--d: 15s; border-style: double; border-width: 4px;"></div>
-                        <div class="ring-rotate w-[70%] h-[70%]" style="--d: 8s; border-style: dashed; border-width: 1px;"></div>
-                        <div class="z-10 orbitron text-[10px] font-bold" id="core-text">BOOT SYSTEM</div>
-                    </div>
-
-                    <div id="response-container" class="w-full text-center px-4">
-                        <p id="jarvis-output" class="text-xl md:text-2xl glow-text leading-tight min-h-[3em] font-light">
-                            Awaiting authorization, Sir.
-                        </p>
-                        <p id="boot-hint" class="text-[10px] opacity-60 mt-3 tracking-widest orbitron uppercase">
-                            Strategic Planning Buffers Active
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-3 flex flex-col gap-6">
-                <div class="panel p-4 flex-1 flex flex-col min-h-[350px]">
-                    <p class="text-[10px] opacity-50 mb-2 uppercase border-b border-cyan-900/50 pb-1">Cognitive Memory Bank</p>
-                    <div id="memory-list" class="space-y-2 mt-4 text-[10px] overflow-y-auto max-h-[300px] custom-scrollbar">
-                        <div class="opacity-40 italic">Synthesizing records...</div>
-                    </div>
-                </div>
-
-                <div class="panel p-4 h-[120px]">
-                    <p class="text-[10px] opacity-50 mb-2 uppercase">Vocal signature</p>
-                    <canvas id="audio-viz" class="w-full h-full"></canvas>
-                </div>
-            </div>
+<div class="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-24">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+    <div class="lg:col-span-3 flex flex-col gap-6">
+      <div id="visual-sensor-panel" class="panel h-[200px] relative overflow-hidden group cursor-pointer border-cyan-500/30 hover:border-cyan-400">
+        <div class="scan-line"></div>
+        <div id="camera-overlay"></div>
+        <div id="snap-flash" class="snap-flash"></div>
+        <video id="video-feed" autoplay playsinline muted></video>
+        <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-[10px] opacity-40 text-center p-4">
+          <i class="fa-solid fa-camera mb-2 text-xl"></i>
+          TAP TO ENABLE OPTICAL SENSORS
         </div>
+      </div>
+
+      <div class="panel p-3">
+        <p class="text-[9px] opacity-50 mb-2 uppercase tracking-tighter">Hardware Status (click to toggle)</p>
+        <div id="sw-optical" class="hw-switch"><span>OPTICAL SENSORS</span><div class="hw-status"></div></div>
+        <div id="sw-wake" class="hw-switch"><span>WAKE PROTOCOL</span><div class="hw-status"></div></div>
+        <div id="sw-audio" class="hw-switch"><span>VOCAL OUTPUT</span><div class="hw-status"></div></div>
+        <div id="sw-sat" class="hw-switch"><span>SAT_LINK</span><div class="hw-status"></div></div>
+      </div>
+
+      <div class="panel p-4 h-[200px] flex flex-col">
+        <p class="text-[10px] opacity-50 mb-2 border-b border-cyan-900/50 uppercase">Neural Activity Log</p>
+        <div class="space-y-1 text-[10px] opacity-80 overflow-y-auto flex-1 custom-scrollbar" id="log-container"></div>
+      </div>
     </div>
 
-    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90vw] max-w-2xl z-30">
-        <div class="panel p-2 flex items-center gap-4 bg-black/80 shadow-[0_0_20px_rgba(0,242,255,0.1)]">
-            <button id="snap-btn" class="w-10 h-10 flex items-center justify-center hover:bg-cyan-500/20 text-cyan-400 transition-colors" title="Identify Object">
-                <i class="fa-solid fa-expand"></i>
-            </button>
-            <input type="text" id="user-input" placeholder="SAY 'JARVIS' OR TYPE..."
-                class="bg-transparent flex-1 border-none outline-none text-lg uppercase tracking-widest placeholder-cyan-900/40 px-4">
-            <button id="send-btn" class="w-10 h-10 flex items-center justify-center hover:bg-cyan-500/20 text-cyan-400 transition-colors">
-                <i class="fa-solid fa-chevron-right"></i>
-            </button>
+    <div class="lg:col-span-6 flex flex-col items-center justify-center gap-6">
+      <div class="panel flex flex-col items-center justify-center p-4 w-full min-h-[450px] relative">
+        <div class="absolute top-4 right-4 flex items-center gap-2">
+          <span class="text-[10px] opacity-50 orbitron">WAKE WORD</span>
+          <button id="toggle-listen" class="w-10 h-5 rounded-full bg-cyan-900/50 border border-cyan-400/30 relative transition-colors">
+            <div class="absolute left-1 top-1 w-3 h-3 bg-cyan-400 rounded-full transition-all" id="toggle-knob"></div>
+          </button>
         </div>
-        <div id="wake-status-indicator" class="text-[8px] text-center mt-2 opacity-0 transition-opacity tracking-[0.2em] orbitron uppercase">Active Neural Monitoring</div>
+
+        <div class="reactor-container mb-6" id="arc-reactor-btn">
+          <div class="core-glow"></div>
+          <div class="ring-rotate w-full h-full" style="--d: 15s; border-style: double; border-width: 4px;"></div>
+          <div class="ring-rotate w-[70%] h-[70%]" style="--d: 8s; border-style: dashed; border-width: 1px;"></div>
+          <div class="z-10 orbitron text-[10px] font-bold" id="core-text">TAP TO ACTIVATE</div>
+        </div>
+
+        <div id="response-container" class="w-full text-center px-4">
+          <p id="jarvis-output" class="text-xl md:text-2xl glow-text leading-tight min-h-[3em] font-light">
+            Standing by, Sir.
+          </p>
+          <p id="boot-hint" class="text-[10px] opacity-60 mt-3 tracking-widest orbitron uppercase">
+            Tap the reactor to begin
+          </p>
+        </div>
+      </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <div class="lg:col-span-3 flex flex-col gap-6">
+      <div class="panel p-4 flex-1 flex flex-col min-h-[350px]">
+        <p class="text-[10px] opacity-50 mb-2 uppercase border-b border-cyan-900/50 pb-1">Session Memory</p>
+        <div id="memory-list" class="space-y-2 mt-4 text-[10px] overflow-y-auto max-h-[300px] custom-scrollbar">
+          <div class="opacity-40 italic">Session memory only — clears on reload.</div>
+        </div>
+      </div>
 
-        const appId = window.__app_id;
-        const uid = window.__jarvis_uid;
-        const PROXY_URL = "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/papsAiBuildsProxy";
+      <div class="panel p-4 h-[120px]">
+        <p class="text-[10px] opacity-50 mb-2 uppercase">Vocal signature</p>
+        <canvas id="audio-viz" class="w-full h-full"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
 
-        let db = null;
-        try {
-            const cfg = JSON.parse(window.__firebase_config);
-            const app = initializeApp(cfg);
-            db = getFirestore(app);
-        } catch (e) { console.error('Firebase init failed', e); }
+<div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90vw] max-w-2xl z-30">
+  <div class="panel p-2 flex items-center gap-4 bg-black/80 shadow-[0_0_20px_rgba(0,242,255,0.1)]">
+    <button id="snap-btn" class="w-10 h-10 flex items-center justify-center hover:bg-cyan-500/20 text-cyan-400 transition-colors" title="Identify Object">
+      <i class="fa-solid fa-expand"></i>
+    </button>
+    <input type="text" id="user-input" placeholder="TYPE OR SAY 'JARVIS'..."
+      class="bg-transparent flex-1 border-none outline-none text-lg uppercase tracking-widest placeholder-cyan-900/40 px-4">
+    <button id="send-btn" class="w-10 h-10 flex items-center justify-center hover:bg-cyan-500/20 text-cyan-400 transition-colors">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+  </div>
+  <div id="wake-status-indicator" class="text-[8px] text-center mt-2 opacity-0 transition-opacity tracking-[0.2em] orbitron uppercase">Active Neural Monitoring</div>
+</div>
 
-        let memoriesCache = [];
-        let conversationHistory = [];
+<script type="module">
+const PROXY_URL = "https://us-central1-pantherlearn-d6f7c.cloudfunctions.net/papsAiBuildsProxy";
 
-        const jarvisOutput = document.getElementById('jarvis-output');
-        const userInput = document.getElementById('user-input');
-        const sendBtn = document.getElementById('send-btn');
-        const arcReactorBtn = document.getElementById('arc-reactor-btn');
-        const logContainer = document.getElementById('log-container');
-        const memoryList = document.getElementById('memory-list');
-        const videoFeed = document.getElementById('video-feed');
-        const visualSensorPanel = document.getElementById('visual-sensor-panel');
-        const snapBtn = document.getElementById('snap-btn');
-        const snapFlash = document.getElementById('snap-flash');
-        const audioCanvas = document.getElementById('audio-viz');
-        const ctx_viz = audioCanvas.getContext('2d');
-        const toggleListen = document.getElementById('toggle-listen');
-        const toggleKnob = document.getElementById('toggle-knob');
-        const wakeStatusIndicator = document.getElementById('wake-status-indicator');
-        const swOptical = document.getElementById('sw-optical');
-        const swWake = document.getElementById('sw-wake');
-        const swAudio = document.getElementById('sw-audio');
+let sessionMemory = [];
+let conversationHistory = [];
 
-        let isBusy = false;
-        let speechActive = false;
-        let listeningActive = false;
-        let continuousListen = true;
-        let mainRecognition = null;
-        let videoStream = null;
-        let audioCtx = null;
-        let ttsAnalyser = null;
-        const ttsAudio = new Audio();
-        ttsAudio.playbackRate = 1.15;
-        ttsAudio.crossOrigin = "anonymous";
+const jarvisOutput = document.getElementById('jarvis-output');
+const userInput = document.getElementById('user-input');
+const sendBtn = document.getElementById('send-btn');
+const arcReactorBtn = document.getElementById('arc-reactor-btn');
+const coreText = document.getElementById('core-text');
+const logContainer = document.getElementById('log-container');
+const memoryList = document.getElementById('memory-list');
+const videoFeed = document.getElementById('video-feed');
+const visualSensorPanel = document.getElementById('visual-sensor-panel');
+const snapBtn = document.getElementById('snap-btn');
+const snapFlash = document.getElementById('snap-flash');
+const audioCanvas = document.getElementById('audio-viz');
+const ctx_viz = audioCanvas.getContext('2d');
+const toggleListen = document.getElementById('toggle-listen');
+const toggleKnob = document.getElementById('toggle-knob');
+const wakeStatusIndicator = document.getElementById('wake-status-indicator');
+const swOptical = document.getElementById('sw-optical');
+const swWake = document.getElementById('sw-wake');
+const swAudio = document.getElementById('sw-audio');
+const swSat = document.getElementById('sw-sat');
 
-        function initSystemState() {
-            if (db) {
-                setupMemoryListener();
-                addLog("Memory Matrix synchronized.");
-            } else {
-                memoryList.innerHTML = '<div class="opacity-40 italic">Memory bank offline.</div>';
-                addLog("Memory link offline.", "error");
-            }
+const mapOverlay = document.getElementById('tactical-map-overlay');
+const closeMapBtn = document.getElementById('close-map-btn');
+const mapIframe = document.getElementById('map-iframe');
+const mapSearching = document.getElementById('map-searching');
+const mapLocationTitle = document.getElementById('map-location-title');
+const mapCoords = document.getElementById('map-coords');
+
+let isBusy = false;
+let speechActive = false;
+let listeningActive = false;
+let continuousListen = false;
+let systemActivated = false;
+let mainRecognition = null;
+let videoStream = null;
+let audioCtx = null;
+let ttsAnalyser = null;
+const ttsAudio = new Audio();
+ttsAudio.playbackRate = 1.15;
+
+function addLog(msg, type = 'info') {
+  const p = document.createElement('div');
+  p.className = `mb-1 ${type === 'error' ? 'text-red-400' : (type === 'user' ? 'text-blue-400' : 'text-cyan-400')}`;
+  p.textContent = `> ${msg.toUpperCase()}`;
+  logContainer.prepend(p);
+}
+
+function updateDateTime() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { hour12: false });
+  document.getElementById('date-display').textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+async function fetchWithRetry(url, options, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+      if (response.status === 429 || response.status >= 500) {
+        await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+        continue;
+      }
+      throw new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+    }
+  }
+}
+
+function pcmToWav(base64Data, sampleRate) {
+  const binaryString = atob(base64Data);
+  const buffer = new ArrayBuffer(binaryString.length);
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+  const wav = new ArrayBuffer(44 + buffer.byteLength);
+  const view = new DataView(wav);
+  const writeString = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+  writeString(0, 'RIFF'); view.setUint32(4, 36 + buffer.byteLength, true);
+  writeString(8, 'WAVE'); writeString(12, 'fmt ');
+  view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true); writeString(36, 'data');
+  view.setUint32(40, buffer.byteLength, true);
+  new Uint8Array(wav, 44).set(new Uint8Array(buffer));
+  return new Blob([wav], { type: 'audio/wav' });
+}
+
+async function speak(text) {
+  if (speechActive || !text) return;
+  speechActive = true;
+  arcReactorBtn.classList.add('speaking');
+  swAudio.classList.add('hw-active');
+  const cleanText = text.replace(/[*#_]/g, '');
+
+  try {
+    if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
+    const response = await fetchWithRetry(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: "gemini-2.5-flash-preview-tts",
+        payload: {
+          contents: [{ parts: [{ text: `Say with a sophisticated British accent, calm and dry-witted: ${cleanText}` }] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Fenrir" } } }
+          }
         }
+      })
+    });
 
-        function addLog(msg, type = 'info') {
-            const p = document.createElement('div');
-            p.className = `mb-1 ${type === 'error' ? 'text-red-400' : (type === 'user' ? 'text-blue-400' : 'text-cyan-400')}`;
-            p.textContent = `> ${msg.toUpperCase()}`;
-            logContainer.prepend(p);
-            if (logContainer.children.length > 25) logContainer.lastChild.remove();
+    const resJson = await response.json();
+    const audioData = resJson.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
+    if (audioData) {
+      const audioBlob = pcmToWav(audioData, 24000);
+      const url = URL.createObjectURL(audioBlob);
+      if (ttsAudio.src && ttsAudio.src.startsWith('blob:')) URL.revokeObjectURL(ttsAudio.src);
+      ttsAudio.src = url;
+      await ttsAudio.play();
+      await new Promise(resolve => { ttsAudio.onended = resolve; ttsAudio.onerror = resolve; });
+    }
+  } catch (e) {
+    addLog("Vocal matrix fault: " + e.message, "error");
+  } finally {
+    speechActive = false;
+    arcReactorBtn.classList.remove('speaking');
+    swAudio.classList.remove('hw-active');
+    if (continuousListen) setTimeout(initContinuousListen, 300);
+  }
+}
+
+async function geocodeNominatim(query) {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error("Geocode failed");
+  const data = await res.json();
+  if (!data.length) throw new Error("No results");
+  return {
+    lat: parseFloat(data[0].lat),
+    lng: parseFloat(data[0].lon),
+    formal_name: data[0].display_name
+  };
+}
+
+async function showTacticalMap(locationName) {
+  addLog(`Triangulating: ${locationName.toUpperCase()}`);
+  mapOverlay.style.display = 'flex';
+  mapSearching.style.display = 'flex';
+  mapLocationTitle.textContent = "SYNCHRONIZING COORDINATES";
+  swSat.classList.add('hw-active');
+
+  try {
+    const coords = await geocodeNominatim(locationName);
+    mapLocationTitle.textContent = (coords.formal_name.split(',')[0] || locationName).toUpperCase();
+    mapCoords.textContent = `LAT: ${coords.lat.toFixed(4)} | LONG: ${coords.lng.toFixed(4)}`;
+
+    const d = 0.01;
+    const bbox = `${coords.lng - d},${coords.lat - d},${coords.lng + d},${coords.lat + d}`;
+    mapIframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${coords.lat},${coords.lng}`;
+    mapIframe.onload = () => {
+      setTimeout(() => {
+        mapSearching.style.display = 'none';
+        addLog(`Link established: ${coords.formal_name.split(',')[0]}`);
+      }, 800);
+    };
+  } catch (e) {
+    mapSearching.innerHTML = `<p class="text-red-500 orbitron">SATELLITE_DOWNLINK_FAILURE</p>`;
+    addLog("Map error: " + e.message, "error");
+  }
+}
+
+async function processCommand(cmd) {
+  if (isBusy) return;
+  const currentCmd = (cmd || userInput.value || '').trim();
+  if (!currentCmd) return;
+  isBusy = true;
+  userInput.value = "";
+  addLog(currentCmd, 'user');
+  jarvisOutput.classList.add('opacity-30');
+
+  let imageData = null;
+  const lower = currentCmd.toLowerCase();
+  const mapTriggers = ["show me where", "where is", "map of", "coordinates of", "track", "location of", "find on map"];
+  const needsMap = mapTriggers.some(t => lower.includes(t));
+  const visionTriggers = ["analyze", "identify", "what is this", "what am i holding", "read this", "look at this"];
+  const needsVision = !needsMap && visionTriggers.some(t => lower.includes(t));
+
+  if (needsVision) {
+    if (!videoStream) {
+      const ok = await setCameraState(true);
+      if (!ok) {
+        isBusy = false;
+        jarvisOutput.textContent = "Optical sensors are offline, Sir. Enable the camera first.";
+        jarvisOutput.classList.remove('opacity-30');
+        return;
+      }
+      await new Promise(r => setTimeout(r, 800));
+    }
+    snapFlash.classList.remove('flash-active');
+    void snapFlash.offsetWidth;
+    snapFlash.classList.add('flash-active');
+
+    const canvas = document.createElement('canvas');
+    canvas.width = videoFeed.videoWidth; canvas.height = videoFeed.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+    ctx.drawImage(videoFeed, 0, 0);
+    imageData = canvas.toDataURL('image/png').split(',')[1];
+  }
+
+  try {
+    const memoryContext = sessionMemory.map(m => `Known: ${m}`).join('\n');
+    const historyContext = conversationHistory.map(h => `${h.role === 'user' ? 'User' : 'JARVIS'}: ${h.text}`).join('\n');
+
+    const payload = {
+      contents: [{ role: "user", parts: [{ text: currentCmd }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "OBJECT",
+          properties: {
+            reply: { type: "string" },
+            should_remember: { type: "boolean" },
+            memory_text: { type: "string" },
+            open_map: { type: "boolean" },
+            target_location: { type: "string" }
+          },
+          required: ["reply"]
         }
+      },
+      systemInstruction: {
+        parts: [{
+          text: `You are J.A.R.V.I.S., Tony Stark's AI butler.
+PERSONALITY: British, dry humor, calm, loyal. Address the user as Sir.
+DIRECTIVES:
+- If the user asks to see, locate, or map a place, set open_map:true and put a clean place name in target_location.
+- If the user shares a useful fact about themselves or the situation, set should_remember:true and put a one-sentence summary in memory_text.
+- Match the input language.
+- Keep replies under 3 sentences unless asked for more.
 
-        function pcmToWav(base64Data, sampleRate) {
-            const binaryString = atob(base64Data);
-            const buffer = new ArrayBuffer(binaryString.length);
-            const bytes = new Uint8Array(buffer);
-            for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-            const wav = new ArrayBuffer(44 + buffer.byteLength);
-            const view = new DataView(wav);
-            const writeString = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
-            writeString(0, 'RIFF'); view.setUint32(4, 36 + buffer.byteLength, true);
-            writeString(8, 'WAVE'); writeString(12, 'fmt ');
-            view.setUint32(16, 16, true); view.setUint16(20, 1, true);
-            view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true);
-            view.setUint16(34, 16, true); writeString(36, 'data');
-            view.setUint32(40, buffer.byteLength, true);
-            new Uint8Array(wav, 44).set(new Uint8Array(buffer));
-            return new Blob([wav], { type: 'audio/wav' });
-        }
+CONVERSATION HISTORY:
+${historyContext}
 
-        async function setCameraState(active) {
-            if (active) {
-                if (videoStream) return true;
-                try {
-                    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-                    videoFeed.srcObject = videoStream;
-                    videoFeed.style.display = 'block';
-                    document.getElementById('camera-placeholder').style.display = 'none';
-                    swOptical.classList.add('hw-active');
-                    addLog("Vision sensors online.");
-                    return true;
-                } catch (e) {
-                    addLog("Camera failure", "error");
-                    return false;
-                }
-            } else {
-                if (videoStream) videoStream.getTracks().forEach(t => t.stop());
-                videoStream = null;
-                videoFeed.style.display = 'none';
-                document.getElementById('camera-placeholder').style.display = 'flex';
-                swOptical.classList.remove('hw-active');
-                return true;
-            }
-        }
+SESSION MEMORY:
+${memoryContext}`
+        }]
+      }
+    };
 
-        function setupMemoryListener() {
-            const memoryCol = collection(db, 'artifacts', appId, 'users', uid, 'memories');
-            let q;
-            try { q = query(memoryCol, orderBy('timestamp', 'desc')); }
-            catch (e) { q = memoryCol; }
-            onSnapshot(q, (snapshot) => {
-                memoriesCache = [];
-                memoryList.innerHTML = '';
-                if (snapshot.empty) {
-                    memoryList.innerHTML = '<div class="opacity-30 italic">No stored cognitive data.</div>';
-                    return;
-                }
-                snapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    memoriesCache.push(data.text);
-                    const el = document.createElement('div');
-                    el.className = "group flex justify-between border-l border-cyan-500/40 pl-2 py-1 hover:bg-cyan-500/10 transition-colors";
-                    el.innerHTML = `<span class="truncate pr-2">${data.text}</span><button class="opacity-0 group-hover:opacity-100 text-red-500/70 hover:text-red-500 transition-opacity"><i class="fa-solid fa-trash-can"></i></button>`;
-                    el.querySelector('button').onclick = (e) => {
-                        e.stopPropagation();
-                        deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'memories', docSnap.id));
-                    };
-                    memoryList.appendChild(el);
-                });
-            }, (err) => addLog("Memory link failed", "error"));
-        }
+    if (imageData) payload.contents[0].parts.push({ inlineData: { mimeType: "image/png", data: imageData } });
 
-        async function saveMemory(text) {
-            if (!db || !text || memoriesCache.includes(text)) return;
-            try {
-                await addDoc(collection(db, 'artifacts', appId, 'users', uid, 'memories'), {
-                    text: text,
-                    timestamp: serverTimestamp()
-                });
-                addLog("Core memory bank updated.");
-            } catch (e) { addLog("Storage failure", "error"); console.error(e); }
-        }
+    const response = await fetchWithRetry(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: "gemini-2.5-flash", payload })
+    });
 
-        async function speak(text) {
-            if (speechActive || !text) return;
-            speechActive = true;
-            arcReactorBtn.classList.add('speaking');
-            swAudio.classList.add('hw-active');
-            const cleanText = text.replace(/[*#_]/g, '');
+    const resJson = await response.json();
+    if (resJson.error) throw new Error(resJson.error.message || 'Proxy error');
+    const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+    const data = JSON.parse(rawText);
 
-            try {
-                if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
-                const response = await fetch(PROXY_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: "gemini-2.5-flash-preview-tts",
-                        payload: {
-                            contents: [{ parts: [{ text: `Respond exactly as JARVIS would. Voice tone: British, calm, slightly sarcastic but helpful. Content: ${cleanText}` }] }],
-                            generationConfig: {
-                                responseModalities: ["AUDIO"],
-                                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Fenrir" } } }
-                            }
-                        }
-                    })
-                });
+    jarvisOutput.textContent = data.reply;
+    conversationHistory.push({ role: 'user', text: currentCmd });
+    conversationHistory.push({ role: 'model', text: data.reply });
+    if (conversationHistory.length > 10) conversationHistory.splice(0, 2);
 
-                const resJson = await response.json();
-                const audioData = resJson.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (data.should_remember && data.memory_text) saveMemory(data.memory_text);
+    if (data.open_map && data.target_location) showTacticalMap(data.target_location);
 
-                if (audioData) {
-                    const audioBlob = pcmToWav(audioData, 24000);
-                    const url = URL.createObjectURL(audioBlob);
-                    if (ttsAudio.src && ttsAudio.src.startsWith('blob:')) URL.revokeObjectURL(ttsAudio.src);
-                    ttsAudio.src = url;
-                    await ttsAudio.play();
-                    await new Promise(resolve => { ttsAudio.onended = resolve; ttsAudio.onerror = resolve; });
-                }
-            } catch (e) {
-                addLog("Vocal matrix fault.", "error");
-            } finally {
-                speechActive = false;
-                arcReactorBtn.classList.remove('speaking');
-                swAudio.classList.remove('hw-active');
-                if (continuousListen) setTimeout(startListening, 300);
-            }
-        }
+    jarvisOutput.classList.remove('opacity-30');
+    speak(data.reply);
+  } catch (e) {
+    jarvisOutput.textContent = "Neural connection lost, Sir. Recalibrating.";
+    addLog("Logic fault: " + e.message, 'error');
+  } finally {
+    isBusy = false;
+    jarvisOutput.classList.remove('opacity-30');
+  }
+}
 
-        async function processCommand(cmd) {
-            if (isBusy) return;
-            const currentCmd = cmd || userInput.value;
-            if (!currentCmd.trim()) return;
+async function setCameraState(active) {
+  if (active) {
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoFeed.srcObject = videoStream;
+      videoFeed.style.display = 'block';
+      document.getElementById('camera-placeholder').style.display = 'none';
+      swOptical.classList.add('hw-active');
+      addLog("Optical sensors online.");
+      return true;
+    } catch (e) {
+      addLog("Camera permission denied.", 'error');
+      return false;
+    }
+  } else {
+    if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+    videoStream = null;
+    videoFeed.style.display = 'none';
+    document.getElementById('camera-placeholder').style.display = 'flex';
+    swOptical.classList.remove('hw-active');
+    return true;
+  }
+}
 
-            isBusy = true;
-            userInput.value = "";
-            addLog(currentCmd, 'user');
-            jarvisOutput.classList.add('opacity-30');
+function renderMemoryList() {
+  memoryList.innerHTML = sessionMemory.length
+    ? ''
+    : '<div class="opacity-30 italic">Session memory only — clears on reload.</div>';
+  sessionMemory.forEach((m, i) => {
+    const el = document.createElement('div');
+    el.className = "group flex justify-between border-l border-cyan-500/40 pl-2 py-1 hover:bg-cyan-500/10 transition-colors";
+    el.innerHTML = `<span class="truncate pr-2">${m}</span><button class="opacity-0 group-hover:opacity-100 text-red-500/70"><i class="fa-solid fa-trash-can"></i></button>`;
+    el.querySelector('button').onclick = () => {
+      sessionMemory.splice(i, 1);
+      renderMemoryList();
+    };
+    memoryList.appendChild(el);
+  });
+}
 
-            let imageData = null;
-            const lower = currentCmd.toLowerCase();
-            const visionTriggers = ["look", "see", "analyze", "identify", "what is this", "read", "translate", "holding", "hand", "front of you", "this object"];
-            const needsVision = visionTriggers.some(t => lower.includes(t));
+function saveMemory(text) {
+  sessionMemory.unshift(text);
+  if (sessionMemory.length > 15) sessionMemory.pop();
+  renderMemoryList();
+  addLog("Memory noted (session only).");
+}
 
-            if (needsVision) {
-                if (!videoStream) {
-                    const ok = await setCameraState(true);
-                    if (!ok) {
-                        isBusy = false;
-                        jarvisOutput.textContent = "Optical sensors are offline, Sir.";
-                        jarvisOutput.classList.remove('opacity-30');
-                        return;
-                    }
-                    await new Promise(r => setTimeout(r, 1000));
-                }
+function stopAllRecognition() {
+  if (mainRecognition) {
+    mainRecognition.onend = null;
+    try { mainRecognition.stop(); } catch(e) {}
+    mainRecognition = null;
+  }
+  listeningActive = false;
+  arcReactorBtn.classList.remove('listening');
+  swWake.classList.remove('hw-active');
+  wakeStatusIndicator.style.opacity = "0";
+}
 
-                snapFlash.classList.remove('flash-active');
-                void snapFlash.offsetWidth;
-                snapFlash.classList.add('flash-active');
+function startListening() {
+  if (speechActive || isBusy) return;
+  stopAllRecognition();
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Rec) { addLog("Speech recognition unavailable.", "error"); return; }
+  const rec = new Rec();
+  rec.onstart = () => { listeningActive = true; arcReactorBtn.classList.add('listening'); };
+  rec.onresult = (e) => processCommand(e.results[0][0].transcript);
+  rec.onerror = (e) => addLog("Mic error: " + e.error, 'error');
+  rec.onend = () => {
+    listeningActive = false;
+    arcReactorBtn.classList.remove('listening');
+    if (continuousListen) initContinuousListen();
+  };
+  rec.start();
+}
 
-                const canvas = document.createElement('canvas');
-                canvas.width = videoFeed.videoWidth; canvas.height = videoFeed.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
-                ctx.drawImage(videoFeed, 0, 0);
-                imageData = canvas.toDataURL('image/png').split(',')[1];
-            }
+function initContinuousListen() {
+  if (!continuousListen || isBusy || speechActive || listeningActive) return;
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Rec) return;
+  stopAllRecognition();
+  mainRecognition = new Rec();
+  mainRecognition.continuous = true;
+  wakeStatusIndicator.style.opacity = "1";
+  swWake.classList.add('hw-active');
+  mainRecognition.onresult = (e) => {
+    const text = e.results[e.results.length - 1][0].transcript.toLowerCase();
+    if (text.includes("jarvis")) { addLog("Wake word detected."); startListening(); }
+  };
+  mainRecognition.onerror = () => {};
+  mainRecognition.onend = () => {
+    if (continuousListen && !speechActive && !listeningActive) setTimeout(initContinuousListen, 200);
+  };
+  try { mainRecognition.start(); } catch(e) {}
+}
 
-            try {
-                const memoryContext = memoriesCache.map(m => `Known Fact: ${m}`).join('\n');
-                const historyContext = conversationHistory.map(h => `${h.role === 'user' ? 'User' : 'JARVIS'}: ${h.text}`).join('\n');
+async function activateSystem() {
+  if (systemActivated) return;
+  systemActivated = true;
+  coreText.textContent = "SYSTEM ONLINE";
+  coreText.classList.add('glow-text');
+  document.getElementById('boot-hint').textContent = "NEURAL PERSONALITY: JARVIS MARK 42 STARK";
 
-                const payload = {
-                    contents: [{ role: "user", parts: [{ text: currentCmd }] }],
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: "OBJECT",
-                            properties: {
-                                reply: { type: "string" },
-                                should_remember: { type: "boolean" },
-                                memory_text: { type: "string", description: "A short, 1-sentence fact to store about the user or the situation." }
-                            },
-                            required: ["reply"]
-                        }
-                    },
-                    systemInstruction: {
-                        parts: [{
-                            text: `You are J.A.R.V.I.S., Tony Stark's AI.
-                            PERSONALITY: British, dry humor, sophisticated, extremely loyal. Address the user as Sir.
-                            CORE DIRECTIVES:
-                            1. CONTEXTUAL MEMORY: Reference previous history and long-term memories provided.
-                            2. STRATEGIC EVENT PLANNING: If the user mentions an event, party, project, or gathering, you must become a high-level strategist. Provide creative themes, logistical lists, guest management ideas, and "Tony Stark level" innovation for the event.
-                            3. LANGUAGE: Match input.
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaElementSource(ttsAudio);
+    ttsAnalyser = audioCtx.createAnalyser();
+    ttsAnalyser.fftSize = 256;
+    source.connect(ttsAnalyser);
+    ttsAnalyser.connect(audioCtx.destination);
+    ttsAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+    await ttsAudio.play().catch(() => {});
+  } catch (e) {
+    addLog("Audio context init failed: " + e.message, 'error');
+  }
+  addLog("System activated.");
+  speak("At your service, Sir. How may I be of assistance?");
+}
 
-                            CONVERSATION HISTORY: \n${historyContext}\n
-                            LONG-TERM MEMORIES: \n${memoryContext}\n
-                            TASK: Answer input. If an event is mentioned, provide brilliant ideas. If user shares facts, set should_remember:true.`
-                        }]
-                    }
-                };
+function draw() {
+  ctx_viz.clearRect(0, 0, audioCanvas.width, audioCanvas.height);
+  const bars = 24;
+  const w = (audioCanvas.width / bars) - 2;
+  let data = [];
+  if (ttsAnalyser && speechActive) {
+    const fData = new Uint8Array(ttsAnalyser.frequencyBinCount);
+    ttsAnalyser.getByteFrequencyData(fData);
+    data = Array.from(fData.slice(0, bars)).map(v => (v/255) * audioCanvas.height);
+  } else {
+    data = Array(bars).fill(0).map(() => Math.random() * (listeningActive ? 20 : 5));
+  }
+  ctx_viz.fillStyle = listeningActive ? '#ff3333' : 'rgba(0, 242, 255, 0.6)';
+  data.forEach((h, i) => ctx_viz.fillRect(i * (w + 2), audioCanvas.height - h, w, h));
+  requestAnimationFrame(draw);
+}
 
-                if (imageData) payload.contents[0].parts.push({ inlineData: { mimeType: "image/png", data: imageData } });
+closeMapBtn.onclick = () => {
+  mapOverlay.style.display = 'none';
+  mapIframe.src = 'about:blank';
+  swSat.classList.remove('hw-active');
+  addLog("Satellite link terminated.");
+};
 
-                const response = await fetch(PROXY_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ model: "gemini-2.5-flash", payload })
-                });
+toggleListen.onclick = async (e) => {
+  e.stopPropagation();
+  if (!systemActivated) await activateSystem();
+  continuousListen = !continuousListen;
+  toggleKnob.style.transform = continuousListen ? 'translateX(20px)' : 'translateX(0)';
+  if (continuousListen) initContinuousListen();
+  else stopAllRecognition();
+};
 
-                const resJson = await response.json();
-                if (resJson.error) { console.error('Gemini error:', resJson.error); throw new Error(resJson.error.message); }
-                const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
-                const data = JSON.parse(rawText);
+arcReactorBtn.onclick = async () => {
+  await activateSystem();
+  startListening();
+};
 
-                jarvisOutput.textContent = data.reply;
-                conversationHistory.push({ role: 'user', text: currentCmd });
-                conversationHistory.push({ role: 'model', text: data.reply });
-                if (conversationHistory.length > 10) conversationHistory.splice(0, 2);
+sendBtn.onclick = async () => {
+  await activateSystem();
+  processCommand();
+};
 
-                if (data.should_remember && data.memory_text) saveMemory(data.memory_text);
+userInput.onkeypress = async (e) => {
+  if (e.key === 'Enter') {
+    await activateSystem();
+    processCommand();
+  }
+};
 
-                speak(data.reply);
-            } catch (e) {
-                jarvisOutput.textContent = "Neural connection lost, Sir. Attempting to recalibrate.";
-                addLog("Logic processing fault.", "error");
-            } finally {
-                isBusy = false;
-                jarvisOutput.classList.remove('opacity-30');
-            }
-        }
+snapBtn.onclick = async () => {
+  await activateSystem();
+  if (!videoStream) {
+    const ok = await setCameraState(true);
+    if (!ok) return;
+    await new Promise(r => setTimeout(r, 600));
+  }
+  processCommand("Identify this object.");
+};
 
-        function stopAllRecognition() {
-            if (mainRecognition) { mainRecognition.onend = null; try { mainRecognition.stop(); } catch(e) {} mainRecognition = null; }
-            listeningActive = false;
-            arcReactorBtn.classList.remove('listening');
-            swWake.classList.remove('hw-active');
-            wakeStatusIndicator.style.opacity = "0";
-            userInput.classList.remove('wave-active');
-        }
+visualSensorPanel.onclick = async () => {
+  await activateSystem();
+  setCameraState(!videoStream);
+};
 
-        function startListening() {
-            if (speechActive || isBusy) return;
-            stopAllRecognition();
-            const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!Rec) return;
-            const rec = new Rec();
-            rec.lang = navigator.language || 'en-US';
-            rec.onstart = () => { listeningActive = true; arcReactorBtn.classList.add('listening'); };
-            rec.onresult = (e) => processCommand(e.results[0][0].transcript);
-            rec.onerror = () => { listeningActive = false; arcReactorBtn.classList.remove('listening'); if (continuousListen) initContinuousListen(); };
-            rec.onend = () => { listeningActive = false; arcReactorBtn.classList.remove('listening'); if (continuousListen) initContinuousListen(); };
-            rec.start();
-        }
+swOptical.onclick = async () => {
+  await activateSystem();
+  setCameraState(!videoStream);
+};
 
-        function initContinuousListen() {
-            if (!continuousListen || isBusy || speechActive || listeningActive) return;
-            const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!Rec) return;
-            stopAllRecognition();
+swWake.onclick = async () => {
+  await activateSystem();
+  continuousListen = !continuousListen;
+  toggleKnob.style.transform = continuousListen ? 'translateX(20px)' : 'translateX(0)';
+  if (continuousListen) initContinuousListen();
+  else stopAllRecognition();
+};
 
-            mainRecognition = new Rec();
-            mainRecognition.continuous = true;
-            mainRecognition.interimResults = false;
-            mainRecognition.lang = navigator.language || 'en-US';
-            wakeStatusIndicator.style.opacity = "1";
-            swWake.classList.add('hw-active');
-            userInput.classList.add('wave-active');
+swAudio.onclick = async () => {
+  await activateSystem();
+  speak("Vocal output test, Sir.");
+};
 
-            mainRecognition.onresult = (e) => {
-                const text = e.results[e.results.length - 1][0].transcript.toLowerCase();
-                if (text.includes("jarvis")) {
-                    addLog("Command sequence initialized.");
-                    startListening();
-                }
-            };
-            mainRecognition.onerror = (event) => {
-                if (event.error === 'no-speech' || event.error === 'aborted') return;
-                addLog("Wake word link jitter: " + event.error, "info");
-            };
-            mainRecognition.onend = () => { if (continuousListen && !speechActive && !listeningActive && !isBusy) setTimeout(initContinuousListen, 100); };
-            try { mainRecognition.start(); } catch(e) {}
-        }
-
-        async function initializeSystem() {
-            if (audioCtx) {
-                if (audioCtx.state === 'suspended') await audioCtx.resume();
-                return;
-            }
-
-            addLog("Core Systems Online.");
-            document.getElementById('boot-hint').style.display = 'none';
-            document.getElementById('core-text').textContent = "ARC CORE";
-
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioCtx.createMediaElementSource(ttsAudio);
-                ttsAnalyser = audioCtx.createAnalyser();
-                ttsAnalyser.fftSize = 256;
-                source.connect(ttsAnalyser);
-                ttsAnalyser.connect(audioCtx.destination);
-                ttsAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
-                await ttsAudio.play().catch(() => {});
-            } catch (e) { addLog("Vocal error", "error"); }
-
-            toggleKnob.style.transform = 'translateX(20px)';
-            initContinuousListen();
-            speak("Welcome back, Sir. Cognitive buffers are synced and I am monitoring all frequencies.");
-        }
-
-        function draw() {
-            if (audioCanvas.width !== audioCanvas.clientWidth || audioCanvas.height !== audioCanvas.clientHeight) {
-                audioCanvas.width = audioCanvas.clientWidth;
-                audioCanvas.height = audioCanvas.clientHeight;
-            }
-            ctx_viz.clearRect(0, 0, audioCanvas.width, audioCanvas.height);
-            const bars = 24;
-            const spacing = 2;
-            const w = (audioCanvas.width / bars) - spacing;
-            let data = [];
-            if (ttsAnalyser && speechActive) {
-                const fData = new Uint8Array(ttsAnalyser.frequencyBinCount);
-                ttsAnalyser.getByteFrequencyData(fData);
-                data = Array.from(fData.slice(0, bars)).map(v => (v / 255) * audioCanvas.height);
-            } else {
-                data = Array(bars).fill(0).map(() => Math.random() * (listeningActive ? 20 : 5));
-            }
-            ctx_viz.fillStyle = listeningActive ? '#ff3333' : 'rgba(0, 242, 255, 0.6)';
-            data.forEach((h, i) => {
-                ctx_viz.fillRect(i * (w + spacing), audioCanvas.height - Math.max(2, h), w, Math.max(2, h));
-            });
-            requestAnimationFrame(draw);
-        }
-
-        toggleListen.onclick = (e) => {
-            e.stopPropagation();
-            continuousListen = !continuousListen;
-            toggleKnob.style.transform = continuousListen ? 'translateX(20px)' : 'translateX(0)';
-            if (continuousListen) initContinuousListen(); else stopAllRecognition();
-        };
-
-        arcReactorBtn.onclick = async () => { await initializeSystem(); startListening(); };
-        sendBtn.onclick = async () => { await initializeSystem(); processCommand(); };
-        userInput.onkeypress = async (e) => { if (e.key === 'Enter') { await initializeSystem(); processCommand(); } };
-        snapBtn.onclick = async () => { await initializeSystem(); processCommand("Identify and record this in your memory bank."); };
-        visualSensorPanel.onclick = async () => { await initializeSystem(); setCameraState(!videoStream); };
-
-        const bootGesture = async () => { await initializeSystem(); document.removeEventListener('pointerdown', bootGesture); };
-        document.addEventListener('pointerdown', bootGesture);
-
-        window.onload = () => {
-            draw();
-            initSystemState();
-            setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: false }); }, 1000);
-        };
-    </script>
+window.onload = () => {
+  draw();
+  renderMemoryList();
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  addLog("Awaiting authorization.");
+};
+</script>
 </body>
 </html>
