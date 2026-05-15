@@ -380,6 +380,9 @@ export default function LessonViewer() {
       if (block.type === "teacher_checkpoint") {
         extraProps.studentData = studentData;
       }
+      if (block.type === "rubric") {
+        extraProps.studentData = studentData;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted, handleRequestReview, isViewAsStudent, user, isTestStudent]);

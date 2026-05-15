@@ -245,9 +245,15 @@ export default function MyGrades() {
       }
     });
 
-    // Teacher checkpoints: full weight when approved, else 0
+    // Teacher checkpoints: rubric score if set, else full weight if approved, else 0
     checkpoints.forEach((b, i) => {
-      if (answers[b.id]?.approved === true) earnedPoints += checkpointWeights[i];
+      const a = answers[b.id];
+      const max = checkpointWeights[i];
+      if (typeof a?.score === "number") {
+        earnedPoints += Math.max(0, Math.min(max, a.score));
+      } else if (a?.approved === true) {
+        earnedPoints += max;
+      }
     });
 
     // Data tables: prorated by submitted score / maxScore

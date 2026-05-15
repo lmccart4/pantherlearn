@@ -35,6 +35,7 @@ const TeamManager = lazy(() => import("./pages/TeamManager"));
 const ManaManager = lazy(() => import("./pages/ManaManager"));
 const StudentMana = lazy(() => import("./pages/StudentMana"));
 const TeacherManaRequests = lazy(() => import("./pages/TeacherManaRequests"));
+const ShowMeGrader = lazy(() => import("./pages/ShowMeGrader"));
 const BossBattle = lazy(() => import("./pages/BossBattle"));
 const AvatarCreator = lazy(() => import("./pages/AvatarCreator"));
 const MyGrades = lazy(() => import("./pages/MyGrades"));
@@ -143,6 +144,7 @@ function AppRoutes() {
             <Route path="/my-mana" element={<StudentMana />} />
             <Route path="/my-mana/:courseId" element={<StudentMana />} />
             <Route path="/teacher/mana-requests" element={<TeacherManaRequests />} />
+            <Route path="/teacher/show-me/:courseId/:lessonId" element={<ShowMeGrader />} />
             <Route path="/boss-battle/:courseId" element={<BossBattle />} />
             <Route path="/avatar" element={<AvatarCreator />} />
             <Route path="/my-grades" element={<MyGrades />} />

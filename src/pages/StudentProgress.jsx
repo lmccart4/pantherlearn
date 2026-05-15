@@ -391,13 +391,30 @@ export default function StudentProgress() {
       }
     });
 
-    // Teacher checkpoints: weight points if approved, 0/weight if past due unapproved, else excluded
+    // Teacher checkpoints:
+    //   - If `a.score` is a number (rubric grading), use it (can be partial credit).
+    //   - Else if approved===true, full weight points.
+    //   - Else if past due, 0/weight (missing).
+    //   - Else excluded.
     const checkpointBlocks = (lesson.blocks || []).filter((b) => b.type === "teacher_checkpoint");
     const checkpointItems = [];
     checkpointBlocks.forEach((b) => {
       const a = answers[b.id];
       const weight = typeof b.weight === "number" ? b.weight : 5;
-      if (a?.approved === true) {
+      if (typeof a?.score === "number") {
+        const pts = Math.max(0, Math.min(weight, a.score));
+        const isFull = pts >= weight;
+        const isZero = pts === 0;
+        checkpointItems.push({
+          type: "checkpoint",
+          prompt: b.title || "Checkpoint",
+          points: pts,
+          max: weight,
+          approved: isFull,
+          missing: isZero,
+          level: a.levelLabel || null,
+        });
+      } else if (a?.approved === true) {
         checkpointItems.push({ type: "checkpoint", prompt: b.title || "Checkpoint", points: weight, max: weight, approved: true });
       } else if (isPastDue) {
         checkpointItems.push({ type: "checkpoint", prompt: b.title || "Checkpoint", points: 0, max: weight, missing: true });
@@ -1833,8 +1850,19 @@ export default function StudentProgress() {
                   const approved = checkpoints.filter((cp) => answers[cp.id]?.approved).length;
                   return (
                     <div style={{ marginTop: 10, background: "var(--bg)", borderRadius: 8, padding: "10px 14px", border: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", marginBottom: 8 }}>
-                        ✋ Teacher Checkpoints — {approved}/{checkpoints.length} approved
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)" }}>
+                          ✋ Teacher Checkpoints — {approved}/{checkpoints.length} approved
+                        </span>
+                        {checkpoints.some((cp) => Array.isArray(cp.levels) && cp.levels.length > 0) && (
+                          <a
+                            href={`/teacher/show-me/${selectedCourse}/${lesson.id}`}
+                            style={{ fontSize: 11, fontWeight: 700, color: "var(--accent, #6366f1)", textDecoration: "none" }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            🎯 Grade with rubric →
+                          </a>
+                        )}
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         {checkpoints.map((cp) => {
@@ -2009,11 +2037,21 @@ export default function StudentProgress() {
           const total = rows.length;
           return (
             <div style={{ marginBottom: 28 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10 }}>
-                <h3 className="section-heading" style={{ marginBottom: 0 }}>✋ Teacher Checkpoints</h3>
-                <span style={{ fontSize: 12, color: "var(--text3)" }}>
-                  {approvedCount}/{total} approved{pendingCount > 0 ? ` · ${pendingCount} pending` : ""}
-                </span>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10, justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                  <h3 className="section-heading" style={{ marginBottom: 0 }}>✋ Teacher Checkpoints</h3>
+                  <span style={{ fontSize: 12, color: "var(--text3)" }}>
+                    {approvedCount}/{total} approved{pendingCount > 0 ? ` · ${pendingCount} pending` : ""}
+                  </span>
+                </div>
+                {checkpoints.some((cp) => Array.isArray(cp.levels) && cp.levels.length > 0) && (
+                  <a
+                    href={`/teacher/show-me/${selectedCourse}/${lesson.id}`}
+                    style={{ fontSize: 12, fontWeight: 700, color: "var(--accent, #6366f1)", textDecoration: "none" }}
+                  >
+                    🎯 Grade with rubric →
+                  </a>
+                )}
               </div>
               {checkpoints.length > 1 && (
                 <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 10 }}>

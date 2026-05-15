@@ -12,6 +12,14 @@
   border-color: var(--status-success);
   background: color-mix(in oklab, var(--status-success) 10%, var(--bg-sunken));
 }
+.tc-block.is-missing {
+  border-color: var(--status-danger, #ef4444);
+  background: color-mix(in oklab, var(--status-danger, #ef4444) 10%, var(--bg-sunken));
+}
+.tc-status.is-missing {
+  background: color-mix(in oklab, var(--status-danger, #ef4444) 18%, transparent);
+  color: var(--status-danger-display, #ef4444);
+}
 .tc-header {
   display: flex;
   align-items: center;
