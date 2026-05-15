@@ -48,10 +48,10 @@ const lesson = {
       type: 'text',
       id: 'pc-intro',
       content:
-        "Quick check-in — should take about **4 minutes**.\n\n" +
-        "I'm going to use your answers to set up something for Monday. " +
-        "It's a surprise, but I want you to know up front: **an AI tool will read what you write here.** " +
-        "Keep it school-appropriate, but have fun with it. You can skip any question except your name.\n\n" +
+        "Quick check-in — about **4 minutes**.\n\n" +
+        "Next class we're going to look at how AI systems use personal data to personalize things — recommendations, ads, content, all of it. " +
+        "I'm setting that lesson up using **your actual answers** from this form, so you'll get to see what it looks like firsthand.\n\n" +
+        "Heads up: **an AI tool will read what you write here.** Share whatever details you're comfortable sharing — keep it school-appropriate and have fun with it.\n\n" +
         "— Mr. McCarthy",
     },
 
@@ -79,36 +79,36 @@ const lesson = {
       prompt: "**What sport, hobby, or activity are you actually into right now?**\n\nExample: soccer, anime, baking, gym, Fortnite, cars, drawing",
     },
 
-    // Q4 — Hype song
+    // Q4 — Most-played song (camouflaged as algorithm-learning data)
     {
       type: 'question',
       id: 'pc-q4-hypesong',
       questionType: 'short_answer',
-      prompt: "**What's your walk-up / hype song?**\n\n(Or the song you've been replaying most lately.) Artist + song title.",
+      prompt: "**What's something you've been replaying or rewatching a lot lately?**\n\nA song, an artist, a show, a creator — whatever the algorithm keeps serving you. Be specific (artist + title, or channel name).",
     },
 
-    // Q5 — Genres (multi via comma-separated short answer; PantherLearn has no checkbox question type)
+    // Q5 — Things you're into (broader than just genres)
     {
       type: 'question',
       id: 'pc-q5-genres',
       questionType: 'short_answer',
       prompt:
-        "**What music genres do you actually listen to?**\n\n" +
-        "Pick all that apply, separated by commas:\n\n" +
-        "reggaeton · corridos tumbados · regional Mexican · bachata · salsa · hip-hop · rap · R&B · pop · rock · indie · K-pop · EDM · country · other (write it in)",
+        "**What kinds of content do you actually like?**\n\n" +
+        "Pick whichever apply, separated by commas. Examples:\n\n" +
+        "reggaeton · corridos · bachata · hip-hop · R&B · pop · rock · K-pop · anime · sports highlights · gaming · fashion · cars · cooking · comedy · drama · true crime · other (write it in)",
     },
 
-    // Q6 — Language preference (opinion MC — every answer is valid, use allCorrect)
+    // Q6 — Language preference (camouflaged as content preference)
     {
       type: 'question',
       id: 'pc-q6-language',
       questionType: 'multiple_choice',
-      prompt: "**If we wrote a song about you, would you want it in...**",
+      prompt: "**When content is made for you, what language hits best?**",
       options: [
         'English only',
         'Spanish only',
         'Bilingual (mix of both)',
-        "Doesn't matter, surprise me",
+        "Doesn't matter to me",
       ],
       correctAnswer: 0,   // ignored because allCorrect
       allCorrect: true,
@@ -135,7 +135,7 @@ const lesson = {
       type: 'question',
       id: 'pc-q9-anythingelse',
       questionType: 'reflection',
-      prompt: "**Anything else you want the song — I mean, the *lesson* — to know about you?**\n\nOptional. Skip if you got nothing.",
+      prompt: "**Anything else you want the AI to know about you?**\n\nShare whatever you're comfortable sharing.",
     },
   ],
 };
