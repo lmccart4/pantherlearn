@@ -49,8 +49,7 @@ const lesson = {
       id: 'pc-intro',
       content:
         "Quick check-in — about **4 minutes**.\n\n" +
-        "Next class we're going to look at how AI systems use personal data to personalize things — recommendations, ads, content, all of it. " +
-        "I'm setting that lesson up using **your actual answers** from this form, so you'll get to see what it looks like firsthand.\n\n" +
+        "Next class we're going to do something with AI that uses **your actual answers** from this form. You'll see what it produces firsthand.\n\n" +
         "Heads up: **an AI tool will read what you write here.** Share whatever details you're comfortable sharing — keep it school-appropriate and have fun with it.",
     },
 
