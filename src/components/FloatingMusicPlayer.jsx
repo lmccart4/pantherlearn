@@ -23,6 +23,44 @@ import { db } from "../lib/firebase";
 const VOLUME_KEY = "pantherlearn:music:volume";
 const LAST_PLAYLIST_KEY = (cid) => `pantherlearn:music:lastPlaylist:${cid}`;
 
+// ─── YouTube IFrame API loader (idempotent) ───
+let ytApiPromise = null;
+function loadYouTubeAPI() {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  if (window.YT && window.YT.Player) return Promise.resolve(window.YT);
+  if (ytApiPromise) return ytApiPromise;
+  ytApiPromise = new Promise((resolve) => {
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      if (typeof prev === "function") { try { prev(); } catch (e) { /* ignore */ } }
+      resolve(window.YT);
+    };
+    if (!document.querySelector('script[data-yt-iframe-api]')) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      tag.async = true;
+      tag.setAttribute("data-yt-iframe-api", "1");
+      document.head.appendChild(tag);
+    }
+    // Safety: in case the script already loaded but callback was missed
+    const poll = setInterval(() => {
+      if (window.YT && window.YT.Player) {
+        clearInterval(poll);
+        resolve(window.YT);
+      }
+    }, 100);
+    setTimeout(() => clearInterval(poll), 10000);
+  });
+  return ytApiPromise;
+}
+
+function formatTime(sec) {
+  if (!Number.isFinite(sec) || sec < 0) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 function extractVideoId(url) {
   if (!url) return null;
   const trimmed = url.trim();
@@ -371,6 +409,12 @@ export default function FloatingMusicPlayer() {
   });
   const audioRef = useRef(null);
   const iframeRef = useRef(null);
+  const ytPlayerRef = useRef(null);
+  const ytPollRef = useRef(null);
+  const seekRafRef = useRef(0);
+  const isSeekingRef = useRef(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   // Fetch user's courses
   useEffect(() => {
@@ -454,10 +498,13 @@ export default function FloatingMusicPlayer() {
     setIsPlaying(false);
   }, [currentPlaylistId]);
 
-  // Volume persistence & apply to audio
+  // Volume persistence & apply to audio + YT
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem(VOLUME_KEY, String(volume));
     if (audioRef.current) audioRef.current.volume = volume;
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.setVolume === "function") {
+      try { ytPlayerRef.current.setVolume(Math.round(volume * 100)); } catch (e) { /* ignore */ }
+    }
   }, [volume]);
 
   // Derived state
@@ -468,6 +515,12 @@ export default function FloatingMusicPlayer() {
   const trackType = track ? (track.type || detectType(track.url)) : null;
   const videoId = track && trackType === "youtube" ? extractVideoId(track.url) : null;
   const coverArt = track?.coverUrl || currentPlaylist?.coverUrl || null;
+
+  // Reset scrub state when track changes
+  useEffect(() => {
+    setCurrentTime(0);
+    setDuration(0);
+  }, [track?.url, trackType]);
 
   // Audio play/pause + src sync
   useEffect(() => {
@@ -486,6 +539,117 @@ export default function FloatingMusicPlayer() {
       audioRef.current.pause();
     }
   }, [isPlaying, trackType]);
+
+  // ── YouTube IFrame API: init player on iframe mount; tear down on unmount/track switch
+  useEffect(() => {
+    if (trackType !== "youtube" || !videoId) return;
+    let cancelled = false;
+    let player = null;
+
+    loadYouTubeAPI().then((YT) => {
+      if (cancelled || !YT || !iframeRef.current) return;
+      try {
+        player = new YT.Player(iframeRef.current, {
+          events: {
+            onReady: (e) => {
+              ytPlayerRef.current = e.target;
+              try {
+                e.target.setVolume(Math.round(volume * 100));
+                const dur = e.target.getDuration();
+                if (Number.isFinite(dur) && dur > 0) setDuration(dur);
+              } catch (err) { /* ignore */ }
+            },
+            onStateChange: (e) => {
+              // YT.PlayerState: ENDED=0, PLAYING=1, PAUSED=2, BUFFERING=3, CUED=5
+              if (e.data === 0) handleAudioEnded(); // reuse end-of-track logic
+              if (e.data === 1) {
+                try {
+                  const dur = e.target.getDuration();
+                  if (Number.isFinite(dur) && dur > 0) setDuration(dur);
+                } catch (err) { /* ignore */ }
+              }
+            },
+          },
+        });
+      } catch (err) {
+        console.warn("YT player init failed:", err);
+      }
+    });
+
+    // Poll currentTime ~4 Hz while YT track is active
+    ytPollRef.current = setInterval(() => {
+      const p = ytPlayerRef.current;
+      if (!p || isSeekingRef.current) return;
+      try {
+        if (typeof p.getCurrentTime === "function") {
+          const t = p.getCurrentTime();
+          if (Number.isFinite(t)) setCurrentTime(t);
+        }
+        if (!duration && typeof p.getDuration === "function") {
+          const d = p.getDuration();
+          if (Number.isFinite(d) && d > 0) setDuration(d);
+        }
+      } catch (err) { /* ignore */ }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      if (ytPollRef.current) { clearInterval(ytPollRef.current); ytPollRef.current = null; }
+      const p = ytPlayerRef.current;
+      ytPlayerRef.current = null;
+      if (p && typeof p.destroy === "function") {
+        try { p.destroy(); } catch (err) { /* ignore */ }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackType, videoId]);
+
+  // Drive YT play/pause when isPlaying flips
+  useEffect(() => {
+    const p = ytPlayerRef.current;
+    if (!p || trackType !== "youtube") return;
+    try {
+      if (isPlaying && typeof p.playVideo === "function") p.playVideo();
+      else if (!isPlaying && typeof p.pauseVideo === "function") p.pauseVideo();
+    } catch (err) { /* ignore */ }
+  }, [isPlaying, trackType, videoId]);
+
+  // ── Audio: timeupdate via rAF throttle + loadedmetadata
+  useEffect(() => {
+    if (trackType !== "audio") return;
+    const el = audioRef.current;
+    if (!el) return;
+    const onLoaded = () => {
+      if (Number.isFinite(el.duration)) setDuration(el.duration);
+    };
+    const onTime = () => {
+      if (isSeekingRef.current) return;
+      if (seekRafRef.current) return;
+      seekRafRef.current = requestAnimationFrame(() => {
+        seekRafRef.current = 0;
+        if (audioRef.current) setCurrentTime(audioRef.current.currentTime || 0);
+      });
+    };
+    el.addEventListener("loadedmetadata", onLoaded);
+    el.addEventListener("timeupdate", onTime);
+    el.addEventListener("durationchange", onLoaded);
+    return () => {
+      el.removeEventListener("loadedmetadata", onLoaded);
+      el.removeEventListener("timeupdate", onTime);
+      el.removeEventListener("durationchange", onLoaded);
+      if (seekRafRef.current) { cancelAnimationFrame(seekRafRef.current); seekRafRef.current = 0; }
+    };
+  }, [trackType, track?.url]);
+
+  const handleSeek = (seconds) => {
+    const target = Math.max(0, Math.min(seconds, duration || 0));
+    setCurrentTime(target);
+    if (trackType === "audio" && audioRef.current) {
+      try { audioRef.current.currentTime = target; } catch (e) { /* ignore */ }
+    } else if (trackType === "youtube" && ytPlayerRef.current) {
+      try { ytPlayerRef.current.seekTo(target, true); } catch (e) { /* ignore */ }
+    }
+  };
 
   if (!user || !courseId) return null;
   if (playlists.length === 0 && userRole !== "teacher") return null;
@@ -565,11 +729,11 @@ export default function FloatingMusicPlayer() {
         />
       )}
 
-      {/* YouTube iframe (kept mounted while playing for background playback) */}
-      {trackType === "youtube" && isPlaying && videoId && (
+      {/* YouTube iframe (always mounted for current YT track so we can control + seek via IFrame API) */}
+      {trackType === "youtube" && videoId && (
         <iframe
           ref={iframeRef}
-          src={`https://www.youtube.com/embed/${videoId}?autoplay=1${repeatMode === "one" ? "&loop=1&playlist=" + videoId : ""}`}
+          src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=${isPlaying ? 1 : 0}&playsinline=1${repeatMode === "one" ? "&loop=1&playlist=" + videoId : ""}`}
           title={track?.label || "Music"}
           width="0" height="0"
           style={{ position: "absolute", top: -9999, left: -9999, border: "none", pointerEvents: "none" }}
@@ -821,19 +985,49 @@ export default function FloatingMusicPlayer() {
                     </button>
                   </div>
 
-                  {/* Volume slider (audio tracks only — YouTube iframe doesn't expose volume control) */}
-                  {trackType === "audio" && (
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "0 16px 10px", color: "var(--text3)", fontSize: 11,
-                    }}>
-                      <span>🔊</span>
-                      <input type="range" min={0} max={1} step={0.01} value={volume}
-                        onChange={(e) => setVolume(parseFloat(e.target.value))}
-                        style={{ flex: 1, accentColor: "var(--purple)" }} />
-                      <span style={{ minWidth: 26, textAlign: "right" }}>{Math.round(volume * 100)}</span>
-                    </div>
-                  )}
+                  {/* Scrub / seek bar (audio + YouTube) */}
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "0 16px 8px", color: "var(--text3)", fontSize: 11,
+                  }}>
+                    <span style={{ minWidth: 32, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                      {formatTime(currentTime)}
+                    </span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={duration || 0}
+                      step={0.1}
+                      value={Math.min(currentTime, duration || 0)}
+                      disabled={!duration}
+                      onPointerDown={() => { isSeekingRef.current = true; }}
+                      onChange={(e) => setCurrentTime(parseFloat(e.target.value))}
+                      onPointerUp={(e) => {
+                        isSeekingRef.current = false;
+                        handleSeek(parseFloat(e.currentTarget.value));
+                      }}
+                      onKeyUp={(e) => {
+                        handleSeek(parseFloat(e.currentTarget.value));
+                      }}
+                      style={{ flex: 1, accentColor: "var(--purple)", cursor: duration ? "pointer" : "not-allowed" }}
+                      aria-label="Seek"
+                    />
+                    <span style={{ minWidth: 32, fontVariantNumeric: "tabular-nums" }}>
+                      {formatTime(duration)}
+                    </span>
+                  </div>
+
+                  {/* Volume slider */}
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "0 16px 10px", color: "var(--text3)", fontSize: 11,
+                  }}>
+                    <span>🔊</span>
+                    <input type="range" min={0} max={1} step={0.01} value={volume}
+                      onChange={(e) => setVolume(parseFloat(e.target.value))}
+                      style={{ flex: 1, accentColor: "var(--purple)" }} />
+                    <span style={{ minWidth: 26, textAlign: "right" }}>{Math.round(volume * 100)}</span>
+                  </div>
 
                   {/* Track list */}
                   {validTracks.length > 1 && (
