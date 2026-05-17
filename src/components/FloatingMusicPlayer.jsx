@@ -623,17 +623,39 @@ export default function FloatingMusicPlayer() {
       {/* Music panel */}
       {open && (
         <div className="floating-music-panel">
-          {/* Course selector */}
+          {/* Course selector — dropdown when many courses (teacher), pills when few (student) */}
           {courses.length > 1 && (
-            <div className="floating-music-courses">
-              {courses.map((c) => (
-                <button key={c.id}
-                  onClick={() => { setCourseId(c.id); setShowManager(false); }}
-                  className={`floating-music-course-btn ${courseId === c.id ? "active" : ""}`}>
-                  {c.icon || "📚"} {c.title}
-                </button>
-              ))}
-            </div>
+            courses.length > 4 ? (
+              <div style={{
+                padding: "8px 12px", borderBottom: "1px solid var(--border)",
+                display: "flex", alignItems: "center", gap: 8,
+              }}>
+                <span style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.3 }}>Course</span>
+                <select
+                  value={courseId || ""}
+                  onChange={(e) => { setCourseId(e.target.value); setShowManager(false); }}
+                  style={{
+                    flex: 1, padding: "5px 8px", borderRadius: 6,
+                    border: "1px solid var(--border)", background: "var(--surface)",
+                    color: "var(--text)", fontSize: 12, fontFamily: "inherit", cursor: "pointer",
+                  }}
+                >
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>{c.icon || "📚"} {c.title}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="floating-music-courses">
+                {courses.map((c) => (
+                  <button key={c.id}
+                    onClick={() => { setCourseId(c.id); setShowManager(false); }}
+                    className={`floating-music-course-btn ${courseId === c.id ? "active" : ""}`}>
+                    {c.icon || "📚"} {c.title}
+                  </button>
+                ))}
+              </div>
+            )
           )}
 
           {showManager && isTeacher ? (
@@ -643,21 +665,43 @@ export default function FloatingMusicPlayer() {
               onClose={() => setShowManager(false)} />
           ) : (
             <>
-              {/* Playlist selector */}
+              {/* Playlist selector — dropdown when many, pills when few */}
               {playlists.length > 1 && (
-                <div style={{
-                  display: "flex", flexWrap: "wrap", gap: 4, padding: "8px 12px",
-                  borderBottom: "1px solid var(--border)",
-                }}>
-                  {playlists.map((p) => (
-                    <button key={p.id}
-                      onClick={() => setCurrentPlaylistId(p.id)}
-                      className={`floating-music-course-btn ${currentPlaylistId === p.id ? "active" : ""}`}
-                      style={{ fontSize: 11 }}>
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
+                playlists.length > 4 ? (
+                  <div style={{
+                    padding: "8px 12px", borderBottom: "1px solid var(--border)",
+                    display: "flex", alignItems: "center", gap: 8,
+                  }}>
+                    <span style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.3 }}>Playlist</span>
+                    <select
+                      value={currentPlaylistId || ""}
+                      onChange={(e) => setCurrentPlaylistId(e.target.value)}
+                      style={{
+                        flex: 1, padding: "5px 8px", borderRadius: 6,
+                        border: "1px solid var(--border)", background: "var(--surface)",
+                        color: "var(--text)", fontSize: 12, fontFamily: "inherit", cursor: "pointer",
+                      }}
+                    >
+                      {playlists.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: "flex", flexWrap: "wrap", gap: 4, padding: "8px 12px",
+                    borderBottom: "1px solid var(--border)",
+                  }}>
+                    {playlists.map((p) => (
+                      <button key={p.id}
+                        onClick={() => setCurrentPlaylistId(p.id)}
+                        className={`floating-music-course-btn ${currentPlaylistId === p.id ? "active" : ""}`}
+                        style={{ fontSize: 11 }}>
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                )
               )}
 
               {/* Header */}
