@@ -339,11 +339,14 @@ a:hover { color: var(--brand-light); text-decoration: underline; }
 .floating-music-panel {
   position: fixed; bottom: 88px; left: 24px; z-index: 9000;
   width: 340px;
+  max-height: calc(100vh - 110px);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: 0 12px 48px rgba(0,0,0,0.5);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   animation: fmpSlideIn 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes fmpSlideIn {
@@ -416,8 +419,11 @@ a:hover { color: var(--brand-light); text-decoration: underline; }
 
 .floating-music-tracklist {
   display: flex; flex-direction: column;
-  margin: 0 14px 14px; border-radius: 10px; overflow: hidden;
+  margin: 0 14px 14px; border-radius: 10px;
   border: 1px solid var(--border);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 .fmt-item {
   display: flex; align-items: center; gap: 8px; padding: 9px 12px;
