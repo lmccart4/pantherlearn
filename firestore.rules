@@ -34,6 +34,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Class-level Suno song drafts. Same access model as studentProfiles.
+    match /classSongs/{id} {
+      allow read, write: if request.auth != null;
+    }
+
     function isLoggedIn() {
       return request.auth != null;
     }
@@ -417,6 +422,14 @@ service cloud.firestore {
         allow read: if isTeacher();
         allow write: if isTeacher();
       }
+    }
+
+    // Music Playlists — top-level collection scoped to N courses via courseIds[]
+    // Read: any authenticated user (player filters by course client-side; data is non-sensitive music URLs)
+    // Write: any teacher (playlists are a teacher-managed resource, not per-student)
+    match /playlists/{playlistId} {
+      allow read: if isLoggedIn();
+      allow create, update, delete: if isTeacher();
     }
   }
 }

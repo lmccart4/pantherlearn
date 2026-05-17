@@ -1,16 +1,28 @@
 // src/components/FloatingMusicPlayer.jsx
 // Floating background music player — persists across all pages.
-// Teachers configure playlists per-course in Firestore (courses/{id}/settings/music).
-// Students see a floating mini-player in the bottom-left corner.
+// Tracks live in top-level `playlists` collection, scoped to N courses via courseIds[].
+// Supports both YouTube URLs (iframe embed) and direct audio file URLs (HTML5 audio).
+// Teachers manage playlists via the gear icon.
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { doc, getDoc, setDoc, getDocs, collection, query, where } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  getDocs,
+  collection,
+  query,
+  where,
+  addDoc,
+  setDoc,
+  deleteDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db } from "../lib/firebase";
 
-/**
- * Extracts YouTube video ID from any YouTube URL format.
- */
+const VOLUME_KEY = "pantherlearn:music:volume";
+const LAST_PLAYLIST_KEY = (cid) => `pantherlearn:music:lastPlaylist:${cid}`;
+
 function extractVideoId(url) {
   if (!url) return null;
   const trimmed = url.trim();
@@ -29,15 +41,145 @@ function extractVideoId(url) {
   return null;
 }
 
-// ─── Teacher Config Panel ───
-function MusicConfig({ courseId, tracks, onSave, onClose }) {
-  const [editTracks, setEditTracks] = useState(tracks.length > 0 ? tracks : [{ url: "", label: "" }]);
+function detectType(url) {
+  if (!url) return "audio";
+  return /youtube\.com|youtu\.be|music\.youtube\.com/i.test(url) ? "youtube" : "audio";
+}
+
+function isValidTrack(t) {
+  if (!t || !t.url) return false;
+  const type = t.type || detectType(t.url);
+  if (type === "youtube") return !!extractVideoId(t.url);
+  return /^https?:\/\//.test(t.url);
+}
+
+// ─── Lyrics Modal ───
+function LyricsModal({ track, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  if (!track) return null;
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 10000,
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12,
+          maxWidth: 540, width: "100%", maxHeight: "85vh", overflow: "hidden",
+          display: "flex", flexDirection: "column",
+        }}
+      >
+        <div style={{
+          padding: "14px 18px", borderBottom: "1px solid var(--border)",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+        }}>
+          <div>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15 }}>
+              {track.label}
+            </div>
+            {track.artist && (
+              <div style={{ fontSize: 12, color: "var(--text3)" }}>{track.artist}</div>
+            )}
+          </div>
+          <button onClick={onClose} style={{
+            width: 30, height: 30, borderRadius: 7, border: "1px solid var(--border)",
+            background: "var(--bg)", color: "var(--text3)", cursor: "pointer", fontSize: 14,
+          }}>✕</button>
+        </div>
+        <div style={{
+          padding: "18px 20px", overflowY: "auto", whiteSpace: "pre-wrap",
+          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+          fontSize: 13, lineHeight: 1.55, color: "var(--text)",
+        }}>
+          {track.lyrics || "No lyrics available for this track."}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Track editor row (admin) ───
+function TrackEditor({ track, index, onChange, onRemove }) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", gap: 6,
+      padding: 8, border: "1px solid var(--border)", borderRadius: 8, marginBottom: 8,
+    }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <span style={{ color: "var(--text3)", fontSize: 12, minWidth: 18 }}>{index + 1}.</span>
+        <input className="music-config-input" placeholder="Song name"
+          value={track.label || ""} style={{ flex: "0 0 38%" }}
+          onChange={(e) => onChange({ ...track, label: e.target.value })} />
+        <input className="music-config-input" placeholder="YouTube URL or audio file URL..."
+          value={track.url || ""} style={{ flex: 1 }}
+          onChange={(e) => onChange({ ...track, url: e.target.value, type: detectType(e.target.value) })} />
+        <button onClick={onRemove} style={{
+          width: 26, height: 26, borderRadius: 6, border: "1px solid var(--border)",
+          background: "var(--bg)", color: "var(--text3)", cursor: "pointer", fontSize: 12,
+        }}>✕</button>
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input className="music-config-input" placeholder="Cover URL (optional)"
+          value={track.coverUrl || ""} style={{ flex: 1, fontSize: 12 }}
+          onChange={(e) => onChange({ ...track, coverUrl: e.target.value })} />
+        <input className="music-config-input" placeholder="Artist (optional)"
+          value={track.artist || ""} style={{ flex: "0 0 30%", fontSize: 12 }}
+          onChange={(e) => onChange({ ...track, artist: e.target.value })} />
+      </div>
+      <details>
+        <summary style={{ fontSize: 11, color: "var(--text3)", cursor: "pointer", userSelect: "none" }}>
+          Lyrics (optional)
+        </summary>
+        <textarea className="music-config-input" value={track.lyrics || ""}
+          placeholder="[Verse 1]&#10;..."
+          style={{ width: "100%", minHeight: 80, fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", marginTop: 4 }}
+          onChange={(e) => onChange({ ...track, lyrics: e.target.value })} />
+      </details>
+    </div>
+  );
+}
+
+// ─── Playlist Editor (teacher) ───
+function PlaylistEditor({ playlist, allCourses, onSave, onDelete, onClose }) {
+  const [name, setName] = useState(playlist?.name || "");
+  const [coverUrl, setCoverUrl] = useState(playlist?.coverUrl || "");
+  const [courseIds, setCourseIds] = useState(playlist?.courseIds || []);
+  const [tracks, setTracks] = useState(playlist?.tracks || []);
   const [saving, setSaving] = useState(false);
 
+  const toggleCourse = (cid) => {
+    setCourseIds((prev) => prev.includes(cid) ? prev.filter((x) => x !== cid) : [...prev, cid]);
+  };
+
   const save = async () => {
+    if (!name.trim() || courseIds.length === 0) {
+      alert("Name and at least one course required.");
+      return;
+    }
     setSaving(true);
-    const validTracks = editTracks.filter((t) => t.url.trim());
-    await onSave(validTracks);
+    const validTracks = tracks.filter((t) => t.url && t.url.trim()).map((t, i) => ({
+      id: t.id || `track-${Date.now()}-${i}`,
+      label: t.label || `Track ${i + 1}`,
+      url: t.url.trim(),
+      type: t.type || detectType(t.url),
+      coverUrl: t.coverUrl || null,
+      artist: t.artist || null,
+      lyrics: t.lyrics || null,
+    }));
+    await onSave({
+      name: name.trim(),
+      coverUrl: coverUrl.trim() || null,
+      courseIds,
+      tracks: validTracks,
+    });
     setSaving(false);
   };
 
@@ -45,71 +187,162 @@ function MusicConfig({ courseId, tracks, onSave, onClose }) {
     <div className="music-config-panel">
       <div className="music-config-header">
         <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15 }}>
-          🎵 Configure Music
+          🎵 {playlist?.id ? "Edit" : "New"} Playlist
         </span>
         <button onClick={onClose} className="music-config-close">✕</button>
       </div>
+      <div className="music-config-body" style={{ maxHeight: "60vh", overflowY: "auto" }}>
+        <label style={{ display: "block", fontSize: 11, color: "var(--text3)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.3 }}>Name</label>
+        <input className="music-config-input" placeholder="Playlist name" value={name}
+          style={{ width: "100%", marginBottom: 12 }}
+          onChange={(e) => setName(e.target.value)} />
 
-      <div className="music-config-body">
-        <p style={{ fontSize: 12, color: "var(--text3)", marginBottom: 12 }}>
-          Add YouTube or YouTube Music URLs. Students will see a floating music player on all pages.
-        </p>
+        <label style={{ display: "block", fontSize: 11, color: "var(--text3)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.3 }}>Cover URL (optional)</label>
+        <input className="music-config-input" placeholder="https://..." value={coverUrl}
+          style={{ width: "100%", marginBottom: 12 }}
+          onChange={(e) => setCoverUrl(e.target.value)} />
 
-        {editTracks.map((track, i) => (
-          <div key={i} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center" }}>
-            <span style={{ color: "var(--text3)", fontSize: 12, minWidth: 18 }}>{i + 1}.</span>
-            <input
-              className="music-config-input"
-              placeholder="Song name"
-              value={track.label}
-              style={{ flex: "0 0 35%" }}
-              onChange={(e) => {
-                const t = [...editTracks];
-                t[i] = { ...t[i], label: e.target.value };
-                setEditTracks(t);
-              }}
-            />
-            <input
-              className="music-config-input"
-              placeholder="YouTube URL..."
-              value={track.url}
-              style={{ flex: 1 }}
-              onChange={(e) => {
-                const t = [...editTracks];
-                t[i] = { ...t[i], url: e.target.value };
-                setEditTracks(t);
-              }}
-            />
-            <button
-              onClick={() => setEditTracks(editTracks.filter((_, j) => j !== i))}
-              style={{
-                width: 26, height: 26, borderRadius: 6, border: "1px solid var(--border)",
-                background: "var(--bg)", color: "var(--text3)", cursor: "pointer", fontSize: 12,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >✕</button>
-          </div>
+        <label style={{ display: "block", fontSize: 11, color: "var(--text3)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>
+          Visible in courses
+        </label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+          {allCourses.map((c) => (
+            <button key={c.id} onClick={() => toggleCourse(c.id)} style={{
+              padding: "5px 10px", fontSize: 12, borderRadius: 6,
+              border: "1px solid var(--border)",
+              background: courseIds.includes(c.id) ? "var(--purple)" : "var(--bg)",
+              color: courseIds.includes(c.id) ? "var(--bg)" : "var(--text3)",
+              cursor: "pointer", fontWeight: courseIds.includes(c.id) ? 600 : 400,
+            }}>
+              {c.icon || "📚"} {c.title}
+            </button>
+          ))}
+        </div>
+
+        <label style={{ display: "block", fontSize: 11, color: "var(--text3)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>
+          Tracks ({tracks.length})
+        </label>
+        {tracks.map((t, i) => (
+          <TrackEditor key={t.id || i} track={t} index={i}
+            onChange={(nt) => { const c = [...tracks]; c[i] = nt; setTracks(c); }}
+            onRemove={() => setTracks(tracks.filter((_, j) => j !== i))} />
         ))}
-
-        <button
-          onClick={() => setEditTracks([...editTracks, { url: "", label: "" }])}
+        <button onClick={() => setTracks([...tracks, { id: `track-${Date.now()}`, url: "", label: "" }])}
           style={{
             padding: "6px 14px", borderRadius: 7, border: "1.5px dashed var(--border)",
-            background: "transparent", color: "var(--text3)", fontSize: 12, cursor: "pointer",
-            marginBottom: 14, transition: "all 0.2s",
-          }}
-        >
-          + Add track
-        </button>
+            background: "transparent", color: "var(--text3)", fontSize: 12, cursor: "pointer", marginBottom: 14,
+          }}>+ Add track</button>
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button onClick={onClose} className="btn btn-secondary" style={{ fontSize: 13, padding: "8px 16px" }}>
-            Cancel
-          </button>
-          <button onClick={save} disabled={saving} className="btn btn-primary" style={{ fontSize: 13, padding: "8px 16px" }}>
-            {saving ? "Saving..." : "Save Playlist"}
-          </button>
+        <div style={{ display: "flex", gap: 8, justifyContent: "space-between", alignItems: "center" }}>
+          {playlist?.id ? (
+            <button onClick={() => { if (confirm(`Delete playlist "${playlist.name}"?`)) onDelete(); }}
+              style={{
+                fontSize: 12, padding: "6px 12px", background: "transparent",
+                border: "1px solid var(--border)", color: "var(--text3)",
+                borderRadius: 6, cursor: "pointer",
+              }}>Delete</button>
+          ) : <span />}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={onClose} className="btn btn-secondary" style={{ fontSize: 13, padding: "8px 16px" }}>Cancel</button>
+            <button onClick={save} disabled={saving} className="btn btn-primary" style={{ fontSize: 13, padding: "8px 16px" }}>
+              {saving ? "Saving..." : (playlist?.id ? "Save" : "Create")}
+            </button>
+          </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Playlist Manager (teacher) ───
+function PlaylistManager({ courseId, playlists, allCourses, onSaved, onClose }) {
+  const [editing, setEditing] = useState(null);
+
+  const handleSave = async (data) => {
+    try {
+      if (editing.id) {
+        await setDoc(doc(db, "playlists", editing.id),
+          { ...data, updatedAt: serverTimestamp() },
+          { merge: true });
+      } else {
+        await addDoc(collection(db, "playlists"), {
+          ...data, ownerUid: "teacher", order: 999,
+          createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+        });
+      }
+      setEditing(null);
+      onSaved();
+    } catch (e) {
+      console.error("Save failed:", e);
+      alert("Save failed. Check console.");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteDoc(doc(db, "playlists", editing.id));
+      setEditing(null);
+      onSaved();
+    } catch (e) {
+      console.error("Delete failed:", e);
+      alert("Delete failed.");
+    }
+  };
+
+  if (editing !== null) {
+    return <PlaylistEditor playlist={editing} allCourses={allCourses}
+      onSave={handleSave} onDelete={handleDelete}
+      onClose={() => setEditing(null)} />;
+  }
+
+  return (
+    <div className="music-config-panel">
+      <div className="music-config-header">
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15 }}>
+          🎵 Manage Playlists
+        </span>
+        <button onClick={onClose} className="music-config-close">✕</button>
+      </div>
+      <div className="music-config-body">
+        {playlists.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--text3)", textAlign: "center", margin: "20px 0" }}>
+            No playlists yet for this course.
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+            {playlists.map((p) => (
+              <button key={p.id} onClick={() => setEditing(p)} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 12px", border: "1px solid var(--border)",
+                borderRadius: 8, background: "var(--bg)", color: "var(--text)",
+                cursor: "pointer", textAlign: "left",
+              }}>
+                {p.coverUrl ? (
+                  <img src={p.coverUrl} alt=""
+                    style={{ width: 36, height: 36, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
+                ) : (
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 6, background: "var(--surface2)",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>🎵</div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.name}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text3)" }}>
+                    {(p.tracks || []).length} tracks · {(p.courseIds || []).length} {(p.courseIds || []).length === 1 ? "course" : "courses"}
+                  </div>
+                </div>
+                <span style={{ color: "var(--text3)", fontSize: 14 }}>›</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <button onClick={() => setEditing({ courseIds: courseId ? [courseId] : [], tracks: [] })}
+          className="btn btn-primary" style={{ width: "100%", fontSize: 13, padding: "10px" }}>
+          + New Playlist
+        </button>
       </div>
     </div>
   );
@@ -119,31 +352,40 @@ function MusicConfig({ courseId, tracks, onSave, onClose }) {
 export default function FloatingMusicPlayer() {
   const { user, userRole } = useAuth();
   const [open, setOpen] = useState(false);
-  const [minimized, setMinimized] = useState(false); // minimized = slim bar, music keeps playing
-  const [showConfig, setShowConfig] = useState(false);
-  const [tracks, setTracks] = useState([]);
+  const [minimized, setMinimized] = useState(false);
+  const [showManager, setShowManager] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(null);
+  const [playlists, setPlaylists] = useState([]);
+  const [currentPlaylistId, setCurrentPlaylistId] = useState(null);
   const [currentTrack, setCurrentTrack] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shuffle, setShuffle] = useState(false);
-  const [repeatMode, setRepeatMode] = useState("off"); // "off" → "one" → "all"
+  const [repeatMode, setRepeatMode] = useState("off");
   const [courseId, setCourseId] = useState(null);
   const [courses, setCourses] = useState([]);
+  const [allCoursesForTeacher, setAllCoursesForTeacher] = useState([]);
+  const [volume, setVolume] = useState(() => {
+    if (typeof window === "undefined") return 0.7;
+    const stored = parseFloat(localStorage.getItem(VOLUME_KEY));
+    return Number.isFinite(stored) ? stored : 0.7;
+  });
+  const audioRef = useRef(null);
   const iframeRef = useRef(null);
 
-  // Fetch user's courses (same pattern as ClassChat)
+  // Fetch user's courses
   useEffect(() => {
     if (!user) return;
     const fetchCourses = async () => {
       if (userRole === "teacher") {
         const snap = await getDocs(collection(db, "courses"));
-        const allCourses = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden);
-        setCourses(allCourses);
-        if (allCourses.length > 0) setCourseId(allCourses[0].id);
+        const all = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => !c.hidden);
+        setCourses(all);
+        setAllCoursesForTeacher(all);
+        if (all.length > 0 && !courseId) setCourseId(all[0].id);
       } else {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         const ec = userDoc.exists() ? userDoc.data().enrolledCourses : null;
         let enrolledIds = new Set();
-
         if (ec && typeof ec === "object" && !Array.isArray(ec)) {
           Object.entries(ec).forEach(([key, value]) => {
             if (value === true && isNaN(key)) enrolledIds.add(key);
@@ -152,14 +394,12 @@ export default function FloatingMusicPlayer() {
         } else if (Array.isArray(ec)) {
           enrolledIds = new Set(ec);
         }
-
         if (enrolledIds.size === 0) {
           const enrollSnap = await getDocs(
             query(collection(db, "enrollments"), where("email", "==", user.email?.toLowerCase()))
           );
           enrollSnap.forEach((d) => enrolledIds.add(d.data().courseId));
         }
-
         const enrolled = [];
         for (const cid of enrolledIds) {
           try {
@@ -169,82 +409,107 @@ export default function FloatingMusicPlayer() {
         }
         const visible = enrolled.filter((c) => !c.hidden);
         setCourses(visible);
-        if (visible.length > 0) setCourseId(visible[0].id);
+        if (visible.length > 0 && !courseId) setCourseId(visible[0].id);
       }
     };
     fetchCourses();
   }, [user, userRole]);
 
-  // Load playlist when course changes
-  useEffect(() => {
-    if (!courseId) return;
-    const loadTracks = async () => {
-      try {
-        const musicDoc = await getDoc(doc(db, "courses", courseId, "settings", "music"));
-        if (musicDoc.exists()) {
-          const data = musicDoc.data();
-          setTracks(data.tracks || []);
-          setCurrentTrack(0);
-          setIsPlaying(false);
-        } else {
-          setTracks([]);
-        }
-      } catch (err) {
-        console.warn("Failed to load music settings:", err);
-        setTracks([]);
-      }
-    };
-    loadTracks();
-  }, [courseId]);
-
-  // Save playlist (teacher only)
-  const saveTracks = useCallback(async (newTracks) => {
+  // Load playlists for current course
+  const loadPlaylists = useCallback(async () => {
     if (!courseId) return;
     try {
-      await setDoc(doc(db, "courses", courseId, "settings", "music"), {
-        tracks: newTracks,
-        updatedAt: new Date(),
-      }, { merge: true });
-      setTracks(newTracks);
-      setCurrentTrack(0);
-      setShowConfig(false);
+      const q = query(collection(db, "playlists"), where("courseIds", "array-contains", courseId));
+      const snap = await getDocs(q);
+      let docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      docs.sort((a, b) =>
+        (a.order ?? 999) - (b.order ?? 999) ||
+        (a.name || "").localeCompare(b.name || "")
+      );
+      setPlaylists(docs);
+      const lastUsed = typeof window !== "undefined"
+        ? localStorage.getItem(LAST_PLAYLIST_KEY(courseId))
+        : null;
+      const valid = docs.find((p) => p.id === lastUsed) || docs[0];
+      setCurrentPlaylistId(valid?.id || null);
     } catch (err) {
-      console.error("Failed to save music:", err);
-      alert("Failed to save. Check the console for details.");
+      console.warn("Failed to load playlists:", err);
+      setPlaylists([]);
+      setCurrentPlaylistId(null);
     }
   }, [courseId]);
 
-  if (!user || !courseId) return null;
+  useEffect(() => { loadPlaylists(); }, [loadPlaylists]);
 
-  // Filter valid tracks
-  const validTracks = tracks.filter((t) => extractVideoId(t.url));
+  // Persist last-used playlist per course
+  useEffect(() => {
+    if (currentPlaylistId && courseId && typeof window !== "undefined") {
+      localStorage.setItem(LAST_PLAYLIST_KEY(courseId), currentPlaylistId);
+    }
+  }, [currentPlaylistId, courseId]);
 
-  // Don't show the FAB if no tracks configured and user is a student
-  if (validTracks.length === 0 && userRole !== "teacher") return null;
+  // Reset track index when playlist changes
+  useEffect(() => {
+    setCurrentTrack(0);
+    setIsPlaying(false);
+  }, [currentPlaylistId]);
 
+  // Volume persistence & apply to audio
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem(VOLUME_KEY, String(volume));
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
+
+  // Derived state
+  const currentPlaylist = playlists.find((p) => p.id === currentPlaylistId);
+  const allTracks = currentPlaylist?.tracks || [];
+  const validTracks = allTracks.filter(isValidTrack);
   const track = validTracks[currentTrack] || validTracks[0];
-  const videoId = track ? extractVideoId(track.url) : null;
+  const trackType = track ? (track.type || detectType(track.url)) : null;
+  const videoId = track && trackType === "youtube" ? extractVideoId(track.url) : null;
+  const coverArt = track?.coverUrl || currentPlaylist?.coverUrl || null;
 
-  const handlePlayPause = () => {
-    if (!videoId) return;
-    setIsPlaying(!isPlaying);
-  };
+  // Audio play/pause + src sync
+  useEffect(() => {
+    if (!audioRef.current || trackType !== "audio") return;
+    audioRef.current.load();
+    if (isPlaying) {
+      audioRef.current.play().catch((e) => console.warn("Audio play failed:", e));
+    }
+  }, [track?.url, trackType]);
+
+  useEffect(() => {
+    if (!audioRef.current || trackType !== "audio") return;
+    if (isPlaying) {
+      audioRef.current.play().catch((e) => console.warn("Audio play failed:", e));
+    } else {
+      audioRef.current.pause();
+    }
+  }, [isPlaying, trackType]);
+
+  if (!user || !courseId) return null;
+  if (playlists.length === 0 && userRole !== "teacher") return null;
 
   const pickNextIndex = (current, direction) => {
     if (validTracks.length <= 1) return current;
     if (shuffle) {
       let next;
-      do { next = Math.floor(Math.random() * validTracks.length); } while (next === current && validTracks.length > 1);
+      do { next = Math.floor(Math.random() * validTracks.length); }
+      while (next === current && validTracks.length > 1);
       return next;
     }
     if (direction === 1) return (current + 1) % validTracks.length;
     return (current - 1 + validTracks.length) % validTracks.length;
   };
 
+  const handlePlayPause = () => {
+    if (!track) return;
+    setIsPlaying(!isPlaying);
+  };
+
   const handleNext = () => {
     if (validTracks.length <= 1 && repeatMode !== "one") return;
     if (repeatMode === "one") {
-      // Re-trigger same track by toggling play
       setIsPlaying(false);
       setTimeout(() => setIsPlaying(true), 50);
       return;
@@ -268,28 +533,58 @@ export default function FloatingMusicPlayer() {
     setRepeatMode((prev) => prev === "off" ? "one" : prev === "one" ? "all" : "off");
   };
 
+  const handleAudioEnded = () => {
+    if (repeatMode === "one") {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      }
+    } else if (validTracks.length > 1) {
+      handleNext();
+    } else if (repeatMode === "all") {
+      setCurrentTrack(0);
+      setIsPlaying(true);
+    } else {
+      setIsPlaying(false);
+    }
+  };
+
+  const isTeacher = userRole === "teacher";
+
   return (
     <>
-      {/* Hidden iframe — keeps music playing even when panel is closed/minimized */}
-      {isPlaying && videoId && (
+      {/* Audio element (kept mounted for HTML5 audio tracks, plays even when panel is closed) */}
+      {trackType === "audio" && track && (
+        <audio
+          ref={audioRef}
+          src={track.url}
+          onEnded={handleAudioEnded}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => { /* ignore — controlled */ }}
+          preload="metadata"
+        />
+      )}
+
+      {/* YouTube iframe (kept mounted while playing for background playback) */}
+      {trackType === "youtube" && isPlaying && videoId && (
         <iframe
           ref={iframeRef}
           src={`https://www.youtube.com/embed/${videoId}?autoplay=1${repeatMode === "one" ? "&loop=1&playlist=" + videoId : ""}`}
           title={track?.label || "Music"}
-          width="0"
-          height="0"
+          width="0" height="0"
           style={{ position: "absolute", top: -9999, left: -9999, border: "none", pointerEvents: "none" }}
           allow="autoplay; encrypted-media"
         />
       )}
 
-      {/* Minimized bar — slim controls while music plays */}
+      {/* Lyrics modal */}
+      {showLyrics && <LyricsModal track={showLyrics} onClose={() => setShowLyrics(null)} />}
+
+      {/* Minimized bar */}
       {minimized && isPlaying && !open && (
         <div className="floating-music-minibar">
           <span className="floating-music-note-pulse" style={{ fontSize: 14 }}>♪</span>
-          <span className="fmm-track-name">
-            {track?.label || "Now Playing"}
-          </span>
+          <span className="fmm-track-name">{track?.label || "Now Playing"}</span>
           <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
             {validTracks.length > 1 && (
               <button className="fmm-btn" onClick={handlePrev} title="Previous">⏮</button>
@@ -299,22 +594,19 @@ export default function FloatingMusicPlayer() {
               <button className="fmm-btn" onClick={handleNext} title="Next">⏭</button>
             )}
           </div>
-          <button
-            className="fmm-btn"
+          <button className="fmm-btn"
             onClick={() => { setMinimized(false); setOpen(true); }}
-            title="Expand"
-            style={{ marginLeft: 2 }}
-          >↗</button>
+            title="Expand" style={{ marginLeft: 2 }}>↗</button>
         </div>
       )}
 
-      {/* Floating music button — bottom left (hidden when minimized bar is showing) */}
+      {/* Floating music button */}
       {!(minimized && isPlaying) && (
         <button
           onClick={() => {
-            if (validTracks.length === 0 && userRole === "teacher") {
+            if (playlists.length === 0 && isTeacher) {
               setOpen(true);
-              setShowConfig(true);
+              setShowManager(true);
             } else {
               setOpen(!open);
               setMinimized(false);
@@ -324,54 +616,62 @@ export default function FloatingMusicPlayer() {
           style={{ transform: open ? "scale(0.9)" : "scale(1)" }}
         >
           {open ? "✕" : (isPlaying ? "🎵" : "🎶")}
-          {isPlaying && !open && (
-            <span className="floating-music-pulse" />
-          )}
+          {isPlaying && !open && <span className="floating-music-pulse" />}
         </button>
       )}
 
       {/* Music panel */}
       {open && (
         <div className="floating-music-panel">
-          {/* Course selector (if multiple courses) */}
+          {/* Course selector */}
           {courses.length > 1 && (
             <div className="floating-music-courses">
               {courses.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => { setCourseId(c.id); setShowConfig(false); }}
-                  className={`floating-music-course-btn ${courseId === c.id ? "active" : ""}`}
-                >
+                <button key={c.id}
+                  onClick={() => { setCourseId(c.id); setShowManager(false); }}
+                  className={`floating-music-course-btn ${courseId === c.id ? "active" : ""}`}>
                   {c.icon || "📚"} {c.title}
                 </button>
               ))}
             </div>
           )}
 
-          {/* Config mode (teacher) */}
-          {showConfig && userRole === "teacher" ? (
-            <MusicConfig
-              courseId={courseId}
-              tracks={tracks}
-              onSave={saveTracks}
-              onClose={() => setShowConfig(false)}
-            />
+          {showManager && isTeacher ? (
+            <PlaylistManager courseId={courseId} playlists={playlists}
+              allCourses={allCoursesForTeacher}
+              onSaved={loadPlaylists}
+              onClose={() => setShowManager(false)} />
           ) : (
             <>
+              {/* Playlist selector */}
+              {playlists.length > 1 && (
+                <div style={{
+                  display: "flex", flexWrap: "wrap", gap: 4, padding: "8px 12px",
+                  borderBottom: "1px solid var(--border)",
+                }}>
+                  {playlists.map((p) => (
+                    <button key={p.id}
+                      onClick={() => setCurrentPlaylistId(p.id)}
+                      className={`floating-music-course-btn ${currentPlaylistId === p.id ? "active" : ""}`}
+                      style={{ fontSize: 11 }}>
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Header */}
               <div className="floating-music-header">
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
                   <span style={{ fontSize: 22 }}>🎧</span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15 }}>
-                      Background Music
+                      {currentPlaylist?.name || "Background Music"}
                     </div>
                     {track && isPlaying && (
                       <div className="floating-music-now-playing">
                         <span className="floating-music-note-pulse">♪</span>
-                        <span style={{
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        }}>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {track.label || "Now Playing"}
                         </span>
                       </div>
@@ -379,46 +679,35 @@ export default function FloatingMusicPlayer() {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  {/* Minimize button — only visible when music is playing */}
                   {isPlaying && (
-                    <button
-                      onClick={() => { setMinimized(true); setOpen(false); }}
+                    <button onClick={() => { setMinimized(true); setOpen(false); }}
                       title="Minimize — music keeps playing"
                       style={{
                         width: 30, height: 30, borderRadius: 7, border: "1px solid var(--border)",
                         background: "var(--bg)", color: "var(--text3)", cursor: "pointer", fontSize: 14,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                      }}
-                    >▾</button>
+                      }}>▾</button>
                   )}
-                  {userRole === "teacher" && (
-                    <button
-                      onClick={() => setShowConfig(true)}
-                      title="Configure playlist"
+                  {isTeacher && (
+                    <button onClick={() => setShowManager(true)} title="Manage playlists"
                       style={{
                         width: 30, height: 30, borderRadius: 7, border: "1px solid var(--border)",
                         background: "var(--bg)", color: "var(--text3)", cursor: "pointer", fontSize: 14,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                      }}
-                    >⚙️</button>
+                      }}>⚙️</button>
                   )}
                 </div>
               </div>
 
-              {validTracks.length === 0 ? (
-                <div style={{
-                  padding: "30px 20px", textAlign: "center", color: "var(--text3)", fontSize: 13,
-                }}>
-                  {userRole === "teacher" ? (
+              {playlists.length === 0 || validTracks.length === 0 ? (
+                <div style={{ padding: "30px 20px", textAlign: "center", color: "var(--text3)", fontSize: 13 }}>
+                  {isTeacher ? (
                     <>
                       <div style={{ fontSize: 32, marginBottom: 8 }}>🎵</div>
-                      <p>No tracks yet.</p>
-                      <button
-                        onClick={() => setShowConfig(true)}
-                        className="btn btn-primary"
-                        style={{ marginTop: 12, fontSize: 13, padding: "8px 18px" }}
-                      >
-                        + Add Music
+                      <p>{playlists.length === 0 ? "No playlists yet for this course." : "Selected playlist has no tracks."}</p>
+                      <button onClick={() => setShowManager(true)} className="btn btn-primary"
+                        style={{ marginTop: 12, fontSize: 13, padding: "8px 18px" }}>
+                        {playlists.length === 0 ? "+ Create Playlist" : "+ Manage"}
                       </button>
                     </>
                   ) : (
@@ -427,71 +716,113 @@ export default function FloatingMusicPlayer() {
                 </div>
               ) : (
                 <>
-                  {/* YouTube embed preview (visible in panel) */}
-                  <div className="floating-music-embed">
-                    {isPlaying && videoId ? (
-                      <div style={{
-                        height: 60, display: "flex", alignItems: "center", justifyContent: "center",
-                        gap: 8, color: "var(--purple)", fontSize: 13, fontWeight: 600,
-                      }}>
-                        <span className="floating-music-note-pulse" style={{ fontSize: 18 }}>♪</span>
-                        Playing: {track?.label || "Track " + (currentTrack + 1)}
-                      </div>
+                  {/* Cover art + now-playing */}
+                  <div style={{ padding: "12px 16px 0", display: "flex", gap: 12, alignItems: "center" }}>
+                    {coverArt ? (
+                      <img src={coverArt} alt=""
+                        style={{
+                          width: 80, height: 80, borderRadius: 8, objectFit: "cover",
+                          flexShrink: 0, border: "1px solid var(--border)",
+                        }} />
                     ) : (
                       <div style={{
-                        height: 60, display: "flex", alignItems: "center", justifyContent: "center",
-                        gap: 6, color: "var(--text3)", fontSize: 13,
-                      }}>
-                        <span style={{ fontSize: 22 }}>🎧</span>
-                        Press play to start
-                      </div>
+                        width: 80, height: 80, borderRadius: 8, background: "var(--surface2)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        flexShrink: 0, fontSize: 28,
+                      }}>🎵</div>
                     )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 14, fontWeight: 600, color: "var(--text)",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {track?.label || "—"}
+                      </div>
+                      {track?.artist && (
+                        <div style={{ fontSize: 12, color: "var(--text3)" }}>{track.artist}</div>
+                      )}
+                      {track?.lyrics && (
+                        <button onClick={() => setShowLyrics(track)}
+                          style={{
+                            marginTop: 6, fontSize: 11, padding: "3px 8px",
+                            border: "1px solid var(--border)", borderRadius: 6,
+                            background: "var(--bg)", color: "var(--text3)", cursor: "pointer",
+                          }}>
+                          📝 Lyrics
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Controls */}
                   <div className="floating-music-controls">
-                    <button
-                      className={`fmc-btn fmc-mode${shuffle ? " fmc-active" : ""}`}
+                    <button className={`fmc-btn fmc-mode${shuffle ? " fmc-active" : ""}`}
                       onClick={() => setShuffle(!shuffle)}
-                      title={shuffle ? "Shuffle: On" : "Shuffle: Off"}
-                    >🔀</button>
+                      title={shuffle ? "Shuffle: On" : "Shuffle: Off"}>🔀</button>
                     {validTracks.length > 1 && (
                       <button className="fmc-btn" onClick={handlePrev} title="Previous">⏮</button>
                     )}
-                    <button
-                      className="fmc-btn fmc-play"
+                    <button className="fmc-btn fmc-play"
                       onClick={handlePlayPause}
-                      title={isPlaying ? "Pause" : "Play"}
-                    >
+                      title={isPlaying ? "Pause" : "Play"}>
                       {isPlaying ? "⏸" : "▶️"}
                     </button>
                     {validTracks.length > 1 && (
                       <button className="fmc-btn" onClick={handleNext} title="Next">⏭</button>
                     )}
-                    <button
-                      className={`fmc-btn fmc-mode${repeatMode !== "off" ? " fmc-active" : ""}`}
+                    <button className={`fmc-btn fmc-mode${repeatMode !== "off" ? " fmc-active" : ""}`}
                       onClick={cycleRepeat}
-                      title={repeatMode === "off" ? "Repeat: Off" : repeatMode === "one" ? "Repeat: One" : "Repeat: All"}
-                    >
+                      title={repeatMode === "off" ? "Repeat: Off" : repeatMode === "one" ? "Repeat: One" : "Repeat: All"}>
                       {repeatMode === "one" ? "🔂" : "🔁"}
                     </button>
                   </div>
+
+                  {/* Volume slider (audio tracks only — YouTube iframe doesn't expose volume control) */}
+                  {trackType === "audio" && (
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "0 16px 10px", color: "var(--text3)", fontSize: 11,
+                    }}>
+                      <span>🔊</span>
+                      <input type="range" min={0} max={1} step={0.01} value={volume}
+                        onChange={(e) => setVolume(parseFloat(e.target.value))}
+                        style={{ flex: 1, accentColor: "var(--purple)" }} />
+                      <span style={{ minWidth: 26, textAlign: "right" }}>{Math.round(volume * 100)}</span>
+                    </div>
+                  )}
 
                   {/* Track list */}
                   {validTracks.length > 1 && (
                     <div className="floating-music-tracklist">
                       {validTracks.map((t, i) => (
-                        <button
-                          key={i}
+                        <div key={t.id || i}
                           className={`fmt-item ${i === currentTrack ? "active" : ""}`}
-                          onClick={() => { setCurrentTrack(i); setIsPlaying(true); }}
-                        >
-                          <span className="fmt-num">{i + 1}</span>
-                          <span className="fmt-label">{t.label || `Track ${i + 1}`}</span>
-                          {i === currentTrack && isPlaying && (
-                            <span className="floating-music-note-pulse" style={{ fontSize: 14 }}>♪</span>
+                          style={{ alignItems: "center" }}>
+                          <button onClick={() => { setCurrentTrack(i); setIsPlaying(true); }}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 8,
+                              flex: 1, minWidth: 0,
+                              background: "transparent", border: "none", color: "inherit",
+                              cursor: "pointer", padding: 0, textAlign: "left",
+                            }}>
+                            <span className="fmt-num">{i + 1}</span>
+                            <span className="fmt-label">{t.label || `Track ${i + 1}`}</span>
+                            {i === currentTrack && isPlaying && (
+                              <span className="floating-music-note-pulse" style={{ fontSize: 14 }}>♪</span>
+                            )}
+                          </button>
+                          {t.lyrics && (
+                            <button onClick={(e) => { e.stopPropagation(); setShowLyrics(t); }}
+                              title="Show lyrics"
+                              style={{
+                                width: 24, height: 24, borderRadius: 5,
+                                border: "1px solid transparent", background: "transparent",
+                                color: "var(--text3)", cursor: "pointer", fontSize: 12,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                marginLeft: 4,
+                              }}>📝</button>
                           )}
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
