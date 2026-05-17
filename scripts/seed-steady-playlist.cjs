@@ -36,21 +36,22 @@ const COVER_URL = `${STORAGE_BASE}/cover.jpg`;
 
 const LYRICS_DIR = path.join(os.homedir(), "Lachlan", "drafts", "suno-songs", "luke");
 
-// Track order (album sequence) — title + mp3 filename + matching lyrics .md slug
+// Track order (album sequence) — title + YouTube video id + matching lyrics .md slug
+// Playlist: https://music.youtube.com/playlist?list=PLPfbrxETiGZo1SIfhwMfBlrwhhXgrmS6x
 const ALBUM = [
-  { n: 1,  title: "Your CTO",            mp3: "1-your-cto.mp3",            lyricsSlug: null },
-  { n: 2,  title: "Lights On",           mp3: "2-lights-on.mp3",           lyricsSlug: "lights-on" },
-  { n: 3,  title: "Belonging",           mp3: "3-belonging.mp3",           lyricsSlug: "backstory" },
-  { n: 4,  title: "Eight Rounds",        mp3: "4-eight-rounds.mp3",        lyricsSlug: "warhammer" },
-  { n: 5,  title: "Already Here",        mp3: "5-already-here.mp3",        lyricsSlug: "photography" },
-  { n: 6,  title: "The Sound",           mp3: "6-the-sound.mp3",           lyricsSlug: "physics" },
-  { n: 7,  title: "Anchor",              mp3: "7-anchor.mp3",              lyricsSlug: "faith" },
-  { n: 8,  title: "Edge of the Night",   mp3: "8-edge-of-the-night.mp3",   lyricsSlug: "space" },
-  { n: 9,  title: "I, Robot",            mp3: "9-i-robot.mp3",             lyricsSlug: "i-robot" },
-  { n: 10, title: "Threshold",           mp3: "10-threshold.mp3",          lyricsSlug: "the-moment" },
-  { n: 11, title: "Stay Sharp",          mp3: "11-stay-sharp.mp3",         lyricsSlug: "use-your-brain" },
-  { n: 12, title: "Get Up",              mp3: "12-get-up.mp3",             lyricsSlug: "get-up" },
-  { n: 13, title: "Beautiful Surrender", mp3: "13-beautiful-surrender.mp3", lyricsSlug: "rest" },
+  { n: 1,  title: "Your CTO",            youtubeId: "Qm3yNchXXkw", lyricsSlug: "your-cto" },
+  { n: 2,  title: "Lights On",           youtubeId: "490qNVzrA-U", lyricsSlug: "lights-on" },
+  { n: 3,  title: "Belonging",           youtubeId: "XP5QEo1WC-I", lyricsSlug: "backstory" },
+  { n: 4,  title: "Eight Rounds",        youtubeId: "XFLP14ymss0", lyricsSlug: "warhammer" },
+  { n: 5,  title: "Already Here",        youtubeId: "AM34VjCdQwo", lyricsSlug: "photography" },
+  { n: 6,  title: "Look Up",             youtubeId: "1KiDH8QU7sc", lyricsSlug: "physics" },
+  { n: 7,  title: "Anchor",              youtubeId: "BPFjFqNX5Oc", lyricsSlug: "faith" },
+  { n: 8,  title: "Edge of the Night",   youtubeId: "sJquu4VsSCA", lyricsSlug: "space" },
+  { n: 9,  title: "I, Robot",            youtubeId: "WAQiYOdzheo", lyricsSlug: "i-robot" },
+  { n: 10, title: "Threshold",           youtubeId: "rPLDzTo6fHY", lyricsSlug: "the-moment" },
+  { n: 11, title: "Stay Sharp",          youtubeId: "mPmN585UtZc", lyricsSlug: "use-your-brain" },
+  { n: 12, title: "Get Up",              youtubeId: "E9pOchExGyA", lyricsSlug: "get-up" },
+  { n: 13, title: "Beautiful Surrender", youtubeId: "uGAKuqfoC-g", lyricsSlug: "rest" },
 ];
 
 function loadLyrics(slug) {
@@ -68,8 +69,8 @@ function buildTracks() {
     id: `steady-${entry.n}`,
     label: `${entry.n}. ${entry.title}`,
     artist: "Luke McCarthy",
-    type: "audio",
-    url: `${STORAGE_BASE}/${entry.mp3}`,
+    type: "youtube",
+    url: `https://www.youtube.com/watch?v=${entry.youtubeId}`,
     coverUrl: COVER_URL,
     lyrics: loadLyrics(entry.lyricsSlug),
   }));
