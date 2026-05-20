@@ -245,6 +245,8 @@ async function syncCourse(courseId, classroomCourseId) {
   const getEmbeds = (lesson) => (lesson.blocks || []).filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
   const getSorting = (lesson) => (lesson.blocks || []).filter((b) => b.type === "sorting");
   const getConceptBuilder = (lesson) => (lesson.blocks || []).filter((b) => b.type === "concept_builder");
+  const getCheckpoints = (lesson) => (lesson.blocks || []).filter((b) => b.type === "teacher_checkpoint");
+  const getDataTables = (lesson) => (lesson.blocks || []).filter((b) => b.type === "data_table" && b.preset === "dropdown" && b.scored !== false);
 
   const lessonGrades = {};
   for (const lesson of lessons) {
@@ -262,7 +264,9 @@ async function syncCourse(courseId, classroomCourseId) {
     const embeds = getEmbeds(lesson);
     const sorting = getSorting(lesson);
     const conceptBuilder = getConceptBuilder(lesson);
-    const allGraded = [...mc, ...sa, ...ranking, ...linked, ...embeds, ...sorting, ...conceptBuilder];
+    const checkpoint = getCheckpoints(lesson);
+    const dataTables = getDataTables(lesson);
+    const allGraded = [...mc, ...sa, ...ranking, ...linked, ...embeds, ...sorting, ...conceptBuilder, ...checkpoint, ...dataTables];
     if (allGraded.length === 0) continue;
 
     for (const uid of studentUids) {
@@ -329,6 +333,28 @@ async function syncCourse(courseId, classroomCourseId) {
         if (!a?.submitted) return;
         possible++;
         earned += 1; // Full credit for completion
+      });
+
+      // Teacher checkpoints (Show Me, Crack the Circuit, etc.): teacher-graded.
+      // Mirrors MyGrades exactly — weight defaults to 5, score clamped to
+      // [0, weight], full weight if approved. ALWAYS counts toward possible, so
+      // an ungraded/missing checkpoint scores 0 and ports 0% (per Luke 2026-05-20).
+      checkpoint.forEach((q) => {
+        const max = typeof q.weight === "number" ? q.weight : 5;
+        possible += max;
+        const a = answers[q.id];
+        if (typeof a?.score === "number") earned += Math.max(0, Math.min(max, a.score));
+        else if (a?.approved === true) earned += max;
+      });
+
+      // Scored dropdown data tables: score is pre-scaled to weight by DataTableBlock
+      // ((correct/totalCells)*weight, maxScore: weight). Mirrors MyGrades — weight
+      // defaults to 1, always counts toward possible, earns a.score when submitted.
+      dataTables.forEach((q) => {
+        const max = typeof q.weight === "number" ? q.weight : 1;
+        possible += max;
+        const a = answers[q.id];
+        if (a?.submitted && typeof a.score === "number") earned += Math.max(0, Math.min(max, a.score));
       });
 
       // Scored embeds: use explicit weight if set, otherwise dynamic 50/50 split
