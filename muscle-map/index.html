@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Muscle Map</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- LANDING -->
+  <section id="landing" class="screen active">
+    <h1 class="title">Muscle <span class="accent">Map</span></h1>
+    <p class="subtitle">Find the muscle. Beat the clock — or stay alive.</p>
+
+    <div class="picker">
+      <p class="label">Difficulty</p>
+      <div class="pills" id="tier-pills">
+        <button class="pill active" data-tier="easy">Easy</button>
+        <button class="pill" data-tier="medium">Medium</button>
+        <button class="pill" data-tier="hard">Hard</button>
+      </div>
+    </div>
+
+    <div class="picker">
+      <p class="label">Mode</p>
+      <div class="pills" id="mode-pills">
+        <button class="pill active" data-mode="lives">Lives (3 ♥)</button>
+        <button class="pill" data-mode="timed">Timed (60s)</button>
+      </div>
+    </div>
+
+    <button id="start-btn" class="primary-btn">Start</button>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen">
+    <header class="hud">
+      <div id="hud-left" class="hud-lives"></div>
+      <div id="hud-prompt" class="hud-prompt"></div>
+      <div id="hud-right" class="hud-stat"></div>
+    </header>
+
+    <div class="view-toggle">
+      <button class="view-btn active" data-view="front">Front</button>
+      <button class="view-btn" data-view="back">Back</button>
+    </div>
+
+    <div id="stage" class="stage">
+      <img id="figure" class="figure" alt="Anatomical figure" />
+      <canvas id="overlay" class="overlay"></canvas>
+      <div id="feedback" class="feedback"></div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="screen">
+    <h2 class="title">Results</h2>
+    <div id="result-score" class="result-score"></div>
+    <div id="result-accuracy" class="result-accuracy"></div>
+    <div id="result-missed" class="result-missed"></div>
+    <div class="result-actions">
+      <button id="replay-btn" class="primary-btn">Replay</button>
+      <button id="home-btn" class="ghost-btn">Change difficulty</button>
+    </div>
+  </section>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>
