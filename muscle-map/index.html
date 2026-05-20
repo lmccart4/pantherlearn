@@ -64,6 +64,9 @@
     </div>
   </section>
 
-  <script type="module" src="js/game.js"></script>
+  <script type="module">
+    const calibrate = new URLSearchParams(location.search).has('calibrate');
+    import(calibrate ? './js/calibrate.js' : './js/game.js');
+  </script>
 </body>
 </html>
