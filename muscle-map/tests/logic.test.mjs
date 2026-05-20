@@ -161,3 +161,20 @@ test('isTimeUp: true once elapsed >= duration', () => {
   const lives = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0]) });
   assert.equal(isTimeUp(lives, 999999), false);
 });
+
+import { MUSCLES, TIERS } from '../js/content.js';
+
+test('content: every tier id exists in MUSCLES and has a polygon', () => {
+  for (const tier of Object.keys(TIERS)) {
+    for (const id of TIERS[tier]) {
+      assert.ok(MUSCLES[id], `missing muscle: ${id}`);
+      assert.ok(Array.isArray(MUSCLES[id].polygon), `no polygon: ${id}`);
+      assert.ok(['front', 'back'].includes(MUSCLES[id].view), `bad view: ${id}`);
+    }
+  }
+});
+test('content: tiers sized roughly as designed', () => {
+  assert.equal(TIERS.easy.length, 12);
+  assert.equal(TIERS.medium.length, 20);
+  assert.ok(TIERS.hard.length >= 27);
+});
