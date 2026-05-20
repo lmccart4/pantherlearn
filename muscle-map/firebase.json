@@ -1,0 +1,15 @@
+{
+  "hosting": {
+    "site": "muscle-map-paps",
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "tests/**",
+      "package.json",
+      "package-lock.json"
+    ]
+  }
+}
