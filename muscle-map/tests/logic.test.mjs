@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { pointInPolygon } from '../js/logic.js';
 import { shuffle, buildDeck } from '../js/logic.js';
 import { judgeClick } from '../js/logic.js';
+import { createGame, applyResult, isTimeUp } from '../js/logic.js';
 
 const square = [[0.2, 0.2], [0.8, 0.2], [0.8, 0.8], [0.2, 0.8]];
 
@@ -64,4 +65,99 @@ test('judgeClick: empty space', () => {
 test('judgeClick: target on other view, click hits nothing here', () => {
   const r = judgeClick({ x: 0.25, y: 0.25 }, 'back', 'biceps', tierIds, jcContent);
   assert.deepEqual(r, { result: 'empty', hitId: null });
+});
+
+const gsContent = {
+  TIERS: { easy: ['a', 'b', 'c'] },
+  MUSCLES: {
+    a: { name: 'A', view: 'front', polygon: [] },
+    b: { name: 'B', view: 'front', polygon: [] },
+    c: { name: 'C', view: 'front', polygon: [] }
+  }
+};
+
+test('createGame lives: 3 lives, playing, current set', () => {
+  const s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  assert.equal(s.mode, 'lives');
+  assert.equal(s.lives, 3);
+  assert.equal(s.score, 0);
+  assert.equal(s.status, 'playing');
+  assert.equal(s.deck.length, 3);
+  assert.equal(s.current, s.deck[0]);
+  assert.equal(s.total, 3);
+});
+
+test('applyResult lives correct: score up, advance', () => {
+  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  s = applyResult(s, 'correct', seqRng([0.5]));
+  assert.equal(s.score, 1);
+  assert.equal(s.lives, 3);
+  assert.equal(s.current, s.deck[1]);
+  assert.equal(s.status, 'playing');
+});
+
+test('applyResult lives empty: no change, no advance', () => {
+  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  const before = s.current;
+  s = applyResult(s, 'empty', seqRng([0.5]));
+  assert.equal(s.score, 0);
+  assert.equal(s.lives, 3);
+  assert.equal(s.current, before);
+});
+
+test('applyResult lives wrong: lose a life, track missed, advance', () => {
+  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  const missedId = s.current;
+  s = applyResult(s, 'wrong', seqRng([0.5]));
+  assert.equal(s.lives, 2);
+  assert.deepEqual(s.missed, [missedId]);
+  assert.equal(s.current, s.deck[1]);
+});
+
+test('lives end on 0 lives', () => {
+  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  s = applyResult(s, 'wrong', seqRng([0.5]));
+  s = applyResult(s, 'wrong', seqRng([0.5]));
+  s = applyResult(s, 'wrong', seqRng([0.5]));
+  assert.equal(s.lives, 0);
+  assert.equal(s.status, 'over');
+});
+
+test('lives end when deck exhausted', () => {
+  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  s = applyResult(s, 'correct', seqRng([0.5]));
+  s = applyResult(s, 'correct', seqRng([0.5]));
+  s = applyResult(s, 'correct', seqRng([0.5]));
+  assert.equal(s.score, 3);
+  assert.equal(s.status, 'over');
+});
+
+test('createGame timed: lives null, duration set, current drawn', () => {
+  const s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0]), duration: 60 });
+  assert.equal(s.lives, null);
+  assert.equal(s.duration, 60);
+  assert.equal(s.status, 'playing');
+  assert.ok(gsContent.TIERS.easy.includes(s.current));
+});
+
+test('timed correct: score up, draws next, never over from result', () => {
+  let s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0]), duration: 60 });
+  s = applyResult(s, 'correct', seqRng([0.99]));
+  assert.equal(s.score, 1);
+  assert.equal(s.status, 'playing');
+});
+
+test('timed wrong: no score change, still playing', () => {
+  let s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0]), duration: 60 });
+  s = applyResult(s, 'wrong', seqRng([0]));
+  assert.equal(s.score, 0);
+  assert.equal(s.status, 'playing');
+});
+
+test('isTimeUp: true once elapsed >= duration', () => {
+  const s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0]), duration: 60 });
+  assert.equal(isTimeUp(s, 59000), false);
+  assert.equal(isTimeUp(s, 60000), true);
+  const lives = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0]) });
+  assert.equal(isTimeUp(lives, 999999), false);
 });

@@ -44,3 +44,60 @@ export function judgeClick(point, view, targetId, tierIds, content) {
   }
   return { result: 'empty', hitId: null };
 }
+
+export function createGame({ mode, tier, content, rng, duration = 60 }) {
+  const deck = buildDeck(tier, content, rng);
+  const timed = mode === 'timed';
+  return {
+    mode,
+    tier,
+    deck,
+    pos: 0,
+    current: timed ? drawRandom(deck, rng) : deck[0],
+    lives: timed ? null : 3,
+    score: 0,
+    missed: [],
+    total: deck.length,
+    duration: timed ? duration : null,
+    status: 'playing'
+  };
+}
+
+function drawRandom(deck, rng) {
+  return deck[Math.floor(rng() * deck.length)];
+}
+
+export function applyResult(state, result, rng) {
+  if (result === 'empty') return state;
+  const s = { ...state, missed: state.missed.slice() };
+
+  if (result === 'correct') {
+    s.score += 1;
+  } else if (result === 'wrong') {
+    s.missed.push(s.current);
+    if (s.mode === 'lives') s.lives -= 1;
+  }
+
+  if (s.mode === 'lives' && s.lives <= 0) {
+    s.status = 'over';
+    return s;
+  }
+
+  if (s.mode === 'lives') {
+    s.pos += 1;
+    if (s.pos >= s.deck.length) {
+      s.status = 'over';
+    } else {
+      s.current = s.deck[s.pos];
+    }
+  } else {
+    s.pos += 1;
+    s.current = drawRandom(s.deck, rng);
+  }
+  return s;
+}
+
+export function isTimeUp(state, elapsedMs) {
+  if (state.mode !== 'timed') return false;
+  return elapsedMs >= state.duration * 1000;
+}
