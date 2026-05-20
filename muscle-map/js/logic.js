@@ -27,3 +27,20 @@ export function buildDeck(tier, content, rng) {
   const ids = content.TIERS[tier] || [];
   return shuffle(ids, rng);
 }
+
+// Decide the outcome of a click at `point` while viewing `view`, hunting for `targetId`.
+// Only muscles in tierIds that live on the current view are considered.
+export function judgeClick(point, view, targetId, tierIds, content) {
+  const target = content.MUSCLES[targetId];
+  if (target && target.view === view && pointInPolygon(point, target.polygon)) {
+    return { result: 'correct', hitId: targetId };
+  }
+  for (const id of tierIds) {
+    if (id === targetId) continue;
+    const m = content.MUSCLES[id];
+    if (m && m.view === view && pointInPolygon(point, m.polygon)) {
+      return { result: 'wrong', hitId: id };
+    }
+  }
+  return { result: 'empty', hitId: null };
+}

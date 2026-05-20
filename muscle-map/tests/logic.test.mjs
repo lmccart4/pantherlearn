@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { pointInPolygon } from '../js/logic.js';
 import { shuffle, buildDeck } from '../js/logic.js';
+import { judgeClick } from '../js/logic.js';
 
 const square = [[0.2, 0.2], [0.8, 0.2], [0.8, 0.8], [0.2, 0.8]];
 
@@ -36,4 +37,31 @@ test('buildDeck: returns shuffled tier ids from content', () => {
   const deck = buildDeck('easy', content, seqRng([0.5, 0.5, 0.5]));
   assert.equal(deck.length, 3);
   assert.deepEqual([...deck].sort(), ['x', 'y', 'z']);
+});
+
+const jcContent = {
+  TIERS: { easy: ['biceps', 'quads'] },
+  MUSCLES: {
+    biceps: { name: 'Biceps', view: 'front', polygon: [[0.1,0.1],[0.4,0.1],[0.4,0.4],[0.1,0.4]] },
+    quads:  { name: 'Quads',  view: 'front', polygon: [[0.6,0.6],[0.9,0.6],[0.9,0.9],[0.6,0.9]] },
+    hams:   { name: 'Hams',   view: 'back',  polygon: [[0.1,0.1],[0.4,0.1],[0.4,0.4],[0.1,0.4]] }
+  }
+};
+const tierIds = ['biceps', 'quads'];
+
+test('judgeClick: correct region on correct view', () => {
+  const r = judgeClick({ x: 0.25, y: 0.25 }, 'front', 'biceps', tierIds, jcContent);
+  assert.deepEqual(r, { result: 'correct', hitId: 'biceps' });
+});
+test('judgeClick: wrong muscle hit', () => {
+  const r = judgeClick({ x: 0.75, y: 0.75 }, 'front', 'biceps', tierIds, jcContent);
+  assert.deepEqual(r, { result: 'wrong', hitId: 'quads' });
+});
+test('judgeClick: empty space', () => {
+  const r = judgeClick({ x: 0.5, y: 0.5 }, 'front', 'biceps', tierIds, jcContent);
+  assert.deepEqual(r, { result: 'empty', hitId: null });
+});
+test('judgeClick: target on other view, click hits nothing here', () => {
+  const r = judgeClick({ x: 0.25, y: 0.25 }, 'back', 'biceps', tierIds, jcContent);
+  assert.deepEqual(r, { result: 'empty', hitId: null });
 });
