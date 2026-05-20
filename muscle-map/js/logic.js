@@ -30,15 +30,22 @@ export function buildDeck(tier, content, rng) {
 
 // Decide the outcome of a click at `point` while viewing `view`, hunting for `targetId`.
 // Only muscles in tierIds that live on the current view are considered.
+// Muscles are bilateral, so a polygon authored on one side of the (symmetric)
+// figure also matches a click on the mirrored side across the centerline x=0.5.
+function hitsMuscle(point, polygon) {
+  const mirror = { x: 1 - point.x, y: point.y };
+  return pointInPolygon(point, polygon) || pointInPolygon(mirror, polygon);
+}
+
 export function judgeClick(point, view, targetId, tierIds, content) {
   const target = content.MUSCLES[targetId];
-  if (target && target.view === view && pointInPolygon(point, target.polygon)) {
+  if (target && target.view === view && hitsMuscle(point, target.polygon)) {
     return { result: 'correct', hitId: targetId };
   }
   for (const id of tierIds) {
     if (id === targetId) continue;
     const m = content.MUSCLES[id];
-    if (m && m.view === view && pointInPolygon(point, m.polygon)) {
+    if (m && m.view === view && hitsMuscle(point, m.polygon)) {
       return { result: 'wrong', hitId: id };
     }
   }

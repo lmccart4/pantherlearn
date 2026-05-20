@@ -178,3 +178,10 @@ test('content: tiers sized roughly as designed', () => {
   assert.equal(TIERS.medium.length, 20);
   assert.ok(TIERS.hard.length >= 27);
 });
+
+test('judgeClick: bilateral mirror — click on opposite side still counts correct', () => {
+  // biceps polygon lives on the left half (x 0.1-0.4); a click mirrored to the
+  // right half (x 0.75 -> mirror 0.25) must still register as correct.
+  const r = judgeClick({ x: 0.75, y: 0.25 }, 'front', 'biceps', tierIds, jcContent);
+  assert.deepEqual(r, { result: 'correct', hitId: 'biceps' });
+});
