@@ -12,3 +12,18 @@ export function pointInPolygon(point, polygon) {
   }
   return inside;
 }
+
+// Fisher–Yates using injected rng() in [0,1). Returns a NEW array.
+export function shuffle(array, rng) {
+  const out = array.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+export function buildDeck(tier, content, rng) {
+  const ids = content.TIERS[tier] || [];
+  return shuffle(ids, rng);
+}
