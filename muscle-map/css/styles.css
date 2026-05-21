@@ -123,3 +123,35 @@ aside{display:flex;flex-direction:column;gap:14px}
 .btn:hover{background:var(--cyan)}
 .btn.alt{background:transparent;color:var(--dim);border:1px solid var(--line)}
 .btn.alt:hover{color:var(--ink);border-color:var(--line2)}
+
+/* ---------- identity (name + period) ---------- */
+.ident{display:flex;gap:12px;width:100%;max-width:480px;margin-bottom:6px}
+.ifield{display:flex;flex-direction:column;gap:6px}
+.ifield:first-child{flex:1}
+.ifield label{font-size:9.5px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase}
+.ident input,.ident select,#boardScope{font-family:inherit;background:var(--panel);border:1px solid var(--line);
+  color:var(--ink);font-size:14px;padding:11px 13px;border-radius:10px;outline:none}
+.ident input:focus,.ident select:focus,#boardScope:focus{border-color:var(--cyan-deep)}
+.ident input::placeholder{color:var(--dim2)}
+.ident-msg{min-height:16px;color:var(--bad);font-size:11px;letter-spacing:.04em;margin-bottom:18px}
+.wbtn{flex:none;width:240px;margin:18px auto 0;border-radius:10px}
+
+/* ---------- leaderboard ---------- */
+.board-controls{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.board-list{width:100%;max-width:600px;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden;min-height:120px}
+.lb-row{display:grid;grid-template-columns:42px 1fr auto auto;gap:10px;align-items:center;
+  padding:11px 16px;border-bottom:1px solid var(--panel2);font-size:13px}
+.lb-row:last-child{border-bottom:none}
+.lb-row .rk{color:var(--dim);font-variant-numeric:tabular-nums;font-size:12px}
+.lb-row .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-row .pd{color:var(--dim);font-size:11px;letter-spacing:.1em}
+.lb-row .sc{color:var(--cyan);font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.lb-row.top1 .rk{color:var(--gold)} .lb-row.me{background:rgba(34,211,238,.07)}
+.lb-empty{padding:24px 16px;color:var(--dim);text-align:center;font-size:13px}
+.lb-head{display:grid;grid-template-columns:42px 1fr auto auto;gap:10px;padding:10px 16px;
+  border-bottom:1px solid var(--line);font-size:9.5px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+.lb-head .sc{text-align:right}
+
+/* ---------- end overlay extras ---------- */
+.end .bigscore{font-size:64px;font-weight:800;line-height:1;color:var(--cyan);text-shadow:0 0 40px rgba(34,211,238,.4);font-variant-numeric:tabular-nums}
+.end .rankline{margin-top:10px;font-size:12.5px;color:var(--gold);letter-spacing:.04em;min-height:16px}

@@ -12,7 +12,23 @@
 <!-- ============ START SCREEN ============ -->
 <div class="screen show" id="start">
   <div class="start-logo"><span class="dot"></span><b>MYO·ID</b></div>
-  <div class="start-sub">Identify the human musculature by location. A muscle name appears — find it and click it before the timer runs out. Answer faster for more points. Toggle Front / Back to reach every muscle.</div>
+  <div class="start-sub">Identify the human musculature by location. A muscle name appears — find it and click it before the timer runs out. Answer faster for more points.</div>
+
+  <div class="ident">
+    <div class="ifield">
+      <label>Name</label>
+      <input id="pName" maxlength="30" autocomplete="off" placeholder="Your name">
+    </div>
+    <div class="ifield">
+      <label>Period</label>
+      <select id="pPeriod">
+        <option value="">—</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+        <option>6</option><option>7</option><option>8</option><option>9</option>
+      </select>
+    </div>
+  </div>
+  <div class="ident-msg" id="identMsg"></div>
 
   <div class="mode-lab">Mode</div>
   <div class="modeseg" id="modeSeg">
@@ -21,7 +37,28 @@
   </div>
 
   <div class="tiers" id="tierCards"></div>
+  <button class="ghost wbtn" id="viewBoard">🏆 Leaderboard</button>
   <div class="foot">15s per muscle · up to 1000 pts each · faster = more</div>
+</div>
+
+<!-- ============ LEADERBOARD SCREEN ============ -->
+<div class="screen" id="board">
+  <div class="start-logo"><span class="dot"></span><b>LEADERBOARD</b></div>
+  <div class="board-controls">
+    <div class="tabs" id="boardTiers">
+      <button class="tab on" data-tier="easy">Easy</button>
+      <button class="tab" data-tier="medium">Medium</button>
+      <button class="tab" data-tier="hard">Hard</button>
+    </div>
+    <select id="boardScope">
+      <option value="">All-time</option>
+      <option value="1">Period 1</option><option value="2">Period 2</option><option value="3">Period 3</option>
+      <option value="4">Period 4</option><option value="5">Period 5</option><option value="6">Period 6</option>
+      <option value="7">Period 7</option><option value="8">Period 8</option><option value="9">Period 9</option>
+    </select>
+  </div>
+  <div class="board-list" id="boardList"></div>
+  <button class="btn alt" id="boardClose">Back</button>
 </div>
 
 <!-- ============ GAME ============ -->
@@ -54,12 +91,14 @@
       </div>
       <!-- end overlay -->
       <div class="end" id="end">
-        <div class="grade" id="grade">—</div>
+        <div class="bigscore" id="endScore">0</div>
         <div class="pct" id="endPct"></div>
         <div class="sub" id="endSub">assessment complete</div>
+        <div class="rankline" id="rankLine"></div>
         <div class="missed" id="missedBox"></div>
         <div class="end-btns">
           <button class="btn" id="retryBtn">Retry</button>
+          <button class="btn alt" id="boardBtn">Leaderboard</button>
           <button class="btn alt" id="changeBtn">Change difficulty</button>
         </div>
       </div>

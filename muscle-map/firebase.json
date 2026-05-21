@@ -9,7 +9,11 @@
       "**/node_modules/**",
       "tests/**",
       "package.json",
-      "package-lock.json"
+      "package-lock.json",
+      "firestore.rules"
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }

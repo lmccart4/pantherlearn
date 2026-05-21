@@ -13,34 +13,51 @@ const TIER_INFO = {
   hard:   { label: 'Hard',   ds: 'Full set, advanced names' }
 };
 const el = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
 
 let selMode = 'lives';
-let S = null;          // game state (from logic)
+let S = null;
 let view = 'front';
 let bestStreak = 0;
 let roundStart = 0;
 let timerId = null;
 let locked = false;
+let playerName = '';
+let playerPeriod = 0;
+let boardTier = 'easy';
 
-// ---------------- start screen ----------------
+// leaderboard module is loaded lazily so a CDN/offline failure can't break the game
+let LB; // undefined = not tried, false = failed, object = loaded
+async function getLB() {
+  if (LB === undefined) { try { LB = await import('./leaderboard.js'); } catch (e) { LB = false; } }
+  return LB || null;
+}
+
+// ---------------- identity + high scores ----------------
+function loadIdent() {
+  playerName = localStorage.getItem('myoid_name') || '';
+  playerPeriod = +localStorage.getItem('myoid_period') || 0;
+}
 function hsKey(mode, tier) { return `myoid_hs_${mode}_${tier}`; }
 function getHS(mode, tier) { const v = +localStorage.getItem(hsKey(mode, tier)); return isFinite(v) ? v : 0; }
 function setHS(mode, tier, v) { try { localStorage.setItem(hsKey(mode, tier), v); } catch (e) {} }
 
+// ---------------- start screen ----------------
 function buildStart() {
-  const seg = el('modeSeg');
-  seg.querySelectorAll('.seg').forEach((b) =>
-    b.classList.toggle('on', b.dataset.mode === selMode));
+  loadIdent();
+  el('pName').value = playerName;
+  el('pPeriod').value = playerPeriod || '';
+  el('identMsg').textContent = '';
+  el('modeSeg').querySelectorAll('.seg').forEach((b) => b.classList.toggle('on', b.dataset.mode === selMode));
   const wrap = el('tierCards'); wrap.innerHTML = '';
   ['easy', 'medium', 'hard'].forEach((tier) => {
-    const n = TIERS[tier].length;
     const hs = getHS(selMode, tier);
     const btn = document.createElement('button');
     btn.className = 'tier';
     btn.innerHTML = `<div class="nm">${TIER_INFO[tier].label}</div>
-      <div class="ct">${n} muscles</div>
+      <div class="ct">${TIERS[tier].length} muscles</div>
       <div class="ds">${TIER_INFO[tier].ds}</div>
-      <div class="hs">BEST &nbsp;<b>${hs ? hs.toLocaleString() : '—'}</b></div>`;
+      <div class="hs">YOUR BEST &nbsp;<b>${hs ? hs.toLocaleString() : '—'}</b></div>`;
     btn.onclick = () => startGame(tier);
     wrap.appendChild(btn);
   });
@@ -52,11 +69,19 @@ el('modeSeg').addEventListener('click', (e) => {
 
 // ---------------- game flow ----------------
 function startGame(tier) {
+  playerName = el('pName').value.trim();
+  playerPeriod = +el('pPeriod').value || 0;
+  if (!playerName || !playerPeriod) {
+    el('identMsg').textContent = 'Enter your name and pick a period before starting.';
+    return;
+  }
+  try { localStorage.setItem('myoid_name', playerName); localStorage.setItem('myoid_period', playerPeriod); } catch (e) {}
+
   S = createGame({ mode: selMode, tier, content, rng });
-  bestStreak = 0;
-  locked = false;
+  bestStreak = 0; locked = false;
   view = primaryView(MUSCLES[S.current]);
   el('start').classList.remove('show');
+  el('board').classList.remove('show');
   el('game').style.display = 'block';
   el('end').classList.remove('show');
   el('tierPill').textContent = `${TIER_INFO[tier].label} · ${selMode === 'lives' ? 'Lives' : 'Timed'}`;
@@ -80,7 +105,7 @@ function setView(v) {
   view = v;
   el('figure').src = `assets/${v}.png`;
   el('viewname').textContent = VIEWS.find((x) => x.id === v).label;
-  document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
+  document.querySelectorAll('#tabs .tab').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
   clearOverlay();
 }
 
@@ -88,9 +113,7 @@ function renderQuestion() {
   locked = false;
   const m = MUSCLES[S.current];
   el('target').textContent = m.name;
-  setFB('', '');
-  flash('', '');
-  // open on a view where this muscle exists
+  setFB('', ''); flash('', '');
   if (!regionsOf(m).some((r) => r.view === view)) setView(primaryView(m));
   else clearOverlay();
   startRound();
@@ -124,7 +147,7 @@ function onClick(ev) {
   const p = toPoint(ev);
   if (!p) return;
   const r = judgeClick(p, view, S.current, TIERS[S.tier], content);
-  if (r.result === 'empty') return;            // exploration on a view without the target
+  if (r.result === 'empty') return;
   if (r.result === 'correct') return resolve('correct', r);
   return resolve('wrong', r);
 }
@@ -137,19 +160,18 @@ function resolve(result, hit, skipped) {
   const m = MUSCLES[S.current];
   if (result === 'correct') {
     const pts = roundPoints(Math.min(elapsed(), ROUND_MS));
-    drawRegions(m, view, 'rgba(52,211,153,.34)');         // green
+    drawRegions(m, view, 'rgba(52,211,153,.34)');
     flash('good', '✓ Correct');
     setFB('good', `✓ ${m.name}  +${pts}`);
     S = applyResult(S, 'correct', pts);
   } else {
-    // reveal the correct muscle (switch view if needed)
     if (!regionsOf(m).some((r) => r.view === view)) setView(primaryView(m));
     if (result === 'wrong' && hit && hit.hitId && MUSCLES[hit.hitId]) {
-      drawRegions(MUSCLES[hit.hitId], view, 'rgba(251,113,133,.30)'); // red wrong
+      drawRegions(MUSCLES[hit.hitId], view, 'rgba(251,113,133,.30)');
     }
-    drawRegions(m, view, 'rgba(34,211,238,.30)');          // cyan reveal
+    drawRegions(m, view, 'rgba(34,211,238,.30)');
     flash('bad', skipped ? '↷ Skipped' : result === 'timeout' ? '⏱ Time' : '✗ Miss');
-    setFB('cy', `${skipped ? 'Skipped' : "This is the"} ${m.name}`);
+    setFB('cy', `${skipped ? 'Skipped' : 'This is the'} ${m.name}`);
     S = applyResult(S, result, 0);
   }
   bestStreak = Math.max(bestStreak, S.streak);
@@ -222,24 +244,73 @@ function finish() {
   el('bar').style.width = '100%';
   const answered = S.correct + S.wrong || 1;
   const pct = Math.round(S.correct / answered * 100);
-  let g = 'D'; if (pct >= 95) g = 'S'; else if (pct >= 85) g = 'A'; else if (pct >= 70) g = 'B'; else if (pct >= 55) g = 'C';
-  el('grade').textContent = g;
-  el('endPct').textContent = `${pct}%  ·  ${S.correct}/${S.total} correct  ·  ${S.score.toLocaleString()} pts`;
+  el('endScore').textContent = S.score.toLocaleString();
+  el('endPct').textContent = `${pct}%  ·  ${S.correct}/${S.total} correct`;
   let best = getHS(S.mode, S.tier), badge = '';
   if (S.score > best) { setHS(S.mode, S.tier, S.score); badge = ' · NEW BEST'; }
   el('endSub').textContent = `${TIER_INFO[S.tier].label} · ${S.mode === 'lives' ? 'Lives' : 'Timed'} complete${badge}`;
-  const box = el('missedBox');
   const names = [...new Set(S.missed)].map((id) => MUSCLES[id].name);
-  if (names.length === 0) {
-    box.innerHTML = `<div class="mh">Missed muscles</div><div class="none">Perfect — every muscle identified.</div>`;
-  } else {
-    box.innerHTML = `<div class="mh">Review — ${names.length} missed</div>` +
-      names.map((n) => `<div class="mi">${n}<span>review</span></div>`).join('');
-  }
+  el('missedBox').innerHTML = names.length
+    ? `<div class="mh">Review — ${names.length} missed</div>` + names.map((n) => `<div class="mi">${esc(n)}<span>review</span></div>`).join('')
+    : `<div class="mh">Missed muscles</div><div class="none">Perfect — every muscle identified.</div>`;
+  el('rankLine').textContent = 'Saving to leaderboard…';
   el('end').classList.add('show');
+  submitAndRank(pct);
 }
 
+async function submitAndRank(pct) {
+  const lb = await getLB();
+  if (!lb) { el('rankLine').textContent = 'Leaderboard offline — local best saved.'; return; }
+  try {
+    await lb.submitScore({ tier: S.tier, name: playerName, period: playerPeriod, score: S.score, pct, mode: S.mode, correct: S.correct, total: S.total });
+    const top = await lb.topScores(S.tier, null, 100);
+    const higher = top.filter((r) => (r.score | 0) > S.score).length;
+    el('rankLine').textContent = `Saved · #${higher + 1} all-time (${TIER_INFO[S.tier].label})`;
+  } catch (e) {
+    el('rankLine').textContent = 'Could not reach leaderboard (offline?).';
+  }
+}
+
+// ---- leaderboard screen ----
+function openBoard() {
+  stopTimer();
+  el('start').classList.remove('show');
+  el('end').classList.remove('show');
+  el('game').style.display = 'none';
+  el('board').classList.add('show');
+  renderBoard();
+}
+async function renderBoard() {
+  const period = el('boardScope').value ? +el('boardScope').value : null;
+  const list = el('boardList');
+  list.innerHTML = `<div class="lb-empty">Loading…</div>`;
+  const lb = await getLB();
+  if (!lb) { list.innerHTML = `<div class="lb-empty">Leaderboard unavailable (offline).</div>`; return; }
+  let rows;
+  try { rows = await lb.topScores(boardTier, period, 15); }
+  catch (e) { list.innerHTML = `<div class="lb-empty">Could not load scores.</div>`; return; }
+  const head = `<div class="lb-head"><span>#</span><span>Name</span><span>%</span><span class="sc">Score</span></div>`;
+  if (!rows.length) { list.innerHTML = head + `<div class="lb-empty">No scores yet — be the first.</div>`; return; }
+  list.innerHTML = head + rows.map((r, i) =>
+    `<div class="lb-row ${i === 0 ? 'top1' : ''}">
+       <span class="rk">${i + 1}</span>
+       <span class="nm">${esc(r.name)} <span class="pd">P${r.period | 0}</span></span>
+       <span class="pd">${r.pct | 0}%</span>
+       <span class="sc">${(r.score | 0).toLocaleString()}</span>
+     </div>`).join('');
+}
+el('boardTiers').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-tier]'); if (!b) return;
+  boardTier = b.dataset.tier;
+  el('boardTiers').querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t === b));
+  renderBoard();
+});
+el('boardScope').addEventListener('change', renderBoard);
+
 // ---- buttons ----
+el('viewBoard').onclick = openBoard;
+el('boardBtn').onclick = openBoard;
+el('boardClose').onclick = toStart;
 el('skipBtn').onclick = skip;
 el('quitBtn').onclick = toStart;
 el('retryBtn').onclick = () => startGame(S.tier);
@@ -247,12 +318,12 @@ el('changeBtn').onclick = toStart;
 function toStart() {
   stopTimer();
   el('end').classList.remove('show');
+  el('board').classList.remove('show');
   el('game').style.display = 'none';
   buildStart();
   el('start').classList.add('show');
 }
 
-// keyboard: 1/2 switch views, S skips
 document.addEventListener('keydown', (e) => {
   if (el('game').style.display === 'none') return;
   if (e.key.toLowerCase() === 's') { skip(); return; }
