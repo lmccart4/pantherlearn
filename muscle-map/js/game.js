@@ -1,17 +1,12 @@
-import { MUSCLES, TIERS } from './content.js';
+import { MUSCLES, MUSCLE_IDS } from './content.js';
 import {
   createGame, applyResult, judgeClick, roundPoints,
   regionsOf, primaryView, ROUND_MS
 } from './logic.js';
 
-const content = { MUSCLES, TIERS };
+const content = { MUSCLES, MUSCLE_IDS };
 const rng = Math.random;
 const VIEWS = [{ id: 'front', label: 'Anterior' }, { id: 'back', label: 'Posterior' }];
-const TIER_INFO = {
-  easy:   { label: 'Easy',   ds: 'Major muscle groups' },
-  medium: { label: 'Medium', ds: 'Adds finer groups' },
-  hard:   { label: 'Hard',   ds: 'Full set, advanced names' }
-};
 const el = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
 
@@ -24,23 +19,22 @@ let timerId = null;
 let locked = false;
 let playerName = '';
 let playerPeriod = 0;
-let boardTier = 'easy';
 
-// leaderboard module is loaded lazily so a CDN/offline failure can't break the game
-let LB; // undefined = not tried, false = failed, object = loaded
+// leaderboard module loads lazily so a CDN/offline failure can't break the game
+let LB;
 async function getLB() {
   if (LB === undefined) { try { LB = await import('./leaderboard.js'); } catch (e) { LB = false; } }
   return LB || null;
 }
 
-// ---------------- identity + high scores ----------------
+// ---------------- identity + high score ----------------
 function loadIdent() {
   playerName = localStorage.getItem('myoid_name') || '';
   playerPeriod = +localStorage.getItem('myoid_period') || 0;
 }
-function hsKey(mode, tier) { return `myoid_hs_${mode}_${tier}`; }
-function getHS(mode, tier) { const v = +localStorage.getItem(hsKey(mode, tier)); return isFinite(v) ? v : 0; }
-function setHS(mode, tier, v) { try { localStorage.setItem(hsKey(mode, tier), v); } catch (e) {} }
+function hsKey(mode) { return `myoid_hs_${mode}`; }
+function getHS(mode) { const v = +localStorage.getItem(hsKey(mode)); return isFinite(v) ? v : 0; }
+function setHS(mode, v) { try { localStorage.setItem(hsKey(mode), v); } catch (e) {} }
 
 // ---------------- start screen ----------------
 function buildStart() {
@@ -49,26 +43,17 @@ function buildStart() {
   el('pPeriod').value = playerPeriod || '';
   el('identMsg').textContent = '';
   el('modeSeg').querySelectorAll('.seg').forEach((b) => b.classList.toggle('on', b.dataset.mode === selMode));
-  const wrap = el('tierCards'); wrap.innerHTML = '';
-  ['easy', 'medium', 'hard'].forEach((tier) => {
-    const hs = getHS(selMode, tier);
-    const btn = document.createElement('button');
-    btn.className = 'tier';
-    btn.innerHTML = `<div class="nm">${TIER_INFO[tier].label}</div>
-      <div class="ct">${TIERS[tier].length} muscles</div>
-      <div class="ds">${TIER_INFO[tier].ds}</div>
-      <div class="hs">YOUR BEST &nbsp;<b>${hs ? hs.toLocaleString() : '—'}</b></div>`;
-    btn.onclick = () => startGame(tier);
-    wrap.appendChild(btn);
-  });
+  const hs = getHS(selMode);
+  el('startBest').textContent = hs ? hs.toLocaleString() : '—';
 }
 el('modeSeg').addEventListener('click', (e) => {
   const b = e.target.closest('[data-mode]'); if (!b) return;
   selMode = b.dataset.mode; buildStart();
 });
+el('startBtn').onclick = startGame;
 
 // ---------------- game flow ----------------
-function startGame(tier) {
+function startGame() {
   playerName = el('pName').value.trim();
   playerPeriod = +el('pPeriod').value || 0;
   if (!playerName || !playerPeriod) {
@@ -77,14 +62,14 @@ function startGame(tier) {
   }
   try { localStorage.setItem('myoid_name', playerName); localStorage.setItem('myoid_period', playerPeriod); } catch (e) {}
 
-  S = createGame({ mode: selMode, tier, content, rng });
+  S = createGame({ mode: selMode, content, rng });
   bestStreak = 0; locked = false;
   view = primaryView(MUSCLES[S.current]);
   el('start').classList.remove('show');
   el('board').classList.remove('show');
   el('game').style.display = 'block';
   el('end').classList.remove('show');
-  el('tierPill').textContent = `${TIER_INFO[tier].label} · ${selMode === 'lives' ? 'Lives' : 'Timed'}`;
+  el('tierPill').textContent = selMode === 'lives' ? 'LIVES · 3 ♥' : 'TIMED · FULL SET';
   el('livesStat').style.display = selMode === 'lives' ? '' : 'none';
   buildTabs();
   renderQuestion();
@@ -146,7 +131,7 @@ function onClick(ev) {
   if (locked || !S || S.status !== 'playing') return;
   const p = toPoint(ev);
   if (!p) return;
-  const r = judgeClick(p, view, S.current, TIERS[S.tier], content);
+  const r = judgeClick(p, view, S.current, MUSCLE_IDS, content);
   if (r.result === 'empty') return;
   if (r.result === 'correct') return resolve('correct', r);
   return resolve('wrong', r);
@@ -246,9 +231,9 @@ function finish() {
   const pct = Math.round(S.correct / answered * 100);
   el('endScore').textContent = S.score.toLocaleString();
   el('endPct').textContent = `${pct}%  ·  ${S.correct}/${S.total} correct`;
-  let best = getHS(S.mode, S.tier), badge = '';
-  if (S.score > best) { setHS(S.mode, S.tier, S.score); badge = ' · NEW BEST'; }
-  el('endSub').textContent = `${TIER_INFO[S.tier].label} · ${S.mode === 'lives' ? 'Lives' : 'Timed'} complete${badge}`;
+  let best = getHS(S.mode), badge = '';
+  if (S.score > best) { setHS(S.mode, S.score); badge = ' · NEW BEST'; }
+  el('endSub').textContent = `${S.mode === 'lives' ? 'Lives' : 'Timed'} complete${badge}`;
   const names = [...new Set(S.missed)].map((id) => MUSCLES[id].name);
   el('missedBox').innerHTML = names.length
     ? `<div class="mh">Review — ${names.length} missed</div>` + names.map((n) => `<div class="mi">${esc(n)}<span>review</span></div>`).join('')
@@ -262,10 +247,10 @@ async function submitAndRank(pct) {
   const lb = await getLB();
   if (!lb) { el('rankLine').textContent = 'Leaderboard offline — local best saved.'; return; }
   try {
-    await lb.submitScore({ tier: S.tier, name: playerName, period: playerPeriod, score: S.score, pct, mode: S.mode, correct: S.correct, total: S.total });
-    const top = await lb.topScores(S.tier, null, 100);
+    await lb.submitScore({ name: playerName, period: playerPeriod, score: S.score, pct, mode: S.mode, correct: S.correct, total: S.total });
+    const top = await lb.topScores(null, 100);
     const higher = top.filter((r) => (r.score | 0) > S.score).length;
-    el('rankLine').textContent = `Saved · #${higher + 1} all-time (${TIER_INFO[S.tier].label})`;
+    el('rankLine').textContent = `Saved · #${higher + 1} all-time`;
   } catch (e) {
     el('rankLine').textContent = 'Could not reach leaderboard (offline?).';
   }
@@ -287,7 +272,7 @@ async function renderBoard() {
   const lb = await getLB();
   if (!lb) { list.innerHTML = `<div class="lb-empty">Leaderboard unavailable (offline).</div>`; return; }
   let rows;
-  try { rows = await lb.topScores(boardTier, period, 15); }
+  try { rows = await lb.topScores(period, 15); }
   catch (e) { list.innerHTML = `<div class="lb-empty">Could not load scores.</div>`; return; }
   const head = `<div class="lb-head"><span>#</span><span>Name</span><span>%</span><span class="sc">Score</span></div>`;
   if (!rows.length) { list.innerHTML = head + `<div class="lb-empty">No scores yet — be the first.</div>`; return; }
@@ -299,12 +284,6 @@ async function renderBoard() {
        <span class="sc">${(r.score | 0).toLocaleString()}</span>
      </div>`).join('');
 }
-el('boardTiers').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-tier]'); if (!b) return;
-  boardTier = b.dataset.tier;
-  el('boardTiers').querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t === b));
-  renderBoard();
-});
 el('boardScope').addEventListener('change', renderBoard);
 
 // ---- buttons ----
@@ -313,7 +292,7 @@ el('boardBtn').onclick = openBoard;
 el('boardClose').onclick = toStart;
 el('skipBtn').onclick = skip;
 el('quitBtn').onclick = toStart;
-el('retryBtn').onclick = () => startGame(S.tier);
+el('retryBtn').onclick = startGame;
 el('changeBtn').onclick = toStart;
 function toStart() {
   stopTimer();

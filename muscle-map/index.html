@@ -36,7 +36,11 @@
     <button class="seg" data-mode="timed">Timed · full set</button>
   </div>
 
-  <div class="tiers" id="tierCards"></div>
+  <div class="startcard">
+    <div class="sc-line"><span>Muscles</span><b>19</b></div>
+    <div class="sc-line"><span>Your best</span><b id="startBest">—</b></div>
+  </div>
+  <button class="btn startbtn" id="startBtn">Start</button>
   <button class="ghost wbtn" id="viewBoard">🏆 Leaderboard</button>
   <div class="foot">15s per muscle · up to 1000 pts each · faster = more</div>
 </div>
@@ -45,11 +49,6 @@
 <div class="screen" id="board">
   <div class="start-logo"><span class="dot"></span><b>LEADERBOARD</b></div>
   <div class="board-controls">
-    <div class="tabs" id="boardTiers">
-      <button class="tab on" data-tier="easy">Easy</button>
-      <button class="tab" data-tier="medium">Medium</button>
-      <button class="tab" data-tier="hard">Hard</button>
-    </div>
     <select id="boardScope">
       <option value="">All-time</option>
       <option value="1">Period 1</option><option value="2">Period 2</option><option value="3">Period 3</option>

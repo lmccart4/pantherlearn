@@ -9,8 +9,6 @@ service cloud.firestore {
         && d.score is int && d.score >= 0 && d.score <= 100000
         && d.pct is int && d.pct >= 0 && d.pct <= 100;
     }
-    match /lb_easy/{doc}   { allow read: if true; allow create: if validScore(); allow update, delete: if false; }
-    match /lb_medium/{doc} { allow read: if true; allow create: if validScore(); allow update, delete: if false; }
-    match /lb_hard/{doc}   { allow read: if true; allow create: if validScore(); allow update, delete: if false; }
+    match /scores/{doc} { allow read: if true; allow create: if validScore(); allow update, delete: if false; }
   }
 }

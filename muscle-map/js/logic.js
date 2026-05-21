@@ -23,9 +23,8 @@ export function shuffle(array, rng) {
   return out;
 }
 
-export function buildDeck(tier, content, rng) {
-  const ids = content.TIERS[tier] || [];
-  return shuffle(ids, rng);
+export function buildDeck(content, rng) {
+  return shuffle(content.MUSCLE_IDS || [], rng);
 }
 
 // ---- geometry helpers for click judging ----
@@ -166,11 +165,10 @@ export function roundPoints(timeUsedMs, limitMs = ROUND_MS) {
 // Both modes play the full shuffled deck, one round per muscle. Lives mode grants
 // 3 lives (wrong/timeout costs one); Timed mode has no lives and runs the whole
 // set. Per-round timing/scoring is driven by the controller via roundPoints().
-export function createGame({ mode, tier, content, rng }) {
-  const deck = buildDeck(tier, content, rng);
+export function createGame({ mode, content, rng }) {
+  const deck = buildDeck(content, rng);
   return {
     mode,
-    tier,
     deck,
     pos: 0,
     current: deck[0],

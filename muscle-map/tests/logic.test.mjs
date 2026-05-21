@@ -33,9 +33,9 @@ test('shuffle: returns a permutation, same members, new array', () => {
   assert.deepEqual(input, ['a', 'b', 'c', 'd']);
 });
 
-test('buildDeck: returns shuffled tier ids from content', () => {
-  const content = { TIERS: { easy: ['x', 'y', 'z'] }, MUSCLES: {} };
-  const deck = buildDeck('easy', content, seqRng([0.5, 0.5, 0.5]));
+test('buildDeck: returns the shuffled full muscle list', () => {
+  const content = { MUSCLE_IDS: ['x', 'y', 'z'], MUSCLES: {} };
+  const deck = buildDeck(content, seqRng([0.5, 0.5, 0.5]));
   assert.equal(deck.length, 3);
   assert.deepEqual([...deck].sort(), ['x', 'y', 'z']);
 });
@@ -95,7 +95,7 @@ test('polygonsOverlap: detects containment and separation', () => {
 });
 
 const gsContent = {
-  TIERS: { easy: ['a', 'b', 'c'] },
+  MUSCLE_IDS: ['a', 'b', 'c'],
   MUSCLES: {
     a: { name: 'A', view: 'front', polygon: [] },
     b: { name: 'B', view: 'front', polygon: [] },
@@ -111,7 +111,7 @@ test('roundPoints: 1000 instant, 750 at half, 500 at the buzzer', () => {
 });
 
 test('createGame lives: 3 lives, full deck, streak/score 0, 15s round', () => {
-  const s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  const s = createGame({ mode: 'lives', content: gsContent, rng: seqRng([0.5]) });
   assert.equal(s.mode, 'lives');
   assert.equal(s.lives, 3);
   assert.equal(s.score, 0);
@@ -124,7 +124,7 @@ test('createGame lives: 3 lives, full deck, streak/score 0, 15s round', () => {
 });
 
 test('createGame timed: lives null, full deck', () => {
-  const s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  const s = createGame({ mode: 'timed', content: gsContent, rng: seqRng([0.5]) });
   assert.equal(s.lives, null);
   assert.equal(s.deck.length, 3);
   assert.equal(s.current, s.deck[0]);
@@ -132,7 +132,7 @@ test('createGame timed: lives null, full deck', () => {
 });
 
 test('applyResult correct: adds points, bumps streak/correct, advances', () => {
-  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  let s = createGame({ mode: 'lives', content: gsContent, rng: seqRng([0.5]) });
   s = applyResult(s, 'correct', 800);
   assert.equal(s.score, 800);
   assert.equal(s.streak, 1);
@@ -142,7 +142,7 @@ test('applyResult correct: adds points, bumps streak/correct, advances', () => {
 });
 
 test('applyResult empty: no change, no advance', () => {
-  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  let s = createGame({ mode: 'lives', content: gsContent, rng: seqRng([0.5]) });
   const before = s.current;
   s = applyResult(s, 'empty', 500);
   assert.equal(s.score, 0);
@@ -151,7 +151,7 @@ test('applyResult empty: no change, no advance', () => {
 });
 
 test('applyResult wrong (lives): resets streak, costs a life, tracks missed', () => {
-  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  let s = createGame({ mode: 'lives', content: gsContent, rng: seqRng([0.5]) });
   s = applyResult(s, 'correct', 900);
   const missedId = s.current;
   s = applyResult(s, 'wrong', 0);
@@ -162,7 +162,7 @@ test('applyResult wrong (lives): resets streak, costs a life, tracks missed', ()
 });
 
 test('applyResult timeout behaves like wrong', () => {
-  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  let s = createGame({ mode: 'lives', content: gsContent, rng: seqRng([0.5]) });
   s = applyResult(s, 'timeout', 0);
   assert.equal(s.lives, 2);
   assert.equal(s.wrong, 1);
@@ -170,7 +170,7 @@ test('applyResult timeout behaves like wrong', () => {
 });
 
 test('lives end on 0 lives', () => {
-  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  let s = createGame({ mode: 'lives', content: gsContent, rng: seqRng([0.5]) });
   s = applyResult(s, 'wrong', 0);
   s = applyResult(s, 'wrong', 0);
   s = applyResult(s, 'wrong', 0);
@@ -179,7 +179,7 @@ test('lives end on 0 lives', () => {
 });
 
 test('both modes end when deck exhausted; timed has no lives', () => {
-  let s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  let s = createGame({ mode: 'timed', content: gsContent, rng: seqRng([0.5]) });
   s = applyResult(s, 'correct', 1000);
   s = applyResult(s, 'wrong', 0);   // no life loss in timed
   assert.equal(s.lives, null);
@@ -190,7 +190,7 @@ test('both modes end when deck exhausted; timed has no lives', () => {
 });
 
 import { regionsOf } from '../js/logic.js';
-import { MUSCLES, TIERS } from '../js/content.js';
+import { MUSCLES, MUSCLE_IDS } from '../js/content.js';
 
 // A muscle with two explicit regions (e.g. left + right boxes for asymmetry).
 const twoBox = {
@@ -240,22 +240,14 @@ test('judgeClick: front-only muscle clicked on back view -> empty (exploration)'
   assert.equal(judgeClick({ x: 0.47, y: 0.26 }, 'back', 'pec', ['delt', 'pec'], bothViews).result, 'empty');
 });
 
-test('content: every tier id exists in MUSCLES and has at least one region', () => {
-  for (const tier of Object.keys(TIERS)) {
-    for (const id of TIERS[tier]) {
-      assert.ok(MUSCLES[id], `missing muscle: ${id}`);
-      const regs = regionsOf(MUSCLES[id]);
-      assert.ok(regs.length >= 1 && Array.isArray(regs[0].poly), `no region: ${id}`);
-      for (const r of regs) assert.ok(['front', 'back'].includes(r.view), `bad region view: ${id}`);
-    }
+test('content: 19 muscles, each with at least one valid region', () => {
+  assert.equal(MUSCLE_IDS.length, 19);
+  for (const id of MUSCLE_IDS) {
+    assert.ok(MUSCLES[id], `missing muscle: ${id}`);
+    const regs = regionsOf(MUSCLES[id]);
+    assert.ok(regs.length >= 1 && Array.isArray(regs[0].poly), `no region: ${id}`);
+    for (const r of regs) assert.ok(['front', 'back'].includes(r.view), `bad region view: ${id}`);
   }
-});
-test('content: tiers sized as designed (count-based)', () => {
-  assert.equal(TIERS.easy.length, 12);
-  assert.equal(TIERS.medium.length, 16);
-  assert.equal(TIERS.hard.length, 20);
-  // every tier muscle is calibrated with real region(s)
-  for (const id of TIERS.hard) assert.ok(regionsOf(MUSCLES[id]).length >= 1, id);
 });
 
 test('judgeClick: bilateral mirror — click on opposite side still counts correct', () => {
