@@ -28,28 +28,88 @@ export function buildDeck(tier, content, rng) {
   return shuffle(ids, rng);
 }
 
-// Decide the outcome of a click at `point` while viewing `view`, hunting for `targetId`.
-// Only muscles in tierIds that live on the current view are considered.
-// Muscles are bilateral, so a polygon authored on one side of the (symmetric)
-// figure also matches a click on the mirrored side across the centerline x=0.5.
-function hitsMuscle(point, polygon) {
-  const mirror = { x: 1 - point.x, y: point.y };
-  return pointInPolygon(point, polygon) || pointInPolygon(mirror, polygon);
+// ---- geometry helpers for click judging ----
+function distPointToSegment(p, a, b) {
+  const vx = b[0] - a[0], vy = b[1] - a[1];
+  const len2 = vx * vx + vy * vy;
+  let t = len2 ? ((p.x - a[0]) * vx + (p.y - a[1]) * vy) / len2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  const dx = a[0] + t * vx - p.x, dy = a[1] + t * vy - p.y;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
-export function judgeClick(point, view, targetId, tierIds, content) {
-  const target = content.MUSCLES[targetId];
-  if (target && target.view === view && hitsMuscle(point, target.polygon)) {
-    return { result: 'correct', hitId: targetId };
+function distPointToPolygon(p, polygon) {
+  if (pointInPolygon(p, polygon)) return 0;
+  let best = Infinity;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    best = Math.min(best, distPointToSegment(p, polygon[j], polygon[i]));
   }
-  for (const id of tierIds) {
-    if (id === targetId) continue;
-    const m = content.MUSCLES[id];
-    if (m && m.view === view && hitsMuscle(point, m.polygon)) {
-      return { result: 'wrong', hitId: id };
+  return best;
+}
+
+function segmentsIntersect(p1, p2, p3, p4) {
+  const cross = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  const d1 = cross(p3, p4, p1), d2 = cross(p3, p4, p2);
+  const d3 = cross(p1, p2, p3), d4 = cross(p1, p2, p4);
+  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+         ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+}
+
+// Do two polygons overlap (share interior or cross edges)?
+export function polygonsOverlap(a, b) {
+  for (const v of a) if (pointInPolygon({ x: v[0], y: v[1] }, b)) return true;
+  for (const v of b) if (pointInPolygon({ x: v[0], y: v[1] }, a)) return true;
+  for (let i = 0, j = a.length - 1; i < a.length; j = i++) {
+    for (let k = 0, l = b.length - 1; k < b.length; l = k++) {
+      if (segmentsIntersect(a[j], a[i], b[l], b[k])) return true;
     }
   }
-  return { result: 'empty', hitId: null };
+  return false;
+}
+
+// Muscles are bilateral: a polygon authored on one side of the symmetric figure
+// also matches a click (or its proximity) on the mirrored side across x=0.5.
+function insideMuscle(point, polygon) {
+  return pointInPolygon(point, polygon) ||
+         pointInPolygon({ x: 1 - point.x, y: point.y }, polygon);
+}
+function distToMuscle(point, polygon) {
+  return Math.min(distPointToPolygon(point, polygon),
+                  distPointToPolygon({ x: 1 - point.x, y: point.y }, polygon));
+}
+
+// Decide the outcome of a click at `point` while viewing `view`, hunting for `targetId`.
+// A muscle can only be answered on the view it lives on; clicks on the other view
+// are exploration (empty). On the target's view:
+//   - inside the correct target (even if other targets overlap there) -> correct
+//   - inside only a wrong target                                       -> wrong
+//   - mis-click (inside no target) -> snap to the NEAREST target:
+//       nearest is the target                                          -> correct
+//       nearest is wrong but the correct target overlaps it (layering) -> correct
+//       otherwise                                                      -> wrong
+export function judgeClick(point, view, targetId, tierIds, content) {
+  const target = content.MUSCLES[targetId];
+  if (!target || target.view !== view) return { result: 'empty', hitId: null };
+
+  const viewIds = tierIds.filter(
+    (id) => content.MUSCLES[id] && content.MUSCLES[id].view === view
+  );
+
+  const hitIds = viewIds.filter((id) => insideMuscle(point, content.MUSCLES[id].polygon));
+  if (hitIds.includes(targetId)) return { result: 'correct', hitId: targetId };
+  if (hitIds.length) return { result: 'wrong', hitId: hitIds[0] };
+
+  let nearest = null, best = Infinity;
+  for (const id of viewIds) {
+    const d = distToMuscle(point, content.MUSCLES[id].polygon);
+    if (d < best) { best = d; nearest = id; }
+  }
+  if (!nearest) return { result: 'empty', hitId: null };
+  if (nearest === targetId) return { result: 'correct', hitId: targetId };
+  if (polygonsOverlap(target.polygon, content.MUSCLES[nearest].polygon)) {
+    return { result: 'correct', hitId: targetId };
+  }
+  return { result: 'wrong', hitId: nearest };
 }
 
 export function createGame({ mode, tier, content, rng, duration = 60 }) {

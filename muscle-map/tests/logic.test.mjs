@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { pointInPolygon } from '../js/logic.js';
 import { shuffle, buildDeck } from '../js/logic.js';
-import { judgeClick } from '../js/logic.js';
+import { judgeClick, polygonsOverlap } from '../js/logic.js';
 import { createGame, applyResult, isTimeUp } from '../js/logic.js';
 
 const square = [[0.2, 0.2], [0.8, 0.2], [0.8, 0.8], [0.2, 0.8]];
@@ -54,17 +54,44 @@ test('judgeClick: correct region on correct view', () => {
   const r = judgeClick({ x: 0.25, y: 0.25 }, 'front', 'biceps', tierIds, jcContent);
   assert.deepEqual(r, { result: 'correct', hitId: 'biceps' });
 });
-test('judgeClick: wrong muscle hit', () => {
+test('judgeClick: squarely inside a wrong muscle -> wrong', () => {
   const r = judgeClick({ x: 0.75, y: 0.75 }, 'front', 'biceps', tierIds, jcContent);
   assert.deepEqual(r, { result: 'wrong', hitId: 'quads' });
 });
-test('judgeClick: empty space', () => {
-  const r = judgeClick({ x: 0.5, y: 0.5 }, 'front', 'biceps', tierIds, jcContent);
-  assert.deepEqual(r, { result: 'empty', hitId: null });
+test('judgeClick: mis-click nearest the target -> correct (snap)', () => {
+  // just outside biceps (x just past 0.4); biceps is far nearer than quads
+  const r = judgeClick({ x: 0.45, y: 0.25 }, 'front', 'biceps', tierIds, jcContent);
+  assert.deepEqual(r, { result: 'correct', hitId: 'biceps' });
 });
-test('judgeClick: target on other view, click hits nothing here', () => {
+test('judgeClick: mis-click nearest a wrong muscle -> wrong (snap)', () => {
+  // just outside quads (x just shy of 0.6); quads nearest, biceps far, no overlap
+  const r = judgeClick({ x: 0.55, y: 0.75 }, 'front', 'biceps', tierIds, jcContent);
+  assert.deepEqual(r, { result: 'wrong', hitId: 'quads' });
+});
+test('judgeClick: target on other view -> empty (exploration, no commit)', () => {
   const r = judgeClick({ x: 0.25, y: 0.25 }, 'back', 'biceps', tierIds, jcContent);
   assert.deepEqual(r, { result: 'empty', hitId: null });
+});
+
+// Layering: a small correct target overlapping a larger wrong one.
+const layerContent = {
+  TIERS: { easy: ['big', 'small'] },
+  MUSCLES: {
+    big:   { name: 'Big',   view: 'front', polygon: [[0.10,0.50],[0.50,0.50],[0.50,0.90],[0.10,0.90]] },
+    small: { name: 'Small', view: 'front', polygon: [[0.25,0.60],[0.45,0.60],[0.45,0.80],[0.25,0.80]] }
+  }
+};
+const layerIds = ['big', 'small'];
+
+test('judgeClick: mis-click nearest the wrong target, but correct overlaps it -> correct', () => {
+  // click left of both; nearest is "big", but target "small" is layered inside "big"
+  const r = judgeClick({ x: 0.05, y: 0.70 }, 'front', 'small', layerIds, layerContent);
+  assert.deepEqual(r, { result: 'correct', hitId: 'small' });
+});
+
+test('polygonsOverlap: detects containment and separation', () => {
+  assert.equal(polygonsOverlap(layerContent.MUSCLES.big.polygon, layerContent.MUSCLES.small.polygon), true);
+  assert.equal(polygonsOverlap(jcContent.MUSCLES.biceps.polygon, jcContent.MUSCLES.quads.polygon), false);
 });
 
 const gsContent = {
