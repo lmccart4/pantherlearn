@@ -1,72 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>Muscle Map</title>
-  <link rel="stylesheet" href="css/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MYO·ID — Muscle Identification</title>
+<meta name="description" content="A clinical muscle-identification game. Find the muscle on the figure.">
+<link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <!-- LANDING -->
-  <section id="landing" class="screen active">
-    <h1 class="title">Muscle <span class="accent">Map</span></h1>
-    <p class="subtitle">Find the muscle. Beat the clock — or stay alive.</p>
 
-    <div class="picker">
-      <p class="label">Difficulty</p>
-      <div class="pills" id="tier-pills">
-        <button class="pill active" data-tier="easy">Easy</button>
-        <button class="pill" data-tier="medium">Medium</button>
-        <button class="pill" data-tier="hard">Hard</button>
+<!-- ============ START SCREEN ============ -->
+<div class="screen show" id="start">
+  <div class="start-logo"><span class="dot"></span><b>MYO·ID</b></div>
+  <div class="start-sub">Identify the human musculature by location. A muscle name appears — find it and click it before the timer runs out. Answer faster for more points. Toggle Front / Back to reach every muscle.</div>
+
+  <div class="mode-lab">Mode</div>
+  <div class="modeseg" id="modeSeg">
+    <button class="seg on" data-mode="lives">Lives · 3 ♥</button>
+    <button class="seg" data-mode="timed">Timed · full set</button>
+  </div>
+
+  <div class="tiers" id="tierCards"></div>
+  <div class="foot">15s per muscle · up to 1000 pts each · faster = more</div>
+</div>
+
+<!-- ============ GAME ============ -->
+<div class="wrap" id="game" style="display:none">
+  <header class="bar">
+    <div class="logo"><span class="dot"></span><b>MYO·ID</b><span id="logoSub">MUSCULAR SYSTEM</span></div>
+    <div class="pill" id="tierPill">EASY</div>
+    <div class="stat"><div class="k">SCORE</div><div class="v cy" id="score">0</div></div>
+    <div class="stat" id="livesStat"><div class="k">LIVES</div><div class="v" id="lives">♥♥♥</div></div>
+    <div class="stat"><div class="k">FOUND</div><div class="v" id="prog">0/0</div></div>
+    <div class="stat"><div class="k">STREAK</div><div class="v" id="streak">0</div></div>
+  </header>
+
+  <!-- round timer (Kahoot-style countdown) -->
+  <div class="round">
+    <div class="round-bar"><i id="roundFill"></i></div>
+    <div class="round-sec" id="roundSec">15.0</div>
+  </div>
+  <!-- deck progress -->
+  <div class="progress"><i id="bar"></i></div>
+
+  <div class="grid">
+    <div class="stage" id="stage">
+      <div class="imgwrap" id="imgwrap">
+        <img id="figure" alt="anatomical figure">
+        <canvas id="overlay"></canvas>
+        <div class="scan"></div>
+        <div class="viewname" id="viewname"></div>
+        <div class="fbflash" id="fbflash"></div>
+      </div>
+      <!-- end overlay -->
+      <div class="end" id="end">
+        <div class="grade" id="grade">—</div>
+        <div class="pct" id="endPct"></div>
+        <div class="sub" id="endSub">assessment complete</div>
+        <div class="missed" id="missedBox"></div>
+        <div class="end-btns">
+          <button class="btn" id="retryBtn">Retry</button>
+          <button class="btn alt" id="changeBtn">Change difficulty</button>
+        </div>
       </div>
     </div>
 
-    <div class="picker">
-      <p class="label">Mode</p>
-      <div class="pills" id="mode-pills">
-        <button class="pill active" data-mode="lives">Lives (3 ♥)</button>
-        <button class="pill" data-mode="timed">Timed (60s)</button>
+    <aside>
+      <div class="card">
+        <div class="lab">Locate the muscle</div>
+        <div class="target" id="target">—</div>
+        <div class="fb" id="fb"></div>
       </div>
-    </div>
+      <div class="card">
+        <div class="lab tabs-lab">View</div>
+        <div class="tabs" id="tabs"></div>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:8px">Session</div>
+        <div class="legend"><span>Correct</span><b id="nCorrect">0</b></div>
+        <div class="legend"><span>Missed</span><b id="nWrong">0</b></div>
+        <div class="legend" style="margin-bottom:10px"><span>Best streak</span><b id="bestStreak">0</b></div>
+        <div class="row-btns">
+          <button class="ghost" id="skipBtn">Skip / Reveal</button>
+          <button class="ghost" id="quitBtn">Quit</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
 
-    <button id="start-btn" class="primary-btn">Start</button>
-  </section>
-
-  <!-- GAME -->
-  <section id="game" class="screen">
-    <header class="hud">
-      <div id="hud-left" class="hud-lives"></div>
-      <div id="hud-prompt" class="hud-prompt"></div>
-      <div id="hud-right" class="hud-stat"></div>
-    </header>
-
-    <div class="view-toggle">
-      <button class="view-btn active" data-view="front">Front</button>
-      <button class="view-btn" data-view="back">Back</button>
-    </div>
-
-    <div id="stage" class="stage">
-      <img id="figure" class="figure" alt="Anatomical figure" />
-      <canvas id="overlay" class="overlay"></canvas>
-      <div id="feedback" class="feedback"></div>
-    </div>
-  </section>
-
-  <!-- RESULTS -->
-  <section id="results" class="screen">
-    <h2 class="title">Results</h2>
-    <div id="result-score" class="result-score"></div>
-    <div id="result-accuracy" class="result-accuracy"></div>
-    <div id="result-missed" class="result-missed"></div>
-    <div class="result-actions">
-      <button id="replay-btn" class="primary-btn">Replay</button>
-      <button id="home-btn" class="ghost-btn">Change difficulty</button>
-    </div>
-  </section>
-
-  <script type="module">
-    const calibrate = new URLSearchParams(location.search).has('calibrate');
-    import(calibrate ? './js/calibrate.js' : './js/game.js');
-  </script>
+<script type="module">
+  const calibrate = new URLSearchParams(location.search).has('calibrate');
+  import(calibrate ? './js/calibrate.js' : './js/game.js');
+</script>
 </body>
 </html>

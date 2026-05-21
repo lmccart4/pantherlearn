@@ -22,9 +22,9 @@ for (const id of ids) {
 let cur = 0; // index into polys[current] of the region being edited
 
 const game = document.getElementById('game');
-document.getElementById('landing').classList.remove('active');
-game.classList.add('active');
-document.getElementById('hud-prompt').textContent = 'CALIBRATE';
+document.getElementById('start').classList.remove('show');
+game.style.display = 'block';
+document.getElementById('target').textContent = 'CALIBRATE';
 
 const bar = document.createElement('div');
 bar.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#111c30;padding:8px;display:flex;gap:8px;flex-wrap:wrap;z-index:10;font:12px system-ui;color:#e2e8f0;align-items:center;';
