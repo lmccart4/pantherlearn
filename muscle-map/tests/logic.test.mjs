@@ -250,10 +250,12 @@ test('content: every tier id exists in MUSCLES and has at least one region', () 
     }
   }
 });
-test('content: tiers sized roughly as designed', () => {
+test('content: tiers sized as designed (count-based)', () => {
   assert.equal(TIERS.easy.length, 12);
-  assert.equal(TIERS.medium.length, 20);
-  assert.ok(TIERS.hard.length >= 27);
+  assert.equal(TIERS.medium.length, 16);
+  assert.equal(TIERS.hard.length, 20);
+  // every tier muscle is calibrated with real region(s)
+  for (const id of TIERS.hard) assert.ok(regionsOf(MUSCLES[id]).length >= 1, id);
 });
 
 test('judgeClick: bilateral mirror — click on opposite side still counts correct', () => {

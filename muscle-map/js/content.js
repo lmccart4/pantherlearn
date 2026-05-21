@@ -1,47 +1,96 @@
-// Hotspot polygons are normalized (0..1) over the figure image.
-// Authored on the figure's LEFT half (or spanning the midline for central
-// muscles); judgeClick mirrors clicks across x=0.5 so the bilateral right side
-// also registers. First pass — fine-tune interactively via ?calibrate.
+// Hotspot regions are normalized (0..1) over the figure image. Each region is
+// { view, poly }. A muscle may have regions on both views and multiple per view.
+// Shapes calibrated by Luke via ?calibrate (2026-05-21).
 
 export const MUSCLES = {
-  // ----- FRONT -----
-  pectorals:   { name: 'Pectorals',           view: 'front', polygon: [[0.40,0.21],[0.50,0.21],[0.50,0.29],[0.40,0.28]] },
-  deltoids:    { name: 'Deltoids',            view: 'front', polygon: [[0.31,0.19],[0.40,0.20],[0.40,0.26],[0.31,0.25]] },
-  biceps:      { name: 'Biceps',              view: 'front', polygon: [[0.29,0.26],[0.37,0.27],[0.36,0.35],[0.28,0.34]] },
-  forearms:    { name: 'Forearms',            view: 'front', polygon: [[0.25,0.38],[0.33,0.39],[0.31,0.47],[0.23,0.46]] },
-  abdominals:  { name: 'Abdominals',          view: 'front', polygon: [[0.44,0.29],[0.56,0.29],[0.56,0.42],[0.44,0.42]] },
-  obliques:    { name: 'Obliques',            view: 'front', polygon: [[0.40,0.31],[0.44,0.31],[0.44,0.43],[0.40,0.41]] },
-  quadriceps:  { name: 'Quadriceps',          view: 'front', polygon: [[0.40,0.51],[0.49,0.51],[0.48,0.66],[0.41,0.66]] },
-  adductors:   { name: 'Adductors',           view: 'front', polygon: [[0.46,0.50],[0.50,0.50],[0.50,0.61],[0.46,0.61]] },
-  tibialis:    { name: 'Tibialis Anterior',   view: 'front', polygon: [[0.43,0.71],[0.48,0.71],[0.48,0.87],[0.44,0.87]] },
-  sternocleido:{ name: 'Sternocleidomastoid', view: 'front', polygon: [[0.47,0.14],[0.53,0.14],[0.52,0.19],[0.48,0.19]] },
-  serratus:    { name: 'Serratus Anterior',   view: 'front', polygon: [[0.37,0.27],[0.41,0.27],[0.41,0.32],[0.37,0.32]] },
-  brachialis:  { name: 'Brachialis',          view: 'front', polygon: [[0.28,0.34],[0.35,0.35],[0.34,0.39],[0.27,0.38]] },
+  // ----- TORSO / FRONT -----
+  pectorals: { name: 'Pectorals', regions: [
+    { view: 'front', poly: [[0.409,0.211],[0.471,0.217],[0.485,0.238],[0.495,0.275],[0.483,0.297],[0.45,0.308],[0.419,0.306],[0.383,0.295],[0.369,0.279],[0.361,0.263],[0.357,0.251],[0.378,0.227]] },
+    { view: 'front', poly: [[0.505,0.262],[0.515,0.236],[0.524,0.219],[0.567,0.212],[0.588,0.214],[0.615,0.223],[0.638,0.243],[0.646,0.255],[0.636,0.273],[0.617,0.289],[0.598,0.305],[0.562,0.306],[0.527,0.302],[0.508,0.289]] }
+  ] },
+  deltoids: { name: 'Deltoids', regions: [
+    { view: 'front', poly: [[0.344,0.262],[0.373,0.232],[0.392,0.221],[0.411,0.213],[0.387,0.206],[0.368,0.202],[0.335,0.208],[0.306,0.234],[0.299,0.261],[0.301,0.281],[0.304,0.293],[0.325,0.273]] },
+    { view: 'front', poly: [[0.59,0.211],[0.612,0.22],[0.633,0.236],[0.647,0.257],[0.671,0.268],[0.697,0.29],[0.704,0.265],[0.7,0.239],[0.688,0.22],[0.669,0.207],[0.64,0.199]] },
+    { view: 'back', poly: [[0.303,0.283],[0.334,0.259],[0.348,0.245],[0.367,0.234],[0.391,0.227],[0.415,0.226],[0.388,0.213],[0.374,0.205],[0.369,0.197],[0.343,0.203],[0.317,0.214],[0.303,0.243],[0.3,0.264]] },
+    { view: 'back', poly: [[0.584,0.227],[0.61,0.212],[0.627,0.203],[0.634,0.196],[0.655,0.203],[0.672,0.212],[0.688,0.231],[0.7,0.254],[0.698,0.267],[0.696,0.281],[0.667,0.26],[0.646,0.239],[0.615,0.228]] }
+  ] },
+  biceps: { name: 'Biceps', regions: [
+    { view: 'front', poly: [[0.355,0.26],[0.321,0.274],[0.302,0.301],[0.29,0.332],[0.293,0.357],[0.305,0.373],[0.317,0.385],[0.324,0.397],[0.336,0.385],[0.326,0.373],[0.314,0.359],[0.329,0.349],[0.348,0.333],[0.357,0.314],[0.362,0.297],[0.359,0.276]] },
+    { view: 'front', poly: [[0.645,0.263],[0.64,0.282],[0.642,0.303],[0.645,0.319],[0.654,0.336],[0.671,0.346],[0.678,0.355],[0.685,0.363],[0.676,0.375],[0.666,0.381],[0.673,0.399],[0.683,0.386],[0.697,0.371],[0.709,0.354],[0.712,0.328],[0.702,0.301],[0.683,0.277],[0.664,0.264]] }
+  ] },
+  forearms: { name: 'Forearms', regions: [
+    { view: 'front', poly: [[0.274,0.344],[0.253,0.378],[0.234,0.408],[0.227,0.443],[0.215,0.469],[0.255,0.478],[0.281,0.451],[0.305,0.429],[0.324,0.399],[0.303,0.371]] },
+    { view: 'front', poly: [[0.68,0.399],[0.694,0.429],[0.711,0.449],[0.739,0.473],[0.744,0.479],[0.787,0.469],[0.772,0.43],[0.76,0.396],[0.741,0.368],[0.724,0.344],[0.7,0.371]] },
+    { view: 'back', poly: [[0.269,0.355],[0.236,0.411],[0.224,0.452],[0.21,0.478],[0.25,0.489],[0.281,0.454],[0.315,0.424],[0.334,0.39],[0.338,0.377]] },
+    { view: 'back', poly: [[0.664,0.387],[0.69,0.432],[0.719,0.452],[0.75,0.484],[0.788,0.475],[0.778,0.446],[0.764,0.417],[0.752,0.38],[0.735,0.361]] }
+  ] },
+  abdominals: { name: 'Abdominals', regions: [
+    { view: 'front', poly: [[0.445,0.308],[0.436,0.332],[0.436,0.364],[0.44,0.398],[0.445,0.447],[0.476,0.509],[0.519,0.513],[0.55,0.462],[0.559,0.412],[0.564,0.353],[0.555,0.308],[0.517,0.3],[0.483,0.303]] }
+  ] },
+  obliques: { name: 'Obliques', regions: [
+    { view: 'front', poly: [[0.374,0.295],[0.421,0.315],[0.424,0.369],[0.424,0.422],[0.419,0.446],[0.378,0.431],[0.39,0.391],[0.381,0.348],[0.364,0.315]] },
+    { view: 'front', poly: [[0.577,0.312],[0.577,0.333],[0.574,0.352],[0.574,0.379],[0.574,0.4],[0.572,0.418],[0.572,0.446],[0.593,0.446],[0.617,0.433],[0.617,0.395],[0.617,0.364],[0.627,0.329],[0.627,0.299],[0.624,0.293],[0.6,0.302]] }
+  ] },
+  quadriceps: { name: 'Quadriceps', regions: [
+    { view: 'front', poly: [[0.453,0.678],[0.482,0.621],[0.487,0.59],[0.494,0.526],[0.437,0.48],[0.38,0.442],[0.363,0.493],[0.353,0.538],[0.358,0.6],[0.368,0.64],[0.38,0.654]] },
+    { view: 'front', poly: [[0.508,0.525],[0.554,0.487],[0.592,0.455],[0.62,0.436],[0.632,0.485],[0.644,0.532],[0.646,0.578],[0.635,0.634],[0.625,0.659],[0.53,0.69]] }
+  ] },
+  adductors: { name: 'Adductors', regions: [
+    { view: 'front', poly: [[0.481,0.618],[0.417,0.464],[0.496,0.526]] },
+    { view: 'front', poly: [[0.523,0.617],[0.585,0.462],[0.513,0.525]] }
+  ] },
+  tibialis: { name: 'Tibialis Anterior', regions: [
+    { view: 'front', poly: [[0.433,0.869],[0.416,0.781],[0.399,0.727],[0.392,0.721],[0.385,0.738],[0.387,0.769],[0.392,0.801],[0.416,0.839],[0.423,0.856]] },
+    { view: 'front', poly: [[0.574,0.872],[0.6,0.805],[0.612,0.77],[0.614,0.736],[0.607,0.722],[0.59,0.743],[0.583,0.797]] },
+    { view: 'back', poly: [[0.564,0.912],[0.567,0.872],[0.562,0.836],[0.548,0.813]] },
+    { view: 'back', poly: [[0.434,0.908],[0.432,0.881],[0.437,0.841],[0.446,0.819],[0.451,0.812]] }
+  ] },
+  sternocleido: { name: 'Sternocleidomastoid', regions: [
+    { view: 'front', poly: [[0.502,0.218],[0.537,0.152],[0.549,0.147],[0.552,0.206]] },
+    { view: 'front', poly: [[0.445,0.212],[0.495,0.22],[0.464,0.156],[0.452,0.149]] }
+  ] },
+  serratus: { name: 'Serratus Anterior', regions: [
+    { view: 'front', poly: [[0.357,0.269],[0.414,0.309],[0.383,0.346],[0.362,0.324]] },
+    { view: 'front', poly: [[0.624,0.349],[0.638,0.266],[0.581,0.308]] }
+  ] },
+  brachialis: { name: 'Brachialis', regions: [
+    { view: 'front', poly: [[0.314,0.391],[0.29,0.312],[0.35,0.309]] },
+    { view: 'front', poly: [[0.714,0.381],[0.645,0.325],[0.71,0.311]] }
+  ] },
   // ----- BACK -----
-  trapezius:   { name: 'Trapezius',           view: 'back',  polygon: [[0.44,0.17],[0.56,0.17],[0.57,0.26],[0.50,0.28],[0.43,0.26]] },
-  triceps:     { name: 'Triceps',             view: 'back',  polygon: [[0.29,0.26],[0.38,0.27],[0.37,0.35],[0.29,0.34]] },
-  latissimus:  { name: 'Latissimus Dorsi',    view: 'back',  polygon: [[0.40,0.30],[0.48,0.31],[0.47,0.40],[0.40,0.39]] },
-  rhomboids:   { name: 'Rhomboids',           view: 'back',  polygon: [[0.45,0.27],[0.55,0.27],[0.55,0.32],[0.45,0.32]] },
-  gluteals:    { name: 'Gluteals',            view: 'back',  polygon: [[0.41,0.46],[0.50,0.46],[0.50,0.55],[0.42,0.55]] },
-  hamstrings:  { name: 'Hamstrings',          view: 'back',  polygon: [[0.40,0.55],[0.49,0.55],[0.48,0.67],[0.41,0.67]] },
-  gastrocnemius:{ name: 'Gastrocnemius (Calf)',view: 'back', polygon: [[0.41,0.69],[0.48,0.69],[0.48,0.80],[0.42,0.80]] },
-  soleus:      { name: 'Soleus',              view: 'back',  polygon: [[0.42,0.80],[0.48,0.80],[0.47,0.88],[0.43,0.88]] },
-  // ----- HARD: individual heads (front) -----
-  'deltoid-anterior':  { name: 'Anterior Deltoid',  view: 'front', polygon: [[0.37,0.20],[0.42,0.21],[0.41,0.26],[0.37,0.25]] },
-  'deltoid-lateral':   { name: 'Lateral Deltoid',   view: 'front', polygon: [[0.31,0.20],[0.37,0.20],[0.37,0.26],[0.31,0.25]] },
-  'biceps-long':       { name: 'Biceps (Long Head)',view: 'front', polygon: [[0.28,0.27],[0.32,0.27],[0.32,0.35],[0.28,0.34]] },
-  'biceps-short':      { name: 'Biceps (Short Head)',view:'front', polygon: [[0.32,0.27],[0.37,0.27],[0.36,0.35],[0.32,0.35]] },
-  'rectus-femoris':    { name: 'Rectus Femoris',    view: 'front', polygon: [[0.43,0.52],[0.47,0.52],[0.47,0.64],[0.43,0.64]] },
-  'vastus-lateralis':  { name: 'Vastus Lateralis',  view: 'front', polygon: [[0.39,0.53],[0.43,0.53],[0.43,0.64],[0.40,0.63]] },
-  'vastus-medialis':   { name: 'Vastus Medialis',   view: 'front', polygon: [[0.45,0.59],[0.49,0.59],[0.49,0.66],[0.45,0.66]] },
-  // ----- HARD: individual heads (back) -----
-  'deltoid-posterior': { name: 'Posterior Deltoid', view: 'back',  polygon: [[0.31,0.20],[0.39,0.21],[0.39,0.26],[0.31,0.25]] },
-  'triceps-long':      { name: 'Triceps (Long Head)',view:'back',  polygon: [[0.33,0.27],[0.38,0.27],[0.37,0.35],[0.33,0.34]] },
-  'triceps-lateral':   { name: 'Triceps (Lateral Head)',view:'back',polygon: [[0.29,0.27],[0.33,0.27],[0.33,0.35],[0.29,0.34]] },
-  'gastroc-medial':    { name: 'Gastrocnemius (Medial)', view: 'back', polygon: [[0.45,0.69],[0.48,0.69],[0.48,0.80],[0.45,0.80]] },
-  'gastroc-lateral':   { name: 'Gastrocnemius (Lateral)',view: 'back', polygon: [[0.41,0.69],[0.45,0.69],[0.45,0.80],[0.42,0.80]] }
+  trapezius: { name: 'Trapezius', regions: [
+    { view: 'back', poly: [[0.502,0.355],[0.581,0.224],[0.631,0.198],[0.569,0.178],[0.528,0.158],[0.514,0.125],[0.481,0.125],[0.466,0.155],[0.445,0.174],[0.404,0.19],[0.371,0.198],[0.412,0.218],[0.443,0.28],[0.471,0.32]] }
+  ] },
+  triceps: { name: 'Triceps', regions: [
+    { view: 'back', poly: [[0.3,0.379],[0.281,0.335],[0.293,0.296],[0.329,0.263],[0.355,0.268],[0.369,0.303],[0.369,0.322],[0.355,0.359],[0.338,0.376]] },
+    { view: 'back', poly: [[0.695,0.383],[0.66,0.373],[0.626,0.312],[0.631,0.279],[0.674,0.264],[0.698,0.282],[0.707,0.316],[0.717,0.339],[0.714,0.363]] }
+  ] },
+  latissimus: { name: 'Latissimus Dorsi', regions: [
+    { view: 'back', poly: [[0.574,0.426],[0.512,0.355],[0.555,0.288],[0.598,0.296],[0.633,0.284],[0.621,0.333],[0.6,0.378]] },
+    { view: 'back', poly: [[0.429,0.426],[0.49,0.347],[0.44,0.287],[0.412,0.29],[0.362,0.285],[0.386,0.344]] }
+  ] },
+  rhomboids: { name: 'Rhomboids', regions: [
+    { view: 'back', poly: [[0.56,0.285],[0.583,0.224],[0.5,0.194],[0.424,0.228],[0.438,0.285],[0.498,0.26]] }
+  ] },
+  gluteals: { name: 'Gluteals', regions: [
+    { view: 'back', poly: [[0.393,0.431],[0.452,0.432],[0.5,0.472],[0.5,0.528],[0.438,0.541],[0.4,0.526],[0.381,0.475]] },
+    { view: 'back', poly: [[0.502,0.472],[0.54,0.437],[0.595,0.427],[0.607,0.458],[0.61,0.502],[0.598,0.531],[0.574,0.544],[0.519,0.544],[0.498,0.523]] }
+  ] },
+  hamstrings: { name: 'Hamstrings', regions: [
+    { view: 'back', poly: [[0.376,0.707],[0.412,0.673],[0.457,0.72],[0.493,0.538],[0.412,0.542],[0.393,0.565],[0.374,0.522],[0.362,0.579],[0.371,0.643]] },
+    { view: 'back', poly: [[0.545,0.72],[0.586,0.667],[0.61,0.699],[0.633,0.614],[0.636,0.557],[0.624,0.52],[0.614,0.563],[0.593,0.542],[0.517,0.534],[0.507,0.531],[0.529,0.624]] }
+  ] },
+  gastrocnemius: { name: 'Gastrocnemius (Calf)', regions: [
+    { view: 'back', poly: [[0.371,0.796],[0.402,0.803],[0.412,0.788],[0.438,0.809],[0.452,0.809],[0.46,0.784],[0.463,0.761],[0.451,0.724],[0.437,0.702],[0.427,0.691],[0.42,0.702],[0.396,0.684],[0.379,0.708],[0.37,0.744],[0.365,0.769]] },
+    { view: 'back', poly: [[0.544,0.812],[0.559,0.811],[0.573,0.8],[0.58,0.787],[0.587,0.796],[0.604,0.8],[0.623,0.79],[0.63,0.758],[0.623,0.731],[0.621,0.707],[0.604,0.692],[0.599,0.683],[0.58,0.704],[0.571,0.691],[0.549,0.716],[0.537,0.758],[0.537,0.788]] }
+  ] },
+  soleus: { name: 'Soleus', regions: [
+    { view: 'back', poly: [[0.44,0.917],[0.444,0.859],[0.452,0.813],[0.44,0.834],[0.433,0.866],[0.433,0.901]] },
+    { view: 'back', poly: [[0.566,0.907],[0.568,0.866],[0.561,0.835],[0.549,0.813]] }
+  ] }
 };
 
+// Three difficulty tiers by count (all from the 20 calibrated muscles).
 export const TIERS = {
   easy: [
     'pectorals', 'biceps', 'triceps', 'deltoids', 'abdominals',
@@ -52,16 +101,13 @@ export const TIERS = {
     'pectorals', 'biceps', 'triceps', 'deltoids', 'abdominals',
     'quadriceps', 'hamstrings', 'gluteals', 'gastrocnemius',
     'trapezius', 'latissimus', 'forearms',
-    'obliques', 'soleus', 'rhomboids', 'adductors',
-    'tibialis', 'serratus', 'brachialis', 'sternocleido'
+    'obliques', 'adductors', 'rhomboids', 'tibialis'
   ],
   hard: [
-    'pectorals', 'abdominals', 'obliques', 'serratus', 'forearms', 'brachialis',
-    'sternocleido', 'trapezius', 'latissimus', 'rhomboids', 'gluteals',
-    'hamstrings', 'adductors', 'tibialis', 'soleus',
-    'deltoid-anterior', 'deltoid-lateral', 'deltoid-posterior',
-    'biceps-long', 'biceps-short', 'triceps-long', 'triceps-lateral',
-    'rectus-femoris', 'vastus-lateralis', 'vastus-medialis',
-    'gastroc-medial', 'gastroc-lateral'
+    'pectorals', 'biceps', 'triceps', 'deltoids', 'abdominals',
+    'quadriceps', 'hamstrings', 'gluteals', 'gastrocnemius',
+    'trapezius', 'latissimus', 'forearms',
+    'obliques', 'adductors', 'rhomboids', 'tibialis',
+    'soleus', 'serratus', 'brachialis', 'sternocleido'
   ]
 };
