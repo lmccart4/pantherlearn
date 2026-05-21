@@ -203,9 +203,12 @@ const twoBox = {
   }
 };
 
-test('regionsOf: returns regions array, or wraps a single polygon', () => {
-  assert.equal(regionsOf(twoBox.MUSCLES.m).length, 2);
-  assert.deepEqual(regionsOf({ polygon: [[0,0],[1,0],[1,1]] }).length, 1);
+test('regionsOf: normalizes to {view, poly}; wraps single polygon', () => {
+  const regs = regionsOf(twoBox.MUSCLES.m);
+  assert.equal(regs.length, 2);
+  assert.equal(regs[0].view, 'front');
+  assert.ok(Array.isArray(regs[0].poly));
+  assert.equal(regionsOf({ view: 'back', polygon: [[0,0],[1,0],[1,1]] })[0].view, 'back');
 });
 
 test('judgeClick: two-region muscle — a click in EITHER box is correct', () => {
@@ -213,13 +216,37 @@ test('judgeClick: two-region muscle — a click in EITHER box is correct', () =>
   assert.equal(judgeClick({ x: 0.80, y: 0.20 }, 'front', 'm', ['m'], twoBox).result, 'correct');
 });
 
+// A muscle with regions on BOTH views (e.g. deltoids, visible front and back).
+const bothViews = {
+  TIERS: { easy: ['delt', 'pec'] },
+  MUSCLES: {
+    delt: { name: 'Delt', regions: [
+      { view: 'front', poly: [[0.30,0.20],[0.42,0.20],[0.42,0.30],[0.30,0.30]] },
+      { view: 'back',  poly: [[0.30,0.20],[0.42,0.20],[0.42,0.30],[0.30,0.30]] }
+    ] },
+    pec: { name: 'Pec', regions: [
+      { view: 'front', poly: [[0.42,0.22],[0.52,0.22],[0.52,0.30],[0.42,0.30]] }
+    ] }
+  }
+};
+
+test('judgeClick: muscle on both views — answerable on either view', () => {
+  assert.equal(judgeClick({ x: 0.36, y: 0.25 }, 'front', 'delt', ['delt', 'pec'], bothViews).result, 'correct');
+  assert.equal(judgeClick({ x: 0.36, y: 0.25 }, 'back',  'delt', ['delt', 'pec'], bothViews).result, 'correct');
+});
+
+test('judgeClick: front-only muscle clicked on back view -> empty (exploration)', () => {
+  // pec exists only on front; clicking it on the back view is not a commit
+  assert.equal(judgeClick({ x: 0.47, y: 0.26 }, 'back', 'pec', ['delt', 'pec'], bothViews).result, 'empty');
+});
+
 test('content: every tier id exists in MUSCLES and has at least one region', () => {
   for (const tier of Object.keys(TIERS)) {
     for (const id of TIERS[tier]) {
       assert.ok(MUSCLES[id], `missing muscle: ${id}`);
       const regs = regionsOf(MUSCLES[id]);
-      assert.ok(regs.length >= 1 && Array.isArray(regs[0]), `no region: ${id}`);
-      assert.ok(['front', 'back'].includes(MUSCLES[id].view), `bad view: ${id}`);
+      assert.ok(regs.length >= 1 && Array.isArray(regs[0].poly), `no region: ${id}`);
+      for (const r of regs) assert.ok(['front', 'back'].includes(r.view), `bad region view: ${id}`);
     }
   }
 });

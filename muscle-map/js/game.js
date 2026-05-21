@@ -1,5 +1,5 @@
 import { MUSCLES, TIERS } from './content.js';
-import { createGame, applyResult, judgeClick, isTimeUp, regionsOf } from './logic.js';
+import { createGame, applyResult, judgeClick, isTimeUp, regionsOf, primaryView } from './logic.js';
 
 const content = { MUSCLES, TIERS };
 const rng = Math.random;
@@ -47,7 +47,7 @@ el('overlay').addEventListener('click', onStageClick);
 
 function startGame() {
   state = createGame({ mode: selMode, tier: selTier, content, rng, duration: 60 });
-  view = MUSCLES[state.current].view;
+  view = primaryView(MUSCLES[state.current]);
   locked = false;
   syncViewButtons();
   show('game');
@@ -104,7 +104,7 @@ function onStageClick(ev) {
     state = applyResult(state, result.result, rng);
     clearOverlay();
     if (state.status === 'over') { endGame(); return; }
-    view = MUSCLES[state.current].view;
+    view = primaryView(MUSCLES[state.current]);
     syncViewButtons();
     renderFigure();
     renderHud();
@@ -136,11 +136,11 @@ function flashFeedback(kind) {
 }
 
 function revealCorrect() {
+  // We only reach 'wrong' on a view where the target has region(s); glow them.
   const m = MUSCLES[state.current];
-  if (m.view !== view) { // switch to the right view so the reveal is visible
-    view = m.view; syncViewButtons(); renderFigure();
+  for (const r of regionsOf(m)) {
+    if (r.view === view) drawPolygon(r.poly, 'rgba(56,189,248,0.45)');
   }
-  for (const poly of regionsOf(m)) drawPolygon(poly, 'rgba(56,189,248,0.45)');
 }
 
 function drawPolygon(poly, fill) {
