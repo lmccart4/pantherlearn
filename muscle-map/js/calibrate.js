@@ -1,17 +1,21 @@
 import { MUSCLES } from './content.js';
+import { regionsOf } from './logic.js';
 
-// Hotspot calibration tool (loaded via ?calibrate). Trace each muscle's region by
-// clicking points around it. Shapes can be any polygon (concave/odd shapes OK).
-// Current shapes are loaded as a starting point and all other targets on the view
-// are shown faintly so you can see overlaps/layering. Export writes the FULL set.
+// Hotspot calibration tool (loaded via ?calibrate). Trace each muscle's region(s)
+// by clicking points around it. A muscle can have MULTIPLE regions (e.g. left +
+// right boxes for an asymmetric figure) — use "new region" to start another box.
+// Shapes can be any polygon (concave/odd OK). Current shapes load as a starting
+// point; other targets on the view show faintly. Export writes the FULL set as
+// { id: [ [ [x,y]... ], ... ] }.
 
 const ids = Object.keys(MUSCLES);
 let view = 'front';
 let current = ids[0];
 
-// Seed from existing polygons so you edit rather than start blank.
+// polys[id] = array of regions; each region = array of [x,y] points. Seeded from content.
 const polys = {};
-for (const id of ids) polys[id] = (MUSCLES[id].polygon || []).map(([x, y]) => [x, y]);
+for (const id of ids) polys[id] = regionsOf(MUSCLES[id]).map((reg) => reg.map(([x, y]) => [x, y]));
+let cur = 0; // index of the region currently being edited
 
 const game = document.getElementById('game');
 document.getElementById('landing').classList.remove('active');
@@ -23,8 +27,9 @@ bar.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#111c30;padd
 bar.innerHTML = `
   <select id="cal-muscle"></select>
   <button id="cal-view">view: front</button>
+  <button id="cal-newregion">+ region</button>
   <button id="cal-undo">undo pt</button>
-  <button id="cal-clear">clear (redraw)</button>
+  <button id="cal-clear">clear muscle</button>
   <button id="cal-export">export JSON</button>
   <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="cal-others" checked> show others</label>
   <span id="cal-status"></span>`;
@@ -39,6 +44,8 @@ ids.forEach((id) => {
 
 function setMuscle(id) {
   current = id; view = MUSCLES[id].view;
+  if (polys[id].length === 0) polys[id] = [[]];
+  cur = polys[id].length - 1;
   bar.querySelector('#cal-view').textContent = `view: ${view}`;
   document.getElementById('figure').src = `assets/${view}.png`;
   redraw();
@@ -50,8 +57,18 @@ bar.querySelector('#cal-view').addEventListener('click', () => {
   document.getElementById('figure').src = `assets/${view}.png`;
   redraw();
 });
-bar.querySelector('#cal-undo').addEventListener('click', () => { polys[current].pop(); redraw(); });
-bar.querySelector('#cal-clear').addEventListener('click', () => { polys[current] = []; redraw(); });
+bar.querySelector('#cal-newregion').addEventListener('click', () => {
+  if (polys[current][cur] && polys[current][cur].length >= 3) {
+    polys[current].push([]); cur = polys[current].length - 1; redraw();
+  }
+});
+bar.querySelector('#cal-undo').addEventListener('click', () => {
+  const reg = polys[current][cur]; if (!reg) return;
+  reg.pop();
+  if (reg.length === 0 && polys[current].length > 1) { polys[current].splice(cur, 1); cur = polys[current].length - 1; }
+  redraw();
+});
+bar.querySelector('#cal-clear').addEventListener('click', () => { polys[current] = [[]]; cur = 0; redraw(); });
 bar.querySelector('#cal-export').addEventListener('click', exportJson);
 bar.querySelector('#cal-others').addEventListener('change', redraw);
 
@@ -59,7 +76,7 @@ const overlay = document.getElementById('overlay');
 overlay.addEventListener('click', (ev) => {
   const pt = toPoint(ev);
   if (!pt) return;
-  polys[current].push([round(pt.x), round(pt.y)]);
+  polys[current][cur].push([round(pt.x), round(pt.y)]);
   redraw();
 });
 
@@ -102,32 +119,44 @@ function redraw() {
   if (bar.querySelector('#cal-others').checked) {
     for (const id of ids) {
       if (id === current || MUSCLES[id].view !== view) continue;
-      const pts = polys[id]; if (pts.length < 3) continue;
-      tracePath(ctx, pts, f); ctx.closePath();
-      ctx.fillStyle = 'rgba(148,163,184,0.12)'; ctx.fill();
-      ctx.strokeStyle = 'rgba(148,163,184,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+      for (const reg of polys[id]) {
+        if (reg.length < 3) continue;
+        tracePath(ctx, reg, f); ctx.closePath();
+        ctx.fillStyle = 'rgba(148,163,184,0.12)'; ctx.fill();
+        ctx.strokeStyle = 'rgba(148,163,184,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+      }
     }
   }
 
-  // Current target, bright, with vertex handles.
-  const pts = polys[current];
-  tracePath(ctx, pts, f);
-  if (pts.length > 2) ctx.closePath();
-  ctx.fillStyle = 'rgba(56,189,248,0.35)'; if (pts.length > 2) ctx.fill();
-  ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2; ctx.stroke();
-  ctx.fillStyle = '#38bdf8';
-  for (const [px, py] of pts) {
-    ctx.beginPath();
-    ctx.arc(f.ox + px * f.dw, f.oy + py * f.dh, 3, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  bar.querySelector('#cal-status').textContent = `${current}: ${pts.length} pts`;
+  // Current muscle's regions; the active region is brightest with vertex handles.
+  polys[current].forEach((reg, idx) => {
+    tracePath(ctx, reg, f);
+    if (reg.length > 2) ctx.closePath();
+    const active = idx === cur;
+    ctx.fillStyle = active ? 'rgba(56,189,248,0.35)' : 'rgba(56,189,248,0.18)';
+    if (reg.length > 2) ctx.fill();
+    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = active ? 2 : 1; ctx.stroke();
+    if (active) {
+      ctx.fillStyle = '#38bdf8';
+      for (const [px, py] of reg) {
+        ctx.beginPath();
+        ctx.arc(f.ox + px * f.dw, f.oy + py * f.dh, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  });
+  const n = polys[current].length;
+  bar.querySelector('#cal-status').textContent =
+    `${current}: region ${cur + 1}/${n} (${polys[current][cur].length} pts)`;
 }
 
 function exportJson() {
   const out = {};
-  for (const id of ids) if (polys[id].length >= 3) out[id] = polys[id];
-  const text = JSON.stringify(out, null, 2);
+  for (const id of ids) {
+    const regs = polys[id].filter((r) => r.length >= 3);
+    if (regs.length) out[id] = regs;
+  }
+  const text = JSON.stringify(out);
   navigator.clipboard?.writeText(text).catch(() => {});
   console.log(text);
   const blob = new Blob([text], { type: 'application/json' });

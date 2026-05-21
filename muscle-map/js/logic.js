@@ -67,15 +67,40 @@ export function polygonsOverlap(a, b) {
   return false;
 }
 
-// Muscles are bilateral: a polygon authored on one side of the symmetric figure
-// also matches a click (or its proximity) on the mirrored side across x=0.5.
-function insideMuscle(point, polygon) {
-  return pointInPolygon(point, polygon) ||
-         pointInPolygon({ x: 1 - point.x, y: point.y }, polygon);
+// A muscle holds one or more regions (polygons). `regions` is canonical; a single
+// `polygon` is accepted as a one-region shorthand.
+export function regionsOf(muscle) {
+  if (!muscle) return [];
+  if (muscle.regions) return muscle.regions;
+  return muscle.polygon ? [muscle.polygon] : [];
 }
-function distToMuscle(point, polygon) {
-  return Math.min(distPointToPolygon(point, polygon),
-                  distPointToPolygon({ x: 1 - point.x, y: point.y }, polygon));
+
+// Muscles are bilateral: a region authored on one side of the symmetric figure
+// also matches a click (or its proximity) on the mirrored side across x=0.5.
+// (Harmless/redundant when both sides are drawn explicitly as separate regions.)
+function insideMuscle(point, muscle) {
+  const mirror = { x: 1 - point.x, y: point.y };
+  return regionsOf(muscle).some(
+    (poly) => pointInPolygon(point, poly) || pointInPolygon(mirror, poly)
+  );
+}
+function distToMuscle(point, muscle) {
+  const mirror = { x: 1 - point.x, y: point.y };
+  let best = Infinity;
+  for (const poly of regionsOf(muscle)) {
+    best = Math.min(best, distPointToPolygon(point, poly), distPointToPolygon(mirror, poly));
+  }
+  return best;
+}
+
+// Do any region of muscle A overlap any region of muscle B?
+function musclesOverlap(a, b) {
+  for (const ra of regionsOf(a)) {
+    for (const rb of regionsOf(b)) {
+      if (polygonsOverlap(ra, rb)) return true;
+    }
+  }
+  return false;
 }
 
 // Decide the outcome of a click at `point` while viewing `view`, hunting for `targetId`.
@@ -95,18 +120,18 @@ export function judgeClick(point, view, targetId, tierIds, content) {
     (id) => content.MUSCLES[id] && content.MUSCLES[id].view === view
   );
 
-  const hitIds = viewIds.filter((id) => insideMuscle(point, content.MUSCLES[id].polygon));
+  const hitIds = viewIds.filter((id) => insideMuscle(point, content.MUSCLES[id]));
   if (hitIds.includes(targetId)) return { result: 'correct', hitId: targetId };
   if (hitIds.length) return { result: 'wrong', hitId: hitIds[0] };
 
   let nearest = null, best = Infinity;
   for (const id of viewIds) {
-    const d = distToMuscle(point, content.MUSCLES[id].polygon);
+    const d = distToMuscle(point, content.MUSCLES[id]);
     if (d < best) { best = d; nearest = id; }
   }
   if (!nearest) return { result: 'empty', hitId: null };
   if (nearest === targetId) return { result: 'correct', hitId: targetId };
-  if (polygonsOverlap(target.polygon, content.MUSCLES[nearest].polygon)) {
+  if (musclesOverlap(target, content.MUSCLES[nearest])) {
     return { result: 'correct', hitId: targetId };
   }
   return { result: 'wrong', hitId: nearest };

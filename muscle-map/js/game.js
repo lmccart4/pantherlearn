@@ -1,5 +1,5 @@
 import { MUSCLES, TIERS } from './content.js';
-import { createGame, applyResult, judgeClick, isTimeUp } from './logic.js';
+import { createGame, applyResult, judgeClick, isTimeUp, regionsOf } from './logic.js';
 
 const content = { MUSCLES, TIERS };
 const rng = Math.random;
@@ -140,7 +140,7 @@ function revealCorrect() {
   if (m.view !== view) { // switch to the right view so the reveal is visible
     view = m.view; syncViewButtons(); renderFigure();
   }
-  drawPolygon(m.polygon, 'rgba(56,189,248,0.45)');
+  for (const poly of regionsOf(m)) drawPolygon(poly, 'rgba(56,189,248,0.45)');
 }
 
 function drawPolygon(poly, fill) {

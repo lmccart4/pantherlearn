@@ -189,13 +189,36 @@ test('isTimeUp: true once elapsed >= duration', () => {
   assert.equal(isTimeUp(lives, 999999), false);
 });
 
+import { regionsOf } from '../js/logic.js';
 import { MUSCLES, TIERS } from '../js/content.js';
 
-test('content: every tier id exists in MUSCLES and has a polygon', () => {
+// A muscle with two explicit regions (e.g. left + right boxes for asymmetry).
+const twoBox = {
+  TIERS: { easy: ['m'] },
+  MUSCLES: {
+    m: { name: 'M', view: 'front', regions: [
+      [[0.10,0.10],[0.30,0.10],[0.30,0.30],[0.10,0.30]],
+      [[0.70,0.10],[0.90,0.10],[0.90,0.30],[0.70,0.30]]
+    ] }
+  }
+};
+
+test('regionsOf: returns regions array, or wraps a single polygon', () => {
+  assert.equal(regionsOf(twoBox.MUSCLES.m).length, 2);
+  assert.deepEqual(regionsOf({ polygon: [[0,0],[1,0],[1,1]] }).length, 1);
+});
+
+test('judgeClick: two-region muscle — a click in EITHER box is correct', () => {
+  assert.equal(judgeClick({ x: 0.20, y: 0.20 }, 'front', 'm', ['m'], twoBox).result, 'correct');
+  assert.equal(judgeClick({ x: 0.80, y: 0.20 }, 'front', 'm', ['m'], twoBox).result, 'correct');
+});
+
+test('content: every tier id exists in MUSCLES and has at least one region', () => {
   for (const tier of Object.keys(TIERS)) {
     for (const id of TIERS[tier]) {
       assert.ok(MUSCLES[id], `missing muscle: ${id}`);
-      assert.ok(Array.isArray(MUSCLES[id].polygon), `no polygon: ${id}`);
+      const regs = regionsOf(MUSCLES[id]);
+      assert.ok(regs.length >= 1 && Array.isArray(regs[0]), `no region: ${id}`);
       assert.ok(['front', 'back'].includes(MUSCLES[id].view), `bad view: ${id}`);
     }
   }
