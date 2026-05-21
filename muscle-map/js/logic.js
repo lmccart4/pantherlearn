@@ -151,35 +151,53 @@ export function judgeClick(point, view, targetId, tierIds, content) {
   return { result: 'wrong', hitId: nearest };
 }
 
-export function createGame({ mode, tier, content, rng, duration = 60 }) {
+// Per-round countdown length (Kahoot-style).
+export const ROUND_MS = 15000;
+export const MAX_POINTS = 1000;
+
+// Speed score for a CORRECT answer: full points when instant, easing down to a
+// half-credit floor at the buzzer (true Kahoot curve). 1000 -> 500 across the
+// round. Wrong / timeout answers score 0 (handled by the caller).
+export function roundPoints(timeUsedMs, limitMs = ROUND_MS) {
+  const frac = Math.max(0, Math.min(1, timeUsedMs / limitMs));
+  return Math.round(MAX_POINTS * (1 - frac / 2));
+}
+
+// Both modes play the full shuffled deck, one round per muscle. Lives mode grants
+// 3 lives (wrong/timeout costs one); Timed mode has no lives and runs the whole
+// set. Per-round timing/scoring is driven by the controller via roundPoints().
+export function createGame({ mode, tier, content, rng }) {
   const deck = buildDeck(tier, content, rng);
-  const timed = mode === 'timed';
   return {
     mode,
     tier,
     deck,
     pos: 0,
-    current: timed ? drawRandom(deck, rng) : deck[0],
-    lives: timed ? null : 3,
+    current: deck[0],
+    lives: mode === 'lives' ? 3 : null,
     score: 0,
+    streak: 0,
+    correct: 0,
+    wrong: 0,
     missed: [],
     total: deck.length,
-    duration: timed ? duration : null,
+    roundMs: ROUND_MS,
     status: 'playing'
   };
 }
 
-function drawRandom(deck, rng) {
-  return deck[Math.floor(rng() * deck.length)];
-}
-
-export function applyResult(state, result, rng) {
+// result: 'correct' | 'wrong' | 'timeout' | 'empty'. `points` applies to 'correct'.
+export function applyResult(state, result, points = 0) {
   if (result === 'empty') return state;
   const s = { ...state, missed: state.missed.slice() };
 
   if (result === 'correct') {
-    s.score += 1;
-  } else if (result === 'wrong') {
+    s.score += points;
+    s.streak += 1;
+    s.correct += 1;
+  } else { // 'wrong' or 'timeout'
+    s.streak = 0;
+    s.wrong += 1;
     s.missed.push(s.current);
     if (s.mode === 'lives') s.lives -= 1;
   }
@@ -189,21 +207,8 @@ export function applyResult(state, result, rng) {
     return s;
   }
 
-  if (s.mode === 'lives') {
-    s.pos += 1;
-    if (s.pos >= s.deck.length) {
-      s.status = 'over';
-    } else {
-      s.current = s.deck[s.pos];
-    }
-  } else {
-    s.pos += 1;
-    s.current = drawRandom(s.deck, rng);
-  }
+  s.pos += 1;
+  if (s.pos >= s.deck.length) s.status = 'over';
+  else s.current = s.deck[s.pos];
   return s;
-}
-
-export function isTimeUp(state, elapsedMs) {
-  if (state.mode !== 'timed') return false;
-  return elapsedMs >= state.duration * 1000;
 }

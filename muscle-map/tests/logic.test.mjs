@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { pointInPolygon } from '../js/logic.js';
 import { shuffle, buildDeck } from '../js/logic.js';
 import { judgeClick, polygonsOverlap } from '../js/logic.js';
-import { createGame, applyResult, isTimeUp } from '../js/logic.js';
+import { createGame, applyResult, roundPoints } from '../js/logic.js';
 
 const square = [[0.2, 0.2], [0.8, 0.2], [0.8, 0.8], [0.2, 0.8]];
 
@@ -103,90 +103,90 @@ const gsContent = {
   }
 };
 
-test('createGame lives: 3 lives, playing, current set', () => {
+test('roundPoints: 1000 instant, 750 at half, 500 at the buzzer', () => {
+  assert.equal(roundPoints(0, 15000), 1000);
+  assert.equal(roundPoints(7500, 15000), 750);
+  assert.equal(roundPoints(15000, 15000), 500);
+  assert.equal(roundPoints(99999, 15000), 500); // clamped floor
+});
+
+test('createGame lives: 3 lives, full deck, streak/score 0, 15s round', () => {
   const s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
   assert.equal(s.mode, 'lives');
   assert.equal(s.lives, 3);
   assert.equal(s.score, 0);
+  assert.equal(s.streak, 0);
   assert.equal(s.status, 'playing');
   assert.equal(s.deck.length, 3);
   assert.equal(s.current, s.deck[0]);
   assert.equal(s.total, 3);
+  assert.equal(s.roundMs, 15000);
 });
 
-test('applyResult lives correct: score up, advance', () => {
-  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
-  s = applyResult(s, 'correct', seqRng([0.5]));
-  assert.equal(s.score, 1);
-  assert.equal(s.lives, 3);
-  assert.equal(s.current, s.deck[1]);
+test('createGame timed: lives null, full deck', () => {
+  const s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  assert.equal(s.lives, null);
+  assert.equal(s.deck.length, 3);
+  assert.equal(s.current, s.deck[0]);
   assert.equal(s.status, 'playing');
 });
 
-test('applyResult lives empty: no change, no advance', () => {
+test('applyResult correct: adds points, bumps streak/correct, advances', () => {
+  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  s = applyResult(s, 'correct', 800);
+  assert.equal(s.score, 800);
+  assert.equal(s.streak, 1);
+  assert.equal(s.correct, 1);
+  assert.equal(s.lives, 3);
+  assert.equal(s.current, s.deck[1]);
+});
+
+test('applyResult empty: no change, no advance', () => {
   let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
   const before = s.current;
-  s = applyResult(s, 'empty', seqRng([0.5]));
+  s = applyResult(s, 'empty', 500);
   assert.equal(s.score, 0);
   assert.equal(s.lives, 3);
   assert.equal(s.current, before);
 });
 
-test('applyResult lives wrong: lose a life, track missed, advance', () => {
+test('applyResult wrong (lives): resets streak, costs a life, tracks missed', () => {
   let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  s = applyResult(s, 'correct', 900);
   const missedId = s.current;
-  s = applyResult(s, 'wrong', seqRng([0.5]));
+  s = applyResult(s, 'wrong', 0);
+  assert.equal(s.streak, 0);
   assert.equal(s.lives, 2);
+  assert.equal(s.wrong, 1);
   assert.deepEqual(s.missed, [missedId]);
-  assert.equal(s.current, s.deck[1]);
+});
+
+test('applyResult timeout behaves like wrong', () => {
+  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  s = applyResult(s, 'timeout', 0);
+  assert.equal(s.lives, 2);
+  assert.equal(s.wrong, 1);
+  assert.equal(s.missed.length, 1);
 });
 
 test('lives end on 0 lives', () => {
   let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
-  s = applyResult(s, 'wrong', seqRng([0.5]));
-  s = applyResult(s, 'wrong', seqRng([0.5]));
-  s = applyResult(s, 'wrong', seqRng([0.5]));
+  s = applyResult(s, 'wrong', 0);
+  s = applyResult(s, 'wrong', 0);
+  s = applyResult(s, 'wrong', 0);
   assert.equal(s.lives, 0);
   assert.equal(s.status, 'over');
 });
 
-test('lives end when deck exhausted', () => {
-  let s = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
-  s = applyResult(s, 'correct', seqRng([0.5]));
-  s = applyResult(s, 'correct', seqRng([0.5]));
-  s = applyResult(s, 'correct', seqRng([0.5]));
-  assert.equal(s.score, 3);
-  assert.equal(s.status, 'over');
-});
-
-test('createGame timed: lives null, duration set, current drawn', () => {
-  const s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0]), duration: 60 });
+test('both modes end when deck exhausted; timed has no lives', () => {
+  let s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0.5]) });
+  s = applyResult(s, 'correct', 1000);
+  s = applyResult(s, 'wrong', 0);   // no life loss in timed
   assert.equal(s.lives, null);
-  assert.equal(s.duration, 60);
   assert.equal(s.status, 'playing');
-  assert.ok(gsContent.TIERS.easy.includes(s.current));
-});
-
-test('timed correct: score up, draws next, never over from result', () => {
-  let s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0]), duration: 60 });
-  s = applyResult(s, 'correct', seqRng([0.99]));
-  assert.equal(s.score, 1);
-  assert.equal(s.status, 'playing');
-});
-
-test('timed wrong: no score change, still playing', () => {
-  let s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0]), duration: 60 });
-  s = applyResult(s, 'wrong', seqRng([0]));
-  assert.equal(s.score, 0);
-  assert.equal(s.status, 'playing');
-});
-
-test('isTimeUp: true once elapsed >= duration', () => {
-  const s = createGame({ mode: 'timed', tier: 'easy', content: gsContent, rng: seqRng([0]), duration: 60 });
-  assert.equal(isTimeUp(s, 59000), false);
-  assert.equal(isTimeUp(s, 60000), true);
-  const lives = createGame({ mode: 'lives', tier: 'easy', content: gsContent, rng: seqRng([0]) });
-  assert.equal(isTimeUp(lives, 999999), false);
+  s = applyResult(s, 'correct', 600);
+  assert.equal(s.score, 1600);
+  assert.equal(s.status, 'over');   // deck of 3 exhausted
 });
 
 import { regionsOf } from '../js/logic.js';
