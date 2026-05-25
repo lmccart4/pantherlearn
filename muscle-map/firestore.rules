@@ -10,5 +10,22 @@ service cloud.firestore {
         && d.pct is int && d.pct >= 0 && d.pct <= 100;
     }
     match /scores/{doc} { allow read: if true; allow create: if validScore(); allow update, delete: if false; }
+
+    // AI Literacy final-review app (ai-lit-review). Students own their answer logs
+    // and profile (doc id = their email); teachers can read all for the dashboard.
+    function aiReviewTeacher() {
+      return request.auth != null &&
+        request.auth.token.email in ["lucamccarthy@paps.net", "thombabyak@paps.net"];
+    }
+    match /aiReviewAnswers/{id} {
+      allow create: if request.auth != null && request.auth.token.email == request.resource.data.email;
+      allow read: if request.auth != null &&
+        (request.auth.token.email == resource.data.email || aiReviewTeacher());
+      allow update, delete: if false;
+    }
+    match /aiReviewProfiles/{email} {
+      allow read, write: if request.auth != null &&
+        (request.auth.token.email == email || aiReviewTeacher());
+    }
   }
 }
