@@ -275,7 +275,7 @@ export default function MyGrades() {
       totalPoints,
       embedWeights,
       grade: Math.round((earnedPoints / totalPoints) * 100),
-      mc, sa, embeds, hasReflection,
+      mc, sa, embeds, checkpoints, hasReflection,
     };
   };
 
@@ -496,12 +496,17 @@ export default function MyGrades() {
                     const mc = getMCQuestions(lesson);
                     const sa = getSAQuestions(lesson);
                     const embeds = getEmbedBlocks(lesson);
+                    const checkpoints = (lesson.blocks || []).filter((b) => b.type === "teacher_checkpoint");
 
                     const mcAnswered = mc.filter((q) => answers[q.id]?.submitted).length;
                     const mcCorrect = mc.filter((q) => answers[q.id]?.submitted && answers[q.id]?.correct).length;
                     const saGraded = sa.filter((q) => answers[q.id]?.writtenScore !== undefined && answers[q.id]?.writtenScore !== null).length;
                     const saSubmitted = sa.filter((q) => answers[q.id]?.submitted).length;
                     const embedsCompleted = embeds.filter((q) => answers[q.id]?.submitted).length;
+                    const cpGraded = checkpoints.filter((b) => {
+                      const a = answers[b.id];
+                      return a?.approved === true || typeof a?.score === "number";
+                    }).length;
 
                     // Check if this lesson is exempt
                     const isExempt = prog.exempt;
@@ -548,6 +553,14 @@ export default function MyGrades() {
                                       })()}
                                     </span>
                                   )}
+                                  {checkpoints.length > 0 && (
+                                    <span data-translatable>
+                                      🙋 {cpGraded}/{checkpoints.length} Show Me graded
+                                      {cpGraded < checkpoints.length && (
+                                        <span style={{ color: "var(--amber)" }}> · {checkpoints.length - cpGraded} pending</span>
+                                      )}
+                                    </span>
+                                  )}
                                   {reflection && (
                                     <span style={{ color: reflection.valid ? "var(--green)" : "var(--red)" }} data-translatable>
                                       {reflection.valid ? `💭 ${ui(12, "Reflected")}` : `💭 ${ui(13, "Skipped")}`}
@@ -585,7 +598,7 @@ export default function MyGrades() {
                         </div>
 
                         {/* Detail breakdown for lessons with content — hide for exempt */}
-                        {!isExempt && result && (mc.length > 0 || sa.length > 0 || embeds.length > 0) && (
+                        {!isExempt && result && (mc.length > 0 || sa.length > 0 || embeds.length > 0 || checkpoints.length > 0) && (
                           <div className="mg-breakdown">
                             <div className="mg-indicators">
                               {/* MC dots */}
@@ -676,6 +689,28 @@ export default function MyGrades() {
                                     }}
                                   >
                                     🎮{hasScore ? ` ${pct}%` : a?.submitted ? " ⏳" : ""}
+                                  </div>
+                                );
+                              })}
+                              {/* Show Me (teacher checkpoint) indicators */}
+                              {checkpoints.map((b, i) => {
+                                const a = answers[b.id];
+                                const max = typeof b.weight === "number" ? b.weight : 5;
+                                const graded = a?.approved === true || typeof a?.score === "number";
+                                const score = typeof a?.score === "number" ? a.score : (a?.approved === true ? max : 0);
+                                const isZero = graded && score === 0;
+                                const pct = max > 0 ? Math.round((score / max) * 100) : 0;
+                                return (
+                                  <div
+                                    key={b.id}
+                                    title={`Show Me${checkpoints.length > 1 ? ` ${i + 1}` : ""}: ${graded ? `${score}/${max} (${pct}%)` : "Waiting for Mr. McCarthy"}`}
+                                    className="mg-written-pill"
+                                    style={{
+                                      background: graded ? (isZero ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.12)") : "var(--surface2)",
+                                      color: graded ? (isZero ? "var(--red)" : "var(--green)") : "var(--text3)",
+                                    }}
+                                  >
+                                    🙋{graded ? ` ${score}/${max}` : " ⏳"}
                                   </div>
                                 );
                               })}

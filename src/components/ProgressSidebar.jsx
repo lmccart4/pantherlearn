@@ -16,11 +16,16 @@ export default function ProgressSidebar({ lesson, studentData, chatLogs, courseI
 
   const questions = (lesson.blocks || []).filter((b) => b.type === "question");
   const scoredEmbeds = (lesson.blocks || []).filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
+  const checkpoints = (lesson.blocks || []).filter((b) => b.type === "teacher_checkpoint");
   const sections = (lesson.blocks || []).filter((b) => b.type === "section_header");
   const answered = questions.filter((b) => studentData[b.id]?.submitted).length;
   const embedsComplete = scoredEmbeds.filter((b) => studentData[b.id]?.submitted).length;
-  const totalTasks = questions.length + scoredEmbeds.length;
-  const totalDone = answered + embedsComplete;
+  const checkpointsComplete = checkpoints.filter((b) => {
+    const d = studentData[b.id];
+    return d?.approved === true || typeof d?.score === "number";
+  }).length;
+  const totalTasks = questions.length + scoredEmbeds.length + checkpoints.length;
+  const totalDone = answered + embedsComplete + checkpointsComplete;
   const mcAnswered = questions.filter((b) => b.questionType === "multiple_choice" && studentData[b.id]?.submitted);
   const mcCorrect = mcAnswered.filter((b) => studentData[b.id]?.correct).length;
   const chatInteractions = Object.values(chatLogs || {}).reduce(
