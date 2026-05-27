@@ -40,5 +40,18 @@ service cloud.firestore {
       allow read, write: if request.auth != null &&
         (request.auth.token.email == email || aiReviewTeacher());
     }
+
+    // Digital Literacy final-review app (dl-review). Same ownership model as ai-review;
+    // reuses aiReviewTeacher() (same teachers).
+    match /dlReviewAnswers/{id} {
+      allow create: if request.auth != null && request.auth.token.email == request.resource.data.email;
+      allow read: if request.auth != null &&
+        (request.auth.token.email == resource.data.email || aiReviewTeacher());
+      allow update, delete: if false;
+    }
+    match /dlReviewProfiles/{email} {
+      allow read, write: if request.auth != null &&
+        (request.auth.token.email == email || aiReviewTeacher());
+    }
   }
 }
