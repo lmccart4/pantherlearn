@@ -9,10 +9,10 @@ import { doc, getDoc, collection, getDocs, updateDoc, query, where } from "fireb
 import { db } from "../lib/firebase";
 import {
   getStudentMana, spendStudentMana, getManaState,
-  awardStudentMana, saveManaState,
+  mageAwardMana,
   getLevel, getNextLevel, getManaTitle,
   submitRewardSuggestion, getManaRequests,
-  chargeStudentMana, applyGradeBonus, applyClassworkPass, autoSelectMage,
+  chargeStudentMana, applyGradeBonus, applyClassworkPass, selectMageForToday,
   MANA_LEVELS, MAGE_DAILY_BUDGET, MAGE_PER_STUDENT_CAP, MAGE_COMPLETION_BONUS, POSITIVE_BEHAVIORS,
   PERIOD_WINDOWS,
 } from "../lib/mana";
@@ -369,6 +369,7 @@ export default function StudentMana() {
   const [mageGender, setMageGender] = useState('M');
   const [classmates, setClassmates] = useState({});
   const [mageBudgetUsed, setMageBudgetUsed] = useState(0);
+  const [awarding, setAwarding] = useState(false); // in-flight guard against rapid re-fire
 
   // Donation modal — separate classmate list (always loaded, not gated on mage status)
   const [donationOpen, setDonationOpen] = useState(false);
@@ -453,17 +454,20 @@ export default function StudentMana() {
       const today = new Date().toISOString().split("T")[0];
       if (pool.enabled && (!pool.mageDate || pool.mageDate !== today)) {
         try {
-          const result = await autoSelectMage(courseId);
-          if (result && typeof result !== 'string') {
-            activePool = result.poolState;
-            const title = getManaTitle(result.gender);
-            await createNotification(result.uid, {
-              type: "announcement",
-              title: `You've been summoned as today's ${title}!`,
-              body: "You can award mana to classmates today. Use your power wisely!",
-              icon: result.gender === 'F' ? '🧝‍♀️' : '🧙',
-              courseId,
-            });
+          const result = await selectMageForToday(courseId);
+          if (result && result.mageStudentId) {
+            // Pool was written server-side — re-read the fresh state.
+            activePool = await getManaState(courseId);
+            if (!result.already) {
+              const title = getManaTitle(result.mageGender);
+              await createNotification(result.mageStudentId, {
+                type: "announcement",
+                title: `You've been summoned as today's ${title}!`,
+                body: "You can award mana to classmates today. Use your power wisely!",
+                icon: result.mageGender === 'F' ? '🧝‍♀️' : '🧙',
+                courseId,
+              });
+            }
           }
         } catch (e) {
           console.warn("Auto-summon failed:", e);
@@ -579,6 +583,7 @@ export default function StudentMana() {
   }, [mounted, loading, perfMode, mana]);
 
   async function handleMageAward(targetUid, behaviorId) {
+    if (awarding) return; // one award in flight at a time — blocks rapid re-fire
     if (!poolState) { setToast("Loading... try again in a moment."); setTimeout(() => setToast(null), 2500); return; }
     if (targetUid === user.uid) {
       setToast("You can't award mana to yourself!");
@@ -587,39 +592,27 @@ export default function StudentMana() {
     }
     const behavior = POSITIVE_BEHAVIORS.find(b => b.id === behaviorId);
     if (!behavior) return;
-    const newUsed = (poolState.mageBudgetUsed || 0) + behavior.mana;
-    if (newUsed > MAGE_DAILY_BUDGET) {
-      setToast("Not enough budget remaining!");
-      setTimeout(() => setToast(null), 2500);
-      return;
-    }
-    const perStudent = poolState.magePerStudent || {};
-    const givenToTarget = (perStudent[targetUid] || 0) + behavior.mana;
-    if (givenToTarget > MAGE_PER_STUDENT_CAP) {
-      setToast(`Max ${MAGE_PER_STUDENT_CAP} mana per student per day!`);
-      setTimeout(() => setToast(null), 2500);
-      return;
-    }
+    setAwarding(true);
     try {
-      await awardStudentMana(courseId, targetUid, behavior.mana, `${behavior.label} (from ${getManaTitle(mageGender)})`);
-      const updatedPerStudent = { ...perStudent, [targetUid]: givenToTarget };
-      const updatedPool = { ...poolState, mageBudgetUsed: newUsed, magePerStudent: updatedPerStudent };
-      setPoolState(updatedPool);
-      setMageBudgetUsed(newUsed);
-      await saveManaState(courseId, undefined, updatedPool);
+      // Budget + per-student caps are enforced server-side in mageAwardMana
+      // (atomic Firestore transaction). The client no longer trusts its own
+      // counters — it just renders what the server returns.
+      const res = await mageAwardMana(courseId, targetUid, behaviorId);
+      setPoolState(prev => ({ ...(prev || {}), mageBudgetUsed: res.mageBudgetUsed, magePerStudent: res.magePerStudent }));
+      setMageBudgetUsed(res.mageBudgetUsed);
       const name = classmates[targetUid] || "Classmate";
       setToast(`+${behavior.mana} mana to ${name} (${behavior.label})`);
       setTimeout(() => setToast(null), 2500);
-
-      if (newUsed >= MAGE_DAILY_BUDGET && (poolState.mageBudgetUsed || 0) < MAGE_DAILY_BUDGET) {
-        await awardStudentMana(courseId, user.uid, MAGE_COMPLETION_BONUS, `${getManaTitle(mageGender)} bonus — used full daily budget`);
-        setToast(`+${MAGE_COMPLETION_BONUS} mana for using your full budget! Great leadership!`);
+      if (res.completionBonus > 0) {
+        setToast(`+${res.completionBonus} mana for using your full budget! Great leadership!`);
         setTimeout(() => setToast(null), 3000);
       }
     } catch (err) {
       console.error("Mage award failed:", err);
-      setToast("Failed to award mana — try again.");
+      setToast(err?.message || "Failed to award mana — try again.");
       setTimeout(() => setToast(null), 3000);
+    } finally {
+      setAwarding(false);
     }
   }
 
@@ -905,15 +898,14 @@ export default function StudentMana() {
                           {maxCanGive > 0 && POSITIVE_BEHAVIORS.filter(b => b.mana <= maxCanGive).map(b => (
                             <button
                               key={b.id}
-                              onClick={() => {
-                                console.log("MAGE CLICK:", uid, b.id);
-                                handleMageAward(uid, b.id);
-                              }}
+                              disabled={awarding}
+                              onClick={() => handleMageAward(uid, b.id)}
                               title={`${b.label} (+${b.mana})`}
                               style={{
                                 padding: "6px 10px", borderRadius: 6, border: `1px solid ${MANA_BORDER}`,
-                                background: MANA_SURFACE, cursor: "pointer", fontSize: 14,
+                                background: MANA_SURFACE, cursor: awarding ? "wait" : "pointer", fontSize: 14,
                                 color: MANA_TEXT, position: "relative", zIndex: 5,
+                                opacity: awarding ? 0.5 : 1,
                               }}
                             >
                               {b.icon}

@@ -116,16 +116,28 @@ service cloud.firestore {
       }
       match /mana/{docId} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if hasCourseAccess(courseId);
+        // Teachers (and Cloud Functions via the Admin SDK, which bypasses
+        // rules) may write anything. Students may ONLY change the voting
+        // fields — never mageStudentId / mageBudgetUsed / magePerStudent,
+        // which mageAwardMana trusts to enforce the daily caps. Mage
+        // selection runs in the selectMageForToday Cloud Function.
+        allow write: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'activeVote', 'lastUpdated']));
       }
       match /studentMana/{uid} {
         allow read: if hasCourseAccess(courseId);
-        allow write: if hasCourseAccess(courseId);
+        // A student may only write their OWN balance doc (redeem / charge /
+        // avatar rental). Crediting a classmate goes through the mageAwardMana
+        // and donateMana Cloud Functions (admin SDK — bypasses these rules),
+        // which enforce the daily budget + per-student cap atomically.
+        // Teachers may write any student's doc.
+        allow write: if isCourseTeacher(courseId) || request.auth.uid == uid;
 
         // Per-student transaction ledger (unbounded history)
         match /transactions/{txId} {
           allow read: if hasCourseAccess(courseId);
-          allow write: if hasCourseAccess(courseId);
+          allow write: if isCourseTeacher(courseId) || request.auth.uid == uid;
         }
       }
       match /manaRequests/{requestId} {

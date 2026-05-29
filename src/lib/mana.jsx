@@ -260,15 +260,20 @@ export async function startVote(courseId, sectionId = "pool", powerId) {
 }
 
 export async function castVote(courseId, sectionId = "pool", powerId, uid, vote) {
-  const state = await getManaState(courseId, sectionId);
+  const ref = doc(db, "courses", courseId, "mana", sectionId);
+  const snap = await getDoc(ref);
+  const state = snap.exists() ? snap.data() : {};
   if (state.activeVote !== powerId) throw new Error("No active vote for this power");
 
-  const voters = state.votes?.[powerId] || [];
-  const filtered = voters.filter((v) => v.uid !== uid);
+  const filtered = (state.votes?.[powerId] || []).filter((v) => v.uid !== uid);
   filtered.push({ uid, vote, timestamp: new Date().toISOString() });
-  state.votes = { ...state.votes, [powerId]: filtered };
-  await saveManaState(courseId, sectionId, state);
-  return state.votes[powerId];
+  // Field-scoped update: students may only write the `votes`/`activeVote`
+  // fields (enforced in firestore.rules). A full-doc setDoc would touch the
+  // mage/budget fields and be rejected — and would also be the write a
+  // student needs to self-appoint as mage, which we now block.
+  const { updateDoc } = await import("firebase/firestore");
+  await updateDoc(ref, { [`votes.${powerId}`]: filtered, lastUpdated: new Date() });
+  return filtered;
 }
 
 export async function endVote(courseId, sectionId = "pool") {
@@ -718,5 +723,27 @@ export async function markMageAbsent(courseId) {
 export async function donateMana(courseId, recipientUid, amount) {
   const fn = httpsCallable(getFunctions(), "donateMana");
   const result = await fn({ courseId, recipientUid, amount });
+  return result.data;
+}
+
+// ─── Mage award: today's mage credits a classmate (server-authoritative) ───
+// Replaces the old client-side cap check, which was a TOCTOU race that
+// rapid button-mashing could bypass. The Cloud Function enforces the daily
+// budget + per-student cap atomically. Returns
+// { success, recipientBalance, mageBudgetUsed, magePerStudent, completionBonus }.
+export async function mageAwardMana(courseId, recipientUid, behaviorId) {
+  const fn = httpsCallable(getFunctions(), "mageAwardMana");
+  const result = await fn({ courseId, recipientUid, behaviorId });
+  return result.data;
+}
+
+// ─── Server-side daily Mage selection ───
+// Students can't write the pool's mage fields anymore (firestore.rules), so
+// selection runs in the selectMageForToday Cloud Function. Idempotent —
+// returns today's mage if one is already set. { mageStudentId, mageStudentName,
+// mageGender, already } or { disabled:true }.
+export async function selectMageForToday(courseId) {
+  const fn = httpsCallable(getFunctions(), "selectMageForToday");
+  const result = await fn({ courseId });
   return result.data;
 }

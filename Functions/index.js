@@ -2575,6 +2575,10 @@ exports.donateMana = onCall(
       }, { merge: true });
 
       // Append-only authoritative ledger entries
+      // Ledger entries carry BOTH ts (serverTimestamp) and an ISO `timestamp`
+      // string, matching src/lib/mana.jsx so analyses can order the whole
+      // ledger by `timestamp` without silently dropping donations.
+      const tsIso = new Date().toISOString();
       tx.set(senderTxRef, {
         type: "donation_sent",
         amount: -amount,
@@ -2582,6 +2586,7 @@ exports.donateMana = onCall(
         recipientName,
         balanceAfter: newSenderBalance,
         ts,
+        timestamp: tsIso,
       });
       tx.set(recipientTxRef, {
         type: "donation_received",
@@ -2590,6 +2595,7 @@ exports.donateMana = onCall(
         senderName,
         balanceAfter: newRecipientBalance,
         ts,
+        timestamp: tsIso,
       });
 
       // Recipient push notification — existing sendPushNotification trigger sends FCM
@@ -2605,6 +2611,258 @@ exports.donateMana = onCall(
 
     console.log(`donateMana: ${senderUid} → ${recipientUid}, amount=${amount}, course=${courseId}, newSenderBalance=${newSenderBalance}`);
     return { success: true, newSenderBalance };
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────
+// mageAwardMana — today's "Mage" awards behavior mana to a classmate.
+// Server-authoritative replacement for the old client-side flow, which
+// checked the daily budget / per-student cap against stale local React
+// state (TOCTOU) and could be bypassed by rapid-firing the button. Here
+// the caps are enforced inside one Firestore transaction on the pool doc,
+// so concurrent calls cannot exceed MAGE_DAILY_BUDGET or MAGE_PER_STUDENT_CAP.
+// ─────────────────────────────────────────────────────────────────
+const MAGE_DAILY_BUDGET = 50;
+const MAGE_PER_STUDENT_CAP = 10;
+const MAGE_COMPLETION_BONUS = 5;
+const MAGE_BEHAVIORS = {
+  "great-question": 2, "helped-peer": 3, "on-task": 1,
+  "participation": 2, "leadership": 3, "improvement": 2,
+};
+const MANA_LEVELS = [
+  { threshold: 0, label: "Newcomer" }, { threshold: 10, label: "Apprentice" },
+  { threshold: 25, label: "Journeyman" }, { threshold: 50, label: "Adept" },
+  { threshold: 100, label: "Expert" }, { threshold: 200, label: "Master" },
+  { threshold: 500, label: "Legend" },
+];
+function manaLevelLabel(lifetimeEarned) {
+  let label = MANA_LEVELS[0].label;
+  for (const l of MANA_LEVELS) if (lifetimeEarned >= l.threshold) label = l.label;
+  return label;
+}
+
+exports.mageAwardMana = onCall(
+  { region: "us-central1", maxInstances: 10 },
+  async (request) => {
+    const mageUid = request.auth?.uid;
+    if (!mageUid) {
+      throw new HttpsError("unauthenticated", "You must be signed in.");
+    }
+    const { courseId, recipientUid, behaviorId } = request.data || {};
+    if (typeof courseId !== "string" || !courseId) {
+      throw new HttpsError("invalid-argument", "courseId is required.");
+    }
+    if (typeof recipientUid !== "string" || !recipientUid) {
+      throw new HttpsError("invalid-argument", "recipientUid is required.");
+    }
+    const amount = MAGE_BEHAVIORS[behaviorId];
+    if (!amount) {
+      throw new HttpsError("invalid-argument", "Unknown behavior.");
+    }
+    if (recipientUid === mageUid) {
+      throw new HttpsError("invalid-argument", "You can't award mana to yourself.");
+    }
+
+    // Both mage and recipient must be enrolled — via the enrollments collection
+    // OR users.enrolledCourses (the app supports both; checking only one would
+    // wrongly block legitimately-enrolled students).
+    const enrollSnap = await db.collection("enrollments").where("courseId", "==", courseId).get();
+    const enrolledUids = new Set(enrollSnap.docs.map((d) => d.data().uid || d.data().studentUid));
+    const [mageUserSnap, recipUserSnap] = await Promise.all([
+      db.collection("users").doc(mageUid).get(),
+      db.collection("users").doc(recipientUid).get(),
+    ]);
+    const enrolled = (uid, snap) => enrolledUids.has(uid) || !!(snap.exists && (snap.data().enrolledCourses || {})[courseId]);
+    if (!enrolled(mageUid, mageUserSnap)) {
+      throw new HttpsError("failed-precondition", "You're not enrolled in this section.");
+    }
+    if (!enrolled(recipientUid, recipUserSnap)) {
+      throw new HttpsError("failed-precondition", "That classmate is no longer in this section.");
+    }
+    const recipientName = recipUserSnap.exists ? (recipUserSnap.data().displayName || "a classmate") : "a classmate";
+
+    // Match the client's date convention (UTC date string) so it lines up
+    // with pool.mageDate.
+    const today = new Date().toISOString().split("T")[0];
+
+    const poolRef = db.doc(`courses/${courseId}/mana/pool`);
+    const recipientRef = db.doc(`courses/${courseId}/studentMana/${recipientUid}`);
+    const mageRef = db.doc(`courses/${courseId}/studentMana/${mageUid}`);
+    const recipientTxRef = db.collection(`courses/${courseId}/studentMana/${recipientUid}/transactions`).doc();
+    const mageTxRef = db.collection(`courses/${courseId}/studentMana/${mageUid}/transactions`).doc();
+    const notificationRef = db.collection(`users/${recipientUid}/notifications`).doc();
+
+    let result;
+    await db.runTransaction(async (tx) => {
+      const poolSnap = await tx.get(poolRef);
+      const recipSnap = await tx.get(recipientRef);
+      const mageSnap = await tx.get(mageRef);
+      const pool = poolSnap.exists ? poolSnap.data() : {};
+
+      // Caller must actually be today's mage
+      if (pool.mageStudentId !== mageUid || pool.mageDate !== today) {
+        throw new HttpsError("failed-precondition", "You're not today's Mage.");
+      }
+
+      const budgetUsed = pool.mageBudgetUsed || 0;
+      const perStudent = pool.magePerStudent || {};
+      if (budgetUsed + amount > MAGE_DAILY_BUDGET) {
+        throw new HttpsError("failed-precondition", "Not enough budget remaining.");
+      }
+      const givenToTarget = (perStudent[recipientUid] || 0) + amount;
+      if (givenToTarget > MAGE_PER_STUDENT_CAP) {
+        throw new HttpsError("failed-precondition", `Max ${MAGE_PER_STUDENT_CAP} mana per student per day.`);
+      }
+
+      const ts = admin.firestore.FieldValue.serverTimestamp();
+      const nowIso = new Date().toISOString();
+      const mageTitle = (pool.mageGender === "F") ? "Enchantress" : "Mage";
+      const reason = `Leadership-style award (from ${mageTitle})`;
+
+      // Credit recipient
+      const recip = recipSnap.exists ? recipSnap.data() : { balance: 0, lifetimeEarned: 0, history: [] };
+      const newRecipBalance = (recip.balance || 0) + amount;
+      const newRecipLifetime = (recip.lifetimeEarned || 0) + amount;
+      tx.set(recipientRef, {
+        balance: newRecipBalance,
+        lifetimeEarned: newRecipLifetime,
+        level: manaLevelLabel(newRecipLifetime),
+        history: [{ type: "earn", amount, reason, timestamp: nowIso }, ...(recip.history || []).slice(0, 49)],
+        lastUpdated: ts,
+      }, { merge: true });
+      tx.set(recipientTxRef, {
+        type: "earn", amount, reason, balanceAfter: newRecipBalance, timestamp: nowIso, createdAt: ts,
+      });
+
+      // Update pool budget counters
+      const newBudgetUsed = budgetUsed + amount;
+      tx.set(poolRef, {
+        mageBudgetUsed: newBudgetUsed,
+        magePerStudent: { ...perStudent, [recipientUid]: givenToTarget },
+        lastUpdated: new Date(),
+      }, { merge: true });
+
+      // Completion bonus to the mage when they first exhaust the daily budget
+      let completionBonus = 0;
+      if (newBudgetUsed >= MAGE_DAILY_BUDGET && budgetUsed < MAGE_DAILY_BUDGET) {
+        completionBonus = MAGE_COMPLETION_BONUS;
+        const mageData = mageSnap.exists ? mageSnap.data() : { balance: 0, lifetimeEarned: 0, history: [] };
+        const bonusReason = `${mageTitle} bonus — used full daily budget`;
+        const newMageBalance = (mageData.balance || 0) + completionBonus;
+        const newMageLifetime = (mageData.lifetimeEarned || 0) + completionBonus;
+        tx.set(mageRef, {
+          balance: newMageBalance,
+          lifetimeEarned: newMageLifetime,
+          level: manaLevelLabel(newMageLifetime),
+          history: [{ type: "earn", amount: completionBonus, reason: bonusReason, timestamp: nowIso }, ...(mageData.history || []).slice(0, 49)],
+          lastUpdated: ts,
+        }, { merge: true });
+        tx.set(mageTxRef, {
+          type: "earn", amount: completionBonus, reason: bonusReason, balanceAfter: newMageBalance, timestamp: nowIso, createdAt: ts,
+        });
+      }
+
+      tx.set(notificationRef, {
+        title: `You got ${amount} mana ✨`,
+        body: reason,
+        icon: "✨",
+        link: `/my-mana/${courseId}`,
+        type: "mana_received",
+        ts,
+      });
+
+      result = {
+        success: true,
+        recipientBalance: newRecipBalance,
+        mageBudgetUsed: newBudgetUsed,
+        magePerStudent: { ...perStudent, [recipientUid]: givenToTarget },
+        completionBonus,
+      };
+    });
+
+    console.log(`mageAwardMana: ${mageUid} → ${recipientUid} +${amount} (${behaviorId}), course=${courseId}, budgetUsed=${result.mageBudgetUsed}`);
+    return result;
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────
+// selectMageForToday — server-authoritative daily Mage selection.
+// Replaces the old client-side autoSelectMage so students can no longer
+// write mageStudentId / mageBudgetUsed directly (which would let them
+// self-appoint or reset the budget and defeat mageAwardMana's caps).
+// Idempotent: returns today's mage if already chosen; otherwise picks one
+// via the same weighted fair-rotation rule and writes the pool atomically.
+// ─────────────────────────────────────────────────────────────────
+exports.selectMageForToday = onCall(
+  { region: "us-central1", maxInstances: 10 },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "You must be signed in.");
+    const { courseId } = request.data || {};
+    if (typeof courseId !== "string" || !courseId) throw new HttpsError("invalid-argument", "courseId is required.");
+    const poolRef = db.doc(`courses/${courseId}/mana/pool`);
+    const today = new Date().toISOString().split("T")[0];
+
+    const pool0 = (await poolRef.get()).data() || {};
+    if (!pool0.enabled) return { disabled: true };
+    if (pool0.mageDate === today && pool0.mageStudentId) {
+      return { mageStudentId: pool0.mageStudentId, mageStudentName: pool0.mageStudentName, mageGender: pool0.mageGender || "M", already: true };
+    }
+
+    const [enrollSnap, usersSnap, smSnap] = await Promise.all([
+      db.collection("enrollments").where("courseId", "==", courseId).get(),
+      db.collection("users").get(),
+      db.collection(`courses/${courseId}/studentMana`).get(),
+    ]);
+    const usersMap = {}; usersSnap.forEach((d) => { usersMap[d.id] = d.data(); });
+    const names = {}, genders = {};
+    enrollSnap.forEach((d) => {
+      const data = d.data();
+      if (data.isTestStudent) return;
+      const uid = data.uid || data.studentUid; if (!uid) return;
+      const u = usersMap[uid];
+      if (u?.email === "lmccart4@gmail.com" || u?.isTestStudent) return;
+      names[uid] = u?.displayName || data.name || data.email || "Unknown";
+      if (u?.gender) genders[uid] = u.gender;
+    });
+    // Also include students enrolled via users.enrolledCourses (mirrors the
+    // client's getEnrolledStudents) so no real student is left out of rotation.
+    usersSnap.forEach((d) => {
+      const u = d.data();
+      if (u.role === "teacher" || u.email === "lmccart4@gmail.com" || u.isTestStudent) return;
+      if ((u.enrolledCourses || {})[courseId] && !names[d.id]) {
+        names[d.id] = u.displayName || u.email || d.id;
+        if (u.gender) genders[d.id] = u.gender;
+      }
+    });
+    const allUids = Object.keys(names);
+    if (!allUids.length) throw new HttpsError("failed-precondition", "No eligible students in this section.");
+    const balances = {}; smSnap.forEach((d) => { balances[d.id] = d.data().balance || 0; });
+
+    return await db.runTransaction(async (tx) => {
+      const pool = (await tx.get(poolRef)).data() || {};
+      if (pool.mageDate === today && pool.mageStudentId) {
+        return { mageStudentId: pool.mageStudentId, mageStudentName: pool.mageStudentName, mageGender: pool.mageGender || "M", already: true };
+      }
+      let history = pool.mageHistory || [];
+      let cycle = pool.mageCycleNumber || 1;
+      if (pool.mageStudentId && pool.mageDate && pool.mageDate !== today
+          && (pool.mageBudgetUsed || 0) > 0 && !history.includes(pool.mageStudentId)) {
+        history = [...history, pool.mageStudentId];
+      }
+      let eligible = allUids.filter((u) => !history.includes(u));
+      if (!eligible.length) { history = []; cycle += 1; eligible = allUids; }
+      let maxB = 0; for (const u of eligible) maxB = Math.max(maxB, balances[u] || 0);
+      const weights = eligible.map((u) => Math.max(1, maxB - (balances[u] || 0) + 1));
+      const totalW = weights.reduce((a, b) => a + b, 0);
+      let r = Math.random() * totalW; let sel = eligible[eligible.length - 1];
+      for (let i = 0; i < eligible.length; i++) { r -= weights[i]; if (r <= 0) { sel = eligible[i]; break; } }
+      tx.set(poolRef, {
+        mageStudentId: sel, mageStudentName: names[sel] || "Unknown", mageGender: genders[sel] || "M",
+        mageDate: today, mageBudgetUsed: 0, magePerStudent: {}, mageHistory: history, mageCycleNumber: cycle,
+        lastUpdated: new Date(),
+      }, { merge: true });
+      return { mageStudentId: sel, mageStudentName: names[sel] || "Unknown", mageGender: genders[sel] || "M", already: false };
+    });
   }
 );
 // ─── PAPS AI Builds: Public Gemini proxy ──────────────────────────────────────
