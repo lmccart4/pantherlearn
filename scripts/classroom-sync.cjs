@@ -358,7 +358,9 @@ async function syncCourse(courseId, classroomCourseId) {
       });
 
       // Scored embeds: use explicit weight if set, otherwise dynamic 50/50 split
-      const nonEmbedPts = mc.length + sa.length + ranking.length + linked.length + sorting.length + conceptBuilder.length + ((completed && reflection) ? 1 : 0);
+      // skipReflection lesson flag: exclude the reflection slot entirely (embed-only grading)
+      const reflectionCountsHere = !lesson.skipReflection && completed && reflection;
+      const nonEmbedPts = mc.length + sa.length + ranking.length + linked.length + sorting.length + conceptBuilder.length + (reflectionCountsHere ? 1 : 0);
       embeds.forEach((q) => {
         const pts = q.weight != null ? q.weight : ((nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1);
         const a = answers[q.id];
@@ -367,7 +369,7 @@ async function syncCourse(courseId, classroomCourseId) {
         if (a.writtenScore != null) earned += a.writtenScore * pts;
       });
 
-      if (completed && reflection) { possible++; if (reflection.valid) earned++; }
+      if (reflectionCountsHere) { possible++; if (reflection.valid) earned++; }
 
       if (possible === 0) continue;
       if (!lessonGrades[lesson.id]) lessonGrades[lesson.id] = {};
@@ -666,7 +668,11 @@ async function main() {
   const coursesSnap = await db.collection("courses").get();
   console.log(`Found ${coursesSnap.size} courses`);
 
+  const courseFilter = process.env.COURSE_FILTER ? process.env.COURSE_FILTER.split(",").map(s => s.trim()).filter(Boolean) : null;
+  if (courseFilter) console.log(`COURSE_FILTER active — syncing only: ${courseFilter.join(", ")}`);
+
   for (const courseDoc of coursesSnap.docs) {
+    if (courseFilter && !courseFilter.includes(courseDoc.id)) continue;
     stats.coursesScanned++;
     // Check for mapping — look for any classroomSync doc with this courseId
     const mappingSnap = await db.collection("classroomSync").where("courseId", "==", courseDoc.id).get();
