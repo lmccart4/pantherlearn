@@ -14,10 +14,14 @@ export default function ChatToggle({ courseId }) {
 
   useEffect(() => {
     if (!courseId) return;
-    const unsub = onSnapshot(doc(db, "courses", courseId), (snap) => {
-      const data = snap.data();
-      setEnabled(data?.chatEnabled !== false);
-    });
+    const unsub = onSnapshot(
+      doc(db, "courses", courseId),
+      (snap) => {
+        const data = snap.data();
+        setEnabled(data?.chatEnabled !== false);
+      },
+      (err) => console.error("ChatToggle: snapshot error", err)
+    );
     return unsub;
   }, [courseId]);
 
@@ -25,8 +29,13 @@ export default function ChatToggle({ courseId }) {
 
   const toggle = async () => {
     setSaving(true);
-    await setDoc(doc(db, "courses", courseId), { chatEnabled: !enabled }, { merge: true });
-    setSaving(false);
+    try {
+      await setDoc(doc(db, "courses", courseId), { chatEnabled: !enabled }, { merge: true });
+    } catch (err) {
+      console.error("ChatToggle: failed to save chat setting", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

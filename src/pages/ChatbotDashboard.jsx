@@ -2,7 +2,7 @@
 // Teacher dashboard for the Chatbot Workshop.
 // Shows student bot progress, conversation logs, reflections, and export tools.
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { db } from "../lib/firebase";
@@ -401,9 +401,8 @@ export default function ChatbotDashboard() {
           </thead>
           <tbody>
             {sortedBots.map(bot => (
-              <>
+              <Fragment key={bot.id}>
                 <tr
-                  key={bot.id}
                   style={{ cursor: "pointer" }}
                   onClick={() => {
                     const next = expandedBot === bot.id ? null : bot.id;
@@ -480,7 +479,7 @@ export default function ChatbotDashboard() {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>

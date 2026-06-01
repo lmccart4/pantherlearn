@@ -6,6 +6,15 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { renderMarkdown } from "../../lib/utils";
 import "./SortingBlock.css";
 
+const shuffleArray = (arr) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
 export default function SortingBlock({ block, studentData = {}, onAnswer }) {
   const {
     title = "Sort It!",
@@ -46,7 +55,7 @@ export default function SortingBlock({ block, studentData = {}, onAnswer }) {
       setScore(s.score || null);
       hydrated.current = true;
     } else {
-      const shuffled = [...items].sort(() => Math.random() - 0.5);
+      const shuffled = shuffleArray(items);
       setDeck(shuffled);
       setLeftPile([]);
       setRightPile([]);
@@ -59,7 +68,7 @@ export default function SortingBlock({ block, studentData = {}, onAnswer }) {
     const s = studentData?.[block.id];
     if (!s) {
       if (hydrated.current && (!studentData || Object.keys(studentData).length === 0)) {
-        const shuffled = [...items].sort(() => Math.random() - 0.5);
+        const shuffled = shuffleArray(items);
         setDeck(shuffled);
         setLeftPile([]);
         setRightPile([]);
@@ -141,7 +150,7 @@ export default function SortingBlock({ block, studentData = {}, onAnswer }) {
   };
 
   const handleReset = () => {
-    const shuffled = [...items].sort(() => Math.random() - 0.5);
+    const shuffled = shuffleArray(items);
     setDeck(shuffled);
     setLeftPile([]);
     setRightPile([]);

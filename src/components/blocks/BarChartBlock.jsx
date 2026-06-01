@@ -164,15 +164,22 @@ export default function BarChartBlock({ block, studentData, onAnswer }) {
     markDirty();
   };
 
-  const renderKatex = (label, subscript) => {
+  const escapeHtml = (str) =>
+    String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+  const renderKatex = (label, subscript, color) => {
     if (!label && !subscript) return null;
     let tex = label || "\\;";
     if (subscript) tex += `_{${subscript}}`;
-    if (!katexModule) return { __html: label + (subscript ? `<sub>${subscript}</sub>` : "") };
+    if (!katexModule) return { __html: escapeHtml(label) + (subscript ? `<sub>${escapeHtml(subscript)}</sub>` : "") };
     try {
       return { __html: katexModule.renderToString(tex, { throwOnError: false, displayMode: false }) };
     } catch {
-      return { __html: label + (subscript ? `<sub>${subscript}</sub>` : "") };
+      return { __html: escapeHtml(label) + (subscript ? `<sub>${escapeHtml(subscript)}</sub>` : "") };
     }
   };
 

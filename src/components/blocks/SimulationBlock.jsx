@@ -27,7 +27,9 @@ export default function SimulationBlock({ block, studentData = {}, onAnswer }) {
 
   const performSave = useCallback(() => {
     if (!observation.trim()) return;
-    onAnswer(block.id, { observation, writtenScore: 0, savedAt: new Date().toISOString() });
+    // Auto-save must NOT include writtenScore — that would overwrite a submitted score of 1
+    // when a student returns and continues typing. Only handleSubmit sets the score.
+    onAnswer(block.id, { observation, savedAt: new Date().toISOString() });
   }, [block.id, observation, onAnswer]);
 
   const { markDirty, saveNow, lastSaved } = useAutoSave(performSave);
