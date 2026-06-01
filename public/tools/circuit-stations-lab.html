@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Circuit Stations — Digital Lab</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#273449; --line:#334155;
+    --ink:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --accent2:#0ea5e9;
+    --good:#22c55e; --bad:#ef4444; --warn:#f59e0b; --kit:#fbbf24;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5; padding:18px;
+  }
+  .wrap{max-width:760px; margin:0 auto}
+  h1{font-size:1.35rem; margin:0 0 2px}
+  .sub{color:var(--muted); font-size:.9rem; margin:0 0 16px}
+
+  .kit{
+    background:linear-gradient(135deg,#1e293b,#273449); border:1px solid var(--line);
+    border-radius:var(--radius); padding:14px 16px; margin-bottom:14px;
+  }
+  .kit-head{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap}
+  .card-badge{
+    background:var(--kit); color:#1a1505; font-weight:800; font-size:.8rem;
+    padding:4px 10px; border-radius:999px; letter-spacing:.03em;
+  }
+  .kit-vals{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+  .val{
+    background:#0b1220; border:1px solid var(--line); border-radius:10px;
+    padding:8px 12px; min-width:84px; text-align:center;
+  }
+  .val .lab{display:block; font-size:.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em}
+  .val .num{display:block; font-size:1.15rem; font-weight:700; color:var(--accent)}
+
+  .phet{
+    display:inline-flex; align-items:center; gap:8px; margin:4px 0 6px;
+    background:var(--accent2); color:#04212e; font-weight:700; text-decoration:none;
+    padding:9px 14px; border-radius:10px; font-size:.9rem;
+  }
+  .phet:hover{filter:brightness(1.08)}
+  .readtip{color:var(--muted); font-size:.8rem; margin:0 0 16px}
+
+  .progress{
+    display:flex; align-items:center; gap:10px; margin-bottom:14px; font-size:.85rem; color:var(--muted);
+  }
+  .bar{flex:1; height:8px; background:#0b1220; border-radius:999px; overflow:hidden; border:1px solid var(--line)}
+  .bar-fill{height:100%; width:0%; background:var(--good); transition:width .3s}
+
+  .station{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 16px; margin-bottom:12px;
+  }
+  .station.correct{border-color:var(--good); box-shadow:0 0 0 1px var(--good) inset}
+  .st-head{display:flex; align-items:center; gap:10px; margin-bottom:6px}
+  .st-tag{
+    background:var(--accent); color:#04212e; font-weight:800; font-size:.78rem;
+    width:34px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:7px;
+  }
+  .st-title{font-weight:700; font-size:1rem}
+  .st-task{color:var(--ink); font-size:.92rem; margin:4px 0 4px}
+  .st-task b{color:var(--accent)}
+  .st-formula{color:var(--muted); font-size:.82rem; font-style:italic; margin-bottom:8px}
+  .answer-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .answer-row input{
+    width:130px; background:#0b1220; border:1px solid var(--line); color:var(--ink);
+    border-radius:9px; padding:9px 11px; font-size:1rem; font-family:inherit;
+  }
+  .answer-row input:focus{outline:none; border-color:var(--accent)}
+  .unit{color:var(--muted); font-size:.9rem}
+  .check-btn{
+    background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+    border-radius:9px; padding:9px 14px; font-size:.88rem; font-weight:600; cursor:pointer; font-family:inherit;
+  }
+  .check-btn:hover{border-color:var(--accent)}
+  .feedback{margin-top:8px; font-size:.86rem; font-weight:600; min-height:1.1em}
+  .feedback.ok{color:var(--good)}
+  .feedback.no{color:var(--bad)}
+  .feedback.hint{color:var(--warn)}
+
+  .submit-wrap{margin-top:18px; text-align:center}
+  .submit{
+    background:var(--good); color:#03210f; border:none; border-radius:11px;
+    padding:13px 26px; font-size:1rem; font-weight:800; cursor:pointer; font-family:inherit;
+  }
+  .submit:hover{filter:brightness(1.06)}
+  .save-note{color:var(--muted); font-size:.8rem; margin-top:8px}
+  .err{background:#3b0d0d; border:1px solid var(--bad); color:#fecaca; padding:10px 12px; border-radius:10px; font-size:.85rem; margin-bottom:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚡ Circuit Stations — Digital Lab</h1>
+  <p class="sub">Build each circuit in PhET using <b>your own kit values</b>, read the meter, and type what you measure. Everyone's numbers are different — copying a neighbor won't work. <b>Predict first, then verify by building it.</b></p>
+
+  <div id="iderr" class="err" style="display:none"></div>
+
+  <div class="kit">
+    <div class="kit-head">
+      <div><strong>Your Circuit Kit</strong> <span style="color:var(--muted);font-size:.85rem">— use these exact values at every station</span></div>
+      <span class="card-badge" id="cardBadge">CARD —</span>
+    </div>
+    <div class="kit-vals" id="kitVals"></div>
+  </div>
+
+  <a class="phet" id="phetLink" target="_blank" rel="noopener">🔧 Open PhET Circuit Construction Kit (DC) ↗</a>
+  <p class="readtip">Tip: drop in the <b>ammeter</b> (current, A) or <b>voltmeter</b> (volts, V) and type the reading <b>exactly as the meter shows it</b> (e.g. 0.24).</p>
+
+  <div class="progress">
+    <span id="progText">0 / 6 stations correct</span>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+  </div>
+
+  <div id="stations"></div>
+
+  <div class="submit-wrap">
+    <button class="submit" id="submitBtn">Submit My Scores</button>
+    <div class="save-note" id="saveNote">Your progress saves automatically as you check each station.</div>
+  </div>
+</div>
+
+<script>
+/* ---------- Read student context from EmbedBlock query params ---------- */
+const QP = new URLSearchParams(location.search);
+const studentId = QP.get('studentId') || '';
+const courseId  = QP.get('courseId')  || '';
+const lessonId  = QP.get('lessonId')  || '';
+const blockId   = QP.get('blockId')   || '';
+const isTest    = QP.get('testStudent') === 'true';
+
+/* ---------- Deterministic per-student PRNG (mulberry32 seeded by uid) ---------- */
+function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function pick(rng, arr){ return arr[Math.floor(rng()*arr.length)]; }
+
+/* Seed: if no studentId (preview), use a fixed demo seed so the tool still renders. */
+const seedStr = studentId || 'preview-demo';
+const rng = mulberry32(hashStr(seedStr));
+
+/* ---------- Math helpers ---------- */
+const round2 = x => Math.round(x*100)/100;
+const Rp = (a,b) => (a*b)/(a+b); // parallel of two resistors
+const EPS = 1e-9;
+
+/* ---------- Generate this student's circuit kit (uid-seeded, readable, constrained) ---------- */
+const V_SET = [9, 12, 15, 18, 24];
+const R_SET = []; for (let r=10; r<=100; r+=5) R_SET.push(r); // 10..100 step 5
+let V, R1, R2, R3, _guard = 0;
+while (true) {
+  _guard++;
+  V = pick(rng, V_SET);
+  let pool = R_SET.slice();
+  const drawR = () => pool.splice(Math.floor(rng()*pool.length), 1)[0];
+  R1 = drawR(); R2 = drawR(); R3 = drawR();
+  // keep every reading on a clean, readable scale
+  const currents = [V/R1, V/(R1+R2), V/R1+V/R2, V/R2, V/(R1+Rp(R2,R3))].map(round2);
+  const vdrop = round2(V*R1/(R1+R2));
+  if ((currents.every(c => c>=0.05 && c<=4.5) && vdrop>=0.8) || _guard>50) break;
+}
+const cardLetter = String.fromCharCode(65 + (hashStr(seedStr) % 24)); // A..X (cosmetic label)
+
+/* ---------- Stations: each has a live-computed expected answer ----------
+   kind 'I' (current) → tolerance floor 0.05 A; kind 'V' (voltage) → floor 0.15 V.
+   withinTol uses max(8% relative, floor) so honest meter readings (incl. 1-decimal
+   rounding) always pass while a different kit's answers do not. */
+const STATIONS = [
+  { id:'D1', title:'Single Resistor (Ohm’s Law)', kind:'I', unit:'A', floor:0.05,
+    task:`Connect the battery to <b>R1 only</b>. Place the ammeter in the loop and read the <b>current</b>.`,
+    formula:'I = V ÷ R1',
+    expected: round2(V / R1) },
+  { id:'D2', title:'Series Circuit', kind:'I', unit:'A', floor:0.05,
+    task:`Wire <b>R1 and R2 in series</b> with the battery. Read the <b>total current</b> from the battery.`,
+    formula:'I = V ÷ (R1 + R2)',
+    expected: round2(V / (R1+R2)) },
+  { id:'D3', title:'Series Voltage Drop', kind:'V', unit:'V', floor:0.15,
+    task:`Same series circuit (R1 + R2). Put the <b>voltmeter across R1</b> and read the <b>voltage drop</b> on R1.`,
+    formula:'V₁ = V × R1 ÷ (R1 + R2)',
+    expected: round2(V * R1 / (R1+R2)) },
+  { id:'D4', title:'Parallel — Total Current', kind:'I', unit:'A', floor:0.05,
+    task:`Wire <b>R1 and R2 in parallel</b> across the battery. Read the <b>total current</b> leaving the battery.`,
+    formula:'I = V÷R1 + V÷R2',
+    expected: round2(V/R1 + V/R2) },
+  { id:'D5', title:'Parallel — Branch Current', kind:'I', unit:'A', floor:0.05,
+    task:`Same parallel circuit. Move the ammeter into the <b>R2 branch only</b> and read the <b>current through R2</b>.`,
+    formula:'I₂ = V ÷ R2',
+    expected: round2(V / R2) },
+  { id:'D6', title:'Combination Circuit', kind:'I', unit:'A', floor:0.05,
+    task:`Wire <b>R1 in series with (R2 parallel R3)</b>. Read the <b>total current</b> from the battery.`,
+    formula:'I = V ÷ ( R1 + (R2·R3)÷(R2+R3) )',
+    expected: round2(V / (R1 + Rp(R2,R3))) },
+];
+
+/* ---------- State ---------- */
+let state = {};
+STATIONS.forEach(s=> state[s.id] = { value:null, correct:false });
+
+/* Restore prior work (localStorage fallback) */
+try{
+  const saved = JSON.parse(localStorage.getItem('circuit-stations-'+seedStr) || 'null');
+  if(saved && saved.state) state = saved.state;
+}catch(e){}
+
+/* ---------- Render ---------- */
+function renderKit(){
+  if(!studentId){
+    const e=document.getElementById('iderr');
+    e.style.display='block';
+    e.textContent='⚠ Not logged in through PantherLearn — showing a demo kit. Open this activity inside your lesson so your real scores save.';
+  }
+  document.getElementById('cardBadge').textContent = 'CARD '+cardLetter;
+  const vals=[['Battery',V+' V'],['R1',R1+' Ω'],['R2',R2+' Ω'],['R3',R3+' Ω']];
+  document.getElementById('kitVals').innerHTML = vals.map(([l,n])=>
+    `<div class="val"><span class="lab">${l}</span><span class="num">${n}</span></div>`).join('');
+  document.getElementById('phetLink').href =
+    'https://phet.colorado.edu/sims/html/circuit-construction-kit-dc/latest/circuit-construction-kit-dc_en.html';
+}
+
+function renderStations(){
+  const root=document.getElementById('stations');
+  root.innerHTML = STATIONS.map(s=>{
+    const st=state[s.id];
+    return `<div class="station ${st.correct?'correct':''}" id="st-${s.id}">
+      <div class="st-head"><span class="st-tag">${s.id}</span><span class="st-title">${s.title}</span></div>
+      <div class="st-task">${s.task}</div>
+      <div class="st-formula">Predict with: ${s.formula}</div>
+      <div class="answer-row">
+        <input type="number" step="any" id="in-${s.id}" placeholder="meter reading"
+          value="${st.value!=null?st.value:''}" ${st.correct?'disabled':''}/>
+        <span class="unit">${s.unit}</span>
+        <button class="check-btn" data-st="${s.id}" ${st.correct?'disabled':''}>${st.correct?'✓ Correct':'Check'}</button>
+      </div>
+      <div class="feedback ${st.correct?'ok':''}" id="fb-${s.id}">${st.correct?'✓ Matches your circuit. Locked in.':''}</div>
+    </div>`;
+  }).join('');
+  root.querySelectorAll('.check-btn').forEach(b=>{
+    if(!b.disabled) b.addEventListener('click', ()=>checkStation(b.dataset.st));
+  });
+  updateProgress();
+}
+
+function withinTol(entered, expected, floor){
+  const tol = Math.max(0.08*Math.abs(expected), floor); // 8% relative or absolute floor
+  return Math.abs(entered - expected) <= tol + EPS;
+}
+
+function checkStation(id){
+  const s = STATIONS.find(x=>x.id===id);
+  const inp = document.getElementById('in-'+id);
+  const fb = document.getElementById('fb-'+id);
+  const raw = inp.value.trim();
+  if(raw===''){ fb.className='feedback hint'; fb.textContent='Enter your measured value first.'; return; }
+  const entered = parseFloat(raw);
+  if(isNaN(entered)){ fb.className='feedback no'; fb.textContent='That’s not a number.'; return; }
+  state[id].value = entered;
+  if(withinTol(entered, s.expected, s.floor)){
+    state[id].correct = true;
+    fb.className='feedback ok'; fb.textContent='✓ Matches your circuit. Locked in.';
+    inp.disabled=true;
+    const btn=document.querySelector(`.check-btn[data-st="${id}"]`);
+    btn.disabled=true; btn.textContent='✓ Correct';
+    document.getElementById('st-'+id).classList.add('correct');
+  } else {
+    state[id].correct = false;
+    fb.className='feedback no';
+    fb.textContent='Not quite — re-check how you wired it, then re-read the meter. (Doesn’t match what your kit should give.)';
+  }
+  persist(false);
+  updateProgress();
+}
+
+function updateProgress(){
+  const n = STATIONS.filter(s=>state[s.id].correct).length;
+  document.getElementById('progText').textContent = `${n} / 6 stations correct`;
+  document.getElementById('barFill').style.width = (n/6*100)+'%';
+}
+
+/* ---------- Scoring / persistence ---------- */
+function scoreNow(){ return STATIONS.filter(s=>state[s.id].correct).length; }
+
+function buildBreakdown(){
+  return {
+    card: cardLetter, battery:V, R1, R2, R3,
+    stations: STATIONS.map(s=>({ id:s.id, entered:state[s.id].value, expected:s.expected, correct:state[s.id].correct }))
+  };
+}
+
+function persist(final){
+  const score = scoreNow();
+  try{ localStorage.setItem('circuit-stations-'+seedStr, JSON.stringify({state})); }catch(e){}
+  // Save full work-state to parent (belt-and-suspenders persistence)
+  try{ window.parent.postMessage({ type:'html-activity-state', state:{state, breakdown:buildBreakdown()} }, '*'); }catch(e){}
+  // Score to gradebook. Interim => gameComplete:false; final/all-correct => true.
+  const allDone = score === 6;
+  try{
+    window.parent.postMessage({
+      type:'activityScore',
+      score: score,
+      maxScore: 6,
+      gameComplete: final || allDone,
+      completedAt: new Date().toISOString(),
+      breakdown: buildBreakdown()
+    }, '*');
+  }catch(e){}
+}
+
+document.getElementById('submitBtn').addEventListener('click', ()=>{
+  persist(true); // ALWAYS re-send, no guard (per scored-embed checklist)
+  const btn=document.getElementById('submitBtn');
+  const score=scoreNow();
+  document.getElementById('saveNote').textContent =
+    `Submitted: ${score}/6 stations correct. You can keep working and re-submit — your best score is kept.`;
+  btn.textContent='Score Submitted ✓';
+});
+
+/* ---------- Init ---------- */
+renderKit();
+renderStations();
+persist(false); // initial state save so the parent knows the activity is engaged
+</script>
+</body>
+</html>
