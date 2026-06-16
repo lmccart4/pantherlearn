@@ -232,6 +232,7 @@ async function syncCourse(courseId, classroomCourseId) {
     'hallucination-hunt-extra-credit',  // Extra credit — Luke enters grades manually
     'energy-audit-extra-credit',        // Extra credit — Luke enters grades manually
     'personal-footprint-audit',         // Extra credit — Luke enters grades manually
+    'suno-song-extra-credit',           // Extra credit — Luke enters grades manually
   ]);
   const EXCLUDED_ACTIVITIES = new Set([
     'battleship-energy',  // Legacy duplicate
