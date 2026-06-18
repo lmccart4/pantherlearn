@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { inducedPeak, currentAt, waveform } from "./induction-model.js";
+import { inducedPeak, currentAt, waveform, scorePredictions, PREDICTION_KEY } from "./induction-model.js";
 
 test("inducedPeak rises with rpm and coils, zero when either is zero", () => {
   assert.equal(inducedPeak(0, 5), 0);
@@ -22,4 +22,17 @@ test("waveform returns evenly spaced samples over a full rotation", () => {
   assert.equal(w.length, 24);
   assert.equal(w[0].angle, 0);
   assert.ok(w.every((p) => typeof p.current === "number"));
+});
+
+test("scorePredictions: all correct → 5/5, none → 0/5", () => {
+  const allRight = scorePredictions(PREDICTION_KEY.map((p) => p.answer));
+  assert.equal(allRight.score, 5);
+  assert.equal(allRight.maxScore, 5);
+  const allWrong = scorePredictions(PREDICTION_KEY.map(() => "bogus"));
+  assert.equal(allWrong.score, 0);
+});
+
+test("scorePredictions: partial credit counts each correct", () => {
+  const ans = PREDICTION_KEY.map((p, i) => (i < 3 ? p.answer : "bogus"));
+  assert.equal(scorePredictions(ans).score, 3);
 });

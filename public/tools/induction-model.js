@@ -19,3 +19,18 @@ export function waveform(rpm, coils, field = 1, samples = 24) {
   }
   return out;
 }
+
+// Five conceptual predictions about what changes the induced current.
+export const PREDICTION_KEY = [
+  { prompt: "Spin the magnet faster. The current…", answer: "up" },
+  { prompt: "Add more coils. The current…", answer: "up" },
+  { prompt: "Stop the magnet (hold it still). The current…", answer: "down" },
+  { prompt: "Use a stronger magnet. The current…", answer: "up" },
+  { prompt: "Keep everything the same. The current…", answer: "same" },
+];
+
+export function scorePredictions(answers) {
+  let score = 0;
+  PREDICTION_KEY.forEach((p, i) => { if (answers[i] === p.answer) score += 1; });
+  return { score, maxScore: PREDICTION_KEY.length };
+}
