@@ -16,3 +16,29 @@ export function sendActivityScore(score, maxScore, gameComplete, target) {
   if (!t || maxScore <= 0) return;
   try { t.postMessage(buildScorePayload(score, maxScore, gameComplete), "*"); } catch (e) { /* no-op */ }
 }
+
+export function makeStateSaver({ delay = 2500, send } = {}) {
+  const doSend = send || ((msg) => { try { window.parent.postMessage(msg, "*"); } catch (e) {} });
+  let timer = null;
+  let pending = null;
+  let hasPending = false;
+  function fire() {
+    timer = null;
+    if (!hasPending) return;
+    hasPending = false;
+    const state = pending;
+    pending = null;
+    doSend({ type: "html-activity-state", state });
+  }
+  return {
+    save(state) {
+      pending = state; hasPending = true;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(fire, delay);
+    },
+    flush() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      fire();
+    },
+  };
+}
