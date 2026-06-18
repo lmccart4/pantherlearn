@@ -42,3 +42,16 @@ export function makeStateSaver({ delay = 2500, send } = {}) {
     },
   };
 }
+
+export function makeTranslator(dict, initialLang = "en") {
+  const api = {
+    lang: initialLang,
+    setLang(l) { api.lang = l; },
+    t(key) {
+      const entry = dict[key];
+      if (!entry) return key;
+      return entry[api.lang] ?? entry.en ?? key;
+    },
+  };
+  return api;
+}

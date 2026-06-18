@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildScorePayload, makeStateSaver } from "./embed-kit.js";
+import { buildScorePayload, makeStateSaver, makeTranslator } from "./embed-kit.js";
 
 test("buildScorePayload produces the exact EmbedBlock contract shape", () => {
   const p = buildScorePayload(3.75, 5, true);
@@ -35,4 +35,13 @@ test("makeStateSaver flush with no pending state is a no-op", () => {
   const saver = makeStateSaver({ delay: 1000, send: (msg) => sent.push(msg) });
   saver.flush();
   assert.equal(sent.length, 0);
+});
+
+test("makeTranslator returns current-language strings with en fallback", () => {
+  const tr = makeTranslator({ hello: { en: "Hello", es: "Hola" }, only_en: { en: "Only" } }, "en");
+  assert.equal(tr.t("hello"), "Hello");
+  tr.setLang("es");
+  assert.equal(tr.t("hello"), "Hola");
+  assert.equal(tr.t("only_en"), "Only", "falls back to en when es missing");
+  assert.equal(tr.t("missing_key"), "missing_key", "falls back to the key itself");
 });
