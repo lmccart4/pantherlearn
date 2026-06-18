@@ -11,6 +11,22 @@ service cloud.firestore {
     }
     match /scores/{doc} { allow read: if true; allow create: if validScore(); allow update, delete: if false; }
 
+    // Faculty Jukebox reactions (faculty-jukebox.web.app). Public hearts + play counts.
+    // Doc id = song slug; only two non-negative int counters. Each write may move a
+    // counter by at most +1 (plays up-only; hearts +/-1). No auth required, no deletes.
+    match /jukebox/{slug} {
+      function ctr(data, k) { return data.get(k, 0); }
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['hearts', 'plays'])
+        && ctr(request.resource.data, 'hearts') is int && ctr(request.resource.data, 'hearts') >= 0
+        && ctr(request.resource.data, 'plays') is int && ctr(request.resource.data, 'plays') >= 0
+        && ctr(request.resource.data, 'plays') - (resource == null ? 0 : ctr(resource.data, 'plays')) >= 0
+        && ctr(request.resource.data, 'plays') - (resource == null ? 0 : ctr(resource.data, 'plays')) <= 1
+        && ctr(request.resource.data, 'hearts') - (resource == null ? 0 : ctr(resource.data, 'hearts')) <= 1
+        && (resource == null ? 0 : ctr(resource.data, 'hearts')) - ctr(request.resource.data, 'hearts') <= 1;
+      allow delete: if false;
+    }
+
     // AI Literacy final-review app (ai-lit-review). Students own their answer logs
     // and profile (doc id = their email); teachers can read all for the dashboard.
     function aiReviewTeacher() {
