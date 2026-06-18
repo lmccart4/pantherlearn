@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SOURCE_TYPES, computeDemand, computeSupply, simulateDay } from "./grid-model.js";
+import { SOURCE_TYPES, computeDemand, computeSupply, simulateDay, applyStorm } from "./grid-model.js";
 
 test("SOURCE_TYPES has the five expected sources with capacity + flags", () => {
   for (const key of ["gas", "nuclear", "solar", "wind", "battery"]) {
@@ -58,4 +58,31 @@ test("simulateDay: battery covers a deficit that gas alone cannot", () => {
     { sunlight: 1, wind: 0, outages: [] }
   );
   assert.ok(withBattery.reliability >= gasOnly.reliability, "battery should not reduce reliability");
+});
+
+test("applyStorm: high severity knocks out flood-vulnerable sources and tanks renewables", () => {
+  const sources = [
+    { id: "g1", type: "gas", units: 1 },
+    { id: "n1", type: "nuclear", units: 1 },
+    { id: "s1", type: "solar", units: 1 },
+  ];
+  const cond = applyStorm(sources, 0.9);
+  assert.ok(cond.outages.includes("g1"), "gas should flood out");
+  assert.ok(!cond.outages.includes("n1"), "nuclear survives");
+  assert.ok(cond.sunlight < 0.3, "storm cuts sunlight");
+  assert.ok(cond.wind <= 1 && cond.wind >= 0);
+});
+
+test("applyStorm: low severity causes no flood outages", () => {
+  const sources = [{ id: "g1", type: "gas", units: 1 }];
+  const cond = applyStorm(sources, 0.1);
+  assert.equal(cond.outages.length, 0);
+});
+
+test("storm makes an all-gas grid fail where it succeeded in calm weather", () => {
+  const sources = [{ id: "g1", type: "gas", units: 4 }];
+  const calm = simulateDay(sources, { sunlight: 1, wind: 0.5, outages: [] });
+  const storm = simulateDay(sources, applyStorm(sources, 0.9));
+  assert.equal(calm.reliability, 1);
+  assert.ok(storm.reliability < calm.reliability, "storm should break the flood-vulnerable grid");
 });

@@ -65,3 +65,17 @@ export function simulateDay(sources, conditions) {
   const reliability = (24 - blackoutHours.length) / 24;
   return { hours, reliability, blackoutHours, totalUnservedMWh: Math.round(unservedMWh) };
 }
+
+// Apply storm conditions: knocks out flood-vulnerable sources and reduces renewables.
+export function applyStorm(sources, severity) {
+  const floodThreshold = 0.6; // above this severity, flood-vulnerable sites go offline
+  const outages = severity >= floodThreshold
+    ? sources.filter((s) => SOURCE_TYPES[s.type]?.floodVulnerable).map((s) => s.id)
+    : [];
+  return {
+    sunlight: Math.max(0, 1 - severity),        // storm clouds cut solar
+    wind: Math.max(0, Math.min(1, severity * 0.4)), // some wind, but turbines cut out at extremes
+    outages,
+    storm: { severity },
+  };
+}
