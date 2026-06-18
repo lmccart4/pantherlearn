@@ -37,10 +37,18 @@
     <span class="pill" id="statusPill">—</span>
   </div>
   <p class="hint" id="goal"></p>
+  <div id="designPanel" style="display:none">
+    <div class="readout">
+      <span class="pill" id="stormPill">—</span>
+      <button class="lang" id="stormBtn"></button>
+    </div>
+    <button class="lang" id="submitBtn" style="margin-top:8px;border-color:var(--accent)"></button>
+    <div id="scoreBox" class="hint" style="margin-top:8px"></div>
+  </div>
 </div>
 
 <script type="module">
-import { SOURCE_TYPES, computeDemand, simulateDay } from "./grid-model.js";
+import { SOURCE_TYPES, computeDemand, simulateDay, applyStorm, scoreDesign } from "./grid-model.js";
 import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
 
 const DICT = {
@@ -52,6 +60,11 @@ const DICT = {
   solved: { en: "✓ Reliable! Lesson complete.", es: "✓ ¡Confiable! Lección completa." },
   deficit: { en: "blackout hours", es: "horas de apagón" },
   langName: { en: "🌐 Español", es: "🌐 English" },
+  runStorm: { en: "⛈ Run the Sandy Storm", es: "⛈ Ejecutar la Tormenta Sandy" },
+  stormResult: { en: "Storm reliability", es: "Confiabilidad en tormenta" },
+  submit: { en: "Submit Design", es: "Enviar Diseño" },
+  submitted: { en: "✓ Design submitted", es: "✓ Diseño enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
 };
 const tr = makeTranslator(DICT, "en");
 const saver = makeStateSaver({});
@@ -85,6 +98,7 @@ function render() {
     sendActivityScore(5, 5, true);
   }
   saver.save({ grid, solvedOnce });
+  renderDesignExtras();
 }
 function renderSources() {
   const host = document.getElementById("sources");
@@ -110,8 +124,36 @@ function drawChart(result) {
     <polyline points="${demandPts}" fill="none" stroke="#fbbf24" stroke-width="2"/>
     <polyline points="${supplyPts}" fill="none" stroke="#38bdf8" stroke-width="2"/>`;
 }
+const MODE = new URLSearchParams(location.search).get("mode") || "learn";
+const CRITERIA = { reliabilityTarget: 0.95, costBudget: 30, stormSeverity: 0.9 };
+
+function renderDesignExtras() {
+  if (MODE !== "design") return;
+  document.getElementById("designPanel").style.display = "block";
+  document.getElementById("stormBtn").textContent = tr.t("runStorm");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+}
+function runStorm() {
+  const cond = applyStorm(sourcesArray(), CRITERIA.stormSeverity);
+  const result = simulateDay(sourcesArray(), cond);
+  drawChart(result);
+  const sp = document.getElementById("stormPill");
+  const pct = Math.round(result.reliability*100);
+  sp.textContent = `${tr.t("stormResult")}: ${pct}%`;
+  sp.className = "pill " + (pct>=80?"ok":pct>=50?"warn":"bad");
+}
+function submitDesign() {
+  const r = scoreDesign(sourcesArray(), CRITERIA);
+  sendActivityScore(r.score, 5, true);            // ALWAYS re-send, no guard
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${r.score}/5 · calm ${Math.round(r.calmReliability*100)}% · storm ${Math.round(r.stormReliability*100)}% · $${r.cost}`;
+}
 document.getElementById("langBtn").onclick = () => { tr.setLang(tr.lang==="en"?"es":"en"); render(); };
 window.addEventListener("beforeunload", ()=>saver.flush());
+if (MODE === "design") {
+  document.getElementById("stormBtn").onclick = runStorm;
+  document.getElementById("submitBtn").onclick = submitDesign;
+}
 render();
 </script>
 </body>
