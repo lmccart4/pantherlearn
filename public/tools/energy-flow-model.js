@@ -21,3 +21,13 @@ export function traceFlow(inputMJ, stages = DEFAULT_STAGES) {
   }
   return { steps, delivered: energy, totalLoss };
 }
+
+export function scoreAccounting(studentDeliveredMJ, inputMJ, stages = DEFAULT_STAGES, tolerance = 0.05) {
+  const correctDelivered = traceFlow(inputMJ, stages).delivered;
+  const err = Math.abs(studentDeliveredMJ - correctDelivered);
+  const tol = tolerance * inputMJ;
+  let score = 0;
+  if (err <= tol) score = 5;
+  else if (err <= 2 * tol) score = 3;
+  return { score, maxScore: 5, correctDelivered, withinTolerance: err <= tol };
+}

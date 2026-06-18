@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_STAGES, traceFlow } from "./energy-flow-model.js";
+import { DEFAULT_STAGES, traceFlow, scoreAccounting } from "./energy-flow-model.js";
 
 test("traceFlow conserves energy: delivered + losses == input", () => {
   const r = traceFlow(1000);
@@ -22,4 +22,18 @@ test("a perfectly efficient chain delivers all input with zero loss", () => {
   const r = traceFlow(500, [{ name: "ideal", efficiency: 1 }]);
   assert.equal(r.delivered, 500);
   assert.equal(r.totalLoss, 0);
+});
+
+test("scoreAccounting: exact answer → 5/5", () => {
+  const truth = traceFlow(1000).delivered;
+  const r = scoreAccounting(truth, 1000);
+  assert.equal(r.maxScore, 5);
+  assert.equal(r.score, 5);
+  assert.ok(r.withinTolerance);
+});
+
+test("scoreAccounting: close answer → partial, wild answer → 0", () => {
+  const truth = traceFlow(1000).delivered;
+  assert.equal(scoreAccounting(truth + 80, 1000).score, 3); // within 2*tol(=0.05*1000=50 → 100) but >50
+  assert.equal(scoreAccounting(0, 1000).score, 0);
 });
