@@ -86,3 +86,30 @@ test("storm makes an all-gas grid fail where it succeeded in calm weather", () =
   assert.equal(calm.reliability, 1);
   assert.ok(storm.reliability < calm.reliability, "storm should break the flood-vulnerable grid");
 });
+
+import { scoreDesign } from "./grid-model.js";
+
+test("scoreDesign: a resilient low-cost design scores at or near full marks", () => {
+  // nuclear (flood-safe, steady) + battery buffer
+  const sources = [{ id: "n1", type: "nuclear", units: 2 }, { id: "b1", type: "battery", units: 2 }];
+  const r = scoreDesign(sources, { reliabilityTarget: 0.95, costBudget: 30, stormSeverity: 0.9 });
+  assert.equal(r.maxScore, 5);
+  assert.ok(r.meetsReliability, "calm reliability target met");
+  assert.ok(r.stormReliability >= 0.8, "stays reliable through the storm");
+  assert.ok(r.score >= 4, `expected strong score, got ${r.score}`);
+});
+
+test("scoreDesign: a flood-vulnerable gas-only grid loses the storm points", () => {
+  const sources = [{ id: "g1", type: "gas", units: 4 }];
+  const r = scoreDesign(sources, { reliabilityTarget: 0.95, costBudget: 30, stormSeverity: 0.9 });
+  assert.ok(r.meetsReliability, "fine in calm weather");
+  assert.ok(r.stormReliability < 0.95, "fails in the storm");
+  assert.ok(r.score < 5, "should not get full marks");
+  assert.ok(Array.isArray(r.breakdown) && r.breakdown.length > 0);
+});
+
+test("scoreDesign: over-budget design loses the cost point", () => {
+  const sources = [{ id: "n1", type: "nuclear", units: 6 }]; // 6 * costPerUnit 6 = 36 > 30
+  const r = scoreDesign(sources, { reliabilityTarget: 0.95, costBudget: 30, stormSeverity: 0.9 });
+  assert.equal(r.withinBudget, false);
+});

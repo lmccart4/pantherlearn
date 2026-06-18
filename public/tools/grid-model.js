@@ -79,3 +79,31 @@ export function applyStorm(sources, severity) {
     storm: { severity },
   };
 }
+
+// Score a design against criteria.
+export function scoreDesign(sources, criteria = {}) {
+  const reliabilityTarget = criteria.reliabilityTarget ?? 0.95;
+  const costBudget = criteria.costBudget ?? 30;
+  const stormSeverity = criteria.stormSeverity ?? 0.9;
+
+  const calm = simulateDay(sources, { sunlight: 1, wind: 0.5, outages: [] });
+  const storm = simulateDay(sources, applyStorm(sources, stormSeverity));
+  const cost = sources.reduce((sum, s) => sum + (SOURCE_TYPES[s.type]?.costPerUnit || 0) * s.units, 0);
+
+  const meetsReliability = calm.reliability >= reliabilityTarget;
+  const stormOk = storm.reliability >= reliabilityTarget - 0.15;
+  const withinBudget = cost <= costBudget;
+  const lowCarbon = !sources.some((s) => SOURCE_TYPES[s.type]?.carbon === "high");
+
+  let score = 0;
+  const breakdown = [];
+  if (meetsReliability) { score += 2; breakdown.push("calm-reliability:+2"); } else { breakdown.push("calm-reliability:0"); }
+  if (stormOk) { score += 2; breakdown.push("storm-reliability:+2"); } else { breakdown.push("storm-reliability:0"); }
+  if (withinBudget) { score += 1; breakdown.push("budget:+1"); } else { breakdown.push("budget:0"); }
+
+  return {
+    score, maxScore: 5,
+    calmReliability: calm.reliability, stormReliability: storm.reliability,
+    cost, withinBudget, meetsReliability, lowCarbon, breakdown,
+  };
+}
