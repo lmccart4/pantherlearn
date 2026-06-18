@@ -18,7 +18,10 @@ export function sendActivityScore(score, maxScore, gameComplete, target) {
 }
 
 export function makeStateSaver({ delay = 2500, send } = {}) {
-  const doSend = send || ((msg) => { try { window.parent.postMessage(msg, "*"); } catch (e) {} });
+  const doSend = send || ((msg) => {
+    if (typeof window === "undefined") return;
+    try { window.parent.postMessage(msg, "*"); } catch (e) {}
+  });
   let timer = null;
   let pending = null;
   let hasPending = false;

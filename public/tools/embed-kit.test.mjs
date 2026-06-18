@@ -37,6 +37,12 @@ test("makeStateSaver flush with no pending state is a no-op", () => {
   assert.equal(sent.length, 0);
 });
 
+test("makeStateSaver() with no injected send does not throw in Node on flush", () => {
+  const saver = makeStateSaver(); // no send → default browser closure
+  saver.save({ a: 1 });
+  assert.doesNotThrow(() => saver.flush(), "default send must no-op in Node, not ReferenceError");
+});
+
 test("makeTranslator returns current-language strings with en fallback", () => {
   const tr = makeTranslator({ hello: { en: "Hello", es: "Hola" }, only_en: { en: "Only" } }, "en");
   assert.equal(tr.t("hello"), "Hello");
