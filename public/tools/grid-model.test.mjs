@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SOURCE_TYPES, computeDemand, computeSupply } from "./grid-model.js";
+import { SOURCE_TYPES, computeDemand, computeSupply, simulateDay } from "./grid-model.js";
 
 test("SOURCE_TYPES has the five expected sources with capacity + flags", () => {
   for (const key of ["gas", "nuclear", "solar", "wind", "battery"]) {
@@ -33,4 +33,29 @@ test("computeSupply sums dispatchable capacity and scales renewables by weather"
   // nuclear offline: only solar
   const out = computeSupply(sources, 12, { sunlight: 1, wind: 0, outages: ["n1"] });
   assert.equal(out, 2 * SOURCE_TYPES.solar.capacityMW);
+});
+
+test("simulateDay: ample nuclear keeps reliability at 1.0, no blackouts", () => {
+  const sources = [{ id: "n1", type: "nuclear", units: 2 }]; // 2000 MW > peak demand
+  const r = simulateDay(sources, { sunlight: 1, wind: 0.5, outages: [] });
+  assert.equal(r.reliability, 1);
+  assert.equal(r.blackoutHours.length, 0);
+  assert.equal(r.hours.length, 24);
+});
+
+test("simulateDay: too little supply produces blackout hours and reliability < 1", () => {
+  const sources = [{ id: "g1", type: "gas", units: 1 }]; // 400 MW < demand most hours
+  const r = simulateDay(sources, { sunlight: 1, wind: 0, outages: [] });
+  assert.ok(r.reliability < 1, "should have deficits");
+  assert.ok(r.blackoutHours.length > 0);
+  assert.ok(r.totalUnservedMWh > 0);
+});
+
+test("simulateDay: battery covers a deficit that gas alone cannot", () => {
+  const gasOnly = simulateDay([{ id: "g1", type: "gas", units: 2 }], { sunlight: 1, wind: 0, outages: [] });
+  const withBattery = simulateDay(
+    [{ id: "g1", type: "gas", units: 2 }, { id: "b1", type: "battery", units: 3 }],
+    { sunlight: 1, wind: 0, outages: [] }
+  );
+  assert.ok(withBattery.reliability >= gasOnly.reliability, "battery should not reduce reliability");
 });

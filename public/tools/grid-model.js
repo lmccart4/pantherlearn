@@ -40,3 +40,28 @@ export function computeSupply(sources, hour, conditions) {
   }
   return Math.round(mw);
 }
+
+// Simulate a full day (24 hours) and compute reliability metrics.
+export function simulateDay(sources, conditions) {
+  const batteryMW = sources
+    .filter((s) => SOURCE_TYPES[s.type]?.storage)
+    .reduce((sum, s) => sum + SOURCE_TYPES[s.type].capacityMW * s.units, 0);
+  const hours = [];
+  let unservedMWh = 0;
+  const blackoutHours = [];
+  for (let h = 0; h < 24; h++) {
+    const demand = computeDemand(h);
+    const baseSupply = computeSupply(sources, h, conditions);
+    let deficit = Math.max(0, demand - baseSupply);
+    const fromBattery = Math.min(deficit, batteryMW);
+    deficit -= fromBattery;
+    const served = demand - deficit;
+    if (deficit > 0) {
+      blackoutHours.push(h);
+      unservedMWh += deficit; // 1-hour blocks → MWh == MW here
+    }
+    hours.push({ hour: h, demand, supply: baseSupply + fromBattery, served, deficit });
+  }
+  const reliability = (24 - blackoutHours.length) / 24;
+  return { hours, reliability, blackoutHours, totalUnservedMWh: Math.round(unservedMWh) };
+}
