@@ -175,6 +175,7 @@ const saver = makeStateSaver({});
 
 let state = emptyState();
 let selectedStarId = null;
+let autoSent = false; // one-shot guard for auto-send (manual submit always re-sends)
 
 function zoneLabel(zoneId) {
   const z = ZONES.find((z) => z.id === zoneId);
@@ -295,7 +296,8 @@ function handleZoneClick(zoneId) {
 function saveAndRender() {
   saver.save({ state, selectedStarId });
   render();
-  if (isComplete(state)) {
+  if (!autoSent && isComplete(state)) {
+    autoSent = true;
     const result = scoreState(state);
     sendActivityScore(result.score, 5, true);
   }
@@ -313,6 +315,7 @@ function submitAll() {
 function resetAll() {
   state = emptyState();
   selectedStarId = null;
+  autoSent = false;
   document.getElementById("scoreBox").textContent = "";
   saveAndRender();
 }

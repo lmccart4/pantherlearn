@@ -209,12 +209,15 @@ export function scoreDesign(state, map) {
   const cost = computeCost(map, state.placedTowers);
   const withinBudget = cost <= map.budget;
 
-  // Coverage: up to 2 points
+  // Coverage: up to 2 points. Ladder calibrated to this map's budget reality — the max coverage
+  // achievable WITHIN budget while also diversifying for strategy points is ~0.72, and pure-macro
+  // spam tops at ~0.806. Rewarding a balanced ~0.70+ design with full coverage credit lets an
+  // excellent in-budget design reach 5/5, while coverage-only spam (strategy 0) still caps at 3.5.
   let coverageScore = 0;
-  if (coverage.combinedPct >= 0.90) coverageScore = 2;
-  else if (coverage.combinedPct >= 0.75) coverageScore = 1.5;
-  else if (coverage.combinedPct >= 0.60) coverageScore = 1.0;
-  else if (coverage.combinedPct >= 0.40) coverageScore = 0.5;
+  if (coverage.combinedPct >= 0.70) coverageScore = 2;
+  else if (coverage.combinedPct >= 0.55) coverageScore = 1.5;
+  else if (coverage.combinedPct >= 0.40) coverageScore = 1.0;
+  else if (coverage.combinedPct >= 0.25) coverageScore = 0.5;
 
   // Budget: 1 point
   const budgetScore = withinBudget ? 1 : 0;

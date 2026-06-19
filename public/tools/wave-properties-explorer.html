@@ -113,7 +113,7 @@
 </div>
 
 <script type="module">
-import { PARAMS, createState, sampleWave, waveSpeed, wavePeriod, checkAnswers } from "./wave-properties-explorer-model.js";
+import { PARAMS, createState, sampleWave, waveSpeed, wavePeriod, checkAnswers, answersComplete } from "./wave-properties-explorer-model.js";
 import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
 
 const DICT = {
@@ -164,6 +164,7 @@ let state = createState();
 let answers = { amplitudeRead: "", wavelengthRead: "", speedCalc: "", predDoubleF: null, predLambdaUp: null };
 let submitted = false;
 let scoreResult = null;
+let autoSent = false;
 
 function fmt(n) { return Number(n).toFixed(1); }
 
@@ -259,6 +260,7 @@ function renderQuestionChoices(groupId, options, field) {
       answers[field] = opt.id;
       submitted = false;
       saveState();
+      maybeAutoSend();
       render();
     };
     host.appendChild(btn);
@@ -275,6 +277,14 @@ function renderInputs() {
 
 function saveState() {
   saver.save({ state, answers, submitted, scoreResult });
+}
+
+// AUTO-SEND once when all five inputs are filled (natural "done" state).
+function maybeAutoSend() {
+  if (autoSent || !answersComplete(answers)) return;
+  const r = checkAnswers(state, answers);
+  sendActivityScore(r.score, 5, true);
+  autoSent = true;
 }
 
 function submitAnswers() {
@@ -300,6 +310,7 @@ function resetAll() {
   answers = { amplitudeRead: "", wavelengthRead: "", speedCalc: "", predDoubleF: null, predLambdaUp: null };
   submitted = false;
   scoreResult = null;
+  autoSent = false;
   saveState();
   render();
 }
@@ -341,9 +352,9 @@ function clampState(key, v) {
   return Math.round(rounded * 100) / 100;
 }
 
-document.getElementById("qAmp").oninput = (e) => { answers.amplitudeRead = e.target.value; submitted = false; saveState(); renderScore(); };
-document.getElementById("qLambda").oninput = (e) => { answers.wavelengthRead = e.target.value; submitted = false; saveState(); renderScore(); };
-document.getElementById("qSpeed").oninput = (e) => { answers.speedCalc = e.target.value; submitted = false; saveState(); renderScore(); };
+document.getElementById("qAmp").oninput = (e) => { answers.amplitudeRead = e.target.value; submitted = false; saveState(); maybeAutoSend(); renderScore(); };
+document.getElementById("qLambda").oninput = (e) => { answers.wavelengthRead = e.target.value; submitted = false; saveState(); maybeAutoSend(); renderScore(); };
+document.getElementById("qSpeed").oninput = (e) => { answers.speedCalc = e.target.value; submitted = false; saveState(); maybeAutoSend(); renderScore(); };
 
 document.getElementById("submitBtn").onclick = submitAnswers;
 document.getElementById("resetBtn").onclick = resetAll;

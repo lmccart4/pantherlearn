@@ -41,7 +41,7 @@ export const DEFAULT_PARAMS = {
     orbiterMassKg: 1000,
     distanceDisplay: 1.0,    // AU
     velocityDisplay: 29.8,   // km/s
-    prediction: "elliptical", // student prediction
+    prediction: null, // student prediction — starts UNSELECTED so the default can't auto-score 0/5
   },
   ellipses: {
     presetId: "sun",

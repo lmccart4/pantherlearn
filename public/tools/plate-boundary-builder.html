@@ -81,7 +81,7 @@ const DICT = {
   progress: { en: "Completed", es: "Completado" },
   of: { en: "of", es: "de" },
   boundaryQ: { en: "What type of boundary is this?", es: "¿Qué tipo de frontera es esta?" },
-  netForceQ: { en: "Is the net force balanced or unbalanced?", es: "¿La fuerza neta está equilibrada o desequilibrada?" },
+  netForceQ: { en: "Is the net force on each plate balanced or unbalanced?", es: "¿La fuerza neta sobre cada placa está equilibrada o desequilibrada?" },
   hazardQ: { en: "What motion or hazard does this cause?", es: "¿Qué movimiento o peligro causa esto?" },
   noForce: { en: "tap to place", es: "tocar para colocar" },
   submit: { en: "Submit Diagrams", es: "Enviar diagramas" },
@@ -97,6 +97,7 @@ let state = emptyState();
 let activeScenarioId = SCENARIOS[0].id;
 let selectedForce = null;
 let submitted = false;
+let autoSent = false;
 
 function countCompleted() {
   let n = 0;
@@ -105,6 +106,22 @@ function countCompleted() {
     if (s.leftForce && s.rightForce && s.boundaryType && s.netForce && s.hazard) n++;
   }
   return n;
+}
+
+function allComplete() {
+  return countCompleted() === SCENARIOS.length;
+}
+
+function maybeAutoSend() {
+  if (autoSent || submitted) return;
+  if (!allComplete()) return;
+  autoSent = true;
+  const result = scoreScenarios(state);
+  sendActivityScore(result.score, 5, true);
+  submitted = true;
+  saveState();
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5`;
 }
 
 function forceSymbol(id) {
@@ -254,6 +271,7 @@ function resetAll() {
   activeScenarioId = SCENARIOS[0].id;
   selectedForce = null;
   submitted = false;
+  autoSent = false;
   document.getElementById("scoreBox").textContent = "";
   saveState();
   render();
@@ -264,6 +282,7 @@ function render() {
   renderProgress();
   renderTabs();
   renderScenario();
+  maybeAutoSend();
 }
 
 // Events

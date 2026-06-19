@@ -116,6 +116,8 @@ const DICT = {
   distance: { en: "Starting distance", es: "Distancia inicial" },
   velocity: { en: "Tangential velocity", es: "Velocidad tangencial" },
   prediction: { en: "Predict orbit shape", es: "Predice la forma de la órbita" },
+  choosePred: { en: "— Choose a prediction —", es: "— Elige una predicción —" },
+  predictFirst: { en: "Pick your prediction above, then Run to check your score.", es: "Elige tu predicción arriba y luego ejecuta para ver tu puntuación." },
   target: { en: "Target eccentricity", es: "Excentricidad objetivo" },
   shape: { en: "Shape", es: "Forma" },
   period: { en: "Period", es: "Período" },
@@ -198,14 +200,18 @@ function initControls() {
 
   const predSelect = document.getElementById("predSelect");
   predSelect.innerHTML = "";
+  const predPlaceholder = document.createElement("option");
+  predPlaceholder.value = "";
+  predPlaceholder.textContent = tr.t("choosePred");
+  predSelect.appendChild(predPlaceholder);
   for (const s of ORBIT_SHAPES) {
     const opt = document.createElement("option");
     opt.value = s;
     opt.textContent = tShape(s);
     predSelect.appendChild(opt);
   }
-  predSelect.value = params.prediction || "elliptical";
-  predSelect.onchange = () => { params.prediction = predSelect.value; saveParams(); };
+  predSelect.value = params.prediction || "";
+  predSelect.onchange = () => { params.prediction = predSelect.value || null; saveParams(); };
 
   if (MODE === "learn") {
     document.getElementById("predictionRow").style.display = "";
@@ -277,6 +283,15 @@ function runSimulation() {
   lastScore = computeScore(MODE, params, runResult);
   renderReadouts();
   drawStaticOrbit();
+  // AUTO-send on completion: results are computed the moment the sim runs, so send
+  // immediately rather than waiting for the animation to finish (which a student can
+  // interrupt with Stop). The manual Submit button re-sends with no guard.
+  if (MODE === "learn" && !params.prediction) {
+    // Exploring without a prediction must NOT silently lock in 0/5 — prompt instead of scoring.
+    document.getElementById("scoreBox").textContent = tr.t("predictFirst");
+  } else if (lastScore) {
+    sendActivityScore(lastScore.score, lastScore.maxScore, true);
+  }
   animateOrbit();
   saveParams();
 }
@@ -299,10 +314,7 @@ function animateOrbit() {
     drawStaticOrbit(idx);
     if (idx >= samples.length - 1) {
       stopAnimation();
-      // Auto-send score once animation finishes
-      if (lastScore) {
-        sendActivityScore(lastScore.score, lastScore.maxScore, true);
-      }
+      // Score already auto-sent in runSimulation() the moment results were computed.
     } else {
       animationId = requestAnimationFrame(step);
     }
@@ -437,6 +449,8 @@ function submitScore() {
   if (lastScore.breakdown) {
     box.textContent += ` · ${lastScore.breakdown}`;
   }
+  const btn = document.getElementById("submitBtn");
+  if (btn) btn.textContent = tr.t("submitted");
 }
 
 function reset() {

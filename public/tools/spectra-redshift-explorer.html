@@ -91,6 +91,7 @@ const DICT = {
   inferredVelocity: { en: "Recession velocity", es: "Velocidad de recesión" },
   kmps: { en: "km/s", es: "km/s" },
   nm: { en: "nm", es: "nm" },
+  zUnit: { en: "(no units)", es: "(sin unidades)" },
   submit: { en: "Submit Answers", es: "Enviar respuestas" },
   submitted: { en: "✓ Submitted", es: "✓ Enviado" },
   scoreLbl: { en: "Score", es: "Puntuación" },
@@ -110,8 +111,30 @@ const items = isIdentify ? stars : galaxies;
 
 let currentIndex = 0;
 let submitted = false;
+let autoSent = false;    // one-shot guard for auto-send (manual submit still always re-sends)
 const selections = {};   // starId -> Set of element strings
 const measurements = {}; // galaxyId -> { measuredWavelength, inferredZ, inferredVelocity }
+
+// All items answered? (every star has a selection / every galaxy has all 3 measurements)
+function allComplete() {
+  if (isIdentify) {
+    return stars.length > 0 && stars.every((star) => (selections[star.id] || []).length > 0);
+  }
+  return galaxies.length > 0 && galaxies.every((galaxy) => {
+    const m = measurements[galaxy.id] || {};
+    return m.measuredWavelength != null && m.inferredZ != null && m.inferredVelocity != null;
+  });
+}
+
+// Auto-send the final score once the student finishes every item.
+function autoSendIfComplete() {
+  if (autoSent || !allComplete()) return;
+  autoSent = true;
+  const result = isIdentify
+    ? scoreIdentifyState(stars, selections)
+    : scoreRedshiftState(galaxies, measurements);
+  sendActivityScore(result.score, 5, true);
+}
 
 function wavelengthToX(wavelength, width) {
   const frac = (wavelength - SPECTRUM_RANGE.min) / (SPECTRUM_RANGE.max - SPECTRUM_RANGE.min);
@@ -290,8 +313,15 @@ function renderRedshift() {
   wrap.className = "spectrum-wrap";
   panel.appendChild(wrap);
 
-  // Galaxy spectrum: shifted absorption lines.
-  const shiftedLines = REFERENCE_LINES.H.map((w) => ({ wavelength: w * (1 + galaxy.z) }));
+  // Galaxy spectrum: shifted absorption lines. ALWAYS include the galaxy's own
+  // rest line (shifted) so the student has a real target to measure — some
+  // galaxies use a non-hydrogen rest line (e.g. Na 589 nm), which would
+  // otherwise have no matching line in a hydrogen-only spectrum.
+  const restSet = new Set([galaxy.restWavelength, ...REFERENCE_LINES.H]);
+  const shiftedLines = Array.from(restSet)
+    .map((w) => w * (1 + galaxy.z))
+    .filter((w) => w >= SPECTRUM_RANGE.min && w <= SPECTRUM_RANGE.max)
+    .map((wavelength) => ({ wavelength }));
   const svg = renderSpectrum(wrap, shiftedLines, { markerWavelength });
 
   const axis = document.createElement("div");
@@ -356,7 +386,7 @@ function renderRedshift() {
     return group;
   }
 
-  panel.appendChild(makeInput("inferredZ", "inferredRedshift", "nm", "0.001"));
+  panel.appendChild(makeInput("inferredZ", "inferredRedshift", "zUnit", "0.001"));
   panel.appendChild(makeInput("inferredVelocity", "inferredVelocity", "kmps", "100"));
 
   host.appendChild(panel);
@@ -402,6 +432,7 @@ function renderProgress() {
 
 function saveState() {
   saver.save({ mode: MODE, currentIndex, selections, measurements, submitted });
+  autoSendIfComplete();
 }
 
 function submitAll() {
@@ -419,6 +450,7 @@ function submitAll() {
 function resetAll() {
   currentIndex = 0;
   submitted = false;
+  autoSent = false;
   for (const k in selections) delete selections[k];
   for (const k in measurements) delete measurements[k];
   document.getElementById("scoreBox").textContent = "";
@@ -456,6 +488,7 @@ document.getElementById("resetBtn").onclick = resetAll;
 window.addEventListener("beforeunload", () => saver.flush());
 
 render();
+autoSendIfComplete(); // resume: if restored state is already complete, send the score
 </script>
 </body>
 </html>

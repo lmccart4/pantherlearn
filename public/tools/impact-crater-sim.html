@@ -57,9 +57,11 @@
 
   <div class="actions">
     <button class="primary" id="runBtn"></button>
+    <button class="secondary" id="submitBtn" style="border-color:var(--accent);color:var(--accent)"></button>
     <button class="secondary" id="resetBtn"></button>
   </div>
   <div id="scoreBox"></div>
+  <p class="hint" id="progressEl" style="margin-top:8px;"></p>
 </div>
 
 <script type="module">
@@ -91,6 +93,8 @@ const DICT = {
   scoreLbl: { en: "Score", es: "Puntuación" },
   reset: { en: "Reset", es: "Reiniciar" },
   airburstNote: { en: "No crater — the object broke up in the atmosphere.", es: "No hay cráter: el objeto se desintegró en la atmósfera." },
+  progress: { en: "Predictions made: {done}/6 across the three scenarios.", es: "Predicciones hechas: {done}/6 en los tres escenarios." },
+  progressDone: { en: "All predictions made — score sent automatically. Use Submit Score to re-send.", es: "Todas las predicciones hechas: la puntuación se envió automáticamente. Usa Enviar puntuación para reenviar." },
 };
 
 const tr = makeTranslator(DICT, "en");
@@ -98,6 +102,26 @@ const saver = makeStateSaver({});
 
 let state = emptyState();
 let submitted = false;
+let autoSent = false; // one-shot guard for AUTO-send (manual submit ignores this)
+
+function countPredictions() {
+  let done = 0;
+  for (const sc of SCENARIOS) {
+    const st = state.scenarios[sc.id] || {};
+    if (st.energyPred) done += 1;
+    if (st.craterPred) done += 1;
+  }
+  return done;
+}
+
+// AUTO-send once when the student has filled all 6 predictions (natural "done" state).
+function maybeAutoSend() {
+  if (autoSent) return;
+  if (countPredictions() < 6) return;
+  autoSent = true;
+  const result = scoreScenarios(state);
+  sendActivityScore(result.score, result.maxScore, true);
+}
 
 function formatSci(n) {
   if (n === 0) return "0";
@@ -310,8 +334,9 @@ function runImpact() {
 
 function submitScore() {
   const result = scoreScenarios(state);
-  sendActivityScore(result.score, 5, true); // ALWAYS re-send, no guard
+  sendActivityScore(result.score, result.maxScore, true); // ALWAYS re-send, no guard
   submitted = true;
+  autoSent = true;
   saveState();
   const box = document.getElementById("scoreBox");
   box.innerHTML = `<span class="correct">${tr.t("submitted")}</span> — ${tr.t("scoreLbl")}: ${result.score}/5 (${result.correct}/${result.total} predictions)`;
@@ -320,6 +345,7 @@ function submitScore() {
 function resetAll() {
   state = emptyState();
   submitted = false;
+  autoSent = false;
   document.getElementById("scoreBox").innerHTML = "";
   saveState();
   render();
@@ -334,13 +360,24 @@ function renderStaticText() {
   document.getElementById("langBtn").textContent = tr.t("langName");
   document.getElementById("promptEl").textContent = tr.t("prompt");
   document.getElementById("runBtn").textContent = tr.t("run");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
   document.getElementById("resetBtn").textContent = tr.t("reset");
+}
+
+function renderProgress() {
+  const el = document.getElementById("progressEl");
+  if (!el) return;
+  const done = countPredictions();
+  el.textContent = done >= 6 ? tr.t("progressDone") : tr.t("progress").replace("{done}", String(done));
 }
 
 function render() {
   renderStaticText();
   renderTabs();
   renderPanel();
+  renderProgress();
+  // AUTO-send fires here so any path that fills the last prediction triggers it.
+  maybeAutoSend();
 }
 
 document.getElementById("langBtn").onclick = () => {
@@ -348,6 +385,7 @@ document.getElementById("langBtn").onclick = () => {
   render();
 };
 document.getElementById("runBtn").onclick = runImpact;
+document.getElementById("submitBtn").onclick = submitScore;
 document.getElementById("resetBtn").onclick = resetAll;
 window.addEventListener("beforeunload", () => saver.flush());
 

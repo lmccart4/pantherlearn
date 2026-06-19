@@ -51,6 +51,17 @@ function close(a, b, tol) {
   return Math.abs(n - b) <= tol;
 }
 
+export function answersComplete(answers = {}) {
+  const filled = (v) => v !== null && v !== undefined && String(v).trim() !== "";
+  return (
+    filled(answers.amplitudeRead) &&
+    filled(answers.wavelengthRead) &&
+    filled(answers.speedCalc) &&
+    filled(answers.predDoubleF) &&
+    filled(answers.predLambdaUp)
+  );
+}
+
 export function checkAnswers(state, answers = {}) {
   const speed = waveSpeed(state);
   const breakdown = [];

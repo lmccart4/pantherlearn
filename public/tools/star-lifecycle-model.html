@@ -70,7 +70,7 @@ import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.j
 
 const DICT = {
   title: { en: "Star Life-Cycle Model", es: "Modelo del Ciclo de Vida de las Estrellas" },
-  langName: { en: "Español", es: "English" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
   prompt: { en: "Build each star's life-cycle sequence, then match each mass to its final fate.", es: "Construye la secuencia del ciclo de vida de cada estrella y luego empareja cada masa con su destino final." },
   progress: { en: "Completed", es: "Completado" },
   of: { en: "of", es: "de" },
@@ -90,6 +90,7 @@ let state = emptyState();
 let activeTrackId = TRACKS[0].id;
 let selectedStage = null;
 let submitted = false;
+let autoSent = false; // one-shot guard for auto-send (manual submit always re-sends)
 
 function countCompleted() {
   let n = 0;
@@ -221,7 +222,8 @@ function renderScenario() {
 
 function saveState() {
   saver.save({ state, activeTrackId, selectedStage, submitted });
-  if (isComplete(state)) {
+  if (!autoSent && isComplete(state)) {
+    autoSent = true;
     const r = scoreState(state);
     sendActivityScore(r.score, 5, true);
   }
@@ -240,6 +242,7 @@ function resetAll() {
   activeTrackId = TRACKS[0].id;
   selectedStage = null;
   submitted = false;
+  autoSent = false;
   document.getElementById("scoreBox").textContent = "";
   saveState();
   render();

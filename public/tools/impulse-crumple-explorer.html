@@ -265,9 +265,12 @@ function runCrash() {
 
 function maybeAutoScore() {
   const result = scoreExploration(state);
-  if (result.score > 0) {
-    sendActivityScore(result.score, 5, true);
-  }
+  // Done = compared at least two distinct barriers (the learning goal). Until then
+  // save progress with gameComplete:false; once compared, mark complete (even if the
+  // running score is still low). Submit button also re-sends unconditionally.
+  const distinct = new Set((state.testsRun || []).map((t) => t.barrierId)).size;
+  const done = distinct >= 2;
+  sendActivityScore(result.score, 5, done);
 }
 
 function submitScore() {

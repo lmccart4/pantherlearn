@@ -2,7 +2,7 @@
 
 export const STAGES = [
   { id: "nebula", label: { en: "Nebula", es: "Nebulosa" } },
-  { id: "protostar", label: { en: "Protostar", es: "Protostrella" } },
+  { id: "protostar", label: { en: "Protostar", es: "Protoestrella" } },
   { id: "main-sequence", label: { en: "Main-Sequence Star", es: "Estrella de secuencia principal" } },
   { id: "red-giant", label: { en: "Red Giant", es: "Gigante roja" } },
   { id: "planetary-nebula", label: { en: "Planetary Nebula", es: "Nebulosa planetaria" } },

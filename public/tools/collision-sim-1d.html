@@ -295,11 +295,10 @@ function runSimulation() {
   document.getElementById("kePill").textContent = `${tr.t("ke")}: ${formatNumber(result.keBefore / 1000)} / ${formatNumber(result.keAfter / 1000)} kJ`;
   renderMomentumBars(result);
 
-  // Auto-send score if predictions were entered.
+  // Auto-send score on results — always fire gameComplete so the lesson unlocks
+  // even when predictions are blank/wrong (score may be 0). No score>0 guard.
   const scored = scorePrediction(state);
-  if (scored.score > 0) {
-    sendActivityScore(scored.score, 5, true);
-  }
+  sendActivityScore(scored.score, 5, true);
 
   // Simple animation loop (2 seconds of motion).
   if (animTimer) clearInterval(animTimer);

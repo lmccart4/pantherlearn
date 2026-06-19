@@ -127,6 +127,7 @@ const saver = makeStateSaver({});
 let state = emptyState();
 let selectedRegionId = null;
 let submitted = false;
+let autoSent = false;
 
 function radiusForDepth(depth) {
   return CROSS_MAX_R * (1 - depth / EARTH_RADIUS_KM);
@@ -390,6 +391,7 @@ function resetAll() {
   state = emptyState();
   selectedRegionId = null;
   submitted = false;
+  autoSent = false;
   document.getElementById("scoreBox").textContent = "";
   saveState();
   render();
@@ -403,9 +405,14 @@ function render() {
   renderRegionControls();
   renderReasoningControls();
 
-  if (allComplete()) {
+  // AUTO-SEND once on completion (one-shot guard so it doesn't spam on every render)
+  if (allComplete() && !autoSent && !submitted) {
+    autoSent = true;
     const result = scoreState(state);
     sendActivityScore(result.score, 5, true);
+    submitted = true;
+    saveState();
+    document.getElementById("scoreBox").textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5`;
   }
 }
 

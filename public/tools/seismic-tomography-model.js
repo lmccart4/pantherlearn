@@ -121,7 +121,7 @@ export const REASONING_QUESTIONS = [
   },
   {
     id: "fastestP",
-    correct: "innerCore",
+    correct: "mantle",
     prompt: {
       en: "Looking at the P-wave graph, where do P-waves travel fastest?",
       es: "Mirando la gráfica de ondas P, ¿dónde viajan las ondas P más rápido?",
@@ -161,7 +161,7 @@ export function scoreState(state) {
   const matOk = state.reasoning.materialState === "liquid";
   if (matOk) score += 0.5;
   breakdown.push(`materialState:${matOk ? 0.5 : 0}`);
-  const fastOk = state.reasoning.fastestP === "innerCore";
+  const fastOk = state.reasoning.fastestP === "mantle";
   if (fastOk) score += 0.5;
   breakdown.push(`fastestP:${fastOk ? 0.5 : 0}`);
   return {
