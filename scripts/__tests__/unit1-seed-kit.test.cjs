@@ -57,6 +57,17 @@ test('rubric3D has 3 criteria each with 4 levels', () => {
   assert.strictEqual(b.linkedBlockId, 'cp1');
 });
 
+test('mdTable builds a GFM markdown table in a text block (no nested arrays)', () => {
+  const b = k.mdTable({ headers: ['A', 'B'], rows: [['1', '2'], ['3', '4']], lead: '**T**', note: 'src' });
+  assert.strictEqual(b.type, 'text');
+  assert.strictEqual(typeof b.content, 'string'); // stored value is a string, not a nested array
+  assert.match(b.content, /\| A \| B \|/);
+  assert.match(b.content, /\| --- \| --- \|/);
+  assert.match(b.content, /\| 1 \| 2 \|/);
+  assert.match(b.content, /\*\*T\*\*/);
+  assert.match(b.content, /\*src\*/);
+});
+
 test('teacherCheckpoint is scored and accepts explicit id', () => {
   const b = k.teacherCheckpoint({ id: 'cp1', title: 'Show Me', prompt: 'Explain.', weight: 15 });
   assert.strictEqual(b.id, 'cp1');

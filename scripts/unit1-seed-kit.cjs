@@ -32,8 +32,24 @@ const cer = ({ prompt, claimHint = 'State your claim.', evidenceHint = 'Cite the
 const ranking = ({ prompt, items, difficulty = 'apply' }) =>
   ({ id: uid(), type: 'question', questionType: 'ranking', prompt, items, difficulty });
 
+// INTERACTIVE table — students type values into blank cells. rows/columns are arrays
+// of {key,label} objects (NOT a 2D value array — Firestore forbids arrays nested in arrays).
 const dataTable = ({ title, preset = 'numeric', rows, columns, ...rest }) =>
   ({ id: uid(), type: 'data_table', title, preset, ...(rows ? { rows } : {}), ...(columns ? { columns } : {}), ...rest });
+
+// DISPLAY table — renders pre-filled reference data as a GFM markdown table inside a text
+// block (renderMarkdown supports `| a | b |` + `| --- |`). Use this for data students READ;
+// use dataTable for data students ENTER. `rows` is a 2D array but only used to build a string
+// at construction time, so nothing nested-array is ever written to Firestore.
+const mdTable = ({ headers, rows, lead, note }) => {
+  const head = `| ${headers.join(' | ')} |`;
+  const sep = `| ${headers.map(() => '---').join(' | ')} |`;
+  const body = rows.map(r => `| ${r.join(' | ')} |`).join('\n');
+  let md = `${head}\n${sep}\n${body}`;
+  if (lead) md = `${lead}\n\n${md}`;
+  if (note) md = `${md}\n\n*${note}*`;
+  return text(md);
+};
 
 const barChart = ({ title, barCount = 3 }) => ({ id: uid(), type: 'bar_chart', title, barCount });
 
@@ -105,6 +121,6 @@ async function seedLesson(db, courseId, lesson) {
 
 module.exports = {
   uid, sectionHeader, objectives, text, callout, mc, shortAnswer, cer, ranking,
-  dataTable, barChart, sketch, evidenceUpload, image, externalLink, embed,
+  dataTable, mdTable, barChart, sketch, evidenceUpload, image, externalLink, embed,
   rubric, teacherCheckpoint, rubric3D, LEVELS_4, seedLesson,
 };
