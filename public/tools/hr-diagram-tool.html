@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>H-R Diagram Tool</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,sans-serif; font-size:16px; }
+  .wrap { max-width:980px; margin:0 auto; padding:16px; }
+  header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; }
+  h1 { font-size:20px; margin:0; }
+  .lang { background:var(--panel); border:1px solid #334155; color:var(--ink); border-radius:8px; padding:6px 10px; cursor:pointer; font-size:13px; }
+  .hint { font-size:13px; color:var(--muted); margin:0 0 14px; }
+  .readout { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .pill { padding:4px 10px; border-radius:999px; background:#0b1220; font-size:13px; }
+  .main { display:grid; grid-template-columns: 220px 1fr; gap:14px; }
+  @media (max-width:760px) { .main { grid-template-columns: 1fr; } }
+
+  .palette { background:var(--panel); border-radius:12px; padding:12px; }
+  .palette h2 { font-size:14px; margin:0 0 10px; color:var(--muted); }
+  .star-card { background:#0b1220; border:1px solid #334155; border-radius:8px; padding:8px 10px; margin-bottom:8px; cursor:pointer; user-select:none; }
+  .star-card:hover { border-color:var(--accent); }
+  .star-card.selected { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
+  .star-card.placed { opacity:0.85; }
+  .star-name { font-size:13px; font-weight:600; }
+  .star-meta { font-size:11px; color:var(--muted); }
+  .star-zone { font-size:11px; margin-top:4px; display:inline-block; padding:2px 6px; border-radius:999px; background:#0f172a; }
+
+  .diagram-wrap { background:var(--panel); border-radius:12px; padding:12px; position:relative; }
+  svg { width:100%; height:auto; display:block; min-height:280px; }
+  .axis-label { fill:var(--muted); font-size:11px; }
+  .grid-line { stroke:#334155; stroke-width:1; stroke-dasharray:4 4; }
+  .zone { opacity:0.18; cursor:pointer; transition:opacity 0.15s; }
+  .zone:hover { opacity:0.35; }
+  .zone-label { font-size:12px; font-weight:600; fill:var(--ink); opacity:0.9; pointer-events:none; }
+  .star-dot { cursor:pointer; }
+  .star-label { fill:var(--ink); font-size:10px; pointer-events:none; }
+
+  .questions { margin-top:14px; }
+  .question { background:var(--panel); border-radius:12px; padding:12px; margin-bottom:10px; }
+  .question-label { font-size:13px; color:var(--ink); margin-bottom:8px; display:block; }
+  .btn-group { display:flex; gap:6px; flex-wrap:wrap; }
+  .choice-btn { background:#0b1220; border:1px solid #334155; border-radius:6px; padding:6px 12px; color:var(--muted); font-size:13px; cursor:pointer; }
+  .choice-btn:hover { border-color:var(--accent); }
+  .choice-btn.selected { border-color:var(--accent); color:var(--accent); background:#0f172a; }
+
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .primary { flex:1; min-width:160px; padding:10px; border-radius:8px; border:1px solid var(--accent); background:#0b1220; color:var(--accent); font-size:14px; cursor:pointer; }
+  .primary:hover { background:#0f172a; }
+  .secondary { padding:10px 14px; border-radius:8px; border:1px solid #334155; background:var(--panel); color:var(--ink); font-size:14px; cursor:pointer; }
+  #scoreBox { font-size:13px; color:var(--muted); margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="readout">
+    <span class="pill" id="progressPill">—</span>
+    <span class="pill" id="scorePill">—</span>
+  </div>
+
+  <div class="main">
+    <div class="palette">
+      <h2 id="paletteTitle"></h2>
+      <div id="starList"></div>
+    </div>
+    <div class="diagram-wrap">
+      <svg id="hrSvg" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <clipPath id="plotClip"><rect x="40" y="20" width="540" height="340" /></clipPath>
+        </defs>
+
+        <!-- Zones -->
+        <g clip-path="url(#plotClip)">
+          <rect class="zone" data-zone="giant" x="20" y="20" width="560" height="132" fill="#fbbf24" />
+          <path class="zone" data-zone="main-sequence" d="M20,360 L120,320 L240,220 L360,140 L500,80 L560,70 L560,120 L420,180 L300,260 L180,360 L80,400 L20,400 Z" fill="#38bdf8" />
+          <rect class="zone" data-zone="white-dwarf" x="20" y="260" width="160" height="140" fill="#a78bfa" />
+        </g>
+
+        <!-- Zone labels -->
+        <text class="zone-label" x="530" y="50" text-anchor="end">Giants</text>
+        <text class="zone-label" x="540" y="70" text-anchor="end" style="font-size:10px;opacity:0.7">Gigantes</text>
+        <text class="zone-label" x="160" y="380" text-anchor="end">White Dwarfs</text>
+        <text class="zone-label" x="160" y="395" text-anchor="end" style="font-size:10px;opacity:0.7">Enanas Blancas</text>
+        <text class="zone-label" x="300" y="250" text-anchor="middle">Main Sequence</text>
+        <text class="zone-label" x="300" y="265" text-anchor="middle" style="font-size:10px;opacity:0.7">Secuencia Principal</text>
+
+        <!-- Grid lines -->
+        <g clip-path="url(#plotClip)">
+          <line class="grid-line" x1="40" y1="20" x2="40" y2="360" />
+          <line class="grid-line" x1="580" y1="20" x2="580" y2="360" />
+          <line class="grid-line" x1="40" y1="20" x2="580" y2="20" />
+          <line class="grid-line" x1="40" y1="360" x2="580" y2="360" />
+          <!-- Reference temp ticks -->
+          <line class="grid-line" x1="120" y1="20" x2="120" y2="360" />
+          <line class="grid-line" x1="280" y1="20" x2="280" y2="360" />
+          <line class="grid-line" x1="440" y1="20" x2="440" y2="360" />
+          <!-- Reference lum ticks -->
+          <line class="grid-line" x1="40" y1="120" x2="580" y2="120" />
+          <line class="grid-line" x1="40" y1="240" x2="580" y2="240" />
+        </g>
+
+        <!-- Placed stars rendered here -->
+        <g id="starsLayer" clip-path="url(#plotClip)"></g>
+
+        <!-- Axes -->
+        <line x1="40" y1="360" x2="580" y2="360" stroke="#94a3b8" stroke-width="2" />
+        <line x1="40" y1="20" x2="40" y2="360" stroke="#94a3b8" stroke-width="2" />
+        <text class="axis-label" x="300" y="390" text-anchor="middle">Temperature: hot ← → cool</text>
+        <text class="axis-label" x="300" y="400" text-anchor="middle" style="font-size:9px;opacity:0.7">Temperatura: caliente ← → fría</text>
+        <text class="axis-label" x="16" y="200" text-anchor="middle" transform="rotate(-90 16 200)">Luminosity (Sun = 1)</text>
+        <text class="axis-label" x="28" y="200" text-anchor="middle" transform="rotate(-90 28 200)" style="font-size:9px;opacity:0.7">Luminosidad (Sol = 1)</text>
+
+        <!-- Reference tick labels -->
+        <text class="axis-label" x="40" y="375" text-anchor="middle">30 000 K</text>
+        <text class="axis-label" x="120" y="375" text-anchor="middle">10 000 K</text>
+        <text class="axis-label" x="280" y="375" text-anchor="middle">5 000 K</text>
+        <text class="axis-label" x="440" y="375" text-anchor="middle">3 500 K</text>
+        <text class="axis-label" x="580" y="375" text-anchor="middle">2 500 K</text>
+
+        <text class="axis-label" x="52" y="24" text-anchor="start">100 000</text>
+        <text class="axis-label" x="52" y="124" text-anchor="start">100</text>
+        <text class="axis-label" x="52" y="244" text-anchor="start">1</text>
+        <text class="axis-label" x="52" y="356" text-anchor="start">0.001</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="questions" id="questions"></div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import {
+  ZONES, STAR_DATA, QUESTIONS, DIAGRAM,
+  tempToX, lumToY, zoneFromPosition,
+  emptyState, isComplete, scoreState,
+} from "./hr-diagram-tool-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "H-R Diagram Tool", es: "Diagrama H-R" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: {
+    en: "Place each star on the H-R diagram by selecting a star card and clicking the zone where it belongs.",
+    es: "Coloca cada estrella en el diagrama H-R seleccionando una tarjeta y haciendo clic en la zona a la que pertenece.",
+  },
+  paletteTitle: { en: "Star data", es: "Datos de estrellas" },
+  progress: { en: "Placed", es: "Colocadas" },
+  of: { en: "of", es: "de" },
+  answered: { en: "Answered", es: "Respondidas" },
+  placed: { en: "Placed in", es: "Colocada en" },
+  notPlaced: { en: "Click to select", es: "Toca para seleccionar" },
+  submit: { en: "Submit H-R Diagram", es: "Enviar diagrama H-R" },
+  submitted: { en: "✓ Submitted", es: "✓ Enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+  selectAStar: { en: "Select a star, then click a zone on the diagram.", es: "Selecciona una estrella, luego toca una zona del diagrama." },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+let state = emptyState();
+let selectedStarId = null;
+
+function zoneLabel(zoneId) {
+  const z = ZONES.find((z) => z.id === zoneId);
+  return z ? z.label[tr.lang] : zoneId;
+}
+
+function zoneColor(zoneId) {
+  const z = ZONES.find((z) => z.id === zoneId);
+  return z ? z.color : "#94a3b8";
+}
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("paletteTitle").textContent = tr.t("paletteTitle");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+}
+
+function renderProgress() {
+  const placed = STAR_DATA.filter((s) => state.placements[s.id]).length;
+  const answered = QUESTIONS.filter((q) => typeof state.answers[q.id] === "number").length;
+  document.getElementById("progressPill").textContent =
+    `${tr.t("progress")}: ${placed} ${tr.t("of")} ${STAR_DATA.length} · ${tr.t("answered")}: ${answered} ${tr.t("of")} ${QUESTIONS.length}`;
+
+  const result = scoreState(state);
+  const sp = document.getElementById("scorePill");
+  sp.textContent = `${tr.t("scoreLbl")}: ${result.score}/${result.maxScore}`;
+  sp.className = "pill " + (result.score >= 4 ? "ok" : result.score >= 2 ? "warn" : "bad");
+}
+
+function renderStarList() {
+  const host = document.getElementById("starList");
+  host.innerHTML = "";
+  for (const s of STAR_DATA) {
+    const placedZone = state.placements[s.id];
+    const el = document.createElement("div");
+    el.className = "star-card" + (selectedStarId === s.id ? " selected" : "") + (placedZone ? " placed" : "");
+    el.draggable = true;
+    el.innerHTML = `
+      <div class="star-name" style="color:${placedZone ? zoneColor(placedZone) : 'var(--ink)'}">${s.name[tr.lang]}</div>
+      <div class="star-meta">${s.tempK} K · ${s.color[tr.lang]} · L = ${s.luminosity}</div>
+      ${placedZone ? `<span class="star-zone" style="border:1px solid ${zoneColor(placedZone)}">${tr.t("placed")}: ${zoneLabel(placedZone)}</span>` : `<span class="star-zone" style="border:1px solid #334155">${tr.t("notPlaced")}</span>`}
+    `;
+    el.onclick = () => { selectedStarId = selectedStarId === s.id ? null : s.id; render(); };
+    el.ondragstart = (e) => {
+      selectedStarId = s.id;
+      e.dataTransfer.setData("text/plain", s.id);
+    };
+    host.appendChild(el);
+  }
+}
+
+function renderDiagram() {
+  const layer = document.getElementById("starsLayer");
+  layer.innerHTML = "";
+  for (const s of STAR_DATA) {
+    const zoneId = state.placements[s.id];
+    if (!zoneId) continue;
+    const cx = tempToX(s.tempK);
+    const cy = lumToY(s.luminosity);
+    const color = zoneColor(zoneId);
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.className.baseVal = "star-dot";
+    g.innerHTML = `
+      <circle cx="${cx}" cy="${cy}" r="6" fill="${color}" stroke="#0f172a" stroke-width="1.5" />
+      <text class="star-label" x="${cx + 10}" y="${cy + 3}">${s.name[tr.lang]}</text>
+    `;
+    layer.appendChild(g);
+  }
+}
+
+function renderQuestions() {
+  const host = document.getElementById("questions");
+  host.innerHTML = "";
+  for (const q of QUESTIONS) {
+    const wrap = document.createElement("div");
+    wrap.className = "question";
+    const label = document.createElement("label");
+    label.className = "question-label";
+    label.textContent = q.prompt[tr.lang];
+    wrap.appendChild(label);
+    const group = document.createElement("div");
+    group.className = "btn-group";
+    q.options.forEach((opt, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "choice-btn" + (state.answers[q.id] === idx ? " selected" : "");
+      btn.textContent = opt[tr.lang];
+      btn.onclick = () => {
+        state.answers[q.id] = idx;
+        state.submitted = false;
+        saveAndRender();
+      };
+      group.appendChild(btn);
+    });
+    wrap.appendChild(group);
+    host.appendChild(wrap);
+  }
+}
+
+function placeStar(starId, zoneId) {
+  if (!starId || !zoneId) return;
+  state.placements[starId] = zoneId;
+  selectedStarId = null;
+  state.submitted = false;
+  saveAndRender();
+}
+
+function handleZoneClick(zoneId) {
+  if (!selectedStarId) {
+    document.getElementById("promptEl").textContent = tr.t("selectAStar");
+    return;
+  }
+  placeStar(selectedStarId, zoneId);
+}
+
+function saveAndRender() {
+  saver.save({ state, selectedStarId });
+  render();
+  if (isComplete(state)) {
+    const result = scoreState(state);
+    sendActivityScore(result.score, 5, true);
+  }
+}
+
+function submitAll() {
+  const result = scoreState(state);
+  sendActivityScore(result.score, 5, true); // ALWAYS re-send, no guard
+  state.submitted = true;
+  saveAndRender();
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5 · ${result.starsCorrect}/${result.totalStars} stars · ${result.questionsCorrect}/${result.totalQuestions} questions`;
+}
+
+function resetAll() {
+  state = emptyState();
+  selectedStarId = null;
+  document.getElementById("scoreBox").textContent = "";
+  saveAndRender();
+}
+
+function render() {
+  renderStaticText();
+  renderProgress();
+  renderStarList();
+  renderDiagram();
+  renderQuestions();
+}
+
+// Zone interactions (click + drop)
+document.querySelectorAll(".zone").forEach((z) => {
+  const zoneId = z.dataset.zone;
+  z.addEventListener("click", () => handleZoneClick(zoneId));
+  z.addEventListener("dragover", (e) => { e.preventDefault(); });
+  z.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const starId = e.dataTransfer.getData("text/plain");
+    placeStar(starId, zoneId);
+  });
+});
+
+// Allow dropping anywhere on SVG, infer zone from position
+const svg = document.getElementById("hrSvg");
+svg.addEventListener("dragover", (e) => { e.preventDefault(); });
+svg.addEventListener("drop", (e) => {
+  e.preventDefault();
+  const starId = e.dataTransfer.getData("text/plain");
+  if (!starId) return;
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX;
+  pt.y = e.clientY;
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return;
+  const loc = pt.matrixTransform(ctm.inverse());
+  const zoneId = zoneFromPosition(loc.x, loc.y);
+  placeStar(starId, zoneId);
+});
+
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+document.getElementById("submitBtn").onclick = submitAll;
+document.getElementById("resetBtn").onclick = resetAll;
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

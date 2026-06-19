@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Star Life-Cycle Model</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:960px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .pill{padding:4px 10px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .tab{background:var(--panel);border:1px solid #334155;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;color:var(--muted);}
+  .tab.active{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .scenario{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .scenario h2{font-size:16px;margin:0 0 4px;}
+  .scenario p.subtitle{margin:0 0 16px;color:var(--muted);font-size:13px;}
+  .flow{display:flex;align-items:center;justify-content:flex-start;gap:4px;flex-wrap:wrap;margin-bottom:16px;}
+  .slot{min-width:110px;max-width:140px;flex:1;background:#0b1220;border:1px solid #334155;border-radius:8px;padding:10px 6px;text-align:center;cursor:pointer;font-size:12px;color:var(--muted);min-height:48px;display:flex;align-items:center;justify-content:center;}
+  .slot.filled{color:var(--ink);border-color:var(--accent);}
+  .arrow{color:var(--muted);font-size:16px;}
+  .palette{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .stage-btn{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:6px 10px;color:var(--muted);font-size:12px;cursor:pointer;}
+  .stage-btn:hover{border-color:var(--accent);}
+  .stage-btn.selected{border-color:var(--accent);color:var(--accent);background:#0f172a;box-shadow:0 0 0 2px var(--accent);}
+  .question{margin-bottom:14px;}
+  .question-label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block;}
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .choice-btn{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:6px 12px;color:var(--muted);font-size:13px;cursor:pointer;}
+  .choice-btn:hover{border-color:var(--accent);}
+  .choice-btn.selected{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+  .primary{flex:1;min-width:160px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  #scoreBox{font-size:13px;color:var(--muted);margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="readout">
+    <span class="pill" id="progressPill">—</span>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div id="scenarioHost"></div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import { STAGES, FINAL_OPTIONS, TRACKS, emptyState, scoreState, isComplete, stageLabel } from "./star-lifecycle-model-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Star Life-Cycle Model", es: "Modelo del Ciclo de Vida de las Estrellas" },
+  langName: { en: "Español", es: "English" },
+  prompt: { en: "Build each star's life-cycle sequence, then match each mass to its final fate.", es: "Construye la secuencia del ciclo de vida de cada estrella y luego empareja cada masa con su destino final." },
+  progress: { en: "Completed", es: "Completado" },
+  of: { en: "of", es: "de" },
+  pickStage: { en: "Pick a stage, then tap a box to place it.", es: "Elige una etapa y luego toca una casilla para colocarla." },
+  clear: { en: "Clear box", es: "Vaciar casilla" },
+  finalQ: { en: "What is the final fate for this star?", es: "¿Cuál es el destino final de esta estrella?" },
+  submit: { en: "Submit Model", es: "Enviar modelo" },
+  submitted: { en: "✓ Submitted", es: "✓ Enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+let state = emptyState();
+let activeTrackId = TRACKS[0].id;
+let selectedStage = null;
+let submitted = false;
+
+function countCompleted() {
+  let n = 0;
+  for (const t of TRACKS) {
+    const s = state[t.id];
+    if (s.sequence.every((x) => x) && s.finalStage) n++;
+  }
+  return n;
+}
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+}
+
+function renderProgress() {
+  const pill = document.getElementById("progressPill");
+  pill.textContent = `${tr.t("progress")}: ${countCompleted()} ${tr.t("of")} ${TRACKS.length}`;
+}
+
+function renderTabs() {
+  const host = document.getElementById("tabs");
+  host.innerHTML = "";
+  for (const t of TRACKS) {
+    const btn = document.createElement("button");
+    btn.className = "tab" + (t.id === activeTrackId ? " active" : "");
+    btn.textContent = t.title[tr.lang];
+    btn.onclick = () => { activeTrackId = t.id; render(); };
+    host.appendChild(btn);
+  }
+}
+
+function renderScenario() {
+  const t = TRACKS.find((x) => x.id === activeTrackId);
+  const st = state[t.id];
+  const host = document.getElementById("scenarioHost");
+  host.innerHTML = "";
+
+  const panel = document.createElement("div");
+  panel.className = "scenario";
+
+  const title = document.createElement("h2");
+  title.textContent = t.title[tr.lang];
+  panel.appendChild(title);
+
+  const sub = document.createElement("p");
+  sub.className = "subtitle";
+  sub.textContent = t.subtitle[tr.lang];
+  panel.appendChild(sub);
+
+  const pick = document.createElement("p");
+  pick.className = "hint";
+  pick.textContent = tr.t("pickStage");
+  panel.appendChild(pick);
+
+  // Flowchart slots
+  const flow = document.createElement("div");
+  flow.className = "flow";
+  for (let i = 0; i < t.sequenceLength; i++) {
+    if (i > 0) {
+      const arrow = document.createElement("span");
+      arrow.className = "arrow";
+      arrow.textContent = "→";
+      flow.appendChild(arrow);
+    }
+    const slot = document.createElement("button");
+    slot.className = "slot" + (st.sequence[i] ? " filled" : "");
+    const lbl = st.sequence[i] ? stageLabel(st.sequence[i])[tr.lang] : "—";
+    slot.textContent = lbl;
+    slot.onclick = () => {
+      st.sequence[i] = selectedStage;
+      submitted = false;
+      saveState();
+      render();
+    };
+    flow.appendChild(slot);
+  }
+  panel.appendChild(flow);
+
+  // Stage palette
+  const palette = document.createElement("div");
+  palette.className = "palette";
+  for (const sid of t.stagePool) {
+    const btn = document.createElement("button");
+    btn.className = "stage-btn" + (selectedStage === sid ? " selected" : "");
+    btn.textContent = stageLabel(sid)[tr.lang];
+    btn.onclick = () => {
+      selectedStage = selectedStage === sid ? null : sid;
+      render();
+    };
+    palette.appendChild(btn);
+  }
+  const clearBtn = document.createElement("button");
+  clearBtn.className = "stage-btn" + (selectedStage === null ? " selected" : "");
+  clearBtn.textContent = tr.t("clear");
+  clearBtn.onclick = () => { selectedStage = null; render(); };
+  palette.appendChild(clearBtn);
+  panel.appendChild(palette);
+
+  // Final fate question
+  const q = document.createElement("div");
+  q.className = "question";
+  const label = document.createElement("label");
+  label.className = "question-label";
+  label.textContent = tr.t("finalQ");
+  q.appendChild(label);
+  const group = document.createElement("div");
+  group.className = "btn-group";
+  for (const opt of FINAL_OPTIONS) {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn" + (st.finalStage === opt.id ? " selected" : "");
+    btn.textContent = opt.label[tr.lang];
+    btn.onclick = () => {
+      st.finalStage = opt.id;
+      submitted = false;
+      saveState();
+      render();
+    };
+    group.appendChild(btn);
+  }
+  q.appendChild(group);
+  panel.appendChild(q);
+
+  host.appendChild(panel);
+}
+
+function saveState() {
+  saver.save({ state, activeTrackId, selectedStage, submitted });
+  if (isComplete(state)) {
+    const r = scoreState(state);
+    sendActivityScore(r.score, 5, true);
+  }
+}
+
+function submitAll() {
+  const r = scoreState(state);
+  sendActivityScore(r.score, 5, true); // ALWAYS re-send, no guard
+  submitted = true;
+  saveState();
+  document.getElementById("scoreBox").textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${r.score}/5`;
+}
+
+function resetAll() {
+  state = emptyState();
+  activeTrackId = TRACKS[0].id;
+  selectedStage = null;
+  submitted = false;
+  document.getElementById("scoreBox").textContent = "";
+  saveState();
+  render();
+}
+
+function render() {
+  renderStaticText();
+  renderProgress();
+  renderTabs();
+  renderScenario();
+}
+
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+document.getElementById("submitBtn").onclick = submitAll;
+document.getElementById("resetBtn").onclick = resetAll;
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

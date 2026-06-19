@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Orbit / Gravity Simulator</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:960px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .panel{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+  .row label{font-size:13px;min-width:130px;}
+  .row input[type="range"]{flex:1;min-width:140px;}
+  .row input[type="number"]{width:90px;background:#0b1220;border:1px solid #334155;color:var(--ink);border-radius:6px;padding:5px 8px;font-size:13px;}
+  .row select{background:#0b1220;border:1px solid #334155;color:var(--ink);border-radius:6px;padding:5px 8px;font-size:13px;min-width:140px;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .pill{padding:5px 12px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+  canvas{width:100%;height:340px;display:block;background:#0b1220;border-radius:10px;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .primary{flex:1;min-width:140px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  #scoreBox{font-size:13px;color:var(--muted);margin-top:10px;}
+  .note{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="panel">
+    <div class="row">
+      <label id="presetLabel"></label>
+      <select id="presetSelect"></select>
+    </div>
+    <div class="row">
+      <label id="massLabel"></label>
+      <input type="number" id="massInput" step="any" />
+    </div>
+    <div class="row">
+      <label id="distLabel"></label>
+      <input type="range" id="distRange" />
+      <input type="number" id="distInput" step="any" />
+    </div>
+    <div class="row">
+      <label id="velLabel"></label>
+      <input type="range" id="velRange" />
+      <input type="number" id="velInput" step="any" />
+    </div>
+    <div class="row" id="predictionRow">
+      <label id="predLabel"></label>
+      <select id="predSelect"></select>
+    </div>
+    <div class="row hidden" id="targetRow">
+      <span class="pill" id="targetPill"></span>
+    </div>
+  </div>
+
+  <div class="readout">
+    <span class="pill" id="shapePill">—</span>
+    <span class="pill" id="periodPill">—</span>
+    <span class="pill" id="periPill">—</span>
+    <span class="pill" id="aphPill">—</span>
+    <span class="pill" id="eccPill">—</span>
+  </div>
+
+  <div class="panel" style="padding:8px;">
+    <canvas id="orbitCanvas" width="900" height="340"></canvas>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="runBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+    <button class="secondary" id="submitBtn" style="border-color:var(--accent);color:var(--accent)"></button>
+  </div>
+  <div id="scoreBox"></div>
+  <p class="note" id="noteEl"></p>
+</div>
+
+<script type="module">
+import {
+  PRESETS, DEFAULT_PARAMS, ORBIT_SHAPES, MODES,
+  toSI, displayFromSI, formatDistance, formatVelocity, formatTime,
+  integrate, computeScore, getModeConfig
+} from "./orbit-gravity-sim-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Orbit / Gravity Simulator", es: "Simulador de Órbita y Gravedad" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: {
+    en: "Set the central body, distance, and tangential velocity, then run the simulation.",
+    es: "Configura el cuerpo central, la distancia y la velocidad tangencial, luego ejecuta la simulación."
+  },
+  promptEllipses: {
+    en: "Adjust the starting velocity to match the target eccentricity.",
+    es: "Ajusta la velocidad inicial para igualar la excentricidad objetivo."
+  },
+  promptDeflect: {
+    en: "Change the asteroid's velocity so it misses Earth.",
+    es: "Cambia la velocidad del asteroide para que no impacte la Tierra."
+  },
+  preset: { en: "Central body", es: "Cuerpo central" },
+  mass: { en: "Orbiter mass (kg)", es: "Masa del orbitador (kg)" },
+  distance: { en: "Starting distance", es: "Distancia inicial" },
+  velocity: { en: "Tangential velocity", es: "Velocidad tangencial" },
+  prediction: { en: "Predict orbit shape", es: "Predice la forma de la órbita" },
+  target: { en: "Target eccentricity", es: "Excentricidad objetivo" },
+  shape: { en: "Shape", es: "Forma" },
+  period: { en: "Period", es: "Período" },
+  perihelion: { en: "Closest approach", es: "Aproximación más cercana" },
+  aphelion: { en: "Farthest point", es: "Punto más lejano" },
+  eccentricity: { en: "Eccentricity", es: "Excentricidad" },
+  speed: { en: "Speed range", es: "Rango de velocidad" },
+  run: { en: "▶ Run Simulation", es: "▶ Ejecutar simulación" },
+  stop: { en: "⏹ Stop", es: "⏹ Detener" },
+  reset: { en: "Reset", es: "Reiniciar" },
+  submit: { en: "Submit Score", es: "Enviar puntuación" },
+  submitted: { en: "✓ Score submitted", es: "✓ Puntuación enviada" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  note: {
+    en: "Gravity alone curves the path. A circular orbit needs just the right sideways speed; slower or faster produces an ellipse, and fast enough escapes.",
+    es: "La gravedad sola curva la trayectoria. Una órbita circular necesita la velocidad lateral exacta; más lenta o más rápida produce una elipse, y lo suficientemente rápida escapa."
+  },
+  impact: { en: "Impact", es: "Impacto" },
+  none: { en: "—", es: "—" },
+  miss: { en: "Miss distance", es: "Distancia de fallo" },
+};
+
+const SHAPE_LABELS = {
+  circular: { en: "Circular", es: "Circular" },
+  elliptical: { en: "Elliptical", es: "Elíptica" },
+  parabolic: { en: "Parabolic", es: "Parabólica" },
+  hyperbolic: { en: "Hyperbolic", es: "Hiperbólica" },
+  impact: { en: "Impact", es: "Impacto" },
+  none: { en: "—", es: "—" },
+};
+
+const PRESET_LABELS = {
+  sun: { en: "Sun", es: "Sol" },
+  earth: { en: "Earth", es: "Tierra" },
+};
+
+const MODE = new URLSearchParams(location.search).get("mode") || "learn";
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+let params = JSON.parse(JSON.stringify(DEFAULT_PARAMS[MODE]));
+let running = false;
+let runResult = null;
+let animationId = null;
+let lastScore = null;
+
+const canvas = document.getElementById("orbitCanvas");
+const ctx = canvas.getContext("2d");
+
+function tShape(shape) { return SHAPE_LABELS[shape]?.[tr.lang] ?? shape; }
+function tPreset(id) { return PRESET_LABELS[id]?.[tr.lang] ?? id; }
+
+function initControls() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+
+  const promptKey = MODE === "ellipses" ? "promptEllipses" : MODE === "deflect" ? "promptDeflect" : "prompt";
+  document.getElementById("promptEl").textContent = tr.t(promptKey);
+
+  document.getElementById("presetLabel").textContent = tr.t("preset");
+  document.getElementById("massLabel").textContent = tr.t("mass");
+  document.getElementById("distLabel").textContent = tr.t("distance");
+  document.getElementById("velLabel").textContent = tr.t("velocity");
+  document.getElementById("predLabel").textContent = tr.t("prediction");
+  document.getElementById("runBtn").textContent = tr.t("run");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("noteEl").textContent = tr.t("note");
+
+  const presetSelect = document.getElementById("presetSelect");
+  presetSelect.innerHTML = "";
+  for (const id of Object.keys(PRESETS)) {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = tPreset(id);
+    presetSelect.appendChild(opt);
+  }
+  presetSelect.value = params.presetId;
+  presetSelect.onchange = () => { params.presetId = presetSelect.value; applyPresetRanges(); render(); };
+
+  const predSelect = document.getElementById("predSelect");
+  predSelect.innerHTML = "";
+  for (const s of ORBIT_SHAPES) {
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = tShape(s);
+    predSelect.appendChild(opt);
+  }
+  predSelect.value = params.prediction || "elliptical";
+  predSelect.onchange = () => { params.prediction = predSelect.value; saveParams(); };
+
+  if (MODE === "learn") {
+    document.getElementById("predictionRow").style.display = "";
+    document.getElementById("targetRow").style.display = "none";
+  } else if (MODE === "ellipses") {
+    document.getElementById("predictionRow").style.display = "none";
+    document.getElementById("targetRow").style.display = "";
+  } else {
+    document.getElementById("predictionRow").style.display = "none";
+    document.getElementById("targetRow").style.display = "none";
+  }
+
+  const massInput = document.getElementById("massInput");
+  massInput.value = params.orbiterMassKg;
+  massInput.onchange = () => { params.orbiterMassKg = parseFloat(massInput.value) || 1; saveParams(); };
+
+  bindRange("dist", v => { params.distanceDisplay = v; saveParams(); });
+  bindRange("vel", v => { params.velocityDisplay = v; saveParams(); });
+
+  applyPresetRanges();
+}
+
+function bindRange(name, onChange) {
+  const range = document.getElementById(name + "Range");
+  const input = document.getElementById(name + "Input");
+  range.oninput = () => {
+    const v = parseFloat(range.value);
+    input.value = v;
+    onChange(v);
+    render();
+  };
+  input.onchange = () => {
+    const v = parseFloat(input.value);
+    range.value = v;
+    onChange(v);
+    render();
+  };
+}
+
+function applyPresetRanges() {
+  const preset = PRESETS[params.presetId];
+  const distRange = document.getElementById("distRange");
+  const velRange = document.getElementById("velRange");
+  if (params.presetId === "sun") {
+    distRange.min = 0.2; distRange.max = 5.0; distRange.step = 0.05;
+    velRange.min = 5; velRange.max = 60; velRange.step = 0.5;
+  } else {
+    distRange.min = 1.0; distRange.max = 20.0; distRange.step = 0.1;
+    velRange.min = 0.5; velRange.max = 15; velRange.step = 0.1;
+  }
+  // Clamp existing values into new ranges
+  params.distanceDisplay = Math.max(parseFloat(distRange.min), Math.min(parseFloat(distRange.max), params.distanceDisplay));
+  params.velocityDisplay = Math.max(parseFloat(velRange.min), Math.min(parseFloat(velRange.max), params.velocityDisplay));
+  document.getElementById("distRange").value = params.distanceDisplay;
+  document.getElementById("distInput").value = params.distanceDisplay;
+  document.getElementById("velRange").value = params.velocityDisplay;
+  document.getElementById("velInput").value = params.velocityDisplay;
+}
+
+function saveParams() {
+  saver.save({ mode: MODE, params, lastScore });
+}
+
+function runSimulation() {
+  stopAnimation();
+  running = true;
+  document.getElementById("runBtn").textContent = tr.t("stop");
+  runResult = integrate(params, { maxSteps: 60000 });
+  lastScore = computeScore(MODE, params, runResult);
+  renderReadouts();
+  drawStaticOrbit();
+  animateOrbit();
+  saveParams();
+}
+
+function stopAnimation() {
+  running = false;
+  if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+  document.getElementById("runBtn").textContent = tr.t("run");
+}
+
+function animateOrbit() {
+  if (!runResult || !running) return;
+  const samples = runResult.samples;
+  if (!samples.length) return;
+  let idx = 0;
+  const speed = Math.max(1, Math.floor(samples.length / 120));
+  function step() {
+    if (!running) return;
+    idx = Math.min(samples.length - 1, idx + speed);
+    drawStaticOrbit(idx);
+    if (idx >= samples.length - 1) {
+      stopAnimation();
+      // Auto-send score once animation finishes
+      if (lastScore) {
+        sendActivityScore(lastScore.score, lastScore.maxScore, true);
+      }
+    } else {
+      animationId = requestAnimationFrame(step);
+    }
+  }
+  step();
+}
+
+function drawStaticOrbit(progressIndex) {
+  const { width, height } = canvas;
+  ctx.clearRect(0, 0, width, height);
+
+  const preset = PRESETS[params.presetId];
+  const bodyRadiusM = preset.bodyRadiusM;
+
+  let points = [];
+  if (runResult && runResult.samples.length) {
+    points = runResult.samples.map(s => ({ x: s.x, y: s.y }));
+  }
+
+  // Determine scale to fit all points plus central body into canvas with padding.
+  let maxR = bodyRadiusM * 1.2;
+  if (points.length) {
+    for (const p of points) {
+      const r = Math.sqrt(p.x * p.x + p.y * p.y);
+      maxR = Math.max(maxR, r * 1.15);
+    }
+  } else {
+    maxR = Math.max(maxR, params.distanceDisplay * preset.distanceScaleM * 1.15);
+  }
+  const scale = Math.min(width, height) * 0.44 / maxR;
+  const cx = width / 2;
+  const cy = height / 2;
+
+  function toCanvas(px, py) {
+    return [cx + px * scale, cy - py * scale];
+  }
+
+  // Orbit path
+  if (points.length) {
+    ctx.beginPath();
+    const [x0, y0] = toCanvas(points[0].x, points[0].y);
+    ctx.moveTo(x0, y0);
+    const limit = progressIndex == null ? points.length : progressIndex + 1;
+    for (let i = 1; i < limit; i++) {
+      const [x, y] = toCanvas(points[i].x, points[i].y);
+      ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Current position marker
+    const last = points[limit - 1];
+    const [lx, ly] = toCanvas(last.x, last.y);
+    ctx.beginPath();
+    ctx.arc(lx, ly, 5, 0, Math.PI * 2);
+    ctx.fillStyle = "#fbbf24";
+    ctx.fill();
+  }
+
+  // Central body
+  const bodyR = Math.max(4, bodyRadiusM * scale);
+  ctx.beginPath();
+  ctx.arc(cx, cy, bodyR, 0, Math.PI * 2);
+  ctx.fillStyle = params.presetId === "sun" ? "#fbbf24" : "#38bdf8";
+  ctx.fill();
+
+  // Start position ghost
+  const startR = params.distanceDisplay * preset.distanceScaleM;
+  const [sx, sy] = toCanvas(startR, 0);
+  ctx.beginPath();
+  ctx.arc(sx, sy, 3, 0, Math.PI * 2);
+  ctx.fillStyle = "#94a3b8";
+  ctx.fill();
+}
+
+function renderReadouts() {
+  const preset = PRESETS[params.presetId];
+  const shapePill = document.getElementById("shapePill");
+  const periodPill = document.getElementById("periodPill");
+  const periPill = document.getElementById("periPill");
+  const aphPill = document.getElementById("aphPill");
+  const eccPill = document.getElementById("eccPill");
+
+  if (!runResult) {
+    shapePill.textContent = `${tr.t("shape")}: —`;
+    periodPill.textContent = `${tr.t("period")}: —`;
+    periPill.textContent = `${tr.t("perihelion")}: —`;
+    aphPill.textContent = `${tr.t("aphelion")}: —`;
+    eccPill.textContent = `${tr.t("eccentricity")}: —`;
+    return;
+  }
+
+  const s = runResult.summary;
+  shapePill.textContent = `${tr.t("shape")}: ${tShape(s.shape)}`;
+  shapePill.className = "pill " + (s.shape === "impact" ? "bad" : s.shape === "circular" ? "ok" : "warn");
+
+  if (s.period != null && !runResult.hit && s.shape !== "impact") {
+    periodPill.textContent = `${tr.t("period")}: ${formatTime(displayFromSI(s.period, preset, "time"), preset)}`;
+  } else {
+    periodPill.textContent = `${tr.t("period")}: —`;
+  }
+
+  if (s.minR != null) {
+    periPill.textContent = `${tr.t("perihelion")}: ${formatDistance(displayFromSI(s.minR, preset, "distance"), preset)}`;
+  } else {
+    periPill.textContent = `${tr.t("perihelion")}: —`;
+  }
+
+  if (s.maxR != null && s.shape !== "impact" && s.shape !== "parabolic" && s.shape !== "hyperbolic") {
+    aphPill.textContent = `${tr.t("aphelion")}: ${formatDistance(displayFromSI(s.maxR, preset, "distance"), preset)}`;
+  } else {
+    aphPill.textContent = `${tr.t("aphelion")}: —`;
+  }
+
+  eccPill.textContent = `${tr.t("eccentricity")}: ${s.eccentricity != null ? s.eccentricity.toFixed(3) : "—"}`;
+
+  if (MODE === "ellipses") {
+    document.getElementById("targetPill").textContent = `${tr.t("target")}: ${params.targetEccentricity.toFixed(2)}`;
+  }
+}
+
+function submitScore() {
+  if (!lastScore) {
+    // Run first if user clicks submit before running
+    runSimulation();
+    return;
+  }
+  sendActivityScore(lastScore.score, lastScore.maxScore, true); // ALWAYS re-send, no guard
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${lastScore.score}/5`;
+  if (lastScore.breakdown) {
+    box.textContent += ` · ${lastScore.breakdown}`;
+  }
+}
+
+function reset() {
+  stopAnimation();
+  runResult = null;
+  lastScore = null;
+  params = JSON.parse(JSON.stringify(DEFAULT_PARAMS[MODE]));
+  document.getElementById("scoreBox").textContent = "";
+  initControls();
+  render();
+}
+
+function render() {
+  document.getElementById("massInput").value = params.orbiterMassKg;
+  document.getElementById("distRange").value = params.distanceDisplay;
+  document.getElementById("distInput").value = params.distanceDisplay;
+  document.getElementById("velRange").value = params.velocityDisplay;
+  document.getElementById("velInput").value = params.velocityDisplay;
+  document.getElementById("presetSelect").value = params.presetId;
+  if (MODE === "learn") {
+    document.getElementById("predSelect").value = params.prediction || "elliptical";
+  }
+  renderReadouts();
+  drawStaticOrbit();
+  saveParams();
+}
+
+// Events
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  initControls();
+  render();
+};
+document.getElementById("runBtn").onclick = () => {
+  if (running) stopAnimation(); else runSimulation();
+};
+document.getElementById("resetBtn").onclick = reset;
+document.getElementById("submitBtn").onclick = submitScore;
+window.addEventListener("beforeunload", () => saver.flush());
+
+initControls();
+render();
+</script>
+</body>
+</html>
