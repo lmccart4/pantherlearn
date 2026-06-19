@@ -6,7 +6,7 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-const TOOLS_BASE = 'https://pantherlearn.com/tools';
+const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
 // IMAGE PHASE: plant→transmission→substation→home diagram (Gemini, JSON-first) inserted after content is approved.
 
 const lesson = {
