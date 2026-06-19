@@ -45,7 +45,11 @@ const lesson = {
       "ended up removing **more than 93,000 trees** and replacing **over 2,400 poles** before power could come back."
     ),
 
-    // IMAGE PHASE: rights-cleared photo of a flooded substation / Sandy flooding (data pack §7 — FEMA/NOAA PD or Commons CC). Inserted after content is approved.
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u1-l08-flooded-substation.jpg',
+      alt: 'An electrical substation with its transformers and switchgear submerged in murky storm floodwater under dark clouds.',
+      caption: "Sandy's surge flooded substations like this. Saltwater-soaked equipment can't be switched back on until it is drained, cleaned, and dried — which is why the power stayed out so long.",
+    }),
 
     k.dataTable({
       title: 'Customers Without Power After Sandy (Verified Figures)',

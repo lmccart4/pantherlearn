@@ -45,7 +45,11 @@ const lesson = {
       "no energy is created here, it's just transformed from one form into another."
     ),
 
-    // IMAGE PHASE: magnet rotating inside a coil of wire (simple generator diagram) — Gemini, JSON-first, inserted after content is approved.
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u1-l06-generator.jpg',
+      alt: 'A bar magnet rotating inside a coil of wire connected to a light bulb, with magnetic field lines shown around the magnet.',
+      caption: 'A generator in one picture: spin a magnet inside a coil, the changing magnetic field induces a current, and the bulb lights up.',
+    }),
 
     k.embed({
       url: `${TOOLS_BASE}/induction-visualizer.html`,

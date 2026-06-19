@@ -48,8 +48,11 @@ const lesson = {
       "up and down — to match demand as it changes, minute by minute."
     ),
 
-    // IMAGE PHASE: a daily electricity load curve — demand (MW) on the y-axis vs. time of day on the x-axis,
-    // showing the overnight low, a morning rise, a midday dip, and the evening peak (Gemini, JSON-first).
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u1-l07-load-curve.jpg',
+      alt: 'A daily electricity demand curve that is low overnight, rises through the morning, dips midday, and peaks in the early evening.',
+      caption: 'Demand is never flat — it dips overnight and spikes in the evening. The grid has to match this curve hour by hour.',
+    }),
 
     k.embed({
       url: `${TOOLS_BASE}/grid-reliability-simulator.html?mode=learn`,

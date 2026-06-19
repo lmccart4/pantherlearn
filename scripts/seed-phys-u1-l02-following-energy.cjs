@@ -45,6 +45,12 @@ const lesson = {
         "- **Radiant** — energy carried by light",
     }),
 
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u1-l02-energy-path.jpg',
+      alt: 'A diagram of the four stages electricity travels through: power plant, transmission towers, substation, and home.',
+      caption: 'The path your electricity takes: generation → transmission → distribution → your outlet.',
+    }),
+
     k.text(
       "Here's the journey. At a power plant, a fuel's **chemical** energy is released as **thermal** energy when it " +
       "burns. That heat boils water into steam, which spins a turbine — now the energy is **mechanical**. The spinning " +

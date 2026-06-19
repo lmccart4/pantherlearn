@@ -35,7 +35,11 @@ const lesson = {
       "river of electrons is the current."
     ),
 
-    // IMAGE PHASE: diagram of electrons drifting through a copper wire (Gemini, JSON-first) inserted after content is approved.
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u1-l04-electron-drift.jpg',
+      alt: 'A cutaway of a copper wire showing blue electrons drifting in one direction through a lattice of orange copper atoms.',
+      caption: 'Electric current is electrons drifting through the metal — charge on the move.',
+    }),
 
     k.callout({
       style: 'definition',

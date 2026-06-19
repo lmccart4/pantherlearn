@@ -47,7 +47,11 @@ const lesson = {
       "easily use anymore. It leaks out of our useful path and into the **surroundings** as heat."
     ),
 
-    // IMAGE PHASE: Sankey-style energy-flow diagram — one wide input arrow splitting into a useful-output arrow plus several thin "lost as heat" arrows peeling off at each transformation step.
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u1-l03-energy-sankey.jpg',
+      alt: 'A Sankey diagram of energy flowing in from the left, with thin arrows of heat peeling off at each step and a smaller useful-output arrow remaining.',
+      caption: 'Energy is conserved: the energy in equals the useful energy out **plus** everything that leaks away as heat at each step.',
+    }),
 
     k.embed({
       url: `${TOOLS_BASE}/energy-flow-tracer.html`,

@@ -50,7 +50,11 @@ const lesson = {
       "convenient form until the grid needs it back."
     ),
 
-    // IMAGE PHASE: diagram comparing battery, pumped-hydro reservoir, and thermal storage (Gemini, JSON-first) inserted after content is approved.
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u1-l11-storage-types.jpg',
+      alt: 'Three energy-storage methods side by side: a battery, a pumped-hydro reservoir pair with a turbine, and a heated thermal-storage tank.',
+      caption: 'Three ways to bank energy for later: chemical (battery), gravitational (pumped-hydro), and thermal (heat).',
+    }),
 
     k.mdTable({
       lead: '**Energy Storage Trade-Offs**',

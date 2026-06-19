@@ -25,6 +25,12 @@ const lesson = {
       'Contribute your questions to our class Driving Question Board',
     ]),
 
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u1-l01-night-lights-hero.jpg',
+      alt: 'A dark New Jersey coastal neighborhood at night after Superstorm Sandy, with no lights in any home.',
+      caption: 'Superstorm Sandy left much of New Jersey dark for days — the phenomenon that drives this whole unit. *(Illustration.)*',
+    }),
+
     k.text(
       "On the evening of **October 29, 2012**, Superstorm Sandy made landfall near Brigantine, New Jersey. " +
       "It was the largest Atlantic hurricane ever recorded by size — its winds stretched more than 1,000 miles across.\n\n" +

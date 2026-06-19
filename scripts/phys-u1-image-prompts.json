@@ -1,0 +1,84 @@
+[
+  {
+    "filename": "phys-u1-l01-night-lights-hero",
+    "lesson": "phys-u1-l01-night-lights",
+    "course": "physics",
+    "style": "illustration",
+    "aspect": "16:9",
+    "prompt": "Cinematic editorial illustration, atmospheric and quiet: a small New Jersey coastal town at night during a total power blackout after a hurricane. Rows of dark silhouetted houses with no lights in the windows, wet streets reflecting a deep blue-grey stormy twilight sky, bent trees and scattered storm debris, a single distant emergency vehicle with faint red and blue lights far down the street. Mood: eerie, still, the morning-after of a disaster. Painterly digital illustration, muted desaturated blue palette. Clearly an illustration, not a documentary photograph.",
+    "avoid": "text, words, letters, watermark, logos, cartoonish, cheerful, daytime"
+  },
+  {
+    "filename": "phys-u1-l02-energy-path",
+    "lesson": "phys-u1-l02-following-energy",
+    "course": "physics",
+    "style": "diagram",
+    "aspect": "16:9",
+    "note": "regenerated once to remove a hallucinated stock watermark; this is the prompt that produced the live image",
+    "prompt": "Original clean educational science infographic, flat vector style, showing left-to-right energy flow across four stages connected by power lines: (1) a power plant with a cooling tower and turbine building on the far left, (2) tall steel high-voltage transmission towers carrying wires, (3) a small fenced substation with transformers, (4) a suburban house on the far right with one glowing wall outlet. Bright friendly colors, plain white background, four clearly separated stages evenly spaced across the width.",
+    "avoid": "watermark, freepik, shutterstock, stock photo logo, website url, brand name, signature, garbled text, clutter, photorealism"
+  },
+  {
+    "filename": "phys-u1-l03-energy-sankey",
+    "lesson": "phys-u1-l03-energy-conserved",
+    "course": "physics",
+    "style": "diagram",
+    "aspect": "16:9",
+    "prompt": "Educational Sankey energy-flow diagram: one thick horizontal arrow of energy entering from the left in warm yellow, flowing rightward and progressively narrowing as several thin faded-orange wavy arrows peel off upward and downward (each a small heat-wave symbol) representing energy lost as heat at each step, leaving one smaller useful-output arrow continuing to the right. Conveys conservation: total in equals useful out plus losses. Flat clean infographic style, white background.",
+    "avoid": "text, words, letters, numbers, clutter, photorealism"
+  },
+  {
+    "filename": "phys-u1-l04-electron-drift",
+    "lesson": "phys-u1-l04-electrons-move",
+    "course": "physics",
+    "style": "diagram",
+    "aspect": "16:9",
+    "prompt": "Educational physics diagram: a cutaway cross-section of a copper wire drawn as a horizontal cylinder, filled with a regular lattice of orange copper-atom spheres, and many small blue electron spheres drifting together in one direction through the lattice. Soft motion arrows indicate the overall drift direction. Clean flat vector science-textbook style, bright colors, white background.",
+    "avoid": "text, words, letters, clutter, photorealism"
+  },
+  {
+    "filename": "phys-u1-l05-transmission",
+    "lesson": "phys-u1-l05-voltage-current-power",
+    "course": "physics",
+    "style": "diagram",
+    "aspect": "16:9",
+    "prompt": "Educational diagram of electrical power transmission, left to right: a power plant with a box-shaped step-up transformer beside it, then several tall steel high-voltage transmission towers carrying long wires across the middle, then a smaller pole-mounted step-down transformer near a single house on the right. Clean flat infographic style, bright colors, white background, simple shapes.",
+    "avoid": "text, words, letters, numbers, clutter, photorealism"
+  },
+  {
+    "filename": "phys-u1-l06-generator",
+    "lesson": "phys-u1-l06-making-electricity",
+    "course": "physics",
+    "style": "diagram",
+    "aspect": "16:9",
+    "prompt": "Educational physics diagram of a simple electric generator: a red-and-blue bar magnet rotating inside a coil of copper wire, the coil connected by two wires to a small glowing yellow light bulb on the right. Curved motion arrows show the magnet spinning; faint grey magnetic field lines arc around the magnet. Clean flat vector science-textbook style, bright colors, white background.",
+    "avoid": "text, words, letters, clutter, photorealism"
+  },
+  {
+    "filename": "phys-u1-l07-load-curve",
+    "lesson": "phys-u1-l07-grid-system",
+    "course": "physics",
+    "style": "diagram",
+    "aspect": "16:9",
+    "prompt": "Educational line chart on a simple light grid: a single smooth blue curve showing daily electricity demand over 24 hours. The curve sits low on the left (overnight), rises through the morning, dips slightly midday, climbs to a tall rounded peak in the early evening, then falls again on the right. Clean flat infographic chart style, one blue line, light grey gridlines, white background, x-axis and y-axis lines drawn but unlabeled.",
+    "avoid": "text, words, letters, numbers, multiple lines, clutter, photorealism"
+  },
+  {
+    "filename": "phys-u1-l08-flooded-substation",
+    "lesson": "phys-u1-l08-system-fails",
+    "course": "physics",
+    "style": "diagram",
+    "aspect": "16:9",
+    "prompt": "Educational cross-section illustration of an electrical substation flooded by a storm surge: grey transformers and switchgear equipment standing in a fenced yard, partly submerged under murky brown-blue floodwater that has risen several feet up their sides, dark storm clouds and rain above, a chain-link fence around the yard. Conveys that the equipment is underwater and shut down. Clean flat infographic illustration style, serious muted tone, white-to-grey sky background.",
+    "avoid": "text, words, letters, clutter, cheerful colors"
+  },
+  {
+    "filename": "phys-u1-l11-storage-types",
+    "lesson": "phys-u1-l11-storing-energy",
+    "course": "physics",
+    "style": "diagram",
+    "aspect": "16:9",
+    "prompt": "Educational comparison infographic with three equal panels side by side, each a simple icon: left panel a large green rechargeable battery (chemical storage); center panel two blue water reservoirs at different heights connected by a pipe with a small turbine between them (pumped-hydro storage); right panel an insulated tank glowing warm orange (thermal storage). Three clean equal sections divided by thin lines, flat vector infographic style, bright distinct colors, white background.",
+    "avoid": "text, words, letters, clutter, photorealism"
+  }
+]

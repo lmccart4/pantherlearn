@@ -44,7 +44,11 @@ const lesson = {
       "volts) and the more charge you push (more amps), the more energy you deliver each second."
     ),
 
-    // IMAGE PHASE: high-voltage transmission tower with step-up transformer (at plant) and step-down transformer (near neighborhood) labeled, plus voltage values along the line (Gemini, JSON-first).
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u1-l05-transmission.jpg',
+      alt: 'A diagram of a power plant with a step-up transformer, high-voltage transmission towers, and a step-down transformer near a house.',
+      caption: 'Step **up** to high voltage for the long trip (low current, low loss), then step **down** to a safe voltage for your home.',
+    }),
 
     k.text(
       "So why does the grid send electricity across the state at hundreds of thousands of volts before stepping it back " +
