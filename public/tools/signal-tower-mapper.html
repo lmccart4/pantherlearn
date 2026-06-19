@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Signal Tower Mapper</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; }
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;font-size:16px;}
+  .wrap{max-width:920px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 12px;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .pill{padding:5px 12px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+  .panel{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:12px;}
+  .section-title{font-size:14px;color:var(--muted);margin:0 0 8px;}
+  .palette{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+  .tower-btn{flex:1;min-width:140px;border:1px solid #334155;border-radius:10px;padding:10px;background:#0b1220;color:var(--ink);cursor:pointer;text-align:left;}
+  .tower-btn:hover{border-color:var(--accent);}
+  .tower-btn.selected{border-color:var(--accent);background:#0f172a;box-shadow:0 0 0 2px var(--accent);}
+  .tower-btn .name{font-size:13px;font-weight:600;}
+  .tower-btn .stats{font-size:11px;color:var(--muted);}
+  .map-wrap{display:flex;justify-content:center;overflow:auto;}
+  .map{display:grid;gap:2px;background:#0b1220;padding:6px;border-radius:10px;}
+  .cell{width:32px;height:32px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;position:relative;}
+  .cell:hover{filter:brightness(1.15);}
+  .cell.water{background:#1e3a8a;cursor:default;}
+  .cell.building{background:#475569;}
+  .cell.road{background:#334155;}
+  .cell.park{background:#14532d;}
+  .cell.covered{outline:2px solid var(--ok);outline-offset:-2px;}
+  .cell.weak{outline:2px solid var(--warn);outline-offset:-2px;}
+  .tower-dot{width:18px;height:18px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#0f172a;}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px;}
+  .legend span{display:flex;align-items:center;gap:4px;}
+  .swatch{width:12px;height:12px;border-radius:3px;}
+  .placed-list{display:flex;flex-direction:column;gap:6px;}
+  .placed-row{display:flex;align-items:center;justify-content:space-between;background:#0b1220;border-radius:8px;padding:8px 10px;}
+  .placed-row button{background:transparent;border:1px solid var(--bad);color:var(--bad);border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;}
+  textarea{width:100%;min-height:80px;background:#0b1220;border:1px solid #334155;border-radius:8px;color:var(--ink);padding:10px;font-family:inherit;font-size:13px;resize:vertical;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .primary{flex:1;min-width:160px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  #scoreBox{font-size:13px;color:var(--muted);margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="readout">
+    <span class="pill" id="budgetPill">—</span>
+    <span class="pill" id="coveragePill">—</span>
+    <span class="pill" id="statusPill">—</span>
+  </div>
+
+  <div class="panel">
+    <p class="section-title" id="mapName"></p>
+    <div class="map-wrap"><div class="map" id="mapEl"></div></div>
+    <div class="legend" id="legendEl"></div>
+  </div>
+
+  <div class="panel">
+    <p class="section-title" id="towerTitle"></p>
+    <div class="palette" id="towerPalette"></div>
+  </div>
+
+  <div class="panel">
+    <p class="section-title" id="placedTitle"></p>
+    <div class="placed-list" id="placedList"></div>
+  </div>
+
+  <div class="panel">
+    <p class="section-title" id="rationaleTitle"></p>
+    <textarea id="rationaleEl" placeholder=""></textarea>
+    <div class="actions">
+      <button class="primary" id="submitBtn"></button>
+      <button class="secondary" id="resetBtn"></button>
+    </div>
+    <div id="scoreBox"></div>
+  </div>
+</div>
+
+<script type="module">
+import {
+  TOWER_TYPES, MAPS, getCell, isBuildable, placeTower, removeTower,
+  computeCoverage, computeCost, scoreDesign, emptyState
+} from "./signal-tower-mapper-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Signal Tower Mapper", es: "Mapa de Torres de Señal" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: {
+    en: "Place towers and routers to cover buildings and roads. Trade off range, bandwidth, building penetration, and cost.",
+    es: "Coloca torres y routers para cubrir edificios y carreteras. Equilibra alcance, ancho de banda, penetración en edificios y costo."
+  },
+  budget: { en: "Budget", es: "Presupuesto" },
+  coverage: { en: "Coverage", es: "Cobertura" },
+  statusSolved: { en: "✓ Strong coverage", es: "✓ Cobertura fuerte" },
+  statusWeak: { en: "Weak coverage", es: "Cobertura débil" },
+  mapLabel: { en: "Map", es: "Mapa" },
+  legendBuilding: { en: "Building", es: "Edificio" },
+  legendRoad: { en: "Road", es: "Carretera" },
+  legendPark: { en: "Park / Open", es: "Parque / Abierto" },
+  legendWater: { en: "Water", es: "Agua" },
+  legendCovered: { en: "Covered", es: "Cubierto" },
+  towers: { en: "Towers", es: "Torres" },
+  placed: { en: "Placed", es: "Colocadas" },
+  rationale: { en: "Explain your plan", es: "Explica tu plan" },
+  rationaleHint: {
+    en: "Which frequencies did you choose and why? How did range, bandwidth, and building penetration affect your decisions?",
+    es: "¿Qué frecuencias elegiste y por qué? ¿Cómo afectaron tus decisiones el alcance, el ancho de banda y la penetración en edificios?"
+  },
+  remove: { en: "Remove", es: "Quitar" },
+  submit: { en: "Submit Plan", es: "Enviar Plan" },
+  submitted: { en: "✓ Plan submitted", es: "✓ Plan enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+  costUnit: { en: "$", es: "$" },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+const MODE = new URLSearchParams(location.search).get("mode") || "standard";
+const MAP = MAPS[MODE] || MAPS.standard;
+
+let state = emptyState();
+let selectedType = "low4G";
+let autoSent = false;
+
+function cellClass(type) {
+  if (type === "W") return "water";
+  if (type === "B") return "building";
+  if (type === "R") return "road";
+  return "park";
+}
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("mapName").textContent = `${tr.t("mapLabel")}: ${MAP.name[tr.lang]}`;
+  document.getElementById("towerTitle").textContent = tr.t("towers");
+  document.getElementById("placedTitle").textContent = tr.t("placed");
+  document.getElementById("rationaleTitle").textContent = tr.t("rationale");
+  document.getElementById("rationaleEl").placeholder = tr.t("rationaleHint");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+}
+
+function renderLegend() {
+  const host = document.getElementById("legendEl");
+  const items = [
+    { cls: "building", label: DICT.legendBuilding },
+    { cls: "road", label: DICT.legendRoad },
+    { cls: "park", label: DICT.legendPark },
+    { cls: "water", label: DICT.legendWater },
+  ];
+  host.innerHTML = items.map(i => `<span><span class="swatch ${i.cls}"></span>${i.label[tr.lang]}</span>`).join("") +
+    ` <span><span class="swatch" style="outline:2px solid var(--ok);outline-offset:-2px;background:transparent"></span>${DICT.legendCovered[tr.lang]}</span>`;
+}
+
+function renderReadout(coverage, cost) {
+  const budgetPill = document.getElementById("budgetPill");
+  const over = cost > MAP.budget;
+  budgetPill.textContent = `${tr.t("budget")}: ${tr.t("costUnit")}${cost} / ${tr.t("costUnit")}${MAP.budget}`;
+  budgetPill.className = "pill " + (over ? "bad" : "ok");
+
+  const covPct = Math.round(coverage.combinedPct * 100);
+  const coveragePill = document.getElementById("coveragePill");
+  coveragePill.textContent = `${tr.t("coverage")}: ${covPct}% (${coverage.buildingCovered}/${coverage.buildingTotal} bld · ${coverage.roadCovered}/${coverage.roadTotal} rd)`;
+  coveragePill.className = "pill " + (covPct >= 90 ? "ok" : covPct >= 60 ? "warn" : "bad");
+
+  const statusPill = document.getElementById("statusPill");
+  statusPill.textContent = covPct >= 75 ? tr.t("statusSolved") : tr.t("statusWeak");
+  statusPill.className = "pill " + (covPct >= 75 ? "ok" : "warn");
+}
+
+function renderMap() {
+  const coverage = computeCoverage(MAP, state.placedTowers);
+  const host = document.getElementById("mapEl");
+  host.innerHTML = "";
+  host.style.gridTemplateColumns = `repeat(${MAP.cols}, 32px)`;
+
+  for (let r = 0; r < MAP.rows; r++) {
+    for (let c = 0; c < MAP.cols; c++) {
+      const type = getCell(MAP, r, c);
+      const cell = document.createElement("div");
+      cell.className = "cell " + cellClass(type);
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+
+      const tower = state.placedTowers.find(t => t.r === r && t.c === c);
+      if (tower) {
+        const dot = document.createElement("div");
+        dot.className = "tower-dot";
+        dot.style.background = TOWER_TYPES[tower.type].color;
+        dot.textContent = TOWER_TYPES[tower.type].short.en.charAt(0);
+        cell.appendChild(dot);
+      } else if (type !== "W") {
+        const key = `${r},${c}`;
+        const sig = coverage.signal.get(key) || 0;
+        if (sig >= 0.35) cell.classList.add("covered");
+        else if (sig > 0) cell.classList.add("weak");
+      }
+
+      if (isBuildable(MAP, r, c)) {
+        cell.onclick = () => handleCellClick(r, c);
+      }
+      host.appendChild(cell);
+    }
+  }
+  return coverage;
+}
+
+function renderPalette() {
+  const host = document.getElementById("towerPalette");
+  host.innerHTML = "";
+  for (const [id, t] of Object.entries(TOWER_TYPES)) {
+    const btn = document.createElement("button");
+    btn.className = "tower-btn" + (selectedType === id ? " selected" : "");
+    btn.innerHTML = `<div class="name" style="color:${t.color}">${t.label[tr.lang]}</div>
+      <div class="stats">${tr.t("costUnit")}${t.cost} · ${t.rangeCells} cells · ${t.bandwidth}x bandwidth · ${Math.round(t.penetration*100)}% penetration</div>`;
+    btn.onclick = () => { selectedType = id; renderPalette(); };
+    host.appendChild(btn);
+  }
+}
+
+function renderPlacedList() {
+  const host = document.getElementById("placedList");
+  host.innerHTML = "";
+  if (state.placedTowers.length === 0) {
+    host.innerHTML = `<div style="color:var(--muted);font-size:13px">${tr.lang === "en" ? "No towers placed yet." : "Aún no se han colocado torres."}</div>`;
+    return;
+  }
+  for (const t of state.placedTowers) {
+    const type = TOWER_TYPES[t.type];
+    const row = document.createElement("div");
+    row.className = "placed-row";
+    row.innerHTML = `<span style="font-size:13px"><strong style="color:${type.color}">${type.short[tr.lang]}</strong> @ (${t.c + 1}, ${t.r + 1}) — ${tr.t("costUnit")}${type.cost}</span>`;
+    const rm = document.createElement("button");
+    rm.textContent = tr.t("remove");
+    rm.onclick = () => { state = removeTower(state, t.id); render(); };
+    row.appendChild(rm);
+    host.appendChild(row);
+  }
+}
+
+function handleCellClick(r, c) {
+  const existing = state.placedTowers.find(t => t.r === r && t.c === c);
+  if (existing) {
+    state = removeTower(state, existing.id);
+  } else {
+    const result = placeTower(state, MAP, selectedType, r, c);
+    if (!result.ok) return;
+    state = result.state;
+  }
+  state.submitted = false;
+  render();
+}
+
+function onRationaleChange() {
+  state.rationale = document.getElementById("rationaleEl").value;
+  state.submitted = false;
+  saveState();
+}
+
+function saveState() {
+  saver.save({ state: { placedTowers: state.placedTowers, rationale: state.rationale, submitted: state.submitted } });
+}
+
+function submitPlan() {
+  const result = scoreDesign(state, MAP);
+  sendActivityScore(result.score, 5, true); // ALWAYS re-send, no guard
+  state.submitted = true;
+  saveState();
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5`;
+}
+
+function resetPlan() {
+  state = emptyState();
+  selectedType = "low4G";
+  autoSent = false;
+  document.getElementById("scoreBox").textContent = "";
+  render();
+}
+
+function render() {
+  renderStaticText();
+  renderLegend();
+  renderPalette();
+  const coverage = renderMap();
+  const cost = computeCost(MAP, state.placedTowers);
+  renderReadout(coverage, cost);
+  renderPlacedList();
+  saveState();
+
+  // Auto-send once when strong coverage is reached (results state).
+  if (coverage.combinedPct >= 0.75 && cost <= MAP.budget && !autoSent) {
+    const result = scoreDesign(state, MAP);
+    sendActivityScore(result.score, 5, true);
+    autoSent = true;
+  }
+}
+
+// Events
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+document.getElementById("submitBtn").onclick = submitPlan;
+document.getElementById("resetBtn").onclick = resetPlan;
+document.getElementById("rationaleEl").addEventListener("input", onRationaleChange);
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

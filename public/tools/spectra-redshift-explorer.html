@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spectra & Redshift Explorer</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,sans-serif; font-size:16px; }
+  .wrap { max-width:920px; margin:0 auto; padding:16px; }
+  header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; }
+  h1 { font-size:20px; margin:0; }
+  .lang { background:var(--panel); border:1px solid #334155; color:var(--ink); border-radius:8px; padding:6px 10px; cursor:pointer; font-size:13px; }
+  .hint { font-size:13px; color:var(--muted); margin:0 0 14px; }
+  .readout { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .pill { padding:4px 10px; border-radius:999px; background:#0b1220; font-size:13px; }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .tab { background:var(--panel); border:1px solid #334155; border-radius:8px; padding:8px 14px; cursor:pointer; font-size:13px; color:var(--muted); }
+  .tab.active { border-color:var(--accent); color:var(--accent); background:#0f172a; }
+  .panel { background:var(--panel); border-radius:12px; padding:14px; margin-bottom:12px; }
+  .spectrum-wrap { position:relative; width:100%; height:160px; border-radius:10px; overflow:hidden; background:#000; }
+  .spectrum-svg { width:100%; height:100%; display:block; }
+  .axis { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:4px; }
+  .reference-row { display:flex; align-items:center; gap:10px; margin:10px 0; flex-wrap:wrap; }
+  .ref-label { font-size:12px; color:var(--muted); width:70px; }
+  .mini-spectrum { flex:1; min-width:200px; height:34px; border-radius:6px; overflow:hidden; background:#000; position:relative; }
+  .controls { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .toggle { background:#0b1220; border:1px solid #334155; border-radius:6px; padding:8px 12px; color:var(--muted); font-size:13px; cursor:pointer; }
+  .toggle:hover { border-color:var(--accent); }
+  .toggle.selected { border-color:var(--accent); color:var(--accent); background:#0f172a; }
+  .input-group { display:flex; align-items:center; gap:8px; margin:10px 0; flex-wrap:wrap; }
+  .input-group label { font-size:13px; color:var(--muted); min-width:140px; }
+  .input-group input { background:#0b1220; border:1px solid #334155; border-radius:6px; color:var(--ink); padding:8px 10px; font-size:14px; width:120px; }
+  .input-group .unit { font-size:12px; color:var(--muted); }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+  .primary { flex:1; min-width:160px; padding:10px; border-radius:8px; border:1px solid var(--accent); background:#0b1220; color:var(--accent); font-size:14px; cursor:pointer; }
+  .primary:hover { background:#0f172a; }
+  .secondary { padding:10px 14px; border-radius:8px; border:1px solid #334155; background:var(--panel); color:var(--ink); font-size:14px; cursor:pointer; }
+  .marker-readout { font-size:13px; color:var(--accent); margin-top:6px; }
+  #scoreBox { font-size:13px; color:var(--muted); margin-top:10px; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="readout">
+    <span class="pill" id="progressPill">—</span>
+    <span class="pill" id="modePill">—</span>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div id="workspace"></div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import {
+  ELEMENTS, REFERENCE_LINES, ELEMENT_LABELS, SPECTRUM_RANGE, SPEED_OF_LIGHT_KMS,
+  generateIdentifyStars, generateRedshiftGalaxies, scoreIdentifyState, scoreRedshiftState
+} from "./spectra-redshift-explorer-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Spectra & Redshift Explorer", es: "Explorador de Espectros y Desplazamiento al Rojo" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  identifyPrompt: { en: "Compare the star's absorption spectrum to the reference spectra and identify which elements are present.", es: "Compara el espectro de absorción de la estrella con los espectros de referencia e identifica qué elementos están presentes." },
+  redshiftPrompt: { en: "A galaxy spectrum has its absorption lines shifted toward red. Measure the shifted wavelength, then calculate redshift z and recession velocity.", es: "El espectro de una galaxia tiene sus líneas de absorción desplazadas hacia el rojo. Mide la longitud de onda desplazada, luego calcula el corrimiento al rojo z y la velocidad de recesión." },
+  progress: { en: "Completed", es: "Completado" },
+  of: { en: "of", es: "de" },
+  modeIdentify: { en: "Identify composition", es: "Identificar composición" },
+  modeRedshift: { en: "Measure redshift", es: "Medir corrimiento al rojo" },
+  targetSpectrum: { en: "Target spectrum", es: "Espectro objetivo" },
+  references: { en: "Reference spectra", es: "Espectros de referencia" },
+  contains: { en: "This star contains:", es: "Esta estrella contiene:" },
+  restWavelength: { en: "Rest wavelength", es: "Longitud de onda en reposo" },
+  measuredWavelength: { en: "Measured wavelength", es: "Longitud de onda medida" },
+  inferredRedshift: { en: "Inferred redshift z", es: "Corrimiento al rojo inferido z" },
+  inferredVelocity: { en: "Recession velocity", es: "Velocidad de recesión" },
+  kmps: { en: "km/s", es: "km/s" },
+  nm: { en: "nm", es: "nm" },
+  submit: { en: "Submit Answers", es: "Enviar respuestas" },
+  submitted: { en: "✓ Submitted", es: "✓ Enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+  dragHint: { en: "Drag the blue line to the shifted absorption line.", es: "Arrastra la línea azul hasta la línea de absorción desplazada." },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+const MODE = new URLSearchParams(location.search).get("mode") || "identify";
+const isIdentify = MODE === "identify";
+
+const stars = isIdentify ? generateIdentifyStars() : [];
+const galaxies = !isIdentify ? generateRedshiftGalaxies() : [];
+const items = isIdentify ? stars : galaxies;
+
+let currentIndex = 0;
+let submitted = false;
+const selections = {};   // starId -> Set of element strings
+const measurements = {}; // galaxyId -> { measuredWavelength, inferredZ, inferredVelocity }
+
+function wavelengthToX(wavelength, width) {
+  const frac = (wavelength - SPECTRUM_RANGE.min) / (SPECTRUM_RANGE.max - SPECTRUM_RANGE.min);
+  return Math.max(0, Math.min(width, frac * width));
+}
+
+function xToWavelength(x, width) {
+  const frac = x / width;
+  return SPECTRUM_RANGE.min + frac * (SPECTRUM_RANGE.max - SPECTRUM_RANGE.min);
+}
+
+function renderSpectrum(host, lines, opts = {}) {
+  const width = 800;
+  const height = 160;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.setAttribute("class", "spectrum-svg");
+
+  // Continuous rainbow background approximation.
+  const stops = [
+    { pct: 0, color: "#4b0082" },   // 400 violet
+    { pct: 0.22, color: "#0000ff" }, // ~466 blue
+    { pct: 0.35, color: "#00ff00" }, // ~505 green
+    { pct: 0.52, color: "#ffff00" }, // ~556 yellow
+    { pct: 0.70, color: "#ff8000" }, // ~610 orange
+    { pct: 1, color: "#ff0000" },    // 700 red
+  ];
+  const gradId = "rainbow-" + Math.random().toString(36).slice(2);
+  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+  const grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+  grad.setAttribute("id", gradId);
+  grad.setAttribute("x1", "0%"); grad.setAttribute("x2", "100%");
+  grad.setAttribute("y1", "0%"); grad.setAttribute("y2", "0%");
+  for (const s of stops) {
+    const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+    stop.setAttribute("offset", `${s.pct * 100}%`);
+    stop.setAttribute("stop-color", s.color);
+    grad.appendChild(stop);
+  }
+  defs.appendChild(grad);
+  svg.appendChild(defs);
+
+  const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  bg.setAttribute("width", width); bg.setAttribute("height", height);
+  bg.setAttribute("fill", `url(#${gradId})`);
+  svg.appendChild(bg);
+
+  // Absorption lines.
+  for (const line of lines) {
+    const x = wavelengthToX(line.wavelength, width);
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", x - 2);
+    rect.setAttribute("y", 0);
+    rect.setAttribute("width", 4);
+    rect.setAttribute("height", height);
+    rect.setAttribute("fill", "rgba(0,0,0,0.78)");
+    svg.appendChild(rect);
+  }
+
+  // Optional marker line for redshift mode.
+  if (opts.markerWavelength != null) {
+    const x = wavelengthToX(opts.markerWavelength, width);
+    const marker = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    marker.setAttribute("x1", x); marker.setAttribute("x2", x);
+    marker.setAttribute("y1", 0); marker.setAttribute("y2", height);
+    marker.setAttribute("stroke", "#38bdf8");
+    marker.setAttribute("stroke-width", 3);
+    marker.setAttribute("class", "redshift-marker");
+    svg.appendChild(marker);
+  }
+
+  host.innerHTML = "";
+  host.appendChild(svg);
+  return svg;
+}
+
+function buildSpectrumPanel(titleKey, lines, opts = {}) {
+  const panel = document.createElement("div");
+  panel.className = "panel";
+  const h = document.createElement("h2");
+  h.style.cssText = "font-size:15px;margin:0 0 8px;";
+  h.textContent = tr.t(titleKey);
+  panel.appendChild(h);
+
+  const wrap = document.createElement("div");
+  wrap.className = "spectrum-wrap";
+  panel.appendChild(wrap);
+
+  renderSpectrum(wrap, lines, opts);
+
+  const axis = document.createElement("div");
+  axis.className = "axis";
+  axis.innerHTML = `<span>400 nm</span><span>500 nm</span><span>600 nm</span><span>700 nm</span>`;
+  panel.appendChild(axis);
+
+  return panel;
+}
+
+function renderIdentify() {
+  const star = stars[currentIndex];
+  const host = document.getElementById("workspace");
+  host.innerHTML = "";
+
+  host.appendChild(buildSpectrumPanel("targetSpectrum", star.lines));
+
+  // Reference spectra miniatures.
+  const refPanel = document.createElement("div");
+  refPanel.className = "panel";
+  const refTitle = document.createElement("h2");
+  refTitle.style.cssText = "font-size:15px;margin:0 0 10px;";
+  refTitle.textContent = tr.t("references");
+  refPanel.appendChild(refTitle);
+
+  for (const el of ELEMENTS) {
+    const row = document.createElement("div");
+    row.className = "reference-row";
+    const label = document.createElement("div");
+    label.className = "ref-label";
+    label.textContent = ELEMENT_LABELS[el][tr.lang];
+    row.appendChild(label);
+    const mini = document.createElement("div");
+    mini.className = "mini-spectrum";
+    row.appendChild(mini);
+    renderSpectrum(mini, REFERENCE_LINES[el].map((w) => ({ wavelength: w })));
+    refPanel.appendChild(row);
+  }
+  host.appendChild(refPanel);
+
+  // Element toggles.
+  const togglePanel = document.createElement("div");
+  togglePanel.className = "panel";
+  const q = document.createElement("div");
+  q.style.cssText = "font-size:14px;margin-bottom:10px;";
+  q.textContent = tr.t("contains");
+  togglePanel.appendChild(q);
+
+  const controls = document.createElement("div");
+  controls.className = "controls";
+  const selected = selections[star.id] || [];
+  for (const el of ELEMENTS) {
+    const btn = document.createElement("button");
+    btn.className = "toggle" + (selected.includes(el) ? " selected" : "");
+    btn.textContent = ELEMENT_LABELS[el][tr.lang];
+    btn.onclick = () => {
+      const set = new Set(selections[star.id] || []);
+      if (set.has(el)) set.delete(el); else set.add(el);
+      selections[star.id] = Array.from(set);
+      submitted = false;
+      saveState();
+      render();
+    };
+    controls.appendChild(btn);
+  }
+  togglePanel.appendChild(controls);
+  host.appendChild(togglePanel);
+}
+
+function renderRedshift() {
+  const galaxy = galaxies[currentIndex];
+  const host = document.getElementById("workspace");
+  host.innerHTML = "";
+
+  const m = measurements[galaxy.id] || {};
+  const markerWavelength = m.measuredWavelength || galaxy.restWavelength;
+
+  const panel = document.createElement("div");
+  panel.className = "panel";
+
+  const h = document.createElement("h2");
+  h.style.cssText = "font-size:15px;margin:0 0 8px;";
+  h.textContent = `${tr.t("restWavelength")}: ${galaxy.restWavelength} nm`;
+  panel.appendChild(h);
+
+  const wrap = document.createElement("div");
+  wrap.className = "spectrum-wrap";
+  panel.appendChild(wrap);
+
+  // Galaxy spectrum: shifted absorption lines.
+  const shiftedLines = REFERENCE_LINES.H.map((w) => ({ wavelength: w * (1 + galaxy.z) }));
+  const svg = renderSpectrum(wrap, shiftedLines, { markerWavelength });
+
+  const axis = document.createElement("div");
+  axis.className = "axis";
+  axis.innerHTML = `<span>400 nm</span><span>500 nm</span><span>600 nm</span><span>700 nm</span>`;
+  panel.appendChild(axis);
+
+  const dragHint = document.createElement("p");
+  dragHint.className = "hint";
+  dragHint.textContent = tr.t("dragHint");
+  panel.appendChild(dragHint);
+
+  const readout = document.createElement("div");
+  readout.className = "marker-readout";
+  readout.textContent = `${tr.t("measuredWavelength")}: ${markerWavelength.toFixed(1)} nm`;
+  panel.appendChild(readout);
+
+  // Draggable marker interaction.
+  let dragging = false;
+  function updateFromEvent(e) {
+    const rect = svg.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const x = clientX - rect.left;
+    const wavelength = xToWavelength(x, rect.width);
+    const clamped = Math.max(SPECTRUM_RANGE.min, Math.min(SPECTRUM_RANGE.max, wavelength));
+    measurements[galaxy.id] = {
+      ...measurements[galaxy.id],
+      measuredWavelength: Math.round(clamped * 10) / 10,
+    };
+    submitted = false;
+    saveState();
+    render();
+  }
+  svg.addEventListener("mousedown", (e) => { dragging = true; updateFromEvent(e); });
+  svg.addEventListener("mousemove", (e) => { if (dragging) updateFromEvent(e); });
+  window.addEventListener("mouseup", () => { dragging = false; });
+  svg.addEventListener("touchstart", (e) => { dragging = true; updateFromEvent(e); }, { passive: false });
+  svg.addEventListener("touchmove", (e) => { if (dragging) { e.preventDefault(); updateFromEvent(e); } }, { passive: false });
+  window.addEventListener("touchend", () => { dragging = false; });
+
+  // Input fields.
+  function makeInput(key, labelKey, unitKey, step) {
+    const group = document.createElement("div");
+    group.className = "input-group";
+    const label = document.createElement("label");
+    label.textContent = tr.t(labelKey);
+    group.appendChild(label);
+    const input = document.createElement("input");
+    input.type = "number";
+    input.step = step;
+    input.value = (m[key] != null) ? m[key] : "";
+    input.oninput = () => {
+      measurements[galaxy.id] = { ...measurements[galaxy.id], [key]: parseFloat(input.value) || 0 };
+      submitted = false;
+      saveState();
+    };
+    group.appendChild(input);
+    const unit = document.createElement("span");
+    unit.className = "unit";
+    unit.textContent = tr.t(unitKey);
+    group.appendChild(unit);
+    return group;
+  }
+
+  panel.appendChild(makeInput("inferredZ", "inferredRedshift", "nm", "0.001"));
+  panel.appendChild(makeInput("inferredVelocity", "inferredVelocity", "kmps", "100"));
+
+  host.appendChild(panel);
+}
+
+function renderTabs() {
+  const host = document.getElementById("tabs");
+  host.innerHTML = "";
+  for (let i = 0; i < items.length; i++) {
+    const btn = document.createElement("button");
+    btn.className = "tab" + (i === currentIndex ? " active" : "");
+    btn.textContent = `${i + 1}`;
+    btn.onclick = () => { currentIndex = i; render(); };
+    host.appendChild(btn);
+  }
+}
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = isIdentify ? tr.t("identifyPrompt") : tr.t("redshiftPrompt");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+  document.getElementById("modePill").textContent = isIdentify ? tr.t("modeIdentify") : tr.t("modeRedshift");
+}
+
+function renderProgress() {
+  const pill = document.getElementById("progressPill");
+  let completed = 0;
+  if (isIdentify) {
+    for (const star of stars) {
+      const sel = selections[star.id] || [];
+      if (sel.length > 0) completed++;
+    }
+  } else {
+    for (const galaxy of galaxies) {
+      const m = measurements[galaxy.id] || {};
+      if (m.measuredWavelength != null && m.inferredZ != null && m.inferredVelocity != null) completed++;
+    }
+  }
+  pill.textContent = `${tr.t("progress")}: ${completed} ${tr.t("of")} ${items.length}`;
+}
+
+function saveState() {
+  saver.save({ mode: MODE, currentIndex, selections, measurements, submitted });
+}
+
+function submitAll() {
+  const result = isIdentify
+    ? scoreIdentifyState(stars, selections)
+    : scoreRedshiftState(galaxies, measurements);
+  sendActivityScore(result.score, 5, true); // ALWAYS re-send, no guard
+  submitted = true;
+  saveState();
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/${result.maxScore}`;
+  render();
+}
+
+function resetAll() {
+  currentIndex = 0;
+  submitted = false;
+  for (const k in selections) delete selections[k];
+  for (const k in measurements) delete measurements[k];
+  document.getElementById("scoreBox").textContent = "";
+  saveState();
+  render();
+}
+
+function render() {
+  renderStaticText();
+  renderProgress();
+  renderTabs();
+  if (isIdentify) renderIdentify(); else renderRedshift();
+}
+
+// Restore persisted inputs if any.
+const saved = (() => {
+  try {
+    const raw = new URLSearchParams(location.search).get("state");
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+})();
+if (saved && saved.mode === MODE) {
+  currentIndex = Math.max(0, Math.min(items.length - 1, saved.currentIndex || 0));
+  submitted = !!saved.submitted;
+  Object.assign(selections, saved.selections || {});
+  Object.assign(measurements, saved.measurements || {});
+}
+
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+document.getElementById("submitBtn").onclick = submitAll;
+document.getElementById("resetBtn").onclick = resetAll;
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>
