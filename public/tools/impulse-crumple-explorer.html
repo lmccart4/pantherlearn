@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Impulse & Crumple-Zone Explorer</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:920px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .panel{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .panel h2{font-size:15px;margin:0 0 10px;}
+  .controls{display:grid;gap:14px;}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .row label{min-width:110px;font-size:13px;color:var(--muted);}
+  .row input[type=range]{flex:1;min-width:160px;}
+  .row .val{font-variant-numeric:tabular-nums;min-width:80px;text-align:right;font-size:13px;}
+  .barrier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px;}
+  .barrier-btn{text-align:left;background:#0b1220;border:1px solid #334155;border-radius:8px;padding:10px;color:var(--ink);cursor:pointer;}
+  .barrier-btn:hover{border-color:var(--accent);}
+  .barrier-btn.selected{border-color:var(--accent);background:#0f172a;box-shadow:0 0 0 2px var(--accent);}
+  .barrier-btn .name{font-size:13px;font-weight:600;display:block;margin-bottom:2px;}
+  .barrier-btn .desc{font-size:11px;color:var(--muted);}
+  .primary{padding:10px 16px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  .chart{background:var(--panel);border-radius:12px;padding:12px;}
+  svg{width:100%;height:220px;display:block;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .pill{padding:5px 11px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+  .threshold-line{stroke:var(--bad);stroke-dasharray:6 4;stroke-width:2;}
+  .tests{display:flex;flex-direction:column;gap:8px;}
+  .test{background:#0b1220;border:1px solid #334155;border-radius:8px;padding:8px 10px;font-size:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .swatch{width:12px;height:12px;border-radius:3px;}
+  .insight{display:flex;align-items:flex-start;gap:10px;margin-top:8px;}
+  .insight input{margin-top:3px;}
+  .insight label{font-size:13px;color:var(--ink);}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  #scoreBox{font-size:13px;color:var(--muted);margin-top:10px;}
+  .legend{font-size:11px;color:var(--muted);margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="panel">
+    <h2 id="controlsTitle"></h2>
+    <div class="controls">
+      <div class="row">
+        <label id="massLbl"></label>
+        <input type="range" id="massSlider" min="800" max="2500" step="50" value="1500" />
+        <span class="val" id="massVal"></span>
+      </div>
+      <div class="row">
+        <label id="speedLbl"></label>
+        <input type="range" id="speedSlider" min="5" max="30" step="0.5" value="13.4" />
+        <span class="val" id="speedVal"></span>
+      </div>
+      <div class="barrier-grid" id="barrierGrid"></div>
+    </div>
+    <button class="primary" id="runBtn" style="margin-top:12px;width:100%;"></button>
+  </div>
+
+  <div class="chart">
+    <svg id="chartSvg" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
+    <div class="legend" id="chartLegend"></div>
+  </div>
+
+  <div class="readout" id="readout"></div>
+
+  <div class="panel">
+    <h2 id="testsTitle"></h2>
+    <div class="tests" id="testsList"></div>
+    <div class="insight">
+      <input type="checkbox" id="insightCheck" />
+      <label for="insightCheck" id="insightLbl"></label>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import {
+  BARRIER_PRESETS, INJURY_THRESHOLD_N, computeDeltaP, computeForceProfile,
+  barrierById, evaluateCrash, emptyState, scoreExploration
+} from "./impulse-crumple-explorer-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Impulse & Crumple-Zone Explorer", es: "Explorador de Impulso y Zonas de Aplastamiento" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: { en: "For the same momentum change, compare a stiff wall to a crumpling barrier. What happens to the peak force?", es: "Para el mismo cambio de momento, compara una pared rígida con una barrera que se aplasta. ¿Qué le pasa a la fuerza máxima?" },
+  controls: { en: "Crash Setup", es: "Configuración del choque" },
+  mass: { en: "Car mass", es: "Masa del auto" },
+  speed: { en: "Initial speed", es: "Velocidad inicial" },
+  run: { en: "▶ Run Crash", es: "▶ Ejecutar choque" },
+  currentCrash: { en: "Current crash", es: "Choque actual" },
+  deltaP: { en: "Momentum change Δp", es: "Cambio de momento Δp" },
+  deltaT: { en: "Collision time Δt", es: "Tiempo de colisión Δt" },
+  fAvg: { en: "Average force", es: "Fuerza promedio" },
+  fPeak: { en: "Peak force", es: "Fuerza máxima" },
+  threshold: { en: "Injury threshold", es: "Umbral de lesión" },
+  status: { en: "Passenger status", es: "Estado del pasajero" },
+  safe: { en: "Below threshold ✓", es: "Bajo el umbral ✓" },
+  unsafe: { en: "Above threshold — high injury risk", es: "Sobre el umbral — alto riesgo de lesión" },
+  tests: { en: "Tests Run", es: "Pruebas realizadas" },
+  noTests: { en: "No crashes run yet.", es: "Aún no se han ejecutado choques." },
+  insight: { en: "I notice: a longer collision time lowers the peak force for the same momentum change.", es: "Noto: un tiempo de colisión más largo reduce la fuerza máxima para el mismo cambio de momento." },
+  submit: { en: "Submit Score", es: "Enviar puntuación" },
+  submitted: { en: "✓ Submitted", es: "✓ Enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+  legend: { en: "Yellow = force on the car. Red dashed line = passenger injury threshold (40 kN).", es: "Amarillo = fuerza sobre el auto. Línea roja punteada = umbral de lesión del pasajero (40 kN)." },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+let state = emptyState();
+let currentResult = null;
+
+function fmtNum(n, digits = 0) {
+  return n.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+}
+function fmtForce(n) { return `${fmtNum(n / 1000, 1)} kN`; }
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("controlsTitle").textContent = tr.t("controls");
+  document.getElementById("massLbl").textContent = tr.t("mass");
+  document.getElementById("speedLbl").textContent = tr.t("speed");
+  document.getElementById("runBtn").textContent = tr.t("run");
+  document.getElementById("testsTitle").textContent = tr.t("tests");
+  document.getElementById("insightLbl").textContent = tr.t("insight");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+  document.getElementById("chartLegend").textContent = tr.t("legend");
+}
+
+function renderControls() {
+  document.getElementById("massSlider").value = state.mass;
+  document.getElementById("speedSlider").value = state.velocity;
+  document.getElementById("massVal").textContent = `${fmtNum(state.mass)} kg`;
+  document.getElementById("speedVal").textContent = `${fmtNum(state.velocity, 1)} m/s`;
+
+  const grid = document.getElementById("barrierGrid");
+  grid.innerHTML = "";
+  for (const b of BARRIER_PRESETS) {
+    const btn = document.createElement("button");
+    btn.className = "barrier-btn" + (state.barrierId === b.id ? " selected" : "");
+    btn.innerHTML = `<span class="name">${b.label[tr.lang]}</span><span class="desc">${b.description[tr.lang]}</span>`;
+    btn.onclick = () => { state.barrierId = b.id; saveState(); render(); };
+    grid.appendChild(btn);
+  }
+}
+
+function drawChart(result) {
+  const svg = document.getElementById("chartSvg");
+  const W = 600, H = 220;
+  if (!result || !result.points.length) {
+    svg.innerHTML = `<text x="20" y="30" fill="var(--muted)" font-size="13">${tr.t("noTests")}</text>`;
+    return;
+  }
+  const maxF = Math.max(INJURY_THRESHOLD_N * 1.15, ...result.points.map((p) => p.f));
+  const x = (t) => (t / result.deltaT) * W;
+  const y = (f) => H - (f / maxF) * (H - 20) - 10;
+  const path = result.points.map((p, i) => `${i === 0 ? "M" : "L"} ${x(p.t)} ${y(p.f)}`).join(" ");
+  const area = `${path} L ${W} ${H} L 0 ${H} Z`;
+  const thresholdY = y(INJURY_THRESHOLD_N);
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="forceGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${result.barrierColor}" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="${result.barrierColor}" stop-opacity="0.05"/>
+      </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="${W}" height="${H}" fill="none"/>
+    <path d="${area}" fill="url(#forceGrad)" stroke="none"/>
+    <path d="${path}" fill="none" stroke="${result.barrierColor}" stroke-width="2.5"/>
+    <line x1="0" y1="${thresholdY}" x2="${W}" y2="${thresholdY}" class="threshold-line"/>
+    <text x="8" y="${thresholdY - 6}" fill="var(--bad)" font-size="11">40 kN</text>
+  `;
+}
+
+function renderReadout() {
+  const host = document.getElementById("readout");
+  host.innerHTML = "";
+  if (!currentResult) return;
+  const r = currentResult;
+  const statusClass = r.belowThreshold ? "ok" : "bad";
+  const statusText = r.belowThreshold ? tr.t("safe") : tr.t("unsafe");
+  const pills = [
+    `${tr.t("deltaP")}: ${fmtForce(r.deltaP)}·s`,
+    `${tr.t("deltaT")}: ${fmtNum(r.deltaT * 1000, 0)} ms`,
+    `${tr.t("fAvg")}: ${fmtForce(r.fAvg)}`,
+    `${tr.t("fPeak")}: ${fmtForce(r.fPeak)}`,
+    `${tr.t("status")}: <span class="${statusClass}">${statusText}</span>`,
+  ];
+  for (const html of pills) {
+    const span = document.createElement("span");
+    span.className = "pill";
+    span.innerHTML = html;
+    host.appendChild(span);
+  }
+}
+
+function renderTests() {
+  const host = document.getElementById("testsList");
+  host.innerHTML = "";
+  if (state.testsRun.length === 0) {
+    host.innerHTML = `<div class="test" style="color:var(--muted)">${tr.t("noTests")}</div>`;
+    return;
+  }
+  for (const t of state.testsRun) {
+    const row = document.createElement("div");
+    row.className = "test";
+    row.innerHTML = `
+      <span class="swatch" style="background:${t.barrierColor}"></span>
+      <span>${t.barrierLabel[tr.lang]}</span>
+      <span>Δt ${fmtNum(t.deltaT * 1000, 0)} ms</span>
+      <span>Δp ${fmtForce(t.deltaP)}·s</span>
+      <span>F_peak ${fmtForce(t.fPeak)}</span>
+      <span class="${t.belowThreshold ? "ok" : "bad"}">${t.belowThreshold ? "✓" : "✗"}</span>
+    `;
+    host.appendChild(row);
+  }
+}
+
+function runCrash() {
+  currentResult = evaluateCrash({ mass: state.mass, velocity: state.velocity, barrierId: state.barrierId });
+  // Append test, replacing if same barrier already run.
+  state.testsRun = state.testsRun.filter((t) => t.barrierId !== currentResult.barrierId);
+  state.testsRun.push({
+    barrierId: currentResult.barrierId,
+    barrierLabel: currentResult.barrierLabel,
+    barrierColor: currentResult.barrierColor,
+    deltaP: currentResult.deltaP,
+    deltaT: currentResult.deltaT,
+    fAvg: currentResult.fAvg,
+    fPeak: currentResult.fPeak,
+    belowThreshold: currentResult.belowThreshold,
+  });
+  saveState();
+  render();
+  maybeAutoScore();
+}
+
+function maybeAutoScore() {
+  const result = scoreExploration(state);
+  if (result.score > 0) {
+    sendActivityScore(result.score, 5, true);
+  }
+}
+
+function submitScore() {
+  const result = scoreExploration(state);
+  sendActivityScore(result.score, 5, true); // ALWAYS re-send, no guard
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5`;
+}
+
+function saveState() {
+  saver.save({ state, currentResult: currentResult ? {
+    barrierId: currentResult.barrierId,
+    deltaP: currentResult.deltaP,
+    deltaT: currentResult.deltaT,
+    fAvg: currentResult.fAvg,
+    fPeak: currentResult.fPeak,
+    belowThreshold: currentResult.belowThreshold,
+  } : null });
+}
+
+function resetAll() {
+  state = emptyState();
+  currentResult = null;
+  document.getElementById("scoreBox").textContent = "";
+  saveState();
+  render();
+}
+
+function render() {
+  renderStaticText();
+  renderControls();
+  drawChart(currentResult);
+  renderReadout();
+  renderTests();
+  document.getElementById("insightCheck").checked = state.insightConfirmed;
+}
+
+// Events
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+document.getElementById("massSlider").oninput = (e) => {
+  state.mass = Number(e.target.value);
+  saveState();
+  renderControls();
+};
+document.getElementById("speedSlider").oninput = (e) => {
+  state.velocity = Number(e.target.value);
+  saveState();
+  renderControls();
+};
+document.getElementById("runBtn").onclick = runCrash;
+document.getElementById("submitBtn").onclick = submitScore;
+document.getElementById("resetBtn").onclick = resetAll;
+document.getElementById("insightCheck").onchange = (e) => {
+  state.insightConfirmed = e.target.checked;
+  saveState();
+  render();
+  maybeAutoScore();
+};
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

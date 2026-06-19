@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>1D Collision Simulator</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:920px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  .panel{background:var(--panel);border-radius:12px;padding:14px;flex:1;min-width:260px;}
+  .panel h2{font-size:15px;margin:0 0 12px;}
+  .field{margin-bottom:10px;}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+  .field input[type="number"]{width:100%;padding:8px;border-radius:6px;border:1px solid #334155;background:#0b1220;color:var(--ink);font-size:14px;}
+  .toggle{display:flex;gap:4px;flex-wrap:wrap;}
+  .toggle button{flex:1;padding:8px;border:1px solid #334155;background:#0b1220;color:var(--muted);border-radius:6px;cursor:pointer;font-size:13px;}
+  .toggle button.selected{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .track{background:#0b1220;border:1px solid #334155;border-radius:8px;height:120px;margin:12px 0;position:relative;overflow:hidden;}
+  .vehicle{position:absolute;top:50%;transform:translate(-50%,-50%);width:60px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;transition:left 0.2s linear, top 0.2s linear;}
+  .v1{background:var(--accent);color:#0f172a;}
+  .v2{background:var(--warn);color:#0f172a;}
+  .bar-wrap{display:flex;align-items:center;gap:8px;margin:6px 0;}
+  .bar-label{width:70px;font-size:12px;color:var(--muted);}
+  .bar-bg{flex:1;height:18px;background:#0b1220;border-radius:9px;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--ok);border-radius:9px;transition:width 0.3s;}
+  .bar-fill.negative{background:var(--bad);}
+  .bar-value{font-size:12px;color:var(--ink);min-width:80px;text-align:right;}
+  .predictions{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .predictions h2{font-size:15px;margin:0 0 12px;}
+  .pred-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}
+  .pred-grid input{width:100%;padding:8px;border-radius:6px;border:1px solid #334155;background:#0b1220;color:var(--ink);font-size:14px;}
+  .pred-grid label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .primary{flex:1;min-width:160px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  .results{background:var(--panel);border-radius:12px;padding:14px;margin-top:12px;}
+  .results h2{font-size:15px;margin:0 0 12px;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .pill{padding:4px 10px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .ok{color:var(--ok);} .bad{color:var(--bad);} .warn{color:var(--warn);}
+  .score-line{font-size:13px;color:var(--muted);margin-top:8px;}
+  textarea{width:100%;min-height:60px;padding:8px;border-radius:6px;border:1px solid #334155;background:#0b1220;color:var(--ink);font-size:13px;resize:vertical;}
+  .legend{font-size:12px;color:var(--muted);margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="row">
+    <div class="panel">
+      <h2 id="v1Title"></h2>
+      <div class="field">
+        <label id="mass1Lbl"></label>
+        <input type="number" id="mass1" min="100" max="10000" step="50" />
+      </div>
+      <div class="field">
+        <label id="speed1Lbl"></label>
+        <input type="number" id="speed1" min="0" max="50" step="1" />
+      </div>
+      <div class="field">
+        <label id="dir1Lbl"></label>
+        <div class="toggle" id="dir1"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 id="v2Title"></h2>
+      <div class="field">
+        <label id="mass2Lbl"></label>
+        <input type="number" id="mass2" min="100" max="10000" step="50" />
+      </div>
+      <div class="field">
+        <label id="speed2Lbl"></label>
+        <input type="number" id="speed2" min="0" max="50" step="1" />
+      </div>
+      <div class="field">
+        <label id="dir2Lbl"></label>
+        <div class="toggle" id="dir2"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 id="typeTitle"></h2>
+    <div class="toggle" id="typeToggle"></div>
+    <div class="track" id="track">
+      <div class="vehicle v1" id="veh1">A</div>
+      <div class="vehicle v2" id="veh2">B</div>
+    </div>
+    <p class="legend" id="legendEl"></p>
+  </div>
+
+  <div class="predictions">
+    <h2 id="predTitle"></h2>
+    <p class="hint" id="predHint"></p>
+    <div class="pred-grid">
+      <div class="field"><label id="predV1Lbl"></label><input type="number" id="predV1" step="0.1" /></div>
+      <div class="field"><label id="predV2Lbl"></label><input type="number" id="predV2" step="0.1" /></div>
+      <div class="field"><label id="predPLbl"></label><input type="number" id="predP" step="10" /></div>
+    </div>
+    <div class="field">
+      <label id="reasonLbl"></label>
+      <textarea id="reasoning"></textarea>
+    </div>
+    <div class="actions">
+      <button class="primary" id="runBtn"></button>
+      <button class="secondary" id="resetBtn"></button>
+    </div>
+  </div>
+
+  <div class="results" id="results" style="display:none">
+    <h2 id="resTitle"></h2>
+    <div class="readout">
+      <span class="pill" id="actualV1">—</span>
+      <span class="pill" id="actualV2">—</span>
+      <span class="pill" id="actualP">—</span>
+      <span class="pill" id="kePill">—</span>
+    </div>
+    <div id="momentumBars"></div>
+    <div class="actions">
+      <button class="primary" id="submitBtn"></button>
+    </div>
+    <div class="score-line" id="scoreBox"></div>
+  </div>
+</div>
+
+<script type="module">
+import { emptyState, signedVelocity, totalMomentum, solveCollision, scorePrediction, formatNumber, COLLISION_TYPES } from "./collision-sim-1d-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "1D Collision Simulator", es: "Simulador de Colisiones 1D" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: { en: "Set each vehicle's mass and velocity, choose a collision type, predict the outcomes, then run.", es: "Ajusta la masa y velocidad de cada vehículo, elige el tipo de colisión, predice los resultados y ejecuta." },
+  vehicle1: { en: "Vehicle A", es: "Vehículo A" },
+  vehicle2: { en: "Vehicle B", es: "Vehículo B" },
+  mass: { en: "Mass (kg)", es: "Masa (kg)" },
+  speed: { en: "Speed (m/s)", es: "Rapidez (m/s)" },
+  direction: { en: "Direction", es: "Dirección" },
+  right: { en: "Right →", es: "Derecha →" },
+  left: { en: "← Left", es: "← Izquierda" },
+  collisionType: { en: "Collision type", es: "Tipo de colisión" },
+  legend: { en: "Positive velocity = right; negative = left. The simulator stops when the vehicles meet.", es: "Velocidad positiva = derecha; negativa = izquierda. El simulador se detiene cuando los vehículos se encuentran." },
+  predict: { en: "Predict the outcomes", es: "Predice los resultados" },
+  predHint: { en: "Use signed values: right is positive, left is negative. Total momentum is conserved.", es: "Usa valores con signo: derecha es positivo, izquierda es negativo. El momento total se conserva." },
+  predV1: { en: "Vehicle A final velocity (m/s)", es: "Velocidad final del vehículo A (m/s)" },
+  predV2: { en: "Vehicle B final velocity (m/s)", es: "Velocidad final del vehículo B (m/s)" },
+  predP: { en: "Total momentum after (kg·m/s)", es: "Momento total después (kg·m/s)" },
+  reasoning: { en: "Explain your prediction", es: "Explica tu predicción" },
+  run: { en: "Run Simulation", es: "Ejecutar simulación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+  results: { en: "Results", es: "Resultados" },
+  actualV1: { en: "A final", es: "A final" },
+  actualV2: { en: "B final", es: "B final" },
+  totalP: { en: "Total momentum", es: "Momento total" },
+  ke: { en: "KE before / after", es: "EC antes / después" },
+  momentumBars: { en: "Momentum bars (kg·m/s)", es: "Barras de momento (kg·m/s)" },
+  before: { en: "Before", es: "Antes" },
+  after: { en: "After", es: "Después" },
+  submit: { en: "Submit Score", es: "Enviar puntuación" },
+  submitted: { en: "✓ Score submitted", es: "✓ Puntuación enviada" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+let state = emptyState();
+let animTimer = null;
+
+function setInput(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value;
+}
+function getInput(id) {
+  const el = document.getElementById(id);
+  return el ? el.value : "";
+}
+
+function renderDirectionToggles() {
+  for (const v of ["1", "2"]) {
+    const host = document.getElementById(`dir${v}`);
+    host.innerHTML = "";
+    for (const d of ["right", "left"]) {
+      const btn = document.createElement("button");
+      btn.textContent = tr.t(d);
+      btn.className = state[`v${v}`].direction === d ? "selected" : "";
+      btn.onclick = () => { state[`v${v}`].direction = d; saveState(); render(); };
+      host.appendChild(btn);
+    }
+  }
+}
+
+function renderTypeToggle() {
+  const host = document.getElementById("typeToggle");
+  host.innerHTML = "";
+  for (const t of COLLISION_TYPES) {
+    const btn = document.createElement("button");
+    btn.textContent = t.label[tr.lang];
+    btn.className = state.collisionType === t.id ? "selected" : "";
+    btn.onclick = () => { state.collisionType = t.id; saveState(); render(); };
+    host.appendChild(btn);
+  }
+}
+
+function saveState() {
+  saver.save({ state });
+}
+
+function readStateFromDOM() {
+  state.v1.mass = Number(getInput("mass1")) || state.v1.mass;
+  state.v1.velocity = Number(getInput("speed1")) || 0;
+  state.v2.mass = Number(getInput("mass2")) || state.v2.mass;
+  state.v2.velocity = Number(getInput("speed2")) || 0;
+  state.predictions.v1Final = getInput("predV1");
+  state.predictions.v2Final = getInput("predV2");
+  state.predictions.pTotalFinal = getInput("predP");
+  state.reasoning = getInput("reasoning");
+}
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("v1Title").textContent = tr.t("vehicle1");
+  document.getElementById("v2Title").textContent = tr.t("vehicle2");
+  document.getElementById("mass1Lbl").textContent = tr.t("mass");
+  document.getElementById("mass2Lbl").textContent = tr.t("mass");
+  document.getElementById("speed1Lbl").textContent = tr.t("speed");
+  document.getElementById("speed2Lbl").textContent = tr.t("speed");
+  document.getElementById("dir1Lbl").textContent = tr.t("direction");
+  document.getElementById("dir2Lbl").textContent = tr.t("direction");
+  document.getElementById("typeTitle").textContent = tr.t("collisionType");
+  document.getElementById("legendEl").textContent = tr.t("legend");
+  document.getElementById("predTitle").textContent = tr.t("predict");
+  document.getElementById("predHint").textContent = tr.t("predHint");
+  document.getElementById("predV1Lbl").textContent = tr.t("predV1");
+  document.getElementById("predV2Lbl").textContent = tr.t("predV2");
+  document.getElementById("predPLbl").textContent = tr.t("predP");
+  document.getElementById("reasonLbl").textContent = tr.t("reasoning");
+  document.getElementById("runBtn").textContent = tr.t("run");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+  document.getElementById("resTitle").textContent = tr.t("results");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+}
+
+function updateVehiclePositions(time, duration) {
+  const track = document.getElementById("track");
+  const w = track.clientWidth;
+  const start1 = 60;
+  const start2 = w - 60;
+  const u1 = signedVelocity(state.v1);
+  const u2 = signedVelocity(state.v2);
+
+  // Estimate meeting time (distance / relative speed). Positive relative speed means closing.
+  const rel = u1 - u2;
+  let meet = 0;
+  if (rel > 0) meet = (start2 - start1) / rel;
+
+  let p1, p2;
+  if (time >= duration || meet <= 0) {
+    // After collision: shift to post-collision motion.
+    const afterTime = Math.max(0, time - meet);
+    const result = solveCollision(state);
+    p1 = start1 + u1 * meet + result.v1Final * afterTime;
+    p2 = start2 + u2 * meet + result.v2Final * afterTime;
+  } else {
+    p1 = start1 + u1 * time;
+    p2 = start2 + u2 * time;
+  }
+  document.getElementById("veh1").style.left = `${Math.max(30, Math.min(w - 30, p1))}px`;
+  document.getElementById("veh2").style.left = `${Math.max(30, Math.min(w - 30, p2))}px`;
+}
+
+function runSimulation() {
+  readStateFromDOM();
+  state.ran = true;
+  saveState();
+
+  const result = solveCollision(state);
+  document.getElementById("results").style.display = "block";
+  document.getElementById("actualV1").textContent = `${tr.t("actualV1")}: ${formatNumber(result.v1Final)} m/s`;
+  document.getElementById("actualV2").textContent = `${tr.t("actualV2")}: ${formatNumber(result.v2Final)} m/s`;
+  document.getElementById("actualP").textContent = `${tr.t("totalP")}: ${formatNumber(result.pTotal)} kg·m/s`;
+  document.getElementById("kePill").textContent = `${tr.t("ke")}: ${formatNumber(result.keBefore / 1000)} / ${formatNumber(result.keAfter / 1000)} kJ`;
+  renderMomentumBars(result);
+
+  // Auto-send score if predictions were entered.
+  const scored = scorePrediction(state);
+  if (scored.score > 0) {
+    sendActivityScore(scored.score, 5, true);
+  }
+
+  // Simple animation loop (2 seconds of motion).
+  if (animTimer) clearInterval(animTimer);
+  const duration = 2000;
+  const start = performance.now();
+  animTimer = setInterval(() => {
+    const elapsed = performance.now() - start;
+    updateVehiclePositions(elapsed / 1000 * 15, duration / 1000 * 15);
+    if (elapsed >= duration) clearInterval(animTimer);
+  }, 33);
+}
+
+function renderMomentumBars(result) {
+  const host = document.getElementById("momentumBars");
+  host.innerHTML = `<div class="bar-label">${tr.t("momentumBars")}</div>`;
+  const p1Before = state.v1.mass * signedVelocity(state.v1);
+  const p2Before = state.v2.mass * signedVelocity(state.v2);
+  const p1After = state.v1.mass * result.v1Final;
+  const p2After = state.v2.mass * result.v2Final;
+  const maxP = Math.max(Math.abs(p1Before), Math.abs(p2Before), Math.abs(p1After), Math.abs(p2After), 1);
+
+  function bar(label, value) {
+    const pct = (Math.abs(value) / maxP) * 100;
+    const sign = value >= 0 ? "" : "−";
+    return `
+      <div class="bar-wrap">
+        <div class="bar-label">${label}</div>
+        <div class="bar-bg"><div class="bar-fill ${value < 0 ? "negative" : ""}" style="width:${pct}%"></div></div>
+        <div class="bar-value">${sign}${formatNumber(Math.abs(value))}</div>
+      </div>`;
+  }
+
+  host.innerHTML += bar(`${tr.t("before")} A`, p1Before);
+  host.innerHTML += bar(`${tr.t("before")} B`, p2Before);
+  host.innerHTML += bar(`${tr.t("after")} A`, p1After);
+  host.innerHTML += bar(`${tr.t("after")} B`, p2After);
+  host.innerHTML += bar(`${tr.t("totalP")} ${tr.t("before")}`, result.pTotal);
+  host.innerHTML += bar(`${tr.t("totalP")} ${tr.t("after")}`, result.pTotalAfter);
+}
+
+function submitScore() {
+  readStateFromDOM();
+  const result = scorePrediction(state);
+  sendActivityScore(result.score, 5, true); // ALWAYS re-send, no guard
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5 · ${result.breakdown.join(" · ")}`;
+  saveState();
+}
+
+function reset() {
+  state = emptyState();
+  if (animTimer) clearInterval(animTimer);
+  saveState();
+  render();
+}
+
+function render() {
+  renderStaticText();
+  renderDirectionToggles();
+  renderTypeToggle();
+
+  setInput("mass1", state.v1.mass);
+  setInput("speed1", state.v1.velocity);
+  setInput("mass2", state.v2.mass);
+  setInput("speed2", state.v2.velocity);
+  setInput("predV1", state.predictions.v1Final);
+  setInput("predV2", state.predictions.v2Final);
+  setInput("predP", state.predictions.pTotalFinal);
+  setInput("reasoning", state.reasoning);
+
+  if (state.ran) {
+    runSimulation();
+  }
+}
+
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+document.getElementById("runBtn").onclick = runSimulation;
+document.getElementById("resetBtn").onclick = reset;
+document.getElementById("submitBtn").onclick = submitScore;
+
+["mass1", "speed1", "mass2", "speed2", "predV1", "predV2", "predP", "reasoning"].forEach(id => {
+  document.getElementById(id).addEventListener("input", () => { readStateFromDOM(); saveState(); });
+});
+
+window.addEventListener("beforeunload", () => saver.flush());
+render();
+</script>
+</body>
+</html>
