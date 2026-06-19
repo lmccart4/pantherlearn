@@ -5,7 +5,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: diagram showing tension, compression, and shear forces acting on a block of rock.
 
 const lesson = {
   id: 'phys-u2-l03-forces-change-shape',
@@ -23,6 +22,12 @@ const lesson = {
       'Distinguish balanced and unbalanced forces',
       'Connect shape changes in materials to unbalanced forces',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l03-forces-change-shape-tension-compression-shear.jpg',
+      alt: 'A three-panel diagram of a rock block under tension (arrows pulling apart, block stretched), compression (arrows pushing together, block squashed), and shear (offset opposite arrows, block slanted).',
+      caption: 'Three ways unbalanced forces change the shape of rock: tension stretches, compression squashes, shear slants. *(Diagram.)*',
+    }),
 
     k.text(
       "Afar's crust didn't crack by itself. Something **pushed** or **pulled** it until it broke. In physics, any push or " +

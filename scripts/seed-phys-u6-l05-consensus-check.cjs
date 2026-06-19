@@ -6,7 +6,7 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: class consensus model diagram combining spectra + H-R ideas (Gemini, JSON-first)
+const IMG_BASE = 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics';
 
 const lesson = {
   id: 'phys-u6-l05-consensus-check',
@@ -24,6 +24,12 @@ const lesson = {
       'Distinguish between observations, inferences, and unanswered questions',
       'Complete a formative checkpoint on the anchor phenomenon',
     ]),
+
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l05-consensus-check-star-model.jpg`,
+      alt: 'A concept map with a star in the center, an arrow to a spectrum labeled composition and temperature, an arrow to an H-R diagram labeled luminosity and life stage, and an open question about why stars shine.',
+      caption: 'What we know so far: spectra reveal a star\'s composition and temperature; the H-R diagram reveals its brightness and life stage. We still need to explain why stars shine. *(Diagram.)*',
+    }),
 
     k.text(
       "We are halfway through Lesson Set 1. So far, we have used **starlight** and the **H-R diagram** to figure out that " +
@@ -87,7 +93,7 @@ const lesson = {
         'How telescopes are built',
         'Whether stars are closer than the Moon',
       ],
-      correctIndex: 3,
+      correctIndex: 1,
       explanation: 'The driving question is why stars shine and whether they shine forever. The most important unanswered question is what makes stars shine and what happens when they stop.',
       difficulty: 'understand',
     }),

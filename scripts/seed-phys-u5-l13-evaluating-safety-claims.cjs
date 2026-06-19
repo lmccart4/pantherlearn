@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: comparison graphic — ionizing vs. non-ionizing radiation with energy-per-photon scale (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u5-l13-evaluating-safety-claims',
@@ -43,6 +42,12 @@ const lesson = {
         "more energy than a low-intensity source far away.",
     }),
 
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l13-evaluating-safety-claims-ionizing-scale.jpg',
+      alt: 'An energy-per-photon scale separating non-ionizing radiation (radio, microwave, WiFi/5G, infrared, visible) on the low-energy side from ionizing radiation (UV, X-ray, gamma) on the high-energy side, divided by an ionization threshold.',
+      caption: 'WiFi, 5G, and microwaves are non-ionizing — far below the energy needed to damage DNA. Only UV, X-rays, and gamma rays cross the ionization threshold. *(Diagram.)*',
+    }),
+
     k.text(
       "A claim that '5G causes cancer' needs two things to be convincing: (1) evidence that people exposed to 5G " +
       "develop cancer at a higher rate than similar people who were not exposed, and (2) a physical mechanism that " +
@@ -69,12 +74,12 @@ const lesson = {
     k.mc({
       prompt: 'A blog post says, "Cancer rates rose in the same year 5G towers were installed, so 5G must cause cancer." What is the main flaw?',
       options: [
-        'The claim ignores the wavelength of 5G signals',
         'The claim confuses correlation with causation',
+        'The claim ignores the wavelength of 5G signals',
         'The claim assumes all radiation is ionizing',
         'The claim uses too many decimal places',
       ],
-      correctIndex: 1,
+      correctIndex: 0,
       explanation:
         "Two trends happening at the same time does not prove one caused the other. Controlled studies and a plausible " +
         "physical mechanism are needed to support a causation claim.",

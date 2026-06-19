@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: simplified Perth Amboy / NJ map with roads, buildings, and water (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u5-l12-signals-city',
@@ -25,6 +24,12 @@ const lesson = {
       'Explain the tradeoffs among frequency, range, bandwidth, and building penetration',
       'Defend a tower-placement plan using evidence',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l12-signals-city-map.jpg',
+      alt: 'A simplified top-down map of a small coastal city with a street grid, labeled school, residential, and commercial zones, green space, and a body of water along one edge.',
+      caption: 'A simplified map of a Perth Amboy-style city — school, homes, businesses, and waterfront. You will place cell towers across zones like these. *(Diagram.)*',
+    }),
 
     k.text(
       "If you look around Perth Amboy you'll notice cell towers, water towers with antennas, and small 5G boxes on " +

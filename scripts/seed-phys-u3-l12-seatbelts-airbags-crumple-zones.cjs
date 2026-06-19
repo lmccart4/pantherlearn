@@ -54,7 +54,11 @@ const lesson = {
       "force into a smaller, longer-lasting force."
     ),
 
-    // IMAGE PHASE: annotated crash-test photo showing crumple zone, seatbelt path, and airbag deployment
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u3-l12-safety-features-cutaway.jpg',
+      alt: 'A side cutaway of a car with a seated occupant, with labeled callouts for the crumple zone at the front, the seatbelt across the torso, and the inflated airbag, all working to extend stopping time.',
+      caption: 'Crumple zones, seatbelts, and airbags all do the same physics job: extend the occupant\'s stopping time so the peak force is lower. *(Diagram.)*',
+    }),
 
     k.mdTable({
       lead: '**Approximate frontal crash-test data (illustrative)**',

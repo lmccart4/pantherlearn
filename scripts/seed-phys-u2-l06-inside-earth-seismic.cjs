@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: cross-section of Earth showing crust, mantle, outer core, inner core with seismic wave paths.
 
 const lesson = {
   id: 'phys-u2-l06-inside-earth-seismic',
@@ -25,6 +24,12 @@ const lesson = {
       'Identify the crust, mantle, outer core, and inner core from evidence',
       'Connect Earth\'s internal structure to the forces that shape the surface',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l06-inside-earth-layers-seismic-paths.jpg',
+      alt: 'A cutaway of Earth showing four layers from outside to center: crust, mantle, liquid outer core, and solid inner core, with P-wave paths passing through all layers and S-wave paths stopping at the liquid outer core.',
+      caption: 'Earth\'s four layers from the outside in: crust, mantle, outer core, inner core. S-waves stop at the liquid outer core. *(Diagram.)*',
+    }),
 
     k.text(
       "We can't drill to the center of Earth. The deepest hole humans have ever dug is only about **12 kilometers** — barely " +
@@ -50,7 +55,11 @@ const lesson = {
       "mean cold, rigid material. This lets scientists build a 3-D model of Earth's interior."
     ),
 
-    // IMAGE PHASE: annotated tomography cross-section with wave-speed color scale (Gemini, JSON-first).
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l06-inside-earth-tomography-wavespeed.jpg',
+      alt: 'A seismic tomography slice through Earth colored by wave speed, with a blue-to-red color scale showing fast cold rigid rock in blue and slow hot soft rock in red, including a rising hot plume.',
+      caption: 'Seismic tomography colors Earth by wave speed: blue = fast (cold, rigid), red = slow (hot, soft). *(Diagram.)*',
+    }),
 
     k.mdTable({
       lead: '**Earth\'s major layers** — what seismic waves reveal.',

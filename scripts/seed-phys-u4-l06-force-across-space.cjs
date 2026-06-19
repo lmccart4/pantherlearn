@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: Newton's cannon / apple-Earth cartoon + vector diagram of gravitational force pair.
 
 const lesson = {
   id: 'phys-u4-l06-force-across-space',
@@ -61,7 +60,11 @@ const lesson = {
       note: 'Because $r$ is squared in the denominator, distance has a stronger effect than mass.',
     }),
 
-    // IMAGE PHASE: diagram showing force vectors between Earth and Moon, labeled $F_{Earth on Moon}$ and $F_{Moon on Earth}$.
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l06-force-across-space-earth-moon-force-pair.jpg',
+      alt: 'Diagram of Earth and the Moon separated by distance r, with two equal and opposite force arrows along the line between their centers, labeled force of Earth on Moon and force of Moon on Earth.',
+      caption: 'Gravity acts as an equal-and-opposite pair: Earth pulls the Moon exactly as hard as the Moon pulls Earth, along the line between them. *(Diagram.)*',
+    }),
 
     k.mc({
       prompt: 'The distance between two asteroids is doubled. What happens to the gravitational force between them?',

@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: blank modeling scaffold with before/during/after panels for a car crash (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u3-l06-modeling-car-crash',
@@ -49,6 +48,12 @@ const lesson = {
       "**Define the system.** For your first model, let the system be the small car. For your second model, let the " +
       "system be both vehicles together. Compare what is the same and what changes."
     ),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u3-l06-modeling-car-crash-scaffold.jpg',
+      alt: 'A blank three-panel worksheet template labeled Before, During, and After, with empty boxes and a legend for system, force, and velocity for students to fill in.',
+      caption: 'Use this before/during/after layout for your models — label the system boundary, the forces, and the velocity in each panel. *(Diagram.)*',
+    }),
 
     k.sketch({
       title: 'Model 1 — Small Car as System',

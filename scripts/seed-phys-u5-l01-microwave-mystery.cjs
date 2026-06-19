@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: hero = microwave + Bluetooth speaker demo setup; inserted after content is approved.
 
 const lesson = {
   id: 'phys-u5-l01-microwave-mystery',
@@ -24,6 +23,12 @@ const lesson = {
       'Build an initial model of waves and radiation',
       'Contribute questions to the class Driving Question Board',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l01-microwave-mystery-hero.jpg',
+      alt: 'A Bluetooth speaker sits inside an open, switched-off microwave oven while a phone on the counter plays music, its signal blocked at the metal door.',
+      caption: 'Our anchoring mystery: a Bluetooth speaker loses its signal inside a closed — but completely **off** — microwave. *(Illustration.)*',
+    }),
 
     k.text(
       "Mr. McCarthy is going to play music from a small Bluetooth speaker. Then he'll put that speaker inside a " +

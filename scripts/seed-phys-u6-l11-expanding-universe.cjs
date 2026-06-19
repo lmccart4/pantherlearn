@@ -7,6 +7,7 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
+const IMG_BASE = 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics';
 
 const lesson = {
   id: 'phys-u6-l11-expanding-universe',
@@ -50,7 +51,11 @@ const lesson = {
       "the beginning of the expansion — is what we call the **Big Bang**."
     ),
 
-    // IMAGE PHASE: balloon expansion analogy sequence (inflating balloon with galaxy dots)
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l11-expanding-universe-balloon.jpg`,
+      alt: 'Three balloons of increasing size, each dotted with galaxies; as the balloon inflates, every galaxy moves away from every other one, with no center.',
+      caption: 'As the balloon inflates, every galaxy moves away from every other one — space itself stretches, and there is no center. *(Diagram.)*',
+    }),
 
     k.mc({
       prompt: 'If we run the expansion of the universe backward in time, what do we conclude?',

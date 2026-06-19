@@ -7,7 +7,7 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: absorption-line spectra reference card for H, He, Na, Ca (Gemini, JSON-first)
+const IMG_BASE = 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics';
 
 const lesson = {
   id: 'phys-u6-l03-starlight-tells-us',
@@ -25,6 +25,12 @@ const lesson = {
       'Match star spectra to laboratory reference spectra to identify composition',
       'Explain why each element has a unique spectral fingerprint',
     ]),
+
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l03-starlight-tells-us-spectral-fingerprints.jpg`,
+      alt: 'Four stacked rainbow spectra labeled H, He, Na, and Ca, each crossed by a different pattern of dark absorption lines.',
+      caption: 'Every element absorbs light at its own set of wavelengths — a unique pattern of dark lines, like a fingerprint. *(Diagram.)*',
+    }),
 
     k.text(
       "In 1814, Joseph Fraunhofer noticed that the Sun's rainbow was missing certain colors — thin dark lines. Those lines " +
@@ -47,7 +53,11 @@ const lesson = {
       "those lines to laboratory spectra, we can identify the elements in the star without ever touching it."
     ),
 
-    // IMAGE PHASE: side-by-side spectra — continuous, emission (bright lines), absorption (dark lines) (Gemini, JSON-first)
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l03-starlight-tells-us-three-spectra.jpg`,
+      alt: 'Three stacked spectra: a continuous rainbow, an emission spectrum of bright lines on black, and an absorption spectrum of dark lines on a rainbow.',
+      caption: 'Three kinds of spectra: a smooth continuous rainbow, bright emission lines from hot gas, and dark absorption lines where cooler gas absorbs light. *(Diagram.)*',
+    }),
 
     k.mdTable({
       lead: '**Reference spectral lines** (simplified for this lesson)',

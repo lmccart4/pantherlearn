@@ -7,7 +7,7 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: stellar life-cycle infographic for low/medium/high mass (Gemini, JSON-first)
+const IMG_BASE = 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics';
 
 const lesson = {
   id: 'phys-u6-l07-stars-life-story',
@@ -25,6 +25,12 @@ const lesson = {
       'Explain how a star\'s mass determines its fate',
       'Connect the life-cycle stages to positions on the H-R diagram',
     ]),
+
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l07-stars-life-story-lifecycle.jpg`,
+      alt: 'A stellar life-cycle flowchart branching by mass: low-mass stars end as white dwarfs via a planetary nebula; high-mass stars explode as supernovae and leave a neutron star or black hole.',
+      caption: 'Every star starts in a nebula, but mass decides its fate: low-mass stars become white dwarfs; high-mass stars explode as supernovae, leaving a neutron star or black hole. *(Diagram.)*',
+    }),
 
     k.text(
       "Stars are born, live, and die. The whole story begins in a cold cloud of gas and dust called a **nebula**. Gravity " +
@@ -46,7 +52,11 @@ const lesson = {
       "the 'new star' records is exactly that kind of explosion."
     ),
 
-    // IMAGE PHASE: three life-cycle tracks side by side with H-R positions labeled (Gemini, JSON-first)
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l07-stars-life-story-three-tracks-hr.jpg`,
+      alt: 'Three columns for low-, medium-, and high-mass stars, each showing its life-cycle stages with thumbnail H-R diagram positions for main sequence, giants, and white dwarfs.',
+      caption: 'Three mass tracks side by side, with each stage tied to its place on the H-R diagram. *(Diagram.)*',
+    }),
 
     k.mdTable({
       lead: '**Life-cycle stages and what happens in each**',

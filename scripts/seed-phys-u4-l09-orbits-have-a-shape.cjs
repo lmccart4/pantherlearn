@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: diagram showing focus, semi-major axis, perihelion, aphelion, and eccentricity of an ellipse.
 
 const lesson = {
   id: 'phys-u4-l09-orbits-have-a-shape',
@@ -45,6 +44,12 @@ const lesson = {
         "- **Semi-major axis ($a$)** — half the longest distance across the orbit; sets the orbital period\n" +
         "- **Perihelion** — closest point to the Sun\n" +
         "- **Aphelion** — farthest point from the Sun",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l09-orbits-have-a-shape-ellipse-anatomy.jpg',
+      alt: 'Labeled diagram of an elliptical orbit with the Sun at one focus, showing the semi-major axis, perihelion (closest point) and aphelion (farthest point).',
+      caption: 'The anatomy of an elliptical orbit: the Sun sits at one focus — not the center — with perihelion closest and aphelion farthest. *(Diagram.)*',
     }),
 
     k.embed({

@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: microwave interior with hot/cold pattern overlay + wavelength annotation (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u5-l08-hot-cold-spots',
@@ -41,6 +40,12 @@ const lesson = {
         "At some locations the waves add together (antinodes = **hot spots**); at others they cancel out " +
         "(nodes = **cold spots**). The distance between two neighboring hot spots is about half a wavelength " +
         "($\lambda/2$).",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l08-hot-cold-spots-standing-wave.jpg',
+      alt: 'A top-down cutaway of a microwave cavity showing a standing-wave pattern of alternating hot spots (antinodes) and cold spots (nodes) spaced half a wavelength apart.',
+      caption: 'Standing waves inside the oven create fixed hot spots (antinodes) and cold spots (nodes). Neighboring hot spots are about half a wavelength ($\\lambda/2$) apart. *(Diagram.)*',
     }),
 
     k.text(

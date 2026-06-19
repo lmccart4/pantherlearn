@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: all-sky map showing locations of known near-Earth objects and main asteroid belt.
 
 const lesson = {
   id: 'phys-u4-l12-tracking-near-earth-objects',
@@ -33,6 +32,12 @@ const lesson = {
       "**system** we care about is the asteroid plus the Sun plus the planets whose gravity will tweak its path. Small " +
       "uncertainties grow over time, so probabilities — not yes/no predictions — are the right way to talk about risk."
     ),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l12-tracking-near-earth-objects-belt-map.jpg',
+      alt: 'Top-down map of the inner solar system showing the Sun, the orbits of Mercury through Mars, the asteroid belt between Mars and Jupiter, and highlighted near-Earth objects on Earth-crossing orbits.',
+      caption: 'Most asteroids stay in the belt between Mars and Jupiter, but near-Earth objects ride stretched orbits that cross Earth’s path. *(Diagram.)*',
+    }),
 
     k.mdTable({
       lead: '**Selected near-Earth objects** — approximate values for comparison.',

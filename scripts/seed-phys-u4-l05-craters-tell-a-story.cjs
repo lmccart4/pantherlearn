@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: Meteor Crater, Arizona aerial photo + scale comparison.
 
 const lesson = {
   id: 'phys-u4-l05-craters-tell-a-story',
@@ -32,6 +31,12 @@ const lesson = {
       "Chicxulub impact, linked to the extinction of the non-avian dinosaurs, left a crater more than **150 kilometers " +
       "across**. The size of a crater is a clue to the energy of the impact."
     ),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l05-craters-tell-a-story-meteor-crater.jpg',
+      alt: 'Aerial view of Barringer Meteor Crater in Arizona, a round bowl-shaped crater about 1.2 km wide with a raised rim in flat desert.',
+      caption: 'Meteor Crater, Arizona — about 1.2 km across, carved ~50,000 years ago by an iron impactor only ~50 m wide. *(Illustration.)*',
+    }),
 
     k.text(
       "**What controls crater size?**\n\n" +

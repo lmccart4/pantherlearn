@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: school campus diagram showing router locations and a smart-meter panel (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u5-l14-make-recommendation',
@@ -37,6 +36,12 @@ const lesson = {
       "table, and the principal wants a student recommendation backed by physics. The school has a mix of old brick " +
       "walls, large windows, a central courtyard, and a budget that allows either (A) or (B), but not both.",
     ),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l14-make-recommendation-school-campus.jpg',
+      alt: 'A top-down diagram of a school campus showing classrooms along corridors, a central courtyard, large windows, thick brick walls, several WiFi routers with coverage zones, and an exterior smart-meter panel.',
+      caption: 'The school campus: routers must cover classrooms through thick brick walls and a courtyard, while signal passes more easily through windows. A smart meter sits on the exterior. *(Diagram.)*',
+    }),
 
     k.mdTable({
       lead: '**School WiFi Upgrade — Two Proposals**',

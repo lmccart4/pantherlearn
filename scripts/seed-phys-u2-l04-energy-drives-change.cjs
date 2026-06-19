@@ -5,7 +5,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: cross-section showing heat from Earth's core, mantle convection, and crust movement.
 
 const lesson = {
   id: 'phys-u2-l04-energy-drives-change',
@@ -23,6 +22,12 @@ const lesson = {
       'Connect thermal energy and mechanical work in the mantle and crust',
       'Use an energy-to-force reasoning map to explain the Afar rift',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l04-energy-drives-change-heat-convection-crust.jpg',
+      alt: 'A cross-section of Earth with a hot core at the bottom, mantle convection loops above it, and a crust layer at the top being pulled apart, with a heat arrow rising from core to crust.',
+      caption: 'Heat from the core rises through the mantle as convection, driving forces that move and crack the crust above. *(Diagram.)*',
+    }),
 
     k.text(
       "We now know that forces can change shape. But where do the forces come from? In Earth, the ultimate source is " +

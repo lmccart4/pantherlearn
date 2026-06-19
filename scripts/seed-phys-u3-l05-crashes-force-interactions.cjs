@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: slow-motion collision photo sequence or crash-test frame showing two vehicles at impact (rights-cleared, NHTSA/IIHS public assets).
 
 const lesson = {
   id: 'phys-u3-l05-crashes-force-interactions',
@@ -24,6 +23,12 @@ const lesson = {
       'Use Newton\'s third law to predict forces on both objects in a crash',
       'Explain why damage can differ even when forces are equal',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u3-l05-crashes-force-interactions-impact-scene.jpg',
+      alt: 'A stylized crash-test view of two vehicles meeting head-on at the instant of impact, the front ends beginning to crumple.',
+      caption: 'At the moment of impact, each vehicle pushes on the other with an equal and opposite force. *(Illustration.)*',
+    }),
 
     k.text(
       "When two cars collide, each one pushes on the other. Car A pushes on Car B, and Car B pushes back on Car A with a " +

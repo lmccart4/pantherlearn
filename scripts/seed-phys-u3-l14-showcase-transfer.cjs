@@ -55,7 +55,11 @@ const lesson = {
       "the brain is very different."
     ),
 
-    // IMAGE PHASE: diagram of a helmet in impact, showing foam compression and force arrows
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u3-l14-helmet-impact-foam.jpg',
+      alt: 'A two-panel diagram of a head hitting pavement: without a helmet the head stops almost instantly with a big force arrow; with a helmet the foam liner compresses, lengthening the stop and shrinking the force arrow.',
+      caption: 'A helmet\'s foam crushes on impact, stretching out the stopping time so the same change in momentum produces a much smaller force on the brain. *(Diagram.)*',
+    }),
 
     k.mdTable({
       lead: '**Bike Helmet Impact — What We Know**',

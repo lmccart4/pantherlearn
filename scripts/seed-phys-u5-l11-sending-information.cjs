@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: diagram showing amplitude modulation vs. frequency modulation vs. digital pulses (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u5-l11-sending-information',
@@ -40,6 +39,12 @@ const lesson = {
         "- **Amplitude modulation (AM)** — the height of the wave changes; used for AM radio.\n" +
         "- **Frequency modulation (FM)** — the frequency shifts slightly; used for FM radio and some Bluetooth modes.\n" +
         "- **Digital modulation** — the wave is switched on/off or phase-shifted to send 0s and 1s; used by WiFi, cell, and 5G.",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l11-sending-information-modulation.jpg',
+      alt: 'Three stacked panels comparing amplitude modulation (varying wave height), frequency modulation (varying cycle spacing), and digital modulation (a square-wave pulse train of ones and zeros).',
+      caption: 'Three ways to encode information on a carrier wave: AM varies the amplitude, FM varies the frequency, and digital sends discrete on/off pulses. *(Diagram.)*',
     }),
 
     k.text(

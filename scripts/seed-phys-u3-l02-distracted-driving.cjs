@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: split-screen diagram of attentive driver vs. texting driver reaction paths (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u3-l02-distracted-driving',
@@ -43,6 +42,12 @@ const lesson = {
         "- **Reaction distance** — how far the car travels while the driver is still reacting\n" +
         "- **Braking distance** — how far the car travels after the brakes are applied\n" +
         "- **Total stopping distance** = reaction distance + braking distance",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u3-l02-distracted-driving-reaction-paths.jpg',
+      alt: 'A split-screen comparison: an attentive driver covers a short reaction distance before braking, while a distracted driver looking at a phone covers a much longer reaction distance before braking.',
+      caption: 'A distracted driver keeps moving at full speed for longer, so the car covers far more ground before the brakes are even applied. *(Diagram.)*',
     }),
 
     k.embed({

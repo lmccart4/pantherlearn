@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: hero = rights-cleared U.S. / NJ traffic-fatality trend chart (data pack §8); inserted after content is approved.
 
 const lesson = {
   id: 'phys-u3-l01-reversing-trend',
@@ -24,6 +23,12 @@ const lesson = {
       'Build an initial model of what makes driving risky',
       'Contribute questions to our class Driving Question Board',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u3-l01-reversing-trend-fatality-chart.jpg',
+      alt: 'A line chart of U.S. yearly traffic deaths from 2019 to 2024 that declines for years, jumps sharply to a peak in 2021, stays flat through 2022, then falls again through 2023 and 2024.',
+      caption: 'After a long decline, U.S. traffic deaths spiked to a peak around 2021 and have only recently started falling again. *(Diagram.)*',
+    }),
 
     k.text(
       "For decades, driving in the United States kept getting safer. Cars got better brakes, stronger frames, and airbags. " +

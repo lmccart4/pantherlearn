@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: scatter plot of T^2 vs a^3 for planets and near-Earth asteroids showing linear trend.
 
 const lesson = {
   id: 'phys-u4-l08-keplers-laws-from-data',
@@ -81,6 +80,12 @@ const lesson = {
         "Is the relationship linear, or does it grow faster than that?",
       placeholder: 'As a increases, T …',
       difficulty: 'analyze',
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l08-keplers-laws-from-data-t2-vs-a3-scatter.jpg',
+      alt: 'Scatter plot of period squared versus semi-major axis cubed for the planets and Ceres, with all points falling on a straight line through the origin.',
+      caption: 'Plotting $T^2$ against $a^3$ lines every planet and asteroid up on a straight line through the origin — that is Kepler’s third law. *(Diagram.)*',
     }),
 
     k.mc({

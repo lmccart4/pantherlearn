@@ -5,7 +5,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: hero = before/after satellite imagery of the 2005 Afar rift; inserted after content is approved.
 
 const lesson = {
   id: 'phys-u2-l01-day-earth-cracked',
@@ -23,6 +22,12 @@ const lesson = {
       'Build an initial model of what might have cracked the ground open',
       'Contribute your questions to our class Driving Question Board',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l01-day-earth-cracked-afar-rift-hero.jpg',
+      alt: 'A long fissure splits the dry Afar desert in Ethiopia, with a distant volcanic cone emitting a thin ash plume.',
+      caption: 'The 2005 Afar rift in Ethiopia — the ground split open over just a few days. *(Illustration.)*',
+    }),
 
     k.text(
       "In **September 2005**, the ground in the **Afar desert of Ethiopia** split open almost without warning. Over just a " +

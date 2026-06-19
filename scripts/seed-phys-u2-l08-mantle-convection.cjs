@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: cross-section of mantle convection cells with rising hot plumes and sinking cool slabs (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u2-l08-mantle-convection',
@@ -25,6 +24,12 @@ const lesson = {
       'Connect rising and sinking mantle rock to forces on tectonic plates',
       'Use the convection model to predict where plates move apart or together',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l08-mantle-convection-cells.jpg',
+      alt: 'A cross-section of mantle convection cells showing hot material rising in bright plumes and cool material sinking, forming circulation loops beneath the crust.',
+      caption: 'Convection cells in the mantle: hot rock rises, cool rock sinks, looping in slow circulation over millions of years. *(Diagram.)*',
+    }),
 
     k.text(
       "Heat from radioactive decay warms the mantle from below and from within. But hot rock does not just sit there. It " +
@@ -50,7 +55,11 @@ const lesson = {
       "motions are not fast, but over geologic time they reshape entire continents."
     ),
 
-    // IMAGE PHASE: annotated mantle convection cross-section with plate drag arrows (Gemini, JSON-first).
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l08-mantle-convection-plate-drag.jpg',
+      alt: 'A close-up of one mantle convection cell beneath a plate, with the mantle flowing horizontally under the plate and drag arrows transferring that motion to move the plate.',
+      caption: 'Where the convecting mantle flows beneath a plate, it drags the plate along in the same direction. *(Diagram.)*',
+    }),
 
     k.embed({
       url: `${TOOLS_BASE}/mantle-convection.html`,

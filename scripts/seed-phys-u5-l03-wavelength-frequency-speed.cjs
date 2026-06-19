@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app';
-// IMAGE PHASE: three labeled waves showing low-f/long-λ, high-f/short-λ, and the same wave with different amplitudes.
 
 const lesson = {
   id: 'phys-u5-l03-wavelength-frequency-speed',
@@ -45,6 +44,12 @@ const lesson = {
         "- $f$ = frequency (Hz, or waves per second)\n" +
         "- $\\lambda$ = wavelength (m)\n\n" +
         "If the medium stays the same, $v$ is constant. That means a higher frequency wave must have a shorter wavelength.",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l03-wavelength-frequency-speed-three-waves.jpg',
+      alt: 'Three stacked waves: a low-frequency long-wavelength wave, a high-frequency short-wavelength wave of equal height, and a same-wavelength wave with a larger amplitude.',
+      caption: 'At a fixed speed, higher frequency means shorter wavelength. Amplitude is independent — making a wave taller does not change its wavelength. *(Diagram.)*',
     }),
 
     k.mdTable({

@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: Chelyabinsk damage map / broken windows; energy-release comparison graphic.
 
 const lesson = {
   id: 'phys-u4-l03-energy-in-the-airburst',
@@ -31,6 +30,12 @@ const lesson = {
       "quantify just how much energy we're talking about, and figure out why an explosion high in the air could still " +
       "break windows on the ground."
     ),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l03-energy-in-the-airburst-window-damage.jpg',
+      alt: 'A room with several windows blown inward and shattered glass scattered across the floor, lit by pale winter daylight.',
+      caption: 'The airburst shock wave shattered windows across the region, even though the explosion happened high above the city. *(Illustration.)*',
+    }),
 
     k.callout({
       style: 'info',
@@ -63,7 +68,11 @@ const lesson = {
       note: 'Values are approximate; different studies give slightly different estimates.',
     }),
 
-    // IMAGE PHASE: comparison graphic showing 500 kt vs. familiar energy scales (Hiroshima, lightning bolt, etc.).
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l03-energy-in-the-airburst-energy-scale.jpg',
+      alt: 'Bar chart comparing energy releases: lightning and Hiroshima are small, Chelyabinsk is much larger, and Meteor Crater and Chicxulub are far larger still.',
+      caption: 'Chelyabinsk released roughly 500 kilotons — about 30 Hiroshima bombs — yet far less than larger impacts like Meteor Crater or Chicxulub. *(Diagram.)*',
+    }),
 
     k.text(
       "**Airburst vs. surface impact.**\n\n" +

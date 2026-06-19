@@ -53,7 +53,11 @@ const lesson = {
       "weren't there to measure it. That's the point. Use your model to explain what happened."
     ),
 
-    // IMAGE PHASE: artist's rendering of the Chicxulub impact showing ejecta plume and global dust veil.
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l14-showcase-transfer-chicxulub-impact.jpg',
+      alt: 'Artist’s rendering of the Chicxulub impact: a massive asteroid striking a shallow sea, erupting a towering ejecta plume and spreading a dark dust veil across a prehistoric Earth.',
+      caption: 'The Chicxulub impact 66 million years ago — a 10–15 km asteroid whose ejecta plume and global dust veil are linked to the dinosaur extinction. *(Illustration.)*',
+    }),
 
     k.mdTable({
       lead: '**Chicxulub impact — what we know**',

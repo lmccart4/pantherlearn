@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: free-body diagram showing net force on a cart of different masses (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u3-l04-force-mass-changing-motion',
@@ -42,6 +41,12 @@ const lesson = {
         "$$a = \\frac{F_{net}}{m}$$\n\n" +
         "The **acceleration** of an object is directly proportional to the **net force** on it and inversely proportional " +
         "to its **mass**.",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u3-l04-force-mass-free-body.jpg',
+      alt: 'Two carts on the same track pushed by equal force arrows: the small-mass cart has a long acceleration arrow while the large-mass cart has a short acceleration arrow, illustrating a equals F over m.',
+      caption: 'The same net force gives the lighter cart a big acceleration and the heavier cart a small one — that is $a = F_{net}/m$ in a picture. *(Diagram.)*',
     }),
 
     k.text(

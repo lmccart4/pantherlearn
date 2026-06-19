@@ -53,7 +53,11 @@ const lesson = {
       "stretching the same momentum change over a longer time and reducing the peak force that reaches the passenger cell."
     ),
 
-    // IMAGE PHASE: force-time graph showing a stiff collision (tall narrow peak) vs. a crumpling collision (shorter wider peak), both with the same area under the curve
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u3-l10-impulse-force-time-graph.jpg',
+      alt: 'A force-versus-time graph with two curves: a tall narrow peak labeled stiff collision and a shorter wider hump labeled crumple collision, both enclosing the same area under the curve.',
+      caption: 'Both collisions have the same impulse (equal area = equal $\\Delta p$), but the crumpling collision spreads it over more time, so its peak force is much lower. *(Diagram.)*',
+    }),
 
     k.embed({
       url: `${TOOLS_BASE}/impulse-crumple-explorer.html`,

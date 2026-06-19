@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: diagram showing meteoroid → meteor → meteorite sequence and asteroid/comet origins.
 
 const lesson = {
   id: 'phys-u4-l02-what-is-a-meteor',
@@ -43,7 +42,11 @@ const lesson = {
         "- **Meteorite** — any part of a meteoroid that survives its fall and lands on Earth's surface",
     }),
 
-    // IMAGE PHASE: meteoroid-meteor-meteorite sequence diagram + asteroid belt / comet comparison.
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l02-what-is-a-meteor-sequence-diagram.jpg',
+      alt: 'Diagram of one rock under three names: a meteoroid in space, a meteor glowing in the atmosphere, and a meteorite on the ground, with asteroid-belt and comet origins above.',
+      caption: 'Same rock, three names: a meteoroid in space, a meteor as it glows in the atmosphere, and a meteorite once it lands. *(Diagram.)*',
+    }),
 
     k.text(
       "**Sorting Activity**\n\n" +

@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: diagram of radioactive decay releasing heat in Earth's mantle and core (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u2-l07-radioactivity-heat-engine',
@@ -24,6 +23,12 @@ const lesson = {
       'Connect Earth\'s internal heat to the energy that drives mantle convection',
       'Use conservation of energy to trace the source of forces in the crust',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l07-radioactivity-decay-heat.jpg',
+      alt: 'A cutaway of Earth\'s mantle showing scattered atomic nuclei, an inset of one unstable nucleus splitting and emitting heat, and isotope tags for uranium-238, thorium-232, and potassium-40.',
+      caption: 'Unstable isotopes like uranium-238, thorium-232, and potassium-40 decay deep inside Earth, releasing heat that warms the mantle. *(Diagram.)*',
+    }),
 
     k.text(
       "We know Earth's interior is hot enough to keep the mantle slowly moving. But where does that heat come from? Some of " +

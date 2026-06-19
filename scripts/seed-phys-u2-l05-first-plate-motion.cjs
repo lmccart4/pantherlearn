@@ -5,7 +5,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: simplified cross-section of a tectonic plate with force arrows from mantle convection.
 
 const lesson = {
   id: 'phys-u2-l05-first-plate-motion',
@@ -23,6 +22,12 @@ const lesson = {
       'Identify pushes and pulls that could drive plate motion',
       'Connect the Afar rift to a larger pattern of plate motion',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l05-first-plate-motion-plate-force-arrows.jpg',
+      alt: 'A cross-section of a tectonic plate riding on the mantle, labeled with three force arrows: mantle drag beneath the plate, ridge push from a raised ridge, and slab pull where the plate edge sinks.',
+      caption: 'Three forces that can move a plate: mantle drag, ridge push, and slab pull. *(Diagram.)*',
+    }),
 
     k.text(
       "Afar is not just a local crack. It sits on a **divergent plate boundary** — a place where two tectonic plates are " +

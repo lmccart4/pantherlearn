@@ -7,6 +7,7 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
+const IMG_BASE = 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics';
 
 const lesson = {
   id: 'phys-u6-l08-element-origins',
@@ -56,7 +57,11 @@ const lesson = {
       "and many more. Those elements get blown back into space, where they mix into new gas clouds and new star systems."
     ),
 
-    // IMAGE PHASE: nucleosynthesis flowchart (Big Bang → stars → supernovae → new systems)
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l08-element-origins-nucleosynthesis-flow.jpg`,
+      alt: 'A flowchart of element origins: the Big Bang makes hydrogen, helium, and lithium; stars fuse elements up to iron; supernovae and neutron-star collisions make heavier elements like gold and uranium; this material seeds new star systems.',
+      caption: 'Where the elements come from: the Big Bang made the lightest, stars fuse up to iron, and supernovae forge the heaviest — then recycle them into new worlds. *(Diagram.)*',
+    }),
 
     k.mdTable({
       lead: '**Where Selected Elements Were Made**',

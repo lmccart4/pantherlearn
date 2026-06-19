@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: prompt image or reference diagram for the Afar rift (Gemini, JSON-first), optional.
 
 const lesson = {
   id: 'phys-u2-l11-mid-unit-mastery-check',
@@ -24,6 +23,12 @@ const lesson = {
       'Connect seismic evidence, radioactive decay, convection, and plate boundaries into one model',
       'Use the 3-dimensional rubric to show science ideas, a practice, and a crosscutting lens',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l11-mid-unit-afar-recap-hero.jpg',
+      alt: 'A wide view of the Afar rift fissure cutting across the Ethiopian desert toward distant volcanic hills at golden hour.',
+      caption: 'Our anchor phenomenon: the Afar rift. Today you explain it using everything we have built. *(Illustration.)*',
+    }),
 
     k.text(
       "We've spent the last five lessons building the inside of the story: Earth's layers from seismic waves, the heat " +

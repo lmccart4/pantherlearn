@@ -7,7 +7,7 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: H-R diagram scaffold showing temperature/luminosity axes and main sequence band (Gemini, JSON-first)
+const IMG_BASE = 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics';
 
 const lesson = {
   id: 'phys-u6-l04-how-do-stars-change',
@@ -25,6 +25,12 @@ const lesson = {
       'Classify stars as main sequence, giant, or white dwarf based on their position',
       'Connect a star\'s position on the H-R diagram to its mass, temperature, color, and lifetime',
     ]),
+
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l04-how-do-stars-change-hr-scaffold.jpg`,
+      alt: 'A blank Hertzsprung-Russell diagram: temperature on the x-axis decreasing left to right (hot to cool), luminosity increasing upward, with a diagonal main-sequence band.',
+      caption: 'The H-R diagram plots temperature (hot on the left, cool on the right) against luminosity. Most stars fall along the diagonal main sequence. *(Diagram.)*',
+    }),
 
     k.text(
       "Stars are not all the same. Some are hot and blue; others are cool and red. Some are faint; some are incredibly " +
@@ -48,7 +54,11 @@ const lesson = {
       "Low-mass stars are cool and dim, so they sit in the lower right."
     ),
 
-    // IMAGE PHASE: labeled H-R diagram with sample stars and region names (Gemini, JSON-first)
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l04-how-do-stars-change-hr-labeled.jpg`,
+      alt: 'A labeled H-R diagram showing the main-sequence diagonal, giants in the upper right, white dwarfs in the lower left, and the Sun mid-main-sequence.',
+      caption: 'A star\'s position reveals its stage: main sequence (diagonal), giants (upper right, cool but bright), and white dwarfs (lower left, hot but dim). *(Diagram.)*',
+    }),
 
     k.mdTable({
       lead: '**What H-R position tells us**',
@@ -76,7 +86,7 @@ const lesson = {
         'Hot, bright, and high-mass',
         'Cool, bright, and high-mass',
       ],
-      correctIndex: 1,
+      correctIndex: 2,
       explanation: 'The upper-left of the H-R diagram means hot temperature (left side) and high luminosity (top). These are massive main-sequence stars.',
       difficulty: 'apply',
     }),
@@ -89,7 +99,7 @@ const lesson = {
         'All stars move along it at the same speed',
         'It shows the order in which stars were born',
       ],
-      correctIndex: 3,
+      correctIndex: 1,
       explanation: 'The main sequence shows an organized relationship: hotter stars are also more luminous and more massive. It is a pattern, not a random scatter.',
       difficulty: 'understand',
     }),

@@ -54,7 +54,11 @@ const lesson = {
       "system as isolated *during the collision* and conservation of momentum gives us a powerful prediction tool."
     ),
 
-    // IMAGE PHASE: diagram showing two vehicles before and after collision with momentum vectors labeled
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u3-l08-conservation-momentum-vectors.jpg',
+      alt: 'A before-and-after diagram of a 1D collision: before, Car A has +800 and Car B has -500 momentum for a total of +300; after, the individual momenta change but the system total is still +300.',
+      caption: 'The individual vehicles change momentum, but the total momentum of the isolated two-car system is the same before and after (+300 kg·m/s here). *(Diagram.)*',
+    }),
 
     k.embed({
       url: `${TOOLS_BASE}/collision-sim-1d.html?mode=closed-system`,

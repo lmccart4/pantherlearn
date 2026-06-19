@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: Newton's cannon diagram showing projectile paths at increasing speeds.
 
 const lesson = {
   id: 'phys-u4-l07-why-moon-doesnt-fall',
@@ -37,7 +36,11 @@ const lesson = {
       "same rate. The ball would keep falling toward Earth and missing it — forever. That's an orbit."
     ),
 
-    // IMAGE PHASE: Newton's cannon diagram: straight down → parabola → elliptical orbit → escape trajectory.
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l07-why-moon-doesnt-fall-newtons-cannon.jpg',
+      alt: 'Newton’s cannon diagram: a cannon on a tall mountain fires projectiles at increasing speeds, with paths labeled slow, faster, orbit, and escape curving around Earth.',
+      caption: 'Newton’s thought experiment: fire fast enough and the projectile keeps “falling” around Earth — that is an orbit. *(Diagram.)*',
+    }),
 
     k.embed({
       url: `${TOOLS_BASE}/orbit-gravity-sim.html`,

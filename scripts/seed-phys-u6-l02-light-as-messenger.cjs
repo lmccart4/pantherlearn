@@ -6,7 +6,7 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: electromagnetic spectrum diagram from radio to gamma with visible band highlighted (Gemini, JSON-first)
+const IMG_BASE = 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics';
 
 const lesson = {
   id: 'phys-u6-l02-light-as-messenger',
@@ -25,6 +25,12 @@ const lesson = {
       'Use the EM spectrum to describe what starlight can tell us',
     ]),
 
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l02-light-as-messenger-em-spectrum.jpg`,
+      alt: 'The electromagnetic spectrum from radio on the left to gamma rays on the right, with the visible rainbow band highlighted in the middle.',
+      caption: 'Light comes in many wavelengths. Visible light (the rainbow) is just a thin slice between radio waves and gamma rays. *(Diagram.)*',
+    }),
+
     k.text(
       "The 'new stars' we saw yesterday are incredibly far away. We cannot visit them. We cannot scoop up a sample. " +
       "Almost everything we know about stars arrives as **light**. Light is our messenger from the cosmos.\n\n" +
@@ -41,7 +47,11 @@ const lesson = {
                "a shorter wavelength means a higher frequency, and a longer wavelength means a lower frequency.\n\n$c = \lambda f$",
     }),
 
-    // IMAGE PHASE: EM spectrum strip with visible rainbow and representative sources labeled (Gemini, JSON-first)
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l02-light-as-messenger-spectrum-sources.jpg`,
+      alt: 'An electromagnetic spectrum strip with icons under each region: a radio dish, a warm dust cloud, the Sun, a hot blue star, and an exploding star.',
+      caption: 'Different parts of the spectrum come from different sources — hotter objects shine more strongly at shorter wavelengths. *(Diagram.)*',
+    }),
 
     k.mdTable({
       lead: '**Parts of the electromagnetic spectrum** (longest wavelength to shortest)',
@@ -76,7 +86,7 @@ const lesson = {
         'To prove the star is moving toward Earth',
         'To find out how much the star weighs',
       ],
-      correctIndex: 2,
+      correctIndex: 1,
       explanation: 'Different wavelengths come from different temperatures and physical conditions. Comparing visible and infrared light reveals different layers and features of the star.',
       difficulty: 'understand',
     }),
@@ -89,7 +99,7 @@ const lesson = {
         'It is very hot',
         'It is very small',
       ],
-      correctIndex: 3,
+      correctIndex: 2,
       explanation: 'Hotter objects emit more short-wavelength light. A star emitting mostly ultraviolet light must be very hot.',
       difficulty: 'apply',
     }),

@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: diagram of the three boundary types with force-vector arrows and surface features (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u2-l09-plate-boundary-forces',
@@ -25,6 +24,12 @@ const lesson = {
       'Determine whether forces at a boundary are balanced or unbalanced',
       'Predict the motion and hazards at each boundary type',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l09-plate-boundary-three-types-forces.jpg',
+      alt: 'A three-panel diagram of plate boundaries: divergent with arrows pulling apart and rising magma, convergent with arrows pushing together and a subducting plate, and transform with opposite arrows sliding past along a fault.',
+      caption: 'The three boundary types: divergent (pull apart), convergent (push together), transform (slide past). *(Diagram.)*',
+    }),
 
     k.text(
       "Plates meet at **boundaries**. What happens there depends on the direction of the forces. The same plate can be pulled " +

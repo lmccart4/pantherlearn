@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: diagram showing equal/opposite vectors canceling, and unequal vectors producing a net vector (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u2-l10-vectors-direction-matters',
@@ -25,6 +24,12 @@ const lesson = {
       'Add vectors qualitatively to find a net force',
       'Predict plate motion from the direction of the net force',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l10-vectors-balanced-unbalanced.jpg',
+      alt: 'A two-panel diagram: balanced forces with two equal opposite arrows canceling to net zero, and unbalanced forces with two unequal opposite arrows leaving a net force toward the larger arrow.',
+      caption: 'Equal, opposite forces cancel (net = 0). Unequal opposite forces leave a net force toward the larger one. *(Diagram.)*',
+    }),
 
     k.text(
       "A force is more than a number. It has a **direction**. If you push a box north and a friend pushes the same box south " +
@@ -51,7 +56,11 @@ const lesson = {
       "points to the right."
     ),
 
-    // IMAGE PHASE: vector addition diagram for forces on a plate (Gemini, JSON-first).
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l10-vectors-net-force-plate.jpg',
+      alt: 'A tectonic plate with a long slab-pull force arrow pointing right and a shorter mantle-drag arrow pointing left, and a bold net-force arrow pointing right showing the plate accelerates toward the larger force.',
+      caption: 'Add the forces on a plate as vectors: the net force points toward the larger force, so the plate accelerates that way. *(Diagram.)*',
+    }),
 
     k.embed({
       url: `${TOOLS_BASE}/vector-addition.html`,

@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: momentum bar diagram for two colliding vehicles (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u3-l07-momentum',
@@ -41,6 +40,12 @@ const lesson = {
         "**Momentum** ($\\vec{p}$) is the product of an object's **mass** ($m$) and its **velocity** ($\\vec{v}$). " +
         "Because velocity has direction, momentum is a **vector**. Two objects can have the same speed but opposite " +
         "momenta if they move in opposite directions.",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u3-l07-momentum-bars.jpg',
+      alt: 'A heavy slow truck and a light fast car on a road, each with a velocity arrow and a momentum bar beneath it; the two momentum bars are equal in length, showing equal momentum from different mass-velocity combinations.',
+      caption: 'A heavy, slow truck and a light, fast car can carry the *same* momentum — because $p = mv$ depends on both mass and velocity. *(Diagram.)*',
     }),
 
     k.text(

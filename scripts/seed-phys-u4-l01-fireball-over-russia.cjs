@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: hero = rights-cleared Chelyabinsk 2013 fireball photo or footage still (data pack §8); inserted after content is approved.
 
 const lesson = {
   id: 'phys-u4-l01-fireball-over-russia',
@@ -25,6 +24,12 @@ const lesson = {
       'Contribute questions to our class Driving Question Board',
     ]),
 
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l01-fireball-over-russia-hero.jpg',
+      alt: 'A blindingly bright meteor fireball streaks across the sky over a snowy Russian city, brighter than the Sun, trailing smoke.',
+      caption: 'The Chelyabinsk fireball over Russia, February 15, 2013 — a meteor glowing as it tore through the atmosphere. *(Illustration.)*',
+    }),
+
     k.text(
       "On the morning of **February 15, 2013**, a bright fireball streaked across the sky over Chelyabinsk, Russia. " +
       "A space rock about **19 meters across** and weighing roughly **12,000 metric tons** slammed into Earth's atmosphere " +
@@ -32,7 +37,11 @@ const lesson = {
       "heated so intensely that the object exploded in an **airburst** high above the city."
     ),
 
-    // IMAGE PHASE: Chelyabinsk fireball trail or dash-cam still, rights-cleared (NASA/public domain or CC BY).
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l01-fireball-over-russia-vapor-trail.jpg',
+      alt: 'A long twisted smoke and vapor trail hangs high in a clear winter sky over a snowy street, left behind after the meteor airburst.',
+      caption: 'Minutes after the airburst, a high-altitude dust trail marked the meteor’s path — no crater formed, because the object broke apart in the air. *(Illustration.)*',
+    }),
 
     k.text(
       "The blast released the energy of roughly **500 kilotons of TNT** — more than 30 times the power of the Hiroshima atomic bomb. " +

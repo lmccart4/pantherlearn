@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: simplified geological map highlighting Newark Basin, Palisades Sill, and Midcontinent Rift.
 
 const lesson = {
   id: 'phys-u2-l12-ancient-rifts-north-america',
@@ -24,6 +23,12 @@ const lesson = {
       'Interpret data about rift location, age, and geological evidence',
       'Connect local New Jersey geology to past plate-tectonic forces',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l12-ancient-rifts-north-america-map.jpg',
+      alt: 'A simplified geological map of North America highlighting the Newark Basin in New Jersey and Pennsylvania, the Palisades Sill along the Hudson River, and the Y-shaped Midcontinent Rift through the Great Lakes region.',
+      caption: 'Three ancient rift features in North America: the Newark Basin, the Palisades Sill, and the much older Midcontinent Rift. *(Diagram.)*',
+    }),
 
     k.text(
       "The 2005 Afar rift is happening **right now**. But rifts have opened and closed across Earth for billions of years. " +

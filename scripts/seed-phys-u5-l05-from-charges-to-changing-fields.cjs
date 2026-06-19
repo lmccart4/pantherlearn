@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: diagram of an accelerating charge producing perpendicular electric and magnetic fields; inserted after content is approved.
 
 const lesson = {
   id: 'phys-u5-l05-from-charges-to-changing-fields',
@@ -43,6 +42,12 @@ const lesson = {
         "- A **changing magnetic field** creates a **changing electric field**\n" +
         "- A **changing electric field** creates a **changing magnetic field**\n" +
         "- Once started, these linked fields can travel through space as an **electromagnetic wave**",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l05-from-charges-to-changing-fields-em-wave.jpg',
+      alt: 'An electromagnetic wave from an accelerating charge, with the electric field oscillating vertically and the magnetic field oscillating perpendicular to it, both at right angles to the direction of travel.',
+      caption: 'An accelerating charge launches an electromagnetic wave: the electric (E) and magnetic (B) fields oscillate perpendicular to each other and to the direction of travel. *(Diagram.)*',
     }),
 
     k.text(

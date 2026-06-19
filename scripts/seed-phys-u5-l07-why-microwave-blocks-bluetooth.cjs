@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: close-up of microwave door mesh with wavelength comparison overlay; inserted after content is approved.
 
 const lesson = {
   id: 'phys-u5-l07-why-microwave-blocks-bluetooth',
@@ -44,6 +43,12 @@ const lesson = {
         "- **Reflection** — the wave bounces off the material's surface\n\n" +
         "A metal mesh reflects waves whose wavelength is much larger than the holes. The Bluetooth wavelength " +
         "($\\sim 12.5 \\text{ cm}$) is much larger than the holes in a microwave door mesh.",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l07-why-microwave-blocks-bluetooth-mesh-comparison.jpg',
+      alt: 'A microwave door mesh with millimeter-sized holes reflects a 12-centimeter Bluetooth wave while letting a 500-nanometer visible-light wave pass through.',
+      caption: 'The mesh reflects waves far longer than its ~1–2 mm holes (12 cm Bluetooth is blocked) but lets much shorter visible light pass right through. *(Diagram.)*',
     }),
 
     k.text(

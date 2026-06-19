@@ -7,6 +7,7 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
+const IMG_BASE = 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics';
 
 const lesson = {
   id: 'phys-u6-l12-big-bang-evidence',
@@ -51,7 +52,11 @@ const lesson = {
       "structure we see today — the galaxies and voids that fill the cosmos."
     ),
 
-    // IMAGE PHASE: CMB all-sky map (Planck/WMAP public domain) with caption about temperature anisotropies
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l12-big-bang-evidence-cmb-map.jpg`,
+      alt: 'An oval all-sky map of the Cosmic Microwave Background, nearly uniform with tiny blue (cooler) and red (warmer) temperature fluctuations, around 2.7 kelvin.',
+      caption: 'The Cosmic Microwave Background: the afterglow of the Big Bang, nearly uniform at about 2.7 K, with tiny hot and cold spots that seeded today\'s galaxies. *(Diagram.)*',
+    }),
 
     k.mc({
       prompt: 'The Cosmic Microwave Background is best described as:',

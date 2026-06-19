@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app'; // embeds deployed to the paps-tools hosting site (allowlisted)
-// IMAGE PHASE: motion-graph overlay showing speed vs. reaction and braking distance (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u3-l03-speed-stopping-distance',
@@ -46,6 +45,12 @@ const lesson = {
       ],
       lead: '**Reference data for dry pavement and a 0.75 s reaction time**',
       note: 'Values are rounded estimates for a typical passenger vehicle.',
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u3-l03-speed-stopping-distance-graph.jpg',
+      alt: 'A stacked bar chart of stopping distance at 20, 40, and 60 mph, with each bar split into a reaction segment that grows in proportion to speed and a braking segment that grows with the square of speed and dominates at high speed.',
+      caption: 'Reaction distance grows steadily with speed, but braking distance grows with the *square* of speed — which is why the total explodes as you go faster. *(Diagram.)*',
     }),
 
     k.embed({

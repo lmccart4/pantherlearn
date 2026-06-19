@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app';
-// IMAGE PHASE: labeled diagram of a transverse wave showing amplitude, wavelength, crest, trough; inserted after content is approved.
 
 const lesson = {
   id: 'phys-u5-l02-waves-on-a-string',
@@ -44,6 +43,12 @@ const lesson = {
         "- **Wavelength ($\\lambda$)** — the distance from one crest to the next crest (or one trough to the next trough)\n" +
         "- **Frequency ($f$)** — how many waves pass a point each second, measured in hertz (Hz)\n" +
         "- **Period ($T$)** — the time for one full wave to pass, $T = \\frac{1}{f}$",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l02-waves-on-a-string-transverse-wave.jpg',
+      alt: 'A labeled transverse sine wave showing crest, trough, amplitude measured from the rest line to a crest, and wavelength measured from one crest to the next.',
+      caption: 'The anatomy of a transverse wave. Amplitude is measured from the rest line to a crest; wavelength is the distance from one crest to the next. *(Diagram.)*',
     }),
 
     k.text(

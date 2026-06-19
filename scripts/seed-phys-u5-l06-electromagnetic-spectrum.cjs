@@ -7,7 +7,6 @@ const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
 const TOOLS_BASE = 'https://paps-tools.web.app';
-// IMAGE PHASE: logarithmic electromagnetic spectrum diagram from radio to gamma; inserted after content is approved.
 
 const lesson = {
   id: 'phys-u5-l06-electromagnetic-spectrum',
@@ -43,6 +42,12 @@ const lesson = {
         "Radio → Microwave → Infrared → Visible → Ultraviolet → X-ray → Gamma ray\n\n" +
         "As frequency increases: wavelength decreases, photon energy increases, and the radiation tends to penetrate " +
         "or ionize matter more strongly.",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l06-electromagnetic-spectrum-full-spectrum.jpg',
+      alt: 'The electromagnetic spectrum from radio to gamma rays, with frequency and energy increasing and wavelength decreasing left to right, and everyday-technology icons under each region.',
+      caption: 'The full electromagnetic spectrum: radio → microwave → infrared → visible → ultraviolet → X-ray → gamma. Frequency and energy rise to the right; wavelength shrinks. *(Diagram.)*',
     }),
 
     k.mdTable({

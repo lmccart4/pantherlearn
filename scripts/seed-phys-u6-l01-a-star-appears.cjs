@@ -6,7 +6,7 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: historical "new star" comparison panel (Tycho 1572 sketch + modern Crab Nebula + SN 1987A light curve)
+const IMG_BASE = 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics';
 
 const lesson = {
   id: 'phys-u6-l01-a-star-appears',
@@ -25,6 +25,12 @@ const lesson = {
       'Contribute observations and questions to the Driving Question Board',
     ]),
 
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l01-a-star-appears-hero.jpg`,
+      alt: 'Three panels: a 1572 star map marking Tycho\'s "new star," the modern Crab Nebula remnant cloud, and a light curve rising to a peak then fading.',
+      caption: 'For centuries, astronomers recorded "new stars" that flared up and faded — leaving behind expanding clouds of gas. *(Diagram.)*',
+    }),
+
     k.text(
       "People used to call them **'new stars'** — bright points of light that appeared where no star had been seen before, " +
       "then slowly faded. In 1572, Tycho Brahe watched one stay visible for months. A thousand years earlier, Chinese and " +
@@ -39,7 +45,11 @@ const lesson = {
       content: "**Why do stars shine and will they shine forever?**\n\nEverything we do for the next three weeks connects back to that question.",
     }),
 
-    // IMAGE PHASE: side-by-side historical sketch of Tycho's supernova and modern Crab Nebula photo (Gemini, JSON-first)
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l01-a-star-appears-tycho-vs-crab.jpg`,
+      alt: 'On the left, an antique sepia sketch of a night sky with one bright "new star"; on the right, the colorful modern Crab Nebula remnant cloud.',
+      caption: 'The same kind of event, seen across time: a "new star" in an old sketch (left) and the glowing remnant cloud we see today (right). *(Illustration.)*',
+    }),
 
     k.text(
       "Look at the evidence in front of you. The historical drawings show a single bright point. The modern image shows " +

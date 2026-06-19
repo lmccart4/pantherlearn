@@ -5,7 +5,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: rift/quake/volcano triptych or annotated diagram linking the three phenomena.
 
 const lesson = {
   id: 'phys-u2-l02-crack-quake-volcano',
@@ -23,6 +22,12 @@ const lesson = {
       'Use surface observations to infer processes below Earth\'s surface',
       'Revise our class model of what happened in Afar',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l02-crack-quake-volcano-triptych.jpg',
+      alt: 'A three-panel cross-section diagram linking a rift pulling crust apart, a fault-slip earthquake, and a volcano fed by rising magma.',
+      caption: 'The rift, the earthquakes, and the volcano are three signs of the same forces acting below the surface. *(Diagram.)*',
+    }),
 
     k.text(
       "Yesterday we met the **Afar rift**. Today we zoom out and ask: What if the crack, the earthquakes, and the " +

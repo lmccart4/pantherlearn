@@ -6,7 +6,7 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: fusion reaction diagram showing 4 hydrogen nuclei → helium + energy + photon (Gemini, JSON-first)
+const IMG_BASE = 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics';
 
 const lesson = {
   id: 'phys-u6-l06-source-of-starlight',
@@ -24,6 +24,12 @@ const lesson = {
       'Contrast fusion with fission and radioactive decay',
       'Use $E = mc^2$ to relate a tiny mass difference to a large energy release',
     ]),
+
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l06-source-of-starlight-fusion.jpg`,
+      alt: 'A fusion diagram: four hydrogen nuclei on the left combine into one helium nucleus on the right, releasing energy and a photon, labeled E = mc squared.',
+      caption: 'Stars shine because four hydrogen nuclei fuse into one helium nucleus, converting a tiny bit of mass into energy and light. *(Diagram.)*',
+    }),
 
     k.text(
       "We now know what stars are made of and how they are classified. But we still have not answered the driving question: " +
@@ -48,7 +54,11 @@ const lesson = {
       "its way outward as photons, eventually escaping as starlight."
     ),
 
-    // IMAGE PHASE: comparison of fission (heavy nucleus splitting) vs fusion (light nuclei combining) (Gemini, JSON-first)
+    k.image({
+      url: `${IMG_BASE}/phys-u6-l06-source-of-starlight-fission-vs-fusion.jpg`,
+      alt: 'Side-by-side diagram: fission shows one heavy nucleus splitting into smaller pieces; fusion shows two light nuclei combining into a heavier one. Both release energy.',
+      caption: 'Fission splits a heavy nucleus into smaller pieces; fusion combines light nuclei into a heavier one. Stars run on fusion. *(Diagram.)*',
+    }),
 
     k.mdTable({
       lead: '**Three nuclear processes compared**',
@@ -103,7 +113,7 @@ const lesson = {
         'Radioactive decay of iron',
         'Chemical burning of hydrogen gas',
       ],
-      correctIndex: 3,
+      correctIndex: 1,
       explanation: 'Ordinary stars like the Sun produce energy by fusing hydrogen into helium in their cores. Chemical burning is far too weak to power a star.',
       difficulty: 'understand',
     }),

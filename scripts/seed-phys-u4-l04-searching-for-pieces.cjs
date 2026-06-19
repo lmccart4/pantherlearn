@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: meteorite sample photo + density/magnet test demonstration (rights-cleared).s
 
 const lesson = {
   id: 'phys-u4-l04-searching-for-pieces',
@@ -39,7 +38,11 @@ const lesson = {
       "rocks are not magnetic at all, so this is a fast way to rule out ordinary stones."
     ),
 
-    // IMAGE PHASE: photo of a meteorite fragment + magnet/density test setup.
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l04-searching-for-pieces-meteorite-tests.jpg',
+      alt: 'Diagram of two meteorite field tests: a magnet sticking to a dark rock, and the rock submerged in a graduated cylinder beside a balance to find density.',
+      caption: 'Two quick field tests separate meteorites from ordinary rocks: a magnet sticks to their iron, and they are unusually dense. *(Diagram.)*',
+    }),
 
     k.mdTable({
       headers: ['Sample', 'Mass (g)', 'Volume (cm³)', 'Density (g/cm³)', 'Magnet sticks?'],

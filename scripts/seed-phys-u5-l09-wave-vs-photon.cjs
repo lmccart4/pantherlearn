@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: side-by-side icons — wave spreading around obstacle vs. photon as packet of energy (Gemini, JSON-first).
 
 const lesson = {
   id: 'phys-u5-l09-wave-vs-photon',
@@ -46,6 +45,12 @@ const lesson = {
       content:
         "- **Wave model** — EM radiation spreads out like a wave; explains interference, diffraction, and standing waves.\n" +
         "- **Photon model** — EM radiation comes in energy packets ($E = hf$); explains the photoelectric effect and why higher-frequency photons can ionize atoms.",
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l09-wave-vs-photon-two-models.jpg',
+      alt: 'A two-panel comparison: the wave model showing light spreading and diffracting around an obstacle, and the photon model showing light as discrete energy packets labeled E = hf.',
+      caption: 'Two models for the same radiation: the wave model explains diffraction and interference; the photon model treats light as energy packets ($E = hf$). *(Diagram.)*',
     }),
 
     k.text(

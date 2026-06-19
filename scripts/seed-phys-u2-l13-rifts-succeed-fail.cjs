@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: side-by-side cross-section comparing an active rift (Afar) and a failed ancient rift.
 
 const lesson = {
   id: 'phys-u2-l13-rifts-succeed-fail',
@@ -24,6 +23,12 @@ const lesson = {
       'Identify the conditions that allow a rift to keep opening',
       'Construct an evidence-based argument about why a rift succeeded or failed',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u2-l13-rifts-succeed-fail-active-vs-failed.jpg',
+      alt: 'A side-by-side cross-section: an active rift with a strong rising mantle plume and large tension arrows still opening, versus a failed rift with a cooled mantle, sediment-filled basin, and weak forces that stopped.',
+      caption: 'An active rift keeps opening because strong unbalanced forces persist; a failed rift stalls when those forces weaken. *(Diagram.)*',
+    }),
 
     k.text(
       "Not every crack in Earth's crust becomes a new ocean. Some rifts keep opening for millions of years and split a " +

@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: energy bar charts for an orbiting object at perihelion and aphelion.
 
 const lesson = {
   id: 'phys-u4-l10-gravitational-energy-transfer',
@@ -63,6 +62,12 @@ const lesson = {
         ['Aphelion (farthest)', 'Largest', 'Highest (least negative)', 'Lowest speed'],
       ],
       note: 'The total mechanical energy of the isolated Sun-object system stays the same.',
+    }),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l10-gravitational-energy-transfer-bar-charts.jpg',
+      alt: 'Energy bar charts for an orbiting object at perihelion and aphelion: high kinetic and low potential energy when close, low kinetic and high potential energy when far, with equal totals.',
+      caption: 'As an object orbits, kinetic and gravitational potential energy trade back and forth — but the total stays constant. *(Diagram.)*',
     }),
 
     k.shortAnswer({

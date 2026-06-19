@@ -6,7 +6,6 @@ const db = admin.firestore();
 const k = require('./unit1-seed-kit.cjs');
 
 const COURSE_ID = 'physics-2026';
-// IMAGE PHASE: photo/illustration of a cork bobbing on a water wave with particle-motion arrows; inserted after content is approved.
 
 const lesson = {
   id: 'phys-u5-l04-whats-moving',
@@ -24,6 +23,12 @@ const lesson = {
       'Explain that waves transfer energy, not matter',
       'Revise the initial wave model to show particle motion vs. wave motion',
     ]),
+
+    k.image({
+      url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l04-whats-moving-cork-water-wave.jpg',
+      alt: 'A cork floats on water as a wave moves to the right; the wave and its energy travel forward while the cork only bobs up and down in place.',
+      caption: 'The wave (and its energy) travels forward, but the cork only bobs up and down — the water itself stays put. *(Illustration.)*',
+    }),
 
     k.text(
       "So far we've described what waves *look* like. Now we ask a deeper question: **what is actually moving?** " +
