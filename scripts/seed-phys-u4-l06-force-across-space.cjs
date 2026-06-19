@@ -71,10 +71,10 @@ const lesson = {
       options: [
         'It stays the same',
         'It doubles',
-        'It becomes one-fourth as strong',
         'It becomes half as strong',
+        'It becomes one-fourth as strong',
       ],
-      correctIndex: 2,
+      correctIndex: 3,
       explanation:
         'Gravitational force is inversely proportional to the square of distance ($1/r^2$). Doubling $r$ means the ' +
         'denominator becomes $2^2 = 4$, so the force drops to one-fourth.',

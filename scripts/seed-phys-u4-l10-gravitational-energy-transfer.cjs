@@ -82,11 +82,11 @@ const lesson = {
       prompt: 'An asteroid moves from aphelion (far from the Sun) to perihelion (close to the Sun). Which energy statement is correct?',
       options: [
         'Both kinetic and gravitational potential energy stay the same',
-        'Kinetic energy decreases and gravitational potential energy increases',
         'Kinetic energy increases and gravitational potential energy decreases',
+        'Kinetic energy decreases and gravitational potential energy increases',
         'Total energy increases because the asteroid is speeding up',
       ],
-      correctIndex: 2,
+      correctIndex: 1,
       explanation:
         'As the asteroid falls toward the Sun, GPE is converted into KE. Total energy in the isolated system stays constant.',
       difficulty: 'understand',
