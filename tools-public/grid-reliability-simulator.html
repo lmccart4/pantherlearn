@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grid Reliability Simulator</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .sources{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .src{background:var(--panel);border:1px solid #334155;border-radius:10px;padding:8px 10px;min-width:130px;}
+  .src h3{margin:0 0 4px;font-size:13px;} .src .cap{font-size:11px;color:var(--muted);}
+  .src .ctl{display:flex;align-items:center;gap:8px;margin-top:6px;}
+  .src button{width:26px;height:26px;border-radius:6px;border:1px solid #334155;background:#0b1220;color:var(--ink);font-size:16px;cursor:pointer;}
+  .chart{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:12px;}
+  svg{width:100%;height:200px;display:block;}
+  .readout{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;margin-bottom:8px;}
+  .pill{padding:4px 10px;border-radius:999px;background:#0b1220;}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+  .hint{font-size:12px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1 id="title">Grid Reliability Simulator</h1>
+    <button class="lang" id="langBtn">🌐 Español</button></header>
+  <p class="hint" id="prompt"></p>
+  <div class="sources" id="sources"></div>
+  <div class="chart"><svg id="chart" viewBox="0 0 600 200" preserveAspectRatio="none"></svg></div>
+  <div class="readout">
+    <span class="pill" id="relPill">—</span>
+    <span class="pill" id="costPill">—</span>
+    <span class="pill" id="statusPill">—</span>
+  </div>
+  <p class="hint" id="goal"></p>
+  <div id="designPanel" style="display:none">
+    <div class="readout">
+      <span class="pill" id="stormPill">—</span>
+      <button class="lang" id="stormBtn"></button>
+    </div>
+    <button class="lang" id="submitBtn" style="margin-top:8px;border-color:var(--accent)"></button>
+    <div id="scoreBox" class="hint" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<script type="module">
+import { SOURCE_TYPES, computeDemand, simulateDay, applyStorm, scoreDesign } from "./grid-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Grid Reliability Simulator", es: "Simulador de Confiabilidad de la Red" },
+  prompt: { en: "Add power sources until the grid can meet demand all 24 hours.", es: "Agrega fuentes de energía hasta que la red satisfaga la demanda las 24 horas." },
+  goal: { en: "Goal: reach 100% reliability (supply ≥ demand every hour).", es: "Meta: alcanzar 100% de confiabilidad (oferta ≥ demanda cada hora)." },
+  reliability: { en: "Reliability", es: "Confiabilidad" },
+  cost: { en: "Cost", es: "Costo" },
+  solved: { en: "✓ Reliable! Lesson complete.", es: "✓ ¡Confiable! Lección completa." },
+  deficit: { en: "blackout hours", es: "horas de apagón" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  runStorm: { en: "⛈ Run the Sandy Storm", es: "⛈ Ejecutar la Tormenta Sandy" },
+  stormResult: { en: "Storm reliability", es: "Confiabilidad en tormenta" },
+  submit: { en: "Submit Design", es: "Enviar Diseño" },
+  submitted: { en: "✓ Design submitted", es: "✓ Diseño enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+};
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+// student's grid: units per source type
+const grid = { gas:0, nuclear:0, solar:0, wind:0, battery:0 };
+let solvedOnce = false;
+
+function sourcesArray() {
+  return Object.entries(grid).filter(([,u]) => u>0).map(([type,units]) => ({ id:type, type, units }));
+}
+function render() {
+  document.getElementById("title").textContent = tr.t("title");
+  document.getElementById("prompt").textContent = tr.t("prompt");
+  document.getElementById("goal").textContent = tr.t("goal");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  renderSources();
+  const result = simulateDay(sourcesArray(), { sunlight:1, wind:0.5, outages:[] });
+  drawChart(result);
+  const cost = sourcesArray().reduce((s,x)=>s+SOURCE_TYPES[x.type].costPerUnit*x.units,0);
+  const relPct = Math.round(result.reliability*100);
+  const rp = document.getElementById("relPill");
+  rp.textContent = `${tr.t("reliability")}: ${relPct}%`;
+  rp.className = "pill " + (relPct===100?"ok":relPct>=80?"warn":"bad");
+  document.getElementById("costPill").textContent = `${tr.t("cost")}: $${cost}`;
+  const sp = document.getElementById("statusPill");
+  sp.textContent = result.blackoutHours.length ? `${result.blackoutHours.length} ${tr.t("deficit")}` : tr.t("solved");
+  sp.className = "pill " + (result.blackoutHours.length?"bad":"ok");
+  if (result.reliability >= 0.95 && !solvedOnce) {
+    solvedOnce = true;
+    sendActivityScore(5, 5, true);
+  }
+  saver.save({ grid, solvedOnce });
+  renderDesignExtras();
+}
+function renderSources() {
+  const host = document.getElementById("sources");
+  host.innerHTML = "";
+  for (const [type, t] of Object.entries(SOURCE_TYPES)) {
+    const el = document.createElement("div");
+    el.className = "src";
+    el.innerHTML = `<h3>${t.label}</h3><div class="cap">${t.capacityMW} MW · $${t.costPerUnit}/unit</div>
+      <div class="ctl"><button data-d="${type}">−</button><span id="u-${type}">${grid[type]}</span><button data-i="${type}">+</button></div>`;
+    host.appendChild(el);
+  }
+  host.querySelectorAll("button[data-i]").forEach(b=>b.onclick=()=>{ grid[b.dataset.i]++; render(); });
+  host.querySelectorAll("button[data-d]").forEach(b=>b.onclick=()=>{ grid[b.dataset.d]=Math.max(0,grid[b.dataset.d]-1); render(); });
+}
+function drawChart(result) {
+  const svg = document.getElementById("chart");
+  const W=600,H=200, maxMW = Math.max(2000, ...result.hours.map(h=>Math.max(h.demand,h.supply)));
+  const x = h => (h/23)*W, y = mw => H-(mw/maxMW)*H;
+  const demandPts = result.hours.map(h=>`${x(h.hour)},${y(h.demand)}`).join(" ");
+  const supplyPts = result.hours.map(h=>`${x(h.hour)},${y(h.supply)}`).join(" ");
+  const blackout = result.hours.filter(h=>h.deficit>0).map(h=>`<rect x="${x(h.hour)-3}" y="0" width="6" height="${H}" fill="#f8717133"/>`).join("");
+  svg.innerHTML = `${blackout}
+    <polyline points="${demandPts}" fill="none" stroke="#fbbf24" stroke-width="2"/>
+    <polyline points="${supplyPts}" fill="none" stroke="#38bdf8" stroke-width="2"/>`;
+}
+const MODE = new URLSearchParams(location.search).get("mode") || "learn";
+const CRITERIA = { reliabilityTarget: 0.95, costBudget: 30, stormSeverity: 0.9 };
+
+function renderDesignExtras() {
+  if (MODE !== "design") return;
+  document.getElementById("designPanel").style.display = "block";
+  document.getElementById("stormBtn").textContent = tr.t("runStorm");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+}
+function runStorm() {
+  const cond = applyStorm(sourcesArray(), CRITERIA.stormSeverity);
+  const result = simulateDay(sourcesArray(), cond);
+  drawChart(result);
+  const sp = document.getElementById("stormPill");
+  const pct = Math.round(result.reliability*100);
+  sp.textContent = `${tr.t("stormResult")}: ${pct}%`;
+  sp.className = "pill " + (pct>=80?"ok":pct>=50?"warn":"bad");
+}
+function submitDesign() {
+  const r = scoreDesign(sourcesArray(), CRITERIA);
+  sendActivityScore(r.score, 5, true);            // ALWAYS re-send, no guard
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${r.score}/5 · calm ${Math.round(r.calmReliability*100)}% · storm ${Math.round(r.stormReliability*100)}% · $${r.cost}`;
+}
+document.getElementById("langBtn").onclick = () => { tr.setLang(tr.lang==="en"?"es":"en"); render(); };
+window.addEventListener("beforeunload", ()=>saver.flush());
+if (MODE === "design") {
+  document.getElementById("stormBtn").onclick = runStorm;
+  document.getElementById("submitBtn").onclick = submitDesign;
+}
+render();
+</script>
+</body>
+</html>

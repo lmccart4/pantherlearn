@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Energy Flow Tracer</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:12px;color:var(--muted);}
+  /* Flow diagram */
+  .flow-section{background:var(--panel);border-radius:12px;padding:16px;margin-bottom:12px;overflow-x:auto;}
+  .flow-diagram{display:flex;align-items:flex-end;gap:0;min-width:520px;height:120px;position:relative;}
+  .stage-wrap{display:flex;flex-direction:column;align-items:center;position:relative;flex-shrink:0;}
+  .stage-bar{background:var(--accent);border-radius:4px 4px 0 0;min-width:20px;transition:height 0.3s;}
+  .loss-wedge{background:var(--bad);border-radius:0 0 4px 4px;min-width:20px;min-height:2px;}
+  .stage-label{font-size:10px;color:var(--muted);text-align:center;margin-top:4px;max-width:80px;line-height:1.3;word-break:break-word;}
+  .stage-energy{font-size:11px;color:var(--accent);font-weight:600;margin-bottom:2px;}
+  .arrow{align-self:center;color:var(--muted);font-size:16px;padding:0 4px;margin-bottom:20px;}
+  /* Conservation bar */
+  .conservation-section{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .conservation-section h2{font-size:14px;margin:0 0 8px;color:var(--ink);}
+  .cons-bar{display:flex;height:28px;border-radius:6px;overflow:hidden;margin-bottom:6px;}
+  .cons-delivered{background:var(--ok);}
+  .cons-loss{background:var(--bad);}
+  .cons-label{font-size:13px;color:var(--ink);}
+  .cons-label span.ok{color:var(--ok);}
+  .cons-label span.bad{color:var(--bad);}
+  /* Prediction panel */
+  .predict-section{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .predict-section h2{font-size:14px;margin:0 0 8px;color:var(--ink);}
+  .predict-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .predict-row input{background:#0b1220;border:1px solid #334155;color:var(--ink);border-radius:6px;padding:6px 10px;font-size:14px;width:120px;}
+  .predict-row input:focus{outline:none;border-color:var(--accent);}
+  .predict-row .unit{font-size:13px;color:var(--muted);}
+  .submit-btn{background:var(--panel);border:1px solid var(--accent);color:var(--ink);border-radius:8px;padding:7px 16px;cursor:pointer;font-size:13px;}
+  .submit-btn:hover{background:#1e3a4a;}
+  .result-box{margin-top:10px;font-size:13px;display:none;}
+  .result-box .pill{display:inline-block;padding:3px 10px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="title">Energy Flow Tracer</h1>
+    <button class="lang" id="langBtn">🌐 Español</button>
+  </header>
+  <p class="hint" id="prompt"></p>
+
+  <!-- Flow diagram -->
+  <div class="flow-section">
+    <div class="flow-diagram" id="flowDiagram"></div>
+  </div>
+
+  <!-- Conservation bar -->
+  <div class="conservation-section">
+    <h2 id="consTitle"></h2>
+    <div class="cons-bar" id="consBar">
+      <div class="cons-delivered" id="consDelivered"></div>
+      <div class="cons-loss" id="consLoss"></div>
+    </div>
+    <p class="cons-label" id="consLabel"></p>
+  </div>
+
+  <!-- Student prediction -->
+  <div class="predict-section">
+    <h2 id="predictTitle"></h2>
+    <div class="predict-row">
+      <input type="number" id="predictionInput" min="0" max="1000" step="1" />
+      <span class="unit" id="mjUnit"></span>
+      <button class="submit-btn" id="submitBtn"></button>
+    </div>
+    <div class="result-box" id="resultBox"></div>
+  </div>
+</div>
+
+<script type="module">
+import { DEFAULT_STAGES, traceFlow, scoreAccounting } from "./energy-flow-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title:       { en: "Energy Flow Tracer",                      es: "Rastreador de Flujo de Energía" },
+  prompt:      { en: "Follow 1000 MJ of energy from fuel to your home. How much actually arrives?",
+                 es: "Sigue 1000 MJ de energía desde el combustible hasta tu hogar. ¿Cuánto llega realmente?" },
+  consTitle:   { en: "Conservation Check",                      es: "Verificación de Conservación" },
+  predictTitle:{ en: "Your Prediction",                         es: "Tu Predicción" },
+  inputLabel:  { en: "How much of 1000 MJ reaches the home?",   es: "¿Cuánto de 1000 MJ llega al hogar?" },
+  mjUnit:      { en: "MJ",                                      es: "MJ" },
+  submit:      { en: "Submit",                                   es: "Enviar" },
+  langName:    { en: "🌐 Español",                              es: "🌐 English" },
+  delivered:   { en: "Delivered",                               es: "Entregado" },
+  lost:        { en: "Lost",                                    es: "Perdido" },
+  consEq:      { en: "= 1000 MJ (energy is conserved)",        es: "= 1000 MJ (la energía se conserva)" },
+  resultCorrect:{ en: "Correct! True delivered:",              es: "¡Correcto! Entregado real:" },
+  resultWrong: { en: "Not quite. True delivered:",             es: "No exactamente. Entregado real:" },
+  score:       { en: "Score",                                   es: "Puntuación" },
+  energyIn:    { en: "Energy in",                               es: "Energía entrante" },
+  lossLbl:     { en: "Loss",                                    es: "Pérdida" },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+// Compute flow once (fixed 1000 MJ input)
+const INPUT_MJ = 1000;
+const flow = traceFlow(INPUT_MJ);
+
+function round1(v) { return Math.round(v * 10) / 10; }
+
+function renderFlowDiagram() {
+  const host = document.getElementById("flowDiagram");
+  host.innerHTML = "";
+  const MAX_HEIGHT = 80; // px for full 1000 MJ bar
+  const MIN_WIDTH  = 52; // px per stage block
+
+  flow.steps.forEach((step, i) => {
+    // Proportion of input
+    const inFrac  = step.energyIn  / INPUT_MJ;
+    const lossFrac = step.loss     / INPUT_MJ;
+    const barH    = Math.max(4, Math.round(inFrac   * MAX_HEIGHT));
+    const lossH   = Math.max(lossFrac > 0 ? 2 : 0, Math.round(lossFrac * MAX_HEIGHT));
+
+    const wrap = document.createElement("div");
+    wrap.className = "stage-wrap";
+    wrap.style.width = MIN_WIDTH + "px";
+
+    // Energy-in label
+    const eLbl = document.createElement("div");
+    eLbl.className = "stage-energy";
+    eLbl.textContent = `${round1(step.energyIn)} MJ`;
+
+    // Main bar (energyIn height)
+    const bar = document.createElement("div");
+    bar.className = "stage-bar";
+    bar.style.width = (MIN_WIDTH - 8) + "px";
+    bar.style.height = barH + "px";
+
+    // Loss wedge below
+    const loss = document.createElement("div");
+    loss.className = "loss-wedge";
+    loss.style.width = (MIN_WIDTH - 8) + "px";
+    loss.style.height = lossH + "px";
+    loss.title = `${tr.t("lossLbl")}: ${round1(step.loss)} MJ`;
+
+    // Stage name
+    const nameLbl = document.createElement("div");
+    nameLbl.className = "stage-label";
+    nameLbl.textContent = step.name;
+    nameLbl.dataset.stageIdx = i;
+
+    wrap.appendChild(eLbl);
+    wrap.appendChild(bar);
+    wrap.appendChild(loss);
+    wrap.appendChild(nameLbl);
+    host.appendChild(wrap);
+
+    // Arrow between stages (not after last)
+    if (i < flow.steps.length - 1) {
+      const arr = document.createElement("div");
+      arr.className = "arrow";
+      arr.textContent = "→";
+      host.appendChild(arr);
+    }
+  });
+
+  // Final "Home" delivered block
+  const delivFrac = flow.delivered / INPUT_MJ;
+  const delivBarH = Math.max(4, Math.round(delivFrac * MAX_HEIGHT));
+
+  const arrFinal = document.createElement("div");
+  arrFinal.className = "arrow";
+  arrFinal.textContent = "→";
+  host.appendChild(arrFinal);
+
+  const homeWrap = document.createElement("div");
+  homeWrap.className = "stage-wrap";
+  homeWrap.style.width = MIN_WIDTH + "px";
+
+  const homeE = document.createElement("div");
+  homeE.className = "stage-energy";
+  homeE.style.color = "var(--ok)";
+  homeE.textContent = `${round1(flow.delivered)} MJ`;
+
+  const homeBar = document.createElement("div");
+  homeBar.className = "stage-bar";
+  homeBar.style.background = "var(--ok)";
+  homeBar.style.width = (MIN_WIDTH - 8) + "px";
+  homeBar.style.height = delivBarH + "px";
+
+  const homeLbl = document.createElement("div");
+  homeLbl.className = "stage-label";
+  homeLbl.id = "homeLbl";
+  homeLbl.textContent = "🏠 Home";
+
+  homeWrap.appendChild(homeE);
+  homeWrap.appendChild(homeBar);
+  homeWrap.appendChild(homeLbl);
+  host.appendChild(homeWrap);
+}
+
+function renderConservation() {
+  document.getElementById("consTitle").textContent = tr.t("consTitle");
+  const delivPct = (flow.delivered / INPUT_MJ) * 100;
+  const lossPct  = (flow.totalLoss  / INPUT_MJ) * 100;
+  document.getElementById("consDelivered").style.width = delivPct + "%";
+  document.getElementById("consLoss").style.width      = lossPct  + "%";
+
+  const lbl = document.getElementById("consLabel");
+  lbl.innerHTML =
+    `<span class="ok">${tr.t("delivered")} ${round1(flow.delivered)} MJ</span> + ` +
+    `<span class="bad">${tr.t("lost")} ${round1(flow.totalLoss)} MJ</span> ` +
+    tr.t("consEq");
+}
+
+function renderPredict() {
+  document.getElementById("predictTitle").textContent = tr.t("predictTitle");
+  document.getElementById("predictionInput").placeholder = tr.t("inputLabel");
+  document.getElementById("mjUnit").textContent = tr.t("mjUnit");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+}
+
+function render() {
+  document.getElementById("title").textContent    = tr.t("title");
+  document.getElementById("prompt").textContent   = tr.t("prompt");
+  document.getElementById("langBtn").textContent  = tr.t("langName");
+  renderFlowDiagram();
+  renderConservation();
+  renderPredict();
+}
+
+function submit() {
+  const raw = parseFloat(document.getElementById("predictionInput").value);
+  const val = isNaN(raw) ? 0 : raw;
+
+  // Score — no guard, always re-sends
+  const result = scoreAccounting(val, INPUT_MJ);
+  sendActivityScore(result.score, 5, true);   // ALWAYS re-send, no guard
+
+  // Save state
+  saver.save({ prediction: val });
+
+  // Reveal result
+  const box = document.getElementById("resultBox");
+  box.style.display = "block";
+  const isCorrect = result.withinTolerance;
+  const msgKey = isCorrect ? "resultCorrect" : "resultWrong";
+  const scoreClass = result.score >= 4 ? "ok" : result.score >= 2 ? "warn" : "bad";
+  box.innerHTML =
+    `${tr.t(msgKey)} <span class="ok">${round1(result.correctDelivered)} MJ</span> — ` +
+    `<span class="pill ${scoreClass}">${tr.t("score")}: ${result.score}/5</span>`;
+}
+
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+document.getElementById("submitBtn").onclick = submit;
+document.getElementById("predictionInput").addEventListener("input", () => {
+  const val = parseFloat(document.getElementById("predictionInput").value);
+  saver.save({ prediction: isNaN(val) ? null : val });
+});
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

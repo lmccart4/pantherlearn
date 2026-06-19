@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Induction Visualizer</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .two-col{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px;}
+  .viz-panel{background:var(--panel);border-radius:12px;padding:12px;flex:0 0 auto;}
+  .controls-panel{background:var(--panel);border-radius:12px;padding:12px;flex:1;min-width:220px;}
+  .slider-row{margin-bottom:12px;}
+  .slider-row label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px;}
+  .slider-row input[type=range]{width:100%;accent-color:var(--accent);}
+  .slider-val{font-size:14px;font-weight:600;color:var(--ink);}
+  .readout{display:flex;gap:12px;flex-wrap:wrap;font-size:14px;margin-bottom:12px;}
+  .pill{padding:4px 10px;border-radius:999px;background:#0b1220;}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+  .hint{font-size:12px;color:var(--muted);}
+  .wave-box{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:12px;}
+  .wave-box svg{width:100%;height:80px;display:block;}
+  .predict-panel{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:12px;}
+  .predict-panel h2{font-size:15px;margin:0 0 10px;}
+  .predict-item{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #334155;}
+  .predict-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+  .predict-prompt{font-size:13px;margin-bottom:6px;}
+  .predict-btns{display:flex;gap:6px;}
+  .predict-btns button{padding:4px 12px;border-radius:6px;border:1px solid #334155;background:#0b1220;color:var(--muted);font-size:12px;cursor:pointer;transition:border-color .15s,color .15s;}
+  .predict-btns button.selected{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .predict-btns button.correct{border-color:var(--ok);color:var(--ok);background:#0f172a;}
+  .predict-btns button.wrong{border-color:var(--bad);color:var(--bad);background:#0f172a;}
+  #submitBtn{display:block;width:100%;padding:8px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;margin-bottom:8px;}
+  #submitBtn:hover{background:#0f172a;}
+  #scoreBox{font-size:13px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="two-col">
+    <!-- Animated SVG -->
+    <div class="viz-panel">
+      <svg id="vizSvg" viewBox="0 0 320 220" width="320" height="220">
+        <!-- Coil left side: two rounded rects -->
+        <rect x="60" y="60" width="28" height="100" rx="6" fill="none" stroke="#38bdf8" stroke-width="3"/>
+        <rect x="72" y="55" width="28" height="110" rx="6" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 3"/>
+        <!-- Coil right side -->
+        <rect x="232" y="60" width="28" height="100" rx="6" fill="none" stroke="#38bdf8" stroke-width="3"/>
+        <rect x="220" y="55" width="28" height="110" rx="6" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 3"/>
+        <!-- Rotating magnet group: centered at 160,110 -->
+        <g id="magnet" transform="rotate(0,160,110)">
+          <!-- North half (red) -->
+          <rect x="128" y="90" width="32" height="20" rx="4" fill="#f87171"/>
+          <text x="144" y="104" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">N</text>
+          <!-- South half (blue) -->
+          <rect x="160" y="90" width="32" height="20" rx="4" fill="#60a5fa"/>
+          <text x="176" y="104" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">S</text>
+        </g>
+        <!-- Coil turn count indicator -->
+        <text id="coilLabel" x="160" y="195" text-anchor="middle" font-size="11" fill="#94a3b8"></text>
+      </svg>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-panel">
+      <div class="slider-row">
+        <label id="rpmLabel"></label>
+        <input type="range" id="rpmSlider" min="0" max="300" value="60" step="5"/>
+        <span class="slider-val" id="rpmVal">60 rpm</span>
+      </div>
+      <div class="slider-row">
+        <label id="coilsLabel"></label>
+        <input type="range" id="coilsSlider" min="1" max="20" value="5" step="1"/>
+        <span class="slider-val" id="coilsVal">5</span>
+      </div>
+      <div class="readout">
+        <span class="pill" id="currentPill">—</span>
+      </div>
+      <p class="hint" id="currentHint"></p>
+    </div>
+  </div>
+
+  <!-- Waveform plot -->
+  <div class="wave-box">
+    <p class="hint" id="waveLabel" style="margin:0 0 6px"></p>
+    <svg id="waveSvg" viewBox="0 0 600 80" preserveAspectRatio="none">
+      <line x1="0" y1="40" x2="600" y2="40" stroke="#334155" stroke-width="1"/>
+      <polyline id="waveLine" points="" fill="none" stroke="#38bdf8" stroke-width="2"/>
+    </svg>
+  </div>
+
+  <!-- Predictions -->
+  <div class="predict-panel">
+    <h2 id="predictTitle"></h2>
+    <div id="predictItems"></div>
+  </div>
+
+  <button id="submitBtn"></button>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import { inducedPeak, waveform, PREDICTION_KEY, scorePredictions } from "./induction-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title:       { en: "Induction Visualizer", es: "Visualizador de Inducción" },
+  langName:    { en: "🌐 Español", es: "🌐 English" },
+  prompt:      { en: "Adjust the sliders to see how rpm and coil count affect induced current.", es: "Ajusta los controles para ver cómo las rpm y el número de bobinas afectan la corriente inducida." },
+  rpmLabel:    { en: "Rotation speed (rpm)", es: "Velocidad de rotación (rpm)" },
+  coilsLabel:  { en: "Number of coils", es: "Número de bobinas" },
+  currentLbl:  { en: "Peak current", es: "Corriente máxima" },
+  currentHint: { en: "Current is in relative units (proportional to real EMF).", es: "La corriente está en unidades relativas (proporcional a la FEM real)." },
+  waveLabel:   { en: "Current waveform (one full rotation)", es: "Forma de onda de corriente (una rotación completa)" },
+  predictTitle:{ en: "Predict the effect", es: "Predice el efecto" },
+  up:          { en: "↑ Goes up", es: "↑ Sube" },
+  down:        { en: "↓ Goes down", es: "↓ Baja" },
+  same:        { en: "→ Stays same", es: "→ Se mantiene igual" },
+  submit:      { en: "Submit Predictions", es: "Enviar predicciones" },
+  submitted:   { en: "✓ Submitted", es: "✓ Enviado" },
+  scoreLbl:    { en: "Score", es: "Puntuación" },
+  coilUnit:    { en: "coils", es: "bobinas" },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+// State
+let rpm = 60;
+let coils = 5;
+const selections = new Array(PREDICTION_KEY.length).fill(null);
+
+// Animation
+let angleDeg = 0;
+let lastTs = null;
+function animate(ts) {
+  if (lastTs !== null && rpm > 0) {
+    const dt = (ts - lastTs) / 1000; // seconds
+    angleDeg = (angleDeg + (rpm / 60) * 360 * dt) % 360;
+    document.getElementById("magnet").setAttribute("transform", `rotate(${angleDeg.toFixed(1)},160,110)`);
+  }
+  lastTs = ts;
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+function updateWaveform() {
+  const pts = waveform(rpm, coils);
+  const peak = inducedPeak(rpm, coils);
+  const W = 600, H = 80;
+  const maxVal = Math.max(peak, 0.001);
+  const points = pts.map((p, i) => {
+    const x = (i / (pts.length - 1)) * W;
+    const y = H / 2 - (p.current / maxVal) * (H / 2 - 4);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  document.getElementById("waveLine").setAttribute("points", points);
+}
+
+function updateReadout() {
+  const peak = inducedPeak(rpm, coils);
+  const pill = document.getElementById("currentPill");
+  pill.textContent = `${tr.t("currentLbl")}: ${peak.toFixed(3)}`;
+  pill.className = "pill " + (peak > 0.5 ? "ok" : peak > 0.1 ? "warn" : "bad");
+}
+
+function updateSliderLabels() {
+  document.getElementById("rpmVal").textContent = `${rpm} rpm`;
+  document.getElementById("coilsVal").textContent = `${coils} ${tr.t("coilUnit")}`;
+  document.getElementById("coilLabel").textContent = `${coils} ${tr.t("coilUnit")}`;
+}
+
+function renderPredictions() {
+  const host = document.getElementById("predictItems");
+  host.innerHTML = "";
+  PREDICTION_KEY.forEach((item, i) => {
+    const div = document.createElement("div");
+    div.className = "predict-item";
+    div.innerHTML = `<div class="predict-prompt">${item.prompt}</div>
+      <div class="predict-btns">
+        <button data-idx="${i}" data-val="up">${tr.t("up")}</button>
+        <button data-idx="${i}" data-val="down">${tr.t("down")}</button>
+        <button data-idx="${i}" data-val="same">${tr.t("same")}</button>
+      </div>`;
+    host.appendChild(div);
+    // Restore selection
+    if (selections[i]) {
+      const btn = div.querySelector(`button[data-val="${selections[i]}"]`);
+      if (btn) btn.classList.add("selected");
+    }
+  });
+  host.querySelectorAll("button[data-idx]").forEach(btn => {
+    btn.onclick = () => {
+      const idx = +btn.dataset.idx;
+      selections[idx] = btn.dataset.val;
+      // Update button highlight in this item
+      const row = btn.closest(".predict-btns");
+      row.querySelectorAll("button").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      saveState();
+    };
+  });
+}
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("rpmLabel").textContent = tr.t("rpmLabel");
+  document.getElementById("coilsLabel").textContent = tr.t("coilsLabel");
+  document.getElementById("currentHint").textContent = tr.t("currentHint");
+  document.getElementById("waveLabel").textContent = tr.t("waveLabel");
+  document.getElementById("predictTitle").textContent = tr.t("predictTitle");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+}
+
+function render() {
+  renderStaticText();
+  updateSliderLabels();
+  updateReadout();
+  updateWaveform();
+  renderPredictions();
+}
+
+function saveState() {
+  saver.save({ rpm, coils, selections: [...selections] });
+}
+
+// Slider events
+document.getElementById("rpmSlider").addEventListener("input", e => {
+  rpm = +e.target.value;
+  updateSliderLabels();
+  updateReadout();
+  updateWaveform();
+  saveState();
+});
+
+document.getElementById("coilsSlider").addEventListener("input", e => {
+  coils = +e.target.value;
+  updateSliderLabels();
+  updateReadout();
+  updateWaveform();
+  saveState();
+});
+
+// Lang toggle
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+
+// Submit — NO re-send guard, always calls sendActivityScore
+document.getElementById("submitBtn").onclick = () => {
+  const result = scorePredictions(selections);
+  sendActivityScore(result.score, 5, true);       // ALWAYS re-send, no guard
+  // Show score
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5`;
+  // Reveal correct/wrong on buttons
+  document.querySelectorAll(".predict-item").forEach((item, i) => {
+    const correctVal = PREDICTION_KEY[i].answer;
+    item.querySelectorAll("button[data-val]").forEach(btn => {
+      btn.classList.remove("selected");
+      if (btn.dataset.val === correctVal) btn.classList.add("correct");
+      if (btn.dataset.val === selections[i] && selections[i] !== correctVal) btn.classList.add("wrong");
+    });
+  });
+};
+
+window.addEventListener("beforeunload", () => saver.flush());
+
+// Init slider DOM values to match state
+document.getElementById("rpmSlider").value = rpm;
+document.getElementById("coilsSlider").value = coils;
+
+render();
+</script>
+</body>
+</html>
