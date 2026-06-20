@@ -28,7 +28,7 @@ const lesson = {
     k.text(
       "Earth has been hit many times. **Meteor Crater in Arizona** is about **1,200 meters across** and was carved roughly " +
       "50,000 years ago by an iron impactor only about **50 meters wide**. Much larger impacts have happened too — the " +
-      "Chicxulub impact, linked to the extinction of the non-avian dinosaurs, left a crater more than **150 kilometers " +
+      "Chicxulub impact, linked to the extinction of the non-avian dinosaurs, left a crater about **180 kilometers " +
       "across**. The size of a crater is a clue to the energy of the impact."
     ),
 

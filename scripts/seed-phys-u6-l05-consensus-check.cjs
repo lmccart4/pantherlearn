@@ -32,7 +32,7 @@ const lesson = {
     }),
 
     k.text(
-      "We are halfway through Lesson Set 1. So far, we have used **starlight** and the **H-R diagram** to figure out that " +
+      "We're wrapping up Lesson Set 1. So far, we have used **starlight** and the **H-R diagram** to figure out that " +
       "stars are not permanent, unchanging objects. They have compositions, temperatures, luminosities, and life stages. " +
       "Today we pull those ideas together and revise our class model."
     ),

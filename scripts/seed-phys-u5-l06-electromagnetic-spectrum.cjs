@@ -40,8 +40,9 @@ const lesson = {
       title: 'Spectrum Order (Low → High Frequency)',
       content:
         "Radio → Microwave → Infrared → Visible → Ultraviolet → X-ray → Gamma ray\n\n" +
-        "As frequency increases: wavelength decreases, photon energy increases, and the radiation tends to penetrate " +
-        "or ionize matter more strongly.",
+        "As frequency increases, wavelength decreases and photon energy increases — so high-frequency radiation " +
+        "(UV, X-ray, gamma) can **ionize** atoms. Whether radiation **passes through** a given material depends on " +
+        "both the material and the wavelength; it does not simply increase with frequency.",
     }),
 
     k.image({
@@ -58,7 +59,7 @@ const lesson = {
         ['Microwave oven', '$\\sim 2.45 \\text{ GHz}$', '$\\sim 12.2 \\text{ cm}$', 'Microwave'],
         ['5G (sub-6)', '$\\sim 3.5 \\text{ GHz}$', '$\\sim 8.6 \\text{ cm}$', 'Microwave / Radio'],
         ['Visible red light', '$\\sim 430 \\text{ THz}$', '$\\sim 700 \\text{ nm}$', 'Visible'],
-        ['Medical X-ray', '$\\sim 10^{18} \\text{ Hz}$', '$\\sim 0.1 \\text{ nm}$', 'X-ray'],
+        ['Medical X-ray', '$\\sim 10^{18} \\text{ Hz}$', '$\\sim 0.3 \\text{ nm}$', 'X-ray'],
       ],
       lead: '**Everyday frequencies** — use this table to place familiar technologies on the spectrum.',
     }),

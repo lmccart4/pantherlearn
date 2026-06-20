@@ -32,9 +32,9 @@ const lesson = {
     }),
 
     k.text(
-      "If you look around Perth Amboy you'll notice cell towers, water towers with antennas, and small 5G boxes on " +
-      "streetlights. They are not placed randomly. Each one is a choice about **frequency, range, bandwidth, and cost** " +
-      "— and every choice involves a tradeoff.",
+      "If you look around Perth Amboy you may notice cell towers and water towers with antennas, and some of the small " +
+      "boxes on poles or streetlights may be 5G small cells. They are not placed randomly. Each one is a choice about " +
+      "**frequency, range, bandwidth, and cost** — and every choice involves a tradeoff.",
     ),
 
     k.mdTable({

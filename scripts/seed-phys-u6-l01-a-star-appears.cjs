@@ -33,7 +33,7 @@ const lesson = {
 
     k.text(
       "People used to call them **'new stars'** — bright points of light that appeared where no star had been seen before, " +
-      "then slowly faded. In 1572, Tycho Brahe watched one stay visible for months. A thousand years earlier, Chinese and " +
+      "then slowly faded. In 1572, Tycho Brahe watched one stay visible for months. About five centuries earlier, Chinese and " +
       "Japanese astronomers recorded another so bright it could be seen in daylight. Today we know these events as " +
       "**supernovae**, but at the time they were a mystery: how can a star just show up?"
     ),

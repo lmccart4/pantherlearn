@@ -32,9 +32,10 @@ const lesson = {
 
     k.text(
       "On the morning of **February 15, 2013**, a bright fireball streaked across the sky over Chelyabinsk, Russia. " +
-      "A space rock about **19 meters across** and weighing roughly **12,000 metric tons** slammed into Earth's atmosphere " +
-      "at about **19 kilometers per second** — more than **40,000 miles per hour**. The air in front of it compressed and " +
-      "heated so intensely that the object exploded in an **airburst** high above the city."
+      "A space rock about **20 meters across** and weighing somewhere between **7,000 and 13,000 metric tons** slammed into " +
+      "Earth's atmosphere at about **19 kilometers per second** — more than **40,000 miles per hour**. The air in front of it " +
+      "compressed and heated so intensely that the object exploded in an **airburst** — an explosion in the air, before " +
+      "reaching the ground — high above the city."
     ),
 
     k.image({
@@ -44,7 +45,7 @@ const lesson = {
     }),
 
     k.text(
-      "The blast released the energy of roughly **500 kilotons of TNT** — more than 30 times the power of the Hiroshima atomic bomb. " +
+      "The blast released the energy of roughly **440 kilotons of TNT** — about 30 times the power of the Hiroshima atomic bomb. " +
       "Shockwaves shattered windows across the region, damaged more than **7,000 buildings**, and injured about **1,500 people**, " +
       "mostly from flying glass. Yet no large crater was found, because the object broke up and mostly vaporized in the atmosphere."
     ),

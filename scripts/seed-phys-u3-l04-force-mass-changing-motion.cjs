@@ -50,9 +50,10 @@ const lesson = {
     }),
 
     k.text(
-      "**Define the system.** In this lesson, the system is a single vehicle plus the road it pushes against. The net force " +
-      "on the system comes from the brakes (and from friction). If we keep the braking force the same but increase the " +
-      "mass of the vehicle, the acceleration gets smaller — meaning the vehicle takes longer to stop."
+      "**Define the system.** In this lesson, the system is the vehicle itself. The **road is outside** the system, and " +
+      "during braking it supplies the **friction force** that acts on the vehicle and slows it down. That friction is the " +
+      "net external force on the system. If we keep the braking force the same but increase the mass of the vehicle, the " +
+      "acceleration gets smaller — meaning the vehicle takes longer to stop."
     ),
 
     k.embed({

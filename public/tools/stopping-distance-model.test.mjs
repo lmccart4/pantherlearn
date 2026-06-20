@@ -54,15 +54,14 @@ test("total = reaction + braking", () => {
   );
 });
 
-test("reproduces the L03 reference table at 0.75 s (constants check)", () => {
-  // The seed table uses a 0.75 s reaction time; verify the model matches it.
-  // (PARAMS clamps reactionTime to >=1.0 for students, but the math is exposed via createState clamp,
-  //  so check the raw formula values the table was built from.)
+test("reproduces the L03 reference table at 1.5 s (constants check)", () => {
+  // The seed table uses a 1.5 s reaction time (NHTSA standard); verify the model matches it.
+  // 1.5 s is the tool's default reactionTime, so this is exactly what students see on load.
   const FT = 1.46667, KK = 0.05;
-  const expect = { 20: [22, 20], 30: [33, 45], 40: [44, 80], 50: [55, 125], 60: [66, 180] };
+  const expect = { 20: [44, 20], 30: [66, 45], 40: [88, 80], 50: [110, 125], 60: [132, 180] };
   for (const [mph, [r, b]] of Object.entries(expect)) {
     const v = Number(mph);
-    assert.ok(Math.abs(v * FT * 0.75 - r) < 0.5, `reaction @ ${mph}`);
+    assert.ok(Math.abs(v * FT * 1.5 - r) < 0.5, `reaction @ ${mph}`);
     assert.ok(Math.abs(KK * v * v - b) < 0.5, `braking @ ${mph}`);
   }
 });

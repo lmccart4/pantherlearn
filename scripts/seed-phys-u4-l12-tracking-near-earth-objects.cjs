@@ -45,7 +45,7 @@ const lesson = {
       rows: [
         ['Apophis', '~340 m', 'Effectively zero for 100 years', '~1,150', '2029-04-13'],
         ['Bennu', '~500 m', '1 in 2,700 by 2182', '~1,450', '2135'],
-        ['Chelyabinsk object', '~17 m', 'Not detected before entry', '~0.5', '2013-02-15'],
+        ['Chelyabinsk object', '~20 m', 'Not detected before entry', '~0.5', '2013-02-15'],
         ['2024 YR4', '~50 m', 'Varying; monitoring', '~8', '2032'],
       ],
       note: 'Data: NASA JPL CNEOS / Sentry (approximate). Probabilities change as observations improve.',

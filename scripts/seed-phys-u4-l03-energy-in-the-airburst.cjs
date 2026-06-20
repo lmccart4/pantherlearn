@@ -52,7 +52,9 @@ const lesson = {
       "$$KE = \\frac{1}{2}mv^2$$\n\n" +
       "where $m$ is mass in kilograms and $v$ is speed in meters per second. For Chelyabinsk, estimates put the mass at " +
       "about $1.2 \\times 10^7$ kg and the speed at about $1.9 \\times 10^4$ m/s. Plugging those in gives roughly " +
-      "$2.2 \\times 10^{15}$ joules — about **500 kilotons of TNT**.",
+      "$2.2 \\times 10^{15}$ joules — about **500 kilotons of TNT**. That's our rough model; NASA's sensor-based analysis " +
+      "puts the total impact energy near **440 kilotons**. The two agree closely, which tells us our estimate is in the " +
+      "right ballpark.",
     ),
 
     k.mdTable({
@@ -61,8 +63,9 @@ const lesson = {
         ['Mass', '~$1.2 \\times 10^7$ kg'],
         ['Speed', '~$1.9 \\times 10^4$ m/s'],
         ['Kinetic energy', '~$2.2 \\times 10^{15}$ J'],
-        ['Energy equivalent', '~500 kilotons of TNT'],
-        ['Altitude of airburst', '~23 km above ground'],
+        ['Energy equivalent (our model)', '~500 kilotons of TNT'],
+        ['Energy equivalent (NASA measured)', '~440 kilotons of TNT'],
+        ['Altitude of airburst', '~23 km above ground (some summaries give ~30 km)'],
       ],
       lead: '**Chelyabinsk energy estimates**',
       note: 'Values are approximate; different studies give slightly different estimates.',
@@ -71,7 +74,7 @@ const lesson = {
     k.image({
       url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u4-l03-energy-in-the-airburst-energy-scale.jpg',
       alt: 'Bar chart comparing energy releases: lightning and Hiroshima are small, Chelyabinsk is much larger, and Meteor Crater and Chicxulub are far larger still.',
-      caption: 'Chelyabinsk released roughly 500 kilotons — about 30 Hiroshima bombs — yet far less than larger impacts like Meteor Crater or Chicxulub. *(Diagram.)*',
+      caption: 'Chelyabinsk released roughly 440 kilotons — about 30 Hiroshima bombs — yet far less than larger impacts like Meteor Crater or Chicxulub. *(Diagram.)*',
     }),
 
     k.text(

@@ -33,7 +33,8 @@ const lesson = {
     k.text(
       "We know Earth's interior is hot enough to keep the mantle slowly moving. But where does that heat come from? Some of " +
       "it is leftover from Earth's formation. A large and continuous source comes from **radioactive decay** — the process " +
-      "by which unstable atomic nuclei break apart and release energy."
+      "by which unstable atomic nuclei emit particles or radiation and change into other elements, releasing a small amount " +
+      "of energy each time."
     ),
 
     k.callout({
@@ -48,7 +49,7 @@ const lesson = {
 
     k.text(
       "**Decay → heat → motion**\n\n" +
-      "When a radioactive nucleus decays, a small amount of mass is converted into a large amount of energy. That energy " +
+      "When a radioactive nucleus decays, the tiny mass lost in each decay is released as energy. That energy " +
       "heats the surrounding rock. Over geologic time, this heat builds up and sets up temperature differences in the mantle. " +
       "Hot rock rises; cooler rock sinks. That circulation is **convection**, and it drags on the plates above.\n\n" +
       "The total energy in this process is conserved. The nuclear energy released by decay becomes thermal energy, then " +
@@ -60,7 +61,7 @@ const lesson = {
       icon: '🔑',
       title: 'Key Ideas',
       content:
-        "- **Radioactive decay** — unstable nuclei break apart and release energy\n" +
+        "- **Radioactive decay** — unstable nuclei emit particles or radiation and change into other elements, releasing energy\n" +
         "- **Nuclear energy → thermal energy** — the decay process heats surrounding rock\n" +
         "- **Thermal energy → mechanical work** — convection currents exert forces that move plates\n" +
         "- **Conservation of energy** — energy is not created or destroyed, only transferred and transformed",

@@ -21,7 +21,7 @@ const lesson = {
     k.objectives([
       'Explain the microwave/Bluetooth phenomenon using wave properties',
       'Explain how electromagnetic radiation interacts with matter',
-      'Connect the wave and photon models to observable effects',
+      'Connect wave properties to observable effects',
     ]),
 
     k.text(
@@ -60,8 +60,8 @@ const lesson = {
       title: 'Mastery — Teacher Score',
       prompt:
         "Mr. McCarthy will read your model and your written explanation and score them together on the " +
-        "3-dimensional rubric below. You're being graded on how well your reasoning connects wave properties, " +
-        "EM-matter interactions, and the photon model — not on artistic skill or memorized vocabulary. Make your " +
+        "3-dimensional rubric below. You're being graded on how well your reasoning connects wave properties and " +
+        "EM-matter interactions — not on artistic skill or memorized vocabulary. Make your " +
         "thinking visible.",
       weight: 15,
     }),

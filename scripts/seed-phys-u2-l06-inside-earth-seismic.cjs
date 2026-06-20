@@ -65,7 +65,7 @@ const lesson = {
       lead: '**Earth\'s major layers** — what seismic waves reveal.',
       headers: ['Layer', 'State', 'Wave behavior', 'Why it matters'],
       rows: [
-        ['Crust', 'Solid', 'Fastest waves near surface', 'Thin, brittle, where we live'],
+        ['Crust', 'Solid', 'Slower waves in thin, brittle rock; speed jumps at the Moho', 'Thin, brittle, where we live'],
         ['Mantle', 'Solid (but slow-flowing)', 'Speed varies with temperature', 'Convection drives plate motion'],
         ['Outer core', 'Liquid', 'S-waves do not pass through', 'Creates Earth\'s magnetic field'],
         ['Inner core', 'Solid', 'Very fast waves', 'Hot, dense, mostly iron'],
@@ -83,7 +83,7 @@ const lesson = {
       prompt: 'A region deep inside Earth blocks S-waves completely but allows P-waves through. What can scientists conclude?',
       options: [
         'The region is solid iron with very high temperature',
-        'The region is the crust, where all waves move fastest',
+        'The region is the crust, where waves move slowest',
         'The region has no mass and does not affect seismic waves',
         'The region is liquid, because S-waves cannot travel through it',
       ],

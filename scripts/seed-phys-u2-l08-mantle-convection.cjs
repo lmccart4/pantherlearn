@@ -33,8 +33,8 @@ const lesson = {
 
     k.text(
       "Heat from radioactive decay warms the mantle from below and from within. But hot rock does not just sit there. It " +
-      "moves in slow, looping currents called **convection cells**. These cells are the engine that drives most large-scale " +
-      "plate motion."
+      "moves in slow, looping currents called **convection cells**. Convection is one major driver of plate motion, working " +
+      "together with ridge push and slab pull."
     ),
 
     k.callout({
@@ -68,7 +68,7 @@ const lesson = {
     }),
 
     k.mc({
-      prompt: 'In a mantle convection cell, where does the crust tend to be pulled apart?',
+      prompt: 'At a divergent boundary like Afar, where a mantle convection cell rises beneath the crust, where does the crust tend to be pulled apart?',
       options: [
         'Where cool rock sinks near a trench',
         'Where the mantle is coldest and densest',

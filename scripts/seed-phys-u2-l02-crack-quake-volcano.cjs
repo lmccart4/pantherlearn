@@ -67,9 +67,9 @@ const lesson = {
 
     k.shortAnswer({
       prompt:
-        "**Which observation is the strongest evidence that something is happening *below* the surface?** Explain your " +
-        "choice using the table above.",
-      placeholder: 'The strongest evidence is… because…',
+        "**Which single observation, by itself, would be the *weakest* evidence of subsurface forces — and why do the three " +
+        "together make a stronger case?** Explain using the table above.",
+      placeholder: 'By itself, the weakest evidence is… but together…',
       difficulty: 'analyze',
     }),
 

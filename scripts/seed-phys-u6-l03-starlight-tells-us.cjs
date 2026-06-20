@@ -91,7 +91,7 @@ const lesson = {
     }),
 
     k.mc({
-      prompt: 'Why can spectra tell us what elements are in a star, even though the star is millions of miles away?',
+      prompt: 'Why can spectra tell us what elements are in a star, even though the star is trillions of miles away (several light-years)?',
       options: [
         'Each element emits only one single color of light',
         'Telescopes can physically collect samples from stars',

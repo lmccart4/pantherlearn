@@ -30,7 +30,10 @@ const lesson = {
       "The answer comes from the connection between electricity and magnetism. In Unit 1 we saw that an electric current " +
       "in a wire produces a magnetic field around the wire. Today we'll push that idea further: **a changing electric " +
       "field creates a changing magnetic field, and a changing magnetic field creates a changing electric field.** " +
-      "Together they can travel through space as an electromagnetic wave."
+      "Together they can travel through space as an electromagnetic wave.\n\n" +
+      "One key detail: a charge moving at a steady rate makes a steady field. It's a charge that **accelerates** — " +
+      "speeds up, slows down, or wiggles back and forth — that launches an electromagnetic wave. That's exactly how " +
+      "an antenna works: it drives charges back and forth to send out a signal."
     ),
 
     k.callout({

@@ -90,7 +90,7 @@ const lesson = {
       prompt:
         'How do scientists know that meteorites come from space, not from somewhere here on Earth?',
       claimHint: 'State whether meteorites are Earth rocks or space rocks.',
-      evidenceHint: 'Cite at least two pieces of evidence scientists use (for example: composition, temperature history, or orbit tracking).',
+      evidenceHint: 'Cite at least two pieces of evidence scientists use (for example: a melted fusion crust, metal or isotopic composition unlike Earth rocks, or cosmic-ray exposure from time in space).',
       reasoningHint: 'Explain why that evidence is hard to explain if the rock formed on Earth.',
     }),
   ],

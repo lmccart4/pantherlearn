@@ -83,10 +83,10 @@ const lesson = {
 
     k.cer({
       prompt:
-        'A 5G tower emits radiation at a higher frequency than an FM radio tower. Use both models to explain why 5G signals can carry more data but do not travel as far around obstacles.',
+        'A 5G tower emits radiation at a higher frequency than an FM radio tower. Explain why 5G signals can carry more data but do not travel as far around obstacles. Then explain why neither effect can be explained by the photon model — only the wave model.',
       claimHint: 'State which property of 5G waves explains the data advantage and which explains the range/obstacle limitation.',
-      evidenceHint: 'Cite the frequency/wavelength relationship and the photon energy equation $E = hf$.',
-      reasoningHint: 'Connect those ideas to bandwidth (more data) and to diffraction/line-of-sight behavior (less range around obstacles).',
+      evidenceHint: 'Cite the frequency/wavelength relationship and the wave behaviors of bandwidth and diffraction.',
+      reasoningHint: 'Connect those ideas to bandwidth (more data) and to diffraction/line-of-sight behavior (less range around obstacles), and note that photon energy ($E = hf$) governs ionization, not data rate or range.',
     }),
   ],
 };

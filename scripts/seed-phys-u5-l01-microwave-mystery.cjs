@@ -26,7 +26,7 @@ const lesson = {
 
     k.image({
       url: 'https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/physics/phys-u5-l01-microwave-mystery-hero.jpg',
-      alt: 'A Bluetooth speaker sits inside an open, switched-off microwave oven while a phone on the counter plays music, its signal blocked at the metal door.',
+      alt: 'A Bluetooth speaker sits inside a closed, switched-off microwave oven while a phone on the counter plays music, its signal blocked at the metal door.',
       caption: 'Our anchoring mystery: a Bluetooth speaker loses its signal inside a closed — but completely **off** — microwave. *(Illustration.)*',
     }),
 

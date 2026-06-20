@@ -42,8 +42,10 @@ const lesson = {
       style: 'info',
       icon: '🧭',
       title: 'Mass Determines Fate',
-      content: "- **Low-mass stars** (like the Sun): nebula → protostar → main sequence → red giant → planetary nebula → white dwarf\n" +
-               "- **High-mass stars**: nebula → protostar → main sequence → red supergiant → supernova → neutron star or black hole",
+      content: "- **Low-mass stars** (smaller than the Sun): nebula → protostar → main sequence → red giant → planetary nebula → white dwarf\n" +
+               "- **Medium-mass stars** (like the Sun): same path — they also end as white dwarfs, just larger and hotter ones\n" +
+               "- **High-mass stars**: nebula → protostar → main sequence → red supergiant → supernova → neutron star or black hole\n\n" +
+               "So **low- and medium-mass stars both end as white dwarfs**, while **high-mass stars end in a supernova**.",
     }),
 
     k.text(

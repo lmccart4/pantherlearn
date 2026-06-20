@@ -37,13 +37,13 @@ const lesson = {
     k.mdTable({
       headers: ['Speed (mph)', 'Reaction distance (ft)', 'Braking distance (ft)', 'Total stopping distance (ft)'],
       rows: [
-        ['20', '22', '20', '42'],
-        ['30', '33', '45', '78'],
-        ['40', '44', '80', '124'],
-        ['50', '55', '125', '180'],
-        ['60', '66', '180', '246'],
+        ['20', '44', '20', '64'],
+        ['30', '66', '45', '111'],
+        ['40', '88', '80', '168'],
+        ['50', '110', '125', '235'],
+        ['60', '132', '180', '312'],
       ],
-      lead: '**Reference data for dry pavement and a 0.75 s reaction time**',
+      lead: '**Reference data for dry pavement and a 1.5 s reaction time**',
       note: 'Values are rounded estimates for a typical passenger vehicle.',
     }),
 

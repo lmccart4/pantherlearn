@@ -28,7 +28,8 @@ const lesson = {
     k.text(
       "One of the first things that makes driving risky is **time** — specifically, the time between when a driver sees " +
       "a hazard and when their foot hits the brake. That gap is called **reaction time**.\n\n" +
-      "For an attentive driver, reaction time is roughly **0.7 to 1.0 seconds**. For a distracted driver — someone texting, " +
+      "For an attentive driver, a common planning value for perception-reaction time is about **1.5 seconds** (the value " +
+      "NHTSA uses for stopping-distance estimates). For a distracted driver — someone texting, " +
       "changing a song, or looking at a passenger — it can double or triple. That extra time doesn't just feel dangerous; " +
       "it adds serious distance to the stopping path. The car keeps moving at full speed while the driver's brain is still " +
       "figuring out what to do."
@@ -75,8 +76,8 @@ const lesson = {
       title: 'Reaction Time Data',
       preset: 'numeric',
       rows: [
-        { key: 'attentive', label: 'Attentive driver (about 0.75 s)' },
-        { key: 'distracted', label: 'Distracted driver (about 2.0 s)' },
+        { key: 'attentive', label: 'Attentive driver (about 1.5 s)' },
+        { key: 'distracted', label: 'Distracted driver (about 3.0 s)' },
       ],
       columns: [
         { key: 'speed_mph', label: 'Speed (mph)' },

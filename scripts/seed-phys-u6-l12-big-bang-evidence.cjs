@@ -44,7 +44,7 @@ const lesson = {
     }),
 
     k.text(
-      "**The Cosmic Microwave Background (CMB)** is often called the \"afterglow\" of the Big Bang. About **380,000 years" +
+      "**The Cosmic Microwave Background (CMB)** is often called the \"afterglow\" of the Big Bang. About **380,000 years " +
       "after the Big Bang**, the universe had cooled enough for electrons to combine with nuclei, forming neutral atoms. " +
       "Suddenly, light could travel freely. That light has been stretching along with space for nearly 14 billion years, " +
       "and today we detect it as faint microwave radiation coming from every direction in the sky.\n\n" +

@@ -86,8 +86,9 @@ const lesson = {
 
     k.shortAnswer({
       prompt:
-        "**Apply to plates.** A plate is pulled east by mantle drag and west by slab pull. If slab pull is stronger, sketch " +
-        "or describe the net force and predict the plate\'s acceleration.",
+        "**Apply to plates.** A plate is pushed east by mantle drag and west by slab pull. (Here the mantle is moving slower " +
+        "than the plate, so mantle drag acts *against* the motion.) If slab pull is stronger, sketch or describe the net " +
+        "force and predict the plate\'s acceleration.",
       placeholder: 'The net force points…',
       difficulty: 'apply',
     }),

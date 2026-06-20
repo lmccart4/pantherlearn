@@ -64,7 +64,7 @@ const lesson = {
       lead: '**What H-R position tells us**',
       headers: ['Region', 'Temperature', 'Luminosity', 'Mass / stage hint'],
       rows: [
-        ['Upper-left main sequence', 'Hot', 'Very luminous', 'Massive, young main-sequence stars'],
+        ['Upper-left main sequence', 'Hot', 'Very luminous', 'Massive, short-lived main-sequence stars'],
         ['Lower-right main sequence', 'Cool', 'Dim', 'Low-mass, long-lived main-sequence stars'],
         ['Upper right (giants)', 'Cool', 'Very luminous', 'Evolved, expanded stars'],
         ['Lower left (white dwarfs)', 'Hot', 'Dim', 'Dead stellar cores'],

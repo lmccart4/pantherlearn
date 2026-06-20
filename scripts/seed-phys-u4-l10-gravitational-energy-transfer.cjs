@@ -51,7 +51,10 @@ const lesson = {
         "(becomes less negative) as the objects move farther apart.\n" +
         "- **Kinetic energy ($KE$)** is energy of motion, $\\frac{1}{2}mv^2$.\n" +
         "- In an isolated orbit: $KE + GPE = \\text{constant}$. Close to the Sun: low $GPE$, high $KE$, so fast. Far from the " +
-        "Sun: high $GPE$, low $KE$, so slow.",
+        "Sun: high $GPE$, low $KE$, so slow.\n" +
+        "- **Escape velocity** is the speed at which an object's kinetic energy is just large enough to climb all the way " +
+        "out of the gravitational well — so that $KE + GPE \\geq 0$ and the object never falls back. Below escape velocity it " +
+        "stays bound in an orbit; at or above it, the object is no longer bound and leaves for good.",
     }),
 
     k.mdTable({

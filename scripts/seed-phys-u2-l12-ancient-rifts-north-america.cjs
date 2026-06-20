@@ -38,7 +38,7 @@ const lesson = {
     k.text(
       "In this lesson, we look at three pieces of evidence that show ancient rifting:\n\n" +
       "- The **Newark Basin** — a sunken block of crust that stretches through New Jersey and Pennsylvania\n" +
-      "- The **Palisades Sill** — a dark, vertical wall of igneous rock along the Hudson River, exposed when the rift dropped the basin\n" +
+      "- The **Palisades Sill** — a thick sheet of igneous rock along the Hudson River that pushed in between sedimentary layers and was later tilted and exposed as steep cliffs by erosion\n" +
       "- The **Midcontinent Rift** — a much older, giant crack that runs through the Great Lakes region"
     ),
 

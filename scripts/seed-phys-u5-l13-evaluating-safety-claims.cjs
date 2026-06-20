@@ -37,7 +37,7 @@ const lesson = {
       title: 'Two Questions That Cut Through the Noise',
       content:
         "- **What is the frequency?** Ionizing radiation (UV, X-rays, gamma) has enough energy per photon to damage " +
-        "DNA. Non-ionizing radiation (radio, microwave, visible light, most 5G) does not.\n" +
+        "DNA. Non-ionizing radiation (radio, microwave, visible light, all 5G including mmWave) does not.\n" +
         "- **What is the intensity / exposure?** A high-intensity source close to your body for a long time delivers " +
         "more energy than a low-intensity source far away.",
     }),

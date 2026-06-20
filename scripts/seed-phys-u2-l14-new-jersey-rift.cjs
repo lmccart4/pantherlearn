@@ -36,7 +36,10 @@ const lesson = {
       "past rift volcanism.\n" +
       "- Those rifts are **failed rifts**. The forces that opened them stopped acting roughly 200 million years ago.\n" +
       "- New Jersey is currently far from any active divergent plate boundary. The nearest active rifting is in the middle " +
-      "of the Atlantic Ocean, along the Mid-Atlantic Ridge."
+      "of the Atlantic Ocean, along the Mid-Atlantic Ridge.\n" +
+      "- New Jersey still has small earthquakes today along old faults like the **Ramapo Fault** — but small quakes on an " +
+      "existing fault are not the same as a *rift* opening. Your job is to evaluate **rifting**, not whether NJ ever has " +
+      "earthquakes."
     ),
 
     k.callout({

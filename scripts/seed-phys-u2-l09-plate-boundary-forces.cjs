@@ -52,18 +52,19 @@ const lesson = {
       headers: ['Boundary', 'Forces', 'Motion', 'Common hazards'],
       rows: [
         ['Divergent', 'Plates pull apart', 'Move away from each other', 'Rifting, earthquakes, volcanic eruptions'],
-        ['Convergent', 'Plates push together', 'Move toward each other', 'Mountains, trenches, large earthquakes'],
+        ['Convergent', 'Plates push together', 'Move toward each other', 'Large earthquakes, tsunamis, volcanic arcs, mountains, deep trenches'],
         ['Transform', 'Plates slide past each other', 'Move horizontally', 'Sudden earthquakes along the fault'],
       ],
-      note: 'The net force at a boundary is almost never zero, so the motion is driven by unbalanced forces.',
+      note: 'The driving and resisting forces at a boundary are almost never exactly balanced, so plates slowly speed up, slow down, or change direction over geologic time.',
     }),
 
     k.text(
       "**Force diagrams at boundaries**\n\n" +
       "A force diagram shows every push or pull acting on a plate. If the arrows point opposite and are equal in size, the " +
-      "forces are balanced and there is no acceleration. If one arrow is larger, the forces are unbalanced and the plate " +
-      "speeds up, slows down, or changes direction. At plate boundaries, the forces are almost always unbalanced on geologic " +
-      "timescales, which is why plates keep moving."
+      "forces are balanced and there is no acceleration — though the plate may still be moving at constant velocity. If one " +
+      "arrow is larger, the forces are unbalanced and the plate speeds up, slows down, or changes direction. At plate " +
+      "boundaries, the driving and resisting forces are almost never exactly balanced, so over geologic time plates slowly " +
+      "speed up, slow down, or change direction."
     ),
 
     k.embed({

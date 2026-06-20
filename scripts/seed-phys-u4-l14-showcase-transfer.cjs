@@ -63,7 +63,7 @@ const lesson = {
       lead: '**Chicxulub impact — what we know**',
       headers: ['Feature', 'Evidence'],
       rows: [
-        ['Crater size', 'Roughly 150 km wide, buried under Yucatán Peninsula sediments'],
+        ['Crater size', 'Roughly 180 km wide, buried under Yucatán Peninsula sediments'],
         ['Impactor size', 'Estimated 10–15 km diameter from crater modeling'],
         ['Energy', 'Roughly 100 million megatons TNT, far larger than any human-made explosion'],
         ['Global effects', 'Worldwide iridium layer, soot, shocked quartz, mass-extinction fossil record'],

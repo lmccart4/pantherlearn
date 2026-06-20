@@ -75,6 +75,15 @@ const lesson = {
       difficulty: 'evaluate',
     }),
 
+    k.shortAnswer({
+      prompt:
+        "**Transfer the force reasoning.** Afar is a *divergent* boundary. The same unit model predicts a *different* hazard " +
+        "at a *convergent* boundary. Use force-diagram reasoning — the direction of the forces and the net force — to explain " +
+        "what motion and hazard you would predict where two plates push together.",
+      placeholder: 'At a convergent boundary, the forces…',
+      difficulty: 'apply',
+    }),
+
     k.teacherCheckpoint({
       id: 'phys-u2-l11-cp',
       title: 'Mastery — Teacher Score',
