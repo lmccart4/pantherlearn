@@ -70,18 +70,18 @@ const lesson = {
 
     k.mc({
       prompt:
-        'Two cars collide on a flat, icy road where friction is negligible. If Car A has momentum $+800\\text{ kg·m/s}$ ' +
-        'and Car B has momentum $-500\\text{ kg·m/s}$ before the crash, what is the total momentum of the two-car system ' +
+        'Two cars collide on a flat, icy road where friction is negligible. If Car A has momentum $+800\\text{ kg} \\cdot \\text{m/s}$ ' +
+        'and Car B has momentum $-500\\text{ kg} \\cdot \\text{m/s}$ before the crash, what is the total momentum of the two-car system ' +
         'right after the crash?',
       options: [
-        'It stays $+300\\text{ kg·m/s}$ because momentum is conserved in the isolated two-car system.',
-        'It becomes $+1300\\text{ kg·m/s}$ because the momenta add without considering direction.',
-        'It becomes $-300\\text{ kg·m/s}$ because the negative momentum reverses the total.',
+        'It stays $+300\\text{ kg} \\cdot \\text{m/s}$ because momentum is conserved in the isolated two-car system.',
+        'It becomes $+1300\\text{ kg} \\cdot \\text{m/s}$ because the momenta add without considering direction.',
+        'It becomes $-300\\text{ kg} \\cdot \\text{m/s}$ because the negative momentum reverses the total.',
         'It cannot be determined because crumpling changes the total momentum of the system.',
       ],
       correctIndex: 0,
       explanation:
-        'Total momentum is conserved for the isolated two-car system: $800 + (-500) = +300\\text{ kg·m/s}$. Crumpling ' +
+        'Total momentum is conserved for the isolated two-car system: $800 + (-500) = +300\\text{ kg} \\cdot \\text{m/s}$. Crumpling ' +
         'changes kinetic energy and internal energy, but it does not change the total momentum of the system.',
       difficulty: 'apply',
     }),

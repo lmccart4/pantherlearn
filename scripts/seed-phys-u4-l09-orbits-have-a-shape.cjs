@@ -40,7 +40,7 @@ const lesson = {
       title: 'Orbit Shape Vocabulary',
       content:
         "- **Ellipse** — a closed curve where the sum of the distances to two foci is constant\n" +
-        "- **Eccentricity ($e$)** — how stretched the ellipse is; $e = 0$ is a circle, $0 < e < 1$ is an ellipse\n" +
+        "- **Eccentricity ($e$)** — how stretched the ellipse is; $e = 0$ is a circle, $0 \\lt e \\lt 1$ is an ellipse\n" +
         "- **Semi-major axis ($a$)** — half the longest distance across the orbit; sets the orbital period\n" +
         "- **Perihelion** — closest point to the Sun\n" +
         "- **Aphelion** — farthest point from the Sun",
