@@ -27,7 +27,7 @@ const lesson = {
     ]),
 
     k.text(
-      "This is the question we've been building toward: **How do we make a crash survivable?**\\n\\n" +
+      "This is the question we've been building toward: **How do we make a crash survivable?**\n\n" +
       "You are on a vehicle-safety engineering team. Your car hits a rigid wall at a fixed speed. You cannot change the " +
       "speed or the mass of the car — those are set by the crash test. What you *can* control is the front-end structure: " +
       "the material, the length of the crumple zone, and how it collapses. Your goal is to keep the peak force on the " +
@@ -39,12 +39,12 @@ const lesson = {
       icon: '📋',
       title: 'Criteria & Constraints',
       content:
-        "Your design must satisfy **all three** criteria. The simulator checks these when you hit **Submit Design**:\\n\\n" +
+        "Your design must satisfy **all three** criteria. The simulator checks these when you hit **Submit Design**:\n\n" +
         "- **Safety — peak force on the passenger cell must stay below the injury threshold.** A longer, softer crumple " +
-        "zone lowers the peak force, but only if it still has room to collapse.\\n" +
-        "- **Cost — total design cost must stay within the budget.** Stronger or longer materials cost more.\\n" +
+        "zone lowers the peak force, but only if it still has room to collapse.\n" +
+        "- **Cost — total design cost must stay within the budget.** Stronger or longer materials cost more.\n" +
         "- **Weight — total added weight must stay within the limit.** Extra material makes the car heavier, which can " +
-        "affect fuel use and handling.\\n\\n" +
+        "affect fuel use and handling.\n\n" +
         "**The trade-off:** a longer crumple zone is safer but heavier and more expensive. A stiffer, shorter front end is " +
         "cheap and light but produces a larger peak force. Find the combination that passes all three tests.",
     }),
@@ -65,12 +65,12 @@ const lesson = {
 
     k.shortAnswer({
       prompt:
-        "**Design rationale.**\\n\\nJustify your final design using evidence from this unit. Address all of these:\\n\\n" +
-        "- **Crumple-zone choices:** which material, length, and collapse pattern you chose and *why*.\\n" +
-        "- **Physics justification:** how your design uses momentum, impulse, and force ideas to keep the passenger safe.\\n" +
-        "- **Trade-offs:** what you gave up to meet the safety threshold, and why that was the right choice.\\n" +
+        "**Design rationale.**\n\nJustify your final design using evidence from this unit. Address all of these:\n\n" +
+        "- **Crumple-zone choices:** which material, length, and collapse pattern you chose and *why*.\n" +
+        "- **Physics justification:** how your design uses momentum, impulse, and force ideas to keep the passenger safe.\n" +
+        "- **Trade-offs:** what you gave up to meet the safety threshold, and why that was the right choice.\n" +
         "- **Iteration:** describe at least one design that failed and what you changed.",
-      placeholder: 'My design uses…\\n\\nThe physics is…\\n\\nI traded off…\\n\\nMy first try failed because…',
+      placeholder: 'My design uses…\n\nThe physics is…\n\nI traded off…\n\nMy first try failed because…',
       difficulty: 'evaluate',
     }),
 

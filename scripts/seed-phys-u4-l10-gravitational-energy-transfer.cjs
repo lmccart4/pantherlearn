@@ -49,8 +49,8 @@ const lesson = {
       content:
         "- **Gravitational potential energy ($GPE$)** is energy stored in the relative position of two masses. It increases " +
         "(becomes less negative) as the objects move farther apart.\n" +
-        "- **Kinetic energy ($KE$)** is energy of motion, $\frac{1}{2}mv^2$.\n" +
-        "- In an isolated orbit: $KE + GPE = \text{constant}$. Close to the Sun: low $GPE$, high $KE$, so fast. Far from the " +
+        "- **Kinetic energy ($KE$)** is energy of motion, $\\frac{1}{2}mv^2$.\n" +
+        "- In an isolated orbit: $KE + GPE = \\text{constant}$. Close to the Sun: low $GPE$, high $KE$, so fast. Far from the " +
         "Sun: high $GPE$, low $KE$, so slow.",
     }),
 

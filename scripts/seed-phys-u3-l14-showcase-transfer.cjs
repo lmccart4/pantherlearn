@@ -27,11 +27,11 @@ const lesson = {
       "This is the last lesson of the unit — and it's where everything comes together. We opened with the question of " +
       "why driving is risky and what happens when vehicles collide. Since then you've built a model of momentum, " +
       "conservation of momentum, elastic and inelastic collisions, impulse, and how safety features save lives. Today " +
-      "you do two things.\\n\\n" +
-      "**First, the showcase.** Present your Lesson 13 safer-crash design to the class. Be ready to explain:\\n" +
-      "- **What structure** you chose (material, length, collapse pattern)\\n" +
-      "- **Why** that structure — what physics idea it uses and what trade-off you accepted\\n" +
-      "- **How it performed** — point to the exact simulator result that shows it passes the safety threshold\\n\\n" +
+      "you do two things.\n\n" +
+      "**First, the showcase.** Present your Lesson 13 safer-crash design to the class. Be ready to explain:\n" +
+      "- **What structure** you chose (material, length, collapse pattern)\n" +
+      "- **Why** that structure — what physics idea it uses and what trade-off you accepted\n" +
+      "- **How it performed** — point to the exact simulator result that shows it passes the safety threshold\n\n" +
       "Keep it to about two minutes. Your job isn't to be perfect — it's to make a clear argument from evidence, the way " +
       "an engineer defends a design."
     ),
@@ -48,7 +48,7 @@ const lesson = {
     k.text(
       "**Now the transfer task.** A real model isn't one you can only recite back for car crashes. It's one you can carry " +
       "to a situation you've never studied and still make sense of. So here's a different collision: a cyclist's head " +
-      "hitting the pavement.\\n\\n" +
+      "hitting the pavement.\n\n" +
       "In a bike crash, the rider's head can go from full speed to a stop in a very short distance. Without a helmet, " +
       "the skull and brain absorb that stop almost instantly. With a helmet, a layer of foam crushes and extends the " +
       "stopping time. The rider's head has the same mass and the same change in velocity either way — but the force on " +

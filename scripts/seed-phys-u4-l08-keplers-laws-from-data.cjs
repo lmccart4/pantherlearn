@@ -93,12 +93,12 @@ const lesson = {
       options: [
         'About 4 years, because the period equals the distance',
         'About 6 years, because $T$ grows faster than $a$',
-        'About 8 years, because $T^2 \approx a^3$ means $T \approx \sqrt{a^3}$',
+        'About 8 years, because $T^2 \\approx a^3$ means $T \\approx \\sqrt{a^3}$',
         'About 16 years, because $T$ is the square of the distance',
       ],
       correctIndex: 2,
       explanation:
-        'Kepler\'s third law says $T^2 \propto a^3$. For $a = 4$ AU, $a^3 = 64$, so $T = \sqrt{64} = 8$ years.',
+        'Kepler\'s third law says $T^2 \\propto a^3$. For $a = 4$ AU, $a^3 = 64$, so $T = \\sqrt{64} = 8$ years.',
       difficulty: 'apply',
     }),
 

@@ -26,7 +26,7 @@ const lesson = {
 
     k.text(
       "We've established that a microwave oven and a Bluetooth speaker both emit electromagnetic waves around " +
-      "$2.4\text{--}2.5\ \text{GHz}$. So why does the microwave cook food while Bluetooth barely warms your phone? " +
+      "$2.4\\text{--}2.5\\ \\text{GHz}$. So why does the microwave cook food while Bluetooth barely warms your phone? " +
       "One reason is **power**, but another is something waves do when they bounce around inside a closed space: " +
       "they form **standing waves**.",
     ),
@@ -39,7 +39,7 @@ const lesson = {
         "A **standing wave** forms when two waves of the same frequency travel in opposite directions and overlap. " +
         "At some locations the waves add together (antinodes = **hot spots**); at others they cancel out " +
         "(nodes = **cold spots**). The distance between two neighboring hot spots is about half a wavelength " +
-        "($\lambda/2$).",
+        "($\\lambda/2$).",
     }),
 
     k.image({
@@ -95,7 +95,7 @@ const lesson = {
       correctIndex: 2,
       explanation:
         "The distance between neighboring hot spots (antinodes) of a standing wave is about half a wavelength " +
-        "($\lambda/2$). If the spacing is 6 cm, the full wavelength is about $2 \times 6 = 12\ \text{cm}$.",
+        "($\\lambda/2$). If the spacing is 6 cm, the full wavelength is about $2 \\times 6 = 12\\ \\text{cm}$.",
       difficulty: 'apply',
     }),
 

@@ -56,7 +56,7 @@ const lesson = {
       content:
         "**System:** the asteroid, Earth, and the Sun — plus your spacecraft during the brief deflection maneuver. " +
         "**Surroundings:** everything else (gravity from Jupiter, solar radiation pressure, outgassing). We treat the system " +
-        "as isolated enough that a small $\Delta v$ early on compounds into a large miss distance later.",
+        "as isolated enough that a small $\\Delta v$ early on compounds into a large miss distance later.",
     }),
 
     k.embed({

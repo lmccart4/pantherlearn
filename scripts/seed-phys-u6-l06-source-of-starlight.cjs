@@ -44,7 +44,7 @@ const lesson = {
       icon: '🔑',
       title: 'Fusion in the Sun',
       content: "The net reaction in the Sun combines four hydrogen nuclei into one helium nucleus:\n\n" +
-               "$$4\,^{1}\!H \rightarrow \,^{4}\!He + 2e^{+} + 2\nu_{e} + \text{energy}$$\n\n" +
+               "$$4\\,^{1}\\!H \\rightarrow \\,^{4}\\!He + 2e^{+} + 2\\nu_{e} + \\text{energy}$$\n\n" +
                "The helium nucleus has slightly less mass than the four hydrogens. That 'missing' mass becomes energy via $E = mc^2$.",
     }),
 
@@ -73,7 +73,7 @@ const lesson = {
 
     k.text(
       "Einstein's equation $E = mc^2$ tells us that mass itself is a form of energy. Because $c^2$ is enormous " +
-      "($9 \times 10^{16}\ \text{m}^2/\text{s}^2$), even a tiny mass loss produces a huge energy output. That is why the Sun " +
+      "($9 \\times 10^{16}\\ \\text{m}^2/\\text{s}^2$), even a tiny mass loss produces a huge energy output. That is why the Sun " +
       "can keep shining for billions of years while losing only a small fraction of its mass."
     ),
 

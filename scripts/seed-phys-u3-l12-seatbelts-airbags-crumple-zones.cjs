@@ -26,7 +26,7 @@ const lesson = {
 
     k.text(
       "A car's job in a crash is not to survive perfectly intact. Its job is to protect the people inside. Engineers do " +
-      "that by controlling how the car — and the people — slow down.\\n\\n" +
+      "that by controlling how the car — and the people — slow down.\n\n" +
       "Every safety feature you see in a modern vehicle is a way of applying the same physics idea: **for a fixed " +
       "momentum change, a longer stopping time means a smaller peak force**. Seatbelts stretch a little. Airbags inflate " +
       "and then deflate as the person presses into them. Crumple zones collapse in a controlled way. Each feature turns " +
@@ -43,13 +43,13 @@ const lesson = {
     }),
 
     k.text(
-      "**How the features work together.**\\n\\n" +
+      "**How the features work together.**\n\n" +
       "- **Crumple zones** at the front and rear of the car absorb energy by deforming. They increase the time over " +
-      "which the car's own momentum goes to zero, so the passenger cell slows more gradually.\\n" +
+      "which the car's own momentum goes to zero, so the passenger cell slows more gradually.\n" +
       "- **Seatbelts** keep the occupant moving with the car instead of flying forward. They also stretch slightly, " +
-      "adding a little more stopping time.\\n" +
+      "adding a little more stopping time.\n" +
       "- **Airbags** fill the space between the person and the steering wheel or dashboard. They inflate quickly, then " +
-      "let air escape as the person sinks in, spreading the force over a larger area and a longer time.\\n\\n" +
+      "let air escape as the person sinks in, spreading the force over a larger area and a longer time.\n\n" +
       "The system here is the **car + occupant**. Each feature is a structure with a function: turn a dangerous peak " +
       "force into a smaller, longer-lasting force."
     ),
@@ -92,7 +92,7 @@ const lesson = {
       prompt:
         '**Structure and function.** Pick one safety feature (seatbelt, airbag, or crumple zone). Describe its structure ' +
         'and explain how that structure lets it perform its safety function.',
-      placeholder: 'Feature: …\\n\\nStructure: …\\n\\nFunction: …',
+      placeholder: 'Feature: …\n\nStructure: …\n\nFunction: …',
       difficulty: 'apply',
     }),
 

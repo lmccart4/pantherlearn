@@ -27,7 +27,7 @@ const lesson = {
 
     k.text(
       "A crash is a transfer of momentum. But how **violent** it feels depends on more than just how much momentum changes. " +
-      "It depends on **how fast** that change happens.\\n\\n" +
+      "It depends on **how fast** that change happens.\n\n" +
       "Think about catching a water balloon. If you catch it with stiff hands, it stops almost instantly — and it bursts. " +
       "If you pull your hands back as you catch it, the same total stop takes longer, the peak force is smaller, and the " +
       "balloon might survive. The change in momentum is the same in both cases; what changed is the **time** over which " +
@@ -39,10 +39,10 @@ const lesson = {
       icon: '🔑',
       title: 'Impulse',
       content:
-        "**Impulse** is the product of the average net force and the time interval over which it acts:\\n\\n" +
-        "$$J = F_{avg}\\Delta t$$\\n\\n" +
-        "The impulse-momentum theorem says impulse equals the change in momentum of the system:\\n\\n" +
-        "$$F_{avg}\\Delta t = \\Delta p = m\\Delta v$$\\n\\n" +
+        "**Impulse** is the product of the average net force and the time interval over which it acts:\n\n" +
+        "$$J = F_{avg}\\Delta t$$\n\n" +
+        "The impulse-momentum theorem says impulse equals the change in momentum of the system:\n\n" +
+        "$$F_{avg}\\Delta t = \\Delta p = m\\Delta v$$\n\n" +
         "For the **same momentum change**, a **longer collision time** means a **smaller average force**.",
     }),
 
@@ -89,7 +89,7 @@ const lesson = {
       prompt:
         '**Name two safety features in a modern vehicle that intentionally increase collision time to reduce peak force. ' +
         'For each one, explain what part of the body or vehicle it protects and how it extends $\\Delta t$.**',
-      placeholder: 'Feature 1: …\\n\\nFeature 2: …',
+      placeholder: 'Feature 1: …\n\nFeature 2: …',
       difficulty: 'apply',
     }),
 

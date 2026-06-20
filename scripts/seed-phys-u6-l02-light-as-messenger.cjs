@@ -44,7 +44,7 @@ const lesson = {
       icon: '🔑',
       title: 'Key Relationship',
       content: "For any wave, **speed = wavelength × frequency**. Since all light in empty space travels at the same speed ($c$), " +
-               "a shorter wavelength means a higher frequency, and a longer wavelength means a lower frequency.\n\n$c = \lambda f$",
+               "a shorter wavelength means a higher frequency, and a longer wavelength means a lower frequency.\n\n$c = \\lambda f$",
     }),
 
     k.image({

@@ -26,7 +26,7 @@ const lesson = {
     ]),
 
     k.text(
-      "Yesterday you met momentum: $\vec{p} = m\vec{v}$. Mass times velocity, with direction. Today we ask a harder " +
+      "Yesterday you met momentum: $\\vec{p} = m\\vec{v}$. Mass times velocity, with direction. Today we ask a harder " +
       "question: when two cars crash, where does all that momentum *go*?\n\n" +
       "The short answer is: **it doesn't go anywhere**. If you define your **system** as the two vehicles together, " +
       "and if nothing outside that system pushes on them during the crash, then the **total momentum of the system " +
@@ -91,7 +91,7 @@ const lesson = {
         "**Define your system.** In the simulator, what objects did you include in the system? Explain why it's reasonable " +
         "to treat them as isolated during the short time of the collision, and name one external force that would make the " +
         "system *not* perfectly isolated.",
-      placeholder: 'My system includes…\\n\\nIt is approximately isolated because…\\n\\nOne external force is…',
+      placeholder: 'My system includes…\n\nIt is approximately isolated because…\n\nOne external force is…',
       difficulty: 'apply',
     }),
 

@@ -27,10 +27,10 @@ const lesson = {
 
     k.text(
       "Momentum is conserved in every collision we've looked at — as long as we define the system carefully and treat " +
-      "it as isolated during the crash. But **kinetic energy** is a different story.\\n\\n" +
+      "it as isolated during the crash. But **kinetic energy** is a different story.\n\n" +
       "In some collisions, the objects bounce off each other and the total kinetic energy after is almost the same as " +
       "before. We call those **elastic** collisions. A good approximation is two billiard balls clacking together, or " +
-      "two steel spheres in a physics demo.\\n\\n" +
+      "two steel spheres in a physics demo.\n\n" +
       "In most real crashes — cars, trucks, bikes — the vehicles crumple, bend, and deform. That deformation does work " +
       "on the metal, heating it up and making sound. The total kinetic energy after is **less** than before. Momentum is " +
       "still conserved, but kinetic energy is not. We call those **inelastic** collisions."
@@ -41,9 +41,9 @@ const lesson = {
       icon: '⚖️',
       title: 'Momentum vs. Kinetic Energy',
       content:
-        "- **Momentum** is conserved in any isolated system: $\\vec{p}_{total\\ before} = \\vec{p}_{total\\ after}$.\\n" +
-        "- **Kinetic energy** $KE = \\frac{1}{2}mv^2$ is **only** conserved in an **elastic** collision.\\n" +
-        "- In an **inelastic** collision, some kinetic energy becomes thermal energy, sound, and work deforming the objects.\\n" +
+        "- **Momentum** is conserved in any isolated system: $\\vec{p}_{total\\ before} = \\vec{p}_{total\\ after}$.\n" +
+        "- **Kinetic energy** $KE = \\frac{1}{2}mv^2$ is **only** conserved in an **elastic** collision.\n" +
+        "- In an **inelastic** collision, some kinetic energy becomes thermal energy, sound, and work deforming the objects.\n" +
         "- **Perfectly elastic** and **perfectly inelastic** (objects stick together) are the two extremes; real crashes fall somewhere in between.",
     }),
 
@@ -94,11 +94,11 @@ const lesson = {
     k.shortAnswer({
       prompt:
         "**Real-world classification.** Choose one real-world crash type from the list below and explain whether it is " +
-        "closer to elastic or inelastic, and why:\\n\\n" +
-        "- two billiard balls colliding\\n" +
-        "- a car hitting a concrete highway barrier\\n" +
+        "closer to elastic or inelastic, and why:\n\n" +
+        "- two billiard balls colliding\n" +
+        "- a car hitting a concrete highway barrier\n" +
         "- a football player tackling another player and bringing them down",
-      placeholder: 'I chose…\\n\\nIt is closer to… because…',
+      placeholder: 'I chose…\n\nIt is closer to… because…',
       difficulty: 'apply',
     }),
 

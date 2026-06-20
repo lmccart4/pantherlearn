@@ -27,7 +27,7 @@ const lesson = {
     k.text(
       "We've spent this unit building a model of collisions: momentum as mass-times-velocity, conservation of momentum " +
       "in an isolated system, the difference between elastic and inelastic crashes, and impulse as the link between force, " +
-      "time, and momentum change.\\n\\n" +
+      "time, and momentum change.\n\n" +
       "Today is your chance to pull those ideas together. Show me that you can **calculate** with momentum and also " +
       "**explain** what the numbers mean physically. A good answer doesn't just get the right number — it tells the story " +
       "of the crash in words and diagrams."
@@ -48,7 +48,7 @@ const lesson = {
       prompt:
         '**Solve for the velocity of the two cars just after the collision.** Show your momentum-conservation equation, ' +
         'substitute values with units, and state the final speed and direction.',
-      placeholder: 'm₁v₁,i + m₂v₂,i = (m₁ + m₂)v_f\\n\\n…',
+      placeholder: 'm₁v₁,i + m₂v₂,i = (m₁ + m₂)v_f\n\n…',
       difficulty: 'apply',
     }),
 

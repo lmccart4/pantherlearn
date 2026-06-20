@@ -26,7 +26,7 @@ const lesson = {
     ]),
 
     k.text(
-      "Yesterday you found that planets follow a precise mathematical rule: $T^2 \propto a^3$. But the shape of the orbit " +
+      "Yesterday you found that planets follow a precise mathematical rule: $T^2 \\propto a^3$. But the shape of the orbit " +
       "matters too. A circle is just a special case. Most orbits are **ellipses** — stretched-out circles with the central " +
       "body at one focus.\n\n" +
       "For our **system**, think of the Sun plus one orbiting object. The object's path is fixed by its starting distance " +
