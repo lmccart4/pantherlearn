@@ -1,6 +1,7 @@
 // seed-phys-u1-l11-storing-energy-v2.cjs — Unit 1 Lesson 11: Storing Energy (expanded).
 // Generated from /Users/lukemccarthy/Lachlan/drafts/physics-content-review/expanded/l11-storing-energy-expanded.md
-// NOTE: [NEEDS-RESEARCH: EIA daily demand curve source for NJ / Perth Amboy] — verify EIA URL or soften demand-curve language to "typically" before high-stakes seeding.
+// RESOLVED: daily-demand "duck curve" (solar midday vs. evening peak) sourced to EIA Today in Energy
+// (id=56880 duck curve; id=42915 hourly consumption). Claim is general/softened; cited via external_link.
 // Run: cd ~/pantherlearn-wt/openscied-u1-grid-sim && NODE_PATH=~/pantherlearn/node_modules node scripts/seed-phys-u1-l11-storing-energy-v2.cjs
 const admin = require('firebase-admin');
 admin.initializeApp({ credential: admin.credential.cert(require('/Users/lukemccarthy/.config/firebase/pantherlearn-admin.json')) });
@@ -48,6 +49,14 @@ const lesson = {
       content:
         "Supply and demand do not always line up **in time**. Solar panels typically make the most power around midday, when the sun is highest — but electricity demand in many U.S. communities typically peaks in the **evening**, when families get home, turn on lights, cook dinner, and run air conditioning. By then the sun is already low or gone.\n\n" +
         "**Storage is the fix.** It lets the grid bank extra energy when there is plenty and release it later, when it is needed. Without storage, a grid running on solar and wind would have power at the wrong times.",
+    }),
+
+    k.externalLink({
+      icon: '📊',
+      title: 'Source: EIA — the "duck curve" (solar midday vs. evening demand)',
+      description: 'EIA data shows daily electricity demand met by conventional plants dips midday as solar peaks, then ramps sharply to an evening peak as solar fades — exactly the timing gap that storage is built to fill.',
+      url: 'https://www.eia.gov/todayinenergy/detail.php?id=56880',
+      buttonLabel: 'See EIA duck-curve data',
     }),
 
     k.image({
