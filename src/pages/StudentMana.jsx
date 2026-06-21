@@ -330,8 +330,8 @@ export default function StudentMana() {
   const navigate = useNavigate();
 
   const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState(routeCourseId || null);
-  const courseId = selectedCourse;
+  const [selectedCourse, setSelectedCourse] = useState(routeCourseId || "");
+  const courseId = selectedCourse || "";
 
   const [loading, setLoading] = useState(true);
   const [course, setCourse] = useState(null);
@@ -765,6 +765,7 @@ export default function StudentMana() {
               color: MANA_TEXT, fontSize: 14, fontWeight: 500, cursor: "pointer", width: "100%",
             }}
           >
+            <option value="" disabled>Select a course</option>
             {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
           </select>
         )}
