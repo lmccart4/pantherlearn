@@ -6,7 +6,7 @@
 //   await safeLessonWrite(db, courseId, lessonId, lessonData);
 //
 // If the lesson already exists with student progress, this remaps new block IDs
-// to existing ones (by type + content similarity) so student answers stay linked.
+// to existing ones (by type + exact/fuzzy content similarity) so student answers stay linked.
 
 function buildAuditFields(action) {
   const path = require("path");
@@ -29,7 +29,8 @@ async function safeLessonWrite(db, courseId, lessonId, newLesson) {
     return { action: "created", preserved: 0 };
   }
 
-  const oldBlocks = existing.data().blocks || [];
+  const existingData = existing.data();
+  const oldBlocks = existingData.blocks || [];
   const newBlocks = newLesson.blocks || [];
 
   if (oldBlocks.length === 0) {
@@ -46,22 +47,36 @@ async function safeLessonWrite(db, courseId, lessonId, newLesson) {
   }
 
   // Students have progress — preserve block IDs by remapping
-  // Phase 1: Try to match by content similarity within each type group
+  // Phase 1: Try exact match first, then fuzzy match with strict thresholds
   const oldByType = groupBlocksByType(oldBlocks);
   let preserved = 0;
   const usedOldIds = new Set();
+  const remappedByNewId = new Map();
 
-  const remappedBlocks = newBlocks.map(block => {
+  const remappedBlocks = newBlocks.map((block, index) => {
     const typeKey = blockTypeKey(block);
     const oldGroup = oldByType[typeKey];
     if (!oldGroup || oldGroup.length === 0) return block;
 
-    // Try content-similarity match first (Finding #7)
-    const bestMatch = findBestContentMatch(block, oldGroup, usedOldIds);
-    if (bestMatch) {
-      usedOldIds.add(bestMatch.id);
+    // Exact match is always the safest path
+    const exactMatch = oldGroup.find(ob => !usedOldIds.has(ob.id) && getBlockText(ob) === getBlockText(block));
+    if (exactMatch) {
+      usedOldIds.add(exactMatch.id);
       preserved++;
-      return { ...block, id: bestMatch.id };
+      remappedByNewId.set(block.id, exactMatch.id);
+      return { ...block, id: exactMatch.id };
+    }
+
+    // Fuzzy match: strict threshold + margin over second-best candidate
+    const fuzzyMatch = findBestContentMatch(block, oldGroup, usedOldIds);
+    if (fuzzyMatch) {
+      usedOldIds.add(fuzzyMatch.id);
+      preserved++;
+      remappedByNewId.set(block.id, fuzzyMatch.id);
+      console.warn(
+        `[safeLessonWrite] FUZZY remap: new block #${index} (${typeKey}) -> old id ${fuzzyMatch.id}: "${preview(getBlockText(block))}"`
+      );
+      return { ...block, id: fuzzyMatch.id };
     }
 
     // Fallback: take the next unused old ID for this type (positional)
@@ -69,45 +84,88 @@ async function safeLessonWrite(db, courseId, lessonId, newLesson) {
     if (nextUnused) {
       usedOldIds.add(nextUnused.id);
       preserved++;
+      remappedByNewId.set(block.id, nextUnused.id);
+      console.warn(
+        `[safeLessonWrite] POSITIONAL remap: new block #${index} (${typeKey}) -> old id ${nextUnused.id}: "${preview(getBlockText(block))}"`
+      );
       return { ...block, id: nextUnused.id };
     }
 
     return block;
   });
 
-  const updatedLesson = { ...newLesson, blocks: remappedBlocks, ...buildAuditFields("updated-preserved") };
+  // Warn about any old blocks that did not get a corresponding new block
+  for (const oldBlock of oldBlocks) {
+    if (!usedOldIds.has(oldBlock.id)) {
+      console.warn(
+        `[safeLessonWrite] ORPHAN risk: old block id ${oldBlock.id} (${oldBlock.type}) had no matching new block — student answers may be lost`
+      );
+    }
+  }
+
+  // Preserve teacher-managed fields that the seed script may have omitted
+  const mergedTopLevel = preserveExistingFields(existingData, newLesson);
+
+  const updatedLesson = {
+    ...mergedTopLevel,
+    blocks: remappedBlocks,
+    ...buildAuditFields("updated-preserved")
+  };
   await lessonRef.set(updatedLesson);
   return { action: "updated-preserved", preserved };
 }
 
 /**
+ * Merge any top-level fields present in the existing doc but absent from newLesson
+ * so a re-seed cannot hide a live lesson or wipe grade-release/dueDate info.
+ */
+function preserveExistingFields(existingData, newLesson) {
+  const preservedFields = {};
+  for (const key of Object.keys(existingData)) {
+    if (key === "blocks" || key === "lastEditedBy" || key === "lastEditedHost" || key === "editAction" || key === "updatedAt") {
+      continue;
+    }
+    if (!(key in newLesson)) {
+      preservedFields[key] = existingData[key];
+    }
+  }
+  return { ...preservedFields, ...newLesson };
+}
+
+/**
  * Find the best content match for a new block among old blocks of the same type.
- * Uses prompt text / title / content as the matching signal.
+ * Exact match is handled by the caller; this helper only does fuzzy matching.
+ * Requires score >= 0.85 AND a clear margin (>= 0.1) over the second-best candidate.
  */
 function findBestContentMatch(newBlock, oldGroup, usedOldIds) {
   const newText = getBlockText(newBlock);
   if (!newText) return null;
 
-  let bestScore = 0;
+  let bestScore = -1;
   let bestMatch = null;
+  let secondBestScore = -1;
 
   for (const oldBlock of oldGroup) {
     if (usedOldIds.has(oldBlock.id)) continue;
     const oldText = getBlockText(oldBlock);
     if (!oldText) continue;
 
-    // Exact match
-    if (newText === oldText) return oldBlock;
-
-    // Similarity score (simple overlap ratio)
     const score = textSimilarity(newText, oldText);
-    if (score > bestScore && score >= 0.6) {
+    if (score > bestScore) {
+      secondBestScore = bestScore;
       bestScore = score;
       bestMatch = oldBlock;
+    } else if (score > secondBestScore) {
+      secondBestScore = score;
     }
   }
 
-  return bestMatch;
+  const FUZZY_THRESHOLD = 0.85;
+  const MARGIN = 0.1;
+  if (bestScore >= FUZZY_THRESHOLD && bestScore - secondBestScore >= MARGIN) {
+    return bestMatch;
+  }
+  return null;
 }
 
 /**
@@ -119,6 +177,12 @@ function getBlockText(block) {
   if (block.url) return block.url.trim().toLowerCase();
   if (block.text) return block.text.trim().toLowerCase();
   return null;
+}
+
+function preview(text, maxLen = 60) {
+  if (!text) return "(no text)";
+  if (text.length <= maxLen) return text;
+  return text.slice(0, maxLen - 3) + "...";
 }
 
 /**
@@ -154,13 +218,11 @@ function groupBlocksByType(blocks) {
 /**
  * Check if ANY student has progress for this lesson.
  * Uses a collectionGroup query on the "lessons" subcollection rather than
- * sampling a fixed number of enrollments (Finding #8).
+ * sampling a fixed number of enrollments.
  */
 async function checkForProgress(db, courseId, lessonId) {
-  // First: try the efficient collectionGroup approach
-  // Query all progress/{uid}/courses/{courseId}/lessons/{lessonId} docs directly
+  // Check via enrollments — but query ALL, not just 10
   try {
-    // Check via enrollments — but query ALL, not just 10
     const enrollSnap = await db.collection("enrollments")
       .where("courseId", "==", courseId)
       .get();
