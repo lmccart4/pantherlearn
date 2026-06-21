@@ -277,6 +277,11 @@ export default function StudentProgress() {
   const getQuestions = (lesson) => (lesson.blocks || []).filter((b) => b.type === "question");
   const getMCQuestions = (lesson) => getQuestions(lesson).filter((b) => b.questionType === "multiple_choice");
   const getSAQuestions = (lesson) => getQuestions(lesson).filter((b) => b.questionType === "short_answer");
+  // AUDIT grade-calc: families graded by classroom-sync that must also count here (teacher gradebook)
+  const getRankingQuestions = (lesson) => getQuestions(lesson).filter((b) => b.questionType === "ranking");
+  const getLinkedQuestions = (lesson) => getQuestions(lesson).filter((b) => b.questionType === "linked");
+  const getSortingBlocks = (lesson) => (lesson.blocks || []).filter((b) => b.type === "sorting");
+  const getConceptBuilderBlocks = (lesson) => (lesson.blocks || []).filter((b) => b.type === "concept_builder");
   // Written-response blocks for the teacher "Written Responses" view: short_answer
   // questions AND slide_submit blocks (which store their URL at answer.response
   // instead of answer.answer). Kept separate from getSAQuestions so grade-calc
@@ -370,6 +375,10 @@ export default function StudentProgress() {
 
     const mc = getMCQuestions(lesson);
     const sa = getSAQuestions(lesson);
+    const ranking = getRankingQuestions(lesson);
+    const linked = getLinkedQuestions(lesson);
+    const sorting = getSortingBlocks(lesson);
+    const conceptBuilder = getConceptBuilderBlocks(lesson);
     const embeds = getEmbedBlocks(lesson);
     const today = new Date().toISOString().split("T")[0];
     const isPastDue = lesson.dueDate && lesson.dueDate < today;
@@ -402,9 +411,52 @@ export default function StudentProgress() {
       }
     });
 
+    // AUDIT grade-calc: ranking/linked/sorting/concept_builder — graded by classroom-sync, were dropped here
+    const rankingItems = [];
+    ranking.forEach((q) => {
+      const a = answers[q.id];
+      if (a?.submitted) {
+        rankingItems.push({ type: "ranking", prompt: q.prompt, points: a.partialScore != null ? a.partialScore : 0, max: 1 });
+      } else if (isPastDue) {
+        rankingItems.push({ type: "ranking", prompt: q.prompt, points: 0, max: 1, missing: true });
+      }
+    });
+    const linkedItems = [];
+    linked.forEach((q) => {
+      const a = answers[q.id];
+      if (a?.submitted && a.writtenScore != null) {
+        linkedItems.push({ type: "linked", prompt: q.prompt, points: a.writtenScore, max: 1 });
+      } else if (a?.submitted) {
+        linkedItems.push({ type: "linked", prompt: q.prompt, points: null, max: 1, ungraded: true });
+      } else if (isPastDue) {
+        linkedItems.push({ type: "linked", prompt: q.prompt, points: 0, max: 1, missing: true });
+      }
+    });
+    const sortingItems = [];
+    sorting.forEach((q) => {
+      const a = answers[q.id];
+      if (a?.submitted) {
+        let pts = null;
+        if (a.writtenScore != null) pts = a.writtenScore;
+        else if (a.score?.correct != null && a.score?.total > 0) pts = a.score.correct / a.score.total;
+        sortingItems.push({ type: "sorting", prompt: q.title || q.prompt || "Sorting", points: pts, max: 1, ungraded: pts == null });
+      } else if (isPastDue) {
+        sortingItems.push({ type: "sorting", prompt: q.title || q.prompt || "Sorting", points: 0, max: 1, missing: true });
+      }
+    });
+    const conceptBuilderItems = [];
+    conceptBuilder.forEach((q) => {
+      const a = answers[q.id];
+      if (a?.submitted) {
+        conceptBuilderItems.push({ type: "concept_builder", prompt: q.title || q.prompt || "Concept builder", points: 1, max: 1 });
+      } else if (isPastDue) {
+        conceptBuilderItems.push({ type: "concept_builder", prompt: q.title || q.prompt || "Concept builder", points: 0, max: 1, missing: true });
+      }
+    });
+
     // Scored embeds: use explicit weight if set, otherwise dynamic 50/50 split
     const hasAnyProgress = Object.keys(answers).some((k) => !k.startsWith("_"));
-    const nonEmbedPts = mc.length + sa.length + ((studentCompleted && reflection) ? 1 : 0);
+    const nonEmbedPts = mc.length + sa.length + ranking.length + linked.length + sorting.length + conceptBuilder.length + ((studentCompleted && reflection) ? 1 : 0);
     const embedItems = [];
     embeds.forEach((q) => {
       // If block has an explicit weight, use it; otherwise default to dynamic 50/50
@@ -453,8 +505,8 @@ export default function StudentProgress() {
     dataTableBlocks.forEach((b) => {
       const a = answers[b.id];
       const weight = typeof b.weight === "number" ? b.weight : 1;
-      if (a?.submitted && typeof a.score === "number" && typeof a.maxScore === "number" && a.maxScore > 0) {
-        dataTableItems.push({ type: "data_table", prompt: b.title || "Data table", points: a.score, max: a.maxScore });
+      if (a?.submitted && typeof a.score === "number") {
+        dataTableItems.push({ type: "data_table", prompt: b.title || "Data table", points: Math.max(0, Math.min(weight, a.score)), max: weight });
       } else if (isPastDue) {
         dataTableItems.push({ type: "data_table", prompt: b.title || "Data table", points: 0, max: weight, missing: true });
       }
@@ -486,6 +538,10 @@ export default function StudentProgress() {
     const gradedItems = [
       ...mcItems,
       ...saItems.filter((i) => !i.ungraded),
+      ...rankingItems,
+      ...linkedItems.filter((i) => !i.ungraded),
+      ...sortingItems.filter((i) => !i.ungraded),
+      ...conceptBuilderItems,
       ...embedItems.filter((i) => i.points != null),
       ...checkpointItems,
       ...dataTableItems,
@@ -495,6 +551,7 @@ export default function StudentProgress() {
 
     const earned = gradedItems.reduce((sum, i) => sum + i.points, 0);
     const possible = gradedItems.reduce((sum, i) => sum + (i.max || 1), 0);
+    if (possible <= 0) return null;
     const bonus = progressData[studentUid]?.[lessonId]?._gradeBonus || 0;
     const grade = Math.round((earned / possible) * 100) + bonus;
 
@@ -504,6 +561,10 @@ export default function StudentProgress() {
       possible,
       mcItems,
       saItems,
+      rankingItems,
+      linkedItems,
+      sortingItems,
+      conceptBuilderItems,
       embedItems,
       checkpointItems,
       dataTableItems,
@@ -514,6 +575,10 @@ export default function StudentProgress() {
       saGraded: saItems.filter((i) => !i.ungraded).length,
       saTotal: sa.length,
       saUngraded: saItems.filter((i) => i.ungraded).length,
+      rankingTotal: ranking.length,
+      linkedTotal: linked.length,
+      sortingTotal: sorting.length,
+      conceptBuilderTotal: conceptBuilder.length,
     };
   };
 

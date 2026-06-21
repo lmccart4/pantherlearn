@@ -190,6 +190,16 @@ export default function MyGrades() {
   const getEmbedBlocks = (lesson) =>
     (lesson.blocks || []).filter((b) => (b.type === "embed" || b.type === "connect_four") && b.scored);
 
+  // AUDIT grade-calc: these block families are graded by classroom-sync but were dropped here.
+  const getRankingQuestions = (lesson) =>
+    (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "ranking");
+  const getLinkedQuestions = (lesson) =>
+    (lesson.blocks || []).filter((b) => b.type === "question" && b.questionType === "linked");
+  const getSortingBlocks = (lesson) =>
+    (lesson.blocks || []).filter((b) => b.type === "sorting");
+  const getConceptBuilderBlocks = (lesson) =>
+    (lesson.blocks || []).filter((b) => b.type === "concept_builder");
+
   // Does this lesson have a reflection? (only if lesson has been completed by this student)
   const lessonHasReflection = (lessonId) => {
     return progressData[lessonId]?.completed;
@@ -202,6 +212,10 @@ export default function MyGrades() {
 
     const mc = getMCQuestions(lesson);
     const sa = getSAQuestions(lesson);
+    const ranking = getRankingQuestions(lesson);
+    const linked = getLinkedQuestions(lesson);
+    const sorting = getSortingBlocks(lesson);
+    const conceptBuilder = getConceptBuilderBlocks(lesson);
     const embeds = getEmbedBlocks(lesson);
     const checkpoints = (lesson.blocks || []).filter((b) => b.type === "teacher_checkpoint");
     const dataTables = (lesson.blocks || []).filter((b) => b.type === "data_table" && b.preset === "dropdown" && b.scored !== false);
@@ -210,7 +224,7 @@ export default function MyGrades() {
     const hasReflection = !lesson.skipReflection && lessonHasReflection(lessonId);
 
     // Embed weighting: use explicit weight if set, otherwise dynamic 50/50 split
-    const nonEmbedPts = mc.length + sa.length + (hasReflection ? 1 : 0);
+    const nonEmbedPts = mc.length + sa.length + ranking.length + linked.length + sorting.length + conceptBuilder.length + (hasReflection ? 1 : 0);
     let totalEmbedPts = 0;
     const embedWeights = embeds.map((q) => {
       const w = q.weight != null ? q.weight : ((nonEmbedPts > 0) ? nonEmbedPts / embeds.length : 1);
@@ -239,6 +253,31 @@ export default function MyGrades() {
       }
     });
 
+    // AUDIT grade-calc: mirror classroom-sync for ranking/linked/sorting/concept_builder
+    // Ranking: partialScore (0-1) if submitted
+    ranking.forEach((q) => {
+      const a = answers[q.id];
+      if (a?.submitted && a.partialScore != null) earnedPoints += a.partialScore;
+    });
+    // Linked: writtenScore (0-1) if submitted
+    linked.forEach((q) => {
+      const a = answers[q.id];
+      if (a?.submitted && a.writtenScore != null) earnedPoints += a.writtenScore;
+    });
+    // Sorting: writtenScore (0-1) if submitted, else raw correct/total
+    sorting.forEach((q) => {
+      const a = answers[q.id];
+      if (a?.submitted) {
+        if (a.writtenScore != null) earnedPoints += a.writtenScore;
+        else if (a.score?.correct != null && a.score?.total > 0) earnedPoints += a.score.correct / a.score.total;
+      }
+    });
+    // Concept builder: 1 point if submitted
+    conceptBuilder.forEach((q) => {
+      const a = answers[q.id];
+      if (a?.submitted) earnedPoints += 1;
+    });
+
     // Scored embeds: use per-block weight
     embeds.forEach((q, i) => {
       const a = answers[q.id];
@@ -258,11 +297,12 @@ export default function MyGrades() {
       }
     });
 
-    // Data tables: prorated by submitted score / maxScore
+    // Data tables: prorated by submitted score, clamped to the block weight (matches classroom-sync)
     dataTables.forEach((b, i) => {
       const a = answers[b.id];
+      const max = dataTableWeights[i];
       if (a?.submitted && typeof a.score === "number") {
-        earnedPoints += a.score;
+        earnedPoints += Math.max(0, Math.min(max, a.score));
       }
     });
 
@@ -277,7 +317,7 @@ export default function MyGrades() {
       totalPoints,
       embedWeights,
       grade: Math.round((earnedPoints / totalPoints) * 100),
-      mc, sa, embeds, checkpoints, hasReflection,
+      mc, sa, ranking, linked, sorting, conceptBuilder, embeds, checkpoints, hasReflection,
     };
   };
 
