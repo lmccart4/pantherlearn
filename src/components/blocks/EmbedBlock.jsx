@@ -104,15 +104,18 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
       const newWrittenScore = Math.min(msg.score / maxScore, 1);
 
       const existing = studentData?.[block.id];
-      if (existing?.writtenScore != null && newWrittenScore < existing.writtenScore) return;
 
       const isGameComplete = msg.gameComplete !== false;
       const wasAlreadySubmitted = existing?.submitted === true;
 
+      // Preserve the higher prior score, but ALWAYS let a genuine completion register
+      // submitted:true. The old early-return stranded lessons in "Not Submitted" when the
+      // final run scored lower than an interim run (grade never registered). (AUDIT-H: EmbedBlock guard)
+      const keepOldScore = existing?.writtenScore != null && newWrittenScore < existing.writtenScore;
       onAnswer(block.id, {
-        score: msg.score,
-        maxScore,
-        writtenScore: newWrittenScore,
+        score: keepOldScore ? (existing.score ?? msg.score) : msg.score,
+        maxScore: keepOldScore ? (existing.maxScore ?? maxScore) : maxScore,
+        writtenScore: keepOldScore ? existing.writtenScore : newWrittenScore,
         submitted: isGameComplete || wasAlreadySubmitted,
         completedAt: msg.completedAt || new Date().toISOString(),
         ...(msg.breakdown && { breakdown: msg.breakdown }),
