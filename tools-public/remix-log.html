@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Remix Log</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #0f172a; color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 16px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  h1 { font-size: 1.35rem; margin: 0; color: #f8fafc; }
+  .lang { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 6px 12px;
+    border-radius: 8px; font-size: 0.85rem; cursor: pointer; }
+  .lang:hover { background: #334155; }
+
+  .scorebar { background: linear-gradient(90deg, #7c3aed, #ec4899);
+    color: #fff; padding: 10px 14px; border-radius: 10px; font-weight: 600;
+    margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .scorebar .pts { font-size: 1.1rem; }
+
+  details.refcard { background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+    margin-bottom: 16px; padding: 10px 14px; }
+  details.refcard summary { cursor: pointer; font-weight: 600; color: #f1f5f9; }
+  details.refcard ul { padding-left: 18px; margin: 10px 0 4px; line-height: 1.5; font-size: 0.92rem; }
+  details.refcard li { margin-bottom: 4px; }
+  details.refcard b { color: #c4b5fd; }
+
+  .row { background: #1e293b; border: 1px solid #334155; border-left: 4px solid #475569;
+    border-radius: 10px; padding: 14px; margin-bottom: 14px; transition: border-color .2s; }
+  .row.complete { border-left-color: #10b981; }
+  .row.partial { border-left-color: #f59e0b; }
+  .row h2 { margin: 0 0 10px; font-size: 1.05rem; color: #f1f5f9;
+    display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .badge { background: #334155; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 500; }
+  .row.complete .badge { background: #10b981; color: #fff; }
+
+  .summary { font-size: 0.9rem; color: #cbd5e1; margin-top: 4px; display: none; }
+  .row.collapsed .fields { display: none; }
+  .row.collapsed .summary { display: block; }
+
+  label { display: block; font-size: 0.82rem; color: #cbd5e1; margin: 10px 0 4px; font-weight: 500; }
+  select, input[type=text], input[type=url], textarea {
+    width: 100%; background: #0f172a; border: 1px solid #475569; color: #e2e8f0;
+    padding: 8px 10px; border-radius: 6px; font-size: 0.92rem; font-family: inherit; }
+  select:focus, input:focus, textarea:focus { outline: 2px solid #7c3aed; border-color: #7c3aed; }
+  textarea { resize: vertical; min-height: 56px; }
+  .err { color: #fca5a5; font-size: 0.78rem; margin-top: 3px; min-height: 1em; }
+
+  .submitwrap { text-align: center; margin: 18px 0 8px; }
+  .btn-submit { background: linear-gradient(90deg, #7c3aed, #ec4899); color: #fff;
+    border: none; padding: 12px 28px; border-radius: 10px; font-size: 1rem;
+    font-weight: 600; cursor: pointer; }
+  .btn-submit:hover { filter: brightness(1.1); }
+  .btn-submit:disabled { cursor: default; }
+
+  .toggle-collapse { background: none; border: none; color: #94a3b8;
+    font-size: 0.78rem; cursor: pointer; text-decoration: underline; padding: 0; margin-left: auto; }
+
+  @media (max-width: 500px) {
+    h1 { font-size: 1.15rem; }
+    .wrap { padding: 12px; }
+    .row { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1 id="title">Remix Log</h1>
+    <button class="lang" id="langBtn">Español</button>
+  </div>
+
+  <div class="scorebar">
+    <span id="scoreLabel">Score</span>
+    <span class="pts"><span id="scoreNum">0</span> / 3 <span id="ptsLabel">pts</span></span>
+  </div>
+
+  <details class="refcard" id="refcard" open>
+    <summary id="refTitle">What each Suno control does</summary>
+    <ul id="refList"></ul>
+  </details>
+
+  <div id="rows"></div>
+
+  <div class="submitwrap">
+    <button class="btn-submit" id="submitBtn">Submit Score</button>
+  </div>
+</div>
+
+<script>
+/* ---------- i18n ---------- */
+const STRINGS = {
+  en: {
+    title: 'Remix Log',
+    langBtn: 'Español',
+    scoreLabel: 'Score',
+    pts: 'pts',
+    refTitle: 'What each Suno control does',
+    refItems: [
+      '<b>Weirdness</b> — low = safer / high = stranger',
+      '<b>Style Influence</b> — low = looser / high = locked in',
+      '<b>Audio Influence</b> — low = mostly new / high = mostly recognizable',
+      '<b>Exclude Styles</b> — words Suno avoids',
+      '<b>Vocal Gender / Lyrics Mode</b> — switches, flip and listen',
+    ],
+    remix: 'Remix',
+    incomplete: 'incomplete',
+    complete: 'complete',
+    collapse: 'collapse',
+    expand: 'edit',
+    changeLabel: 'What I changed (pick ONE)',
+    pickOne: '— pick one —',
+    options: [
+      'Lyrics edit',
+      'Weirdness slider',
+      'Style Influence slider',
+      'Audio Influence slider',
+      'Exclude Styles',
+      'Vocal Gender',
+      'Lyrics Mode',
+    ],
+    descLabel: 'Describe the specific change',
+    descPh: 'e.g. moved Weirdness from 30 to 75',
+    predictLabel: 'What I predicted would happen',
+    predictPh: 'e.g. the song would sound more chaotic and surprising',
+    actualLabel: 'What actually happened',
+    actualPh: 'e.g. vocals went off-key in the bridge but the beat got weirder',
+    linkLabel: 'Suno share link for this remix',
+    linkPh: 'https://suno.com/song/...',
+    submit: 'Submit Score',
+    submitted: 'Score Submitted',
+    errPickOne: 'Pick one variable',
+    errMinChars: 'At least 10 characters',
+    errMinChars15: 'At least 15 characters',
+    errSunoUrl: 'Must start with https://suno.com/ or https://app.suno.ai/',
+  },
+  es: {
+    title: 'Registro de Remix',
+    langBtn: 'English',
+    scoreLabel: 'Puntaje',
+    pts: 'pts',
+    refTitle: 'Qué hace cada control de Suno',
+    refItems: [
+      '<b>Weirdness (rareza)</b> — bajo = más seguro / alto = más extraño',
+      '<b>Style Influence (estilo)</b> — bajo = más libre / alto = más fijo',
+      '<b>Audio Influence (audio)</b> — bajo = casi nuevo / alto = casi igual',
+      '<b>Exclude Styles</b> — palabras que Suno evita',
+      '<b>Vocal Gender / Lyrics Mode</b> — interruptores, cámbialos y escucha',
+    ],
+    remix: 'Remix',
+    incomplete: 'incompleto',
+    complete: 'completo',
+    collapse: 'cerrar',
+    expand: 'editar',
+    changeLabel: 'Lo que cambié (elige UNA cosa)',
+    pickOne: '— elige una —',
+    options: [
+      'Edición de letra',
+      'Deslizador Weirdness',
+      'Deslizador Style Influence',
+      'Deslizador Audio Influence',
+      'Exclude Styles',
+      'Género vocal',
+      'Modo de letra',
+    ],
+    descLabel: 'Describe el cambio específico',
+    descPh: 'ej. moví Weirdness de 30 a 75',
+    predictLabel: 'Lo que predije que pasaría',
+    predictPh: 'ej. la canción sonaría más caótica y sorprendente',
+    actualLabel: 'Lo que en realidad pasó',
+    actualPh: 'ej. la voz se desafinó en el puente pero el ritmo se puso más raro',
+    linkLabel: 'Enlace de Suno para este remix',
+    linkPh: 'https://suno.com/song/...',
+    submit: 'Enviar Puntaje',
+    submitted: 'Puntaje Enviado',
+    errPickOne: 'Elige una variable',
+    errMinChars: 'Mínimo 10 caracteres',
+    errMinChars15: 'Mínimo 15 caracteres',
+    errSunoUrl: 'Debe empezar con https://suno.com/ o https://app.suno.ai/',
+  },
+};
+
+let lang = sessionStorage.getItem('remixLogLang') || 'en';
+let submitted = false;
+
+/* ---------- state ---------- */
+const state = [
+  { change: '', desc: '', predict: '', actual: '', link: '', collapsed: false },
+  { change: '', desc: '', predict: '', actual: '', link: '', collapsed: false },
+  { change: '', desc: '', predict: '', actual: '', link: '', collapsed: false },
+];
+
+/* ---------- render ---------- */
+function t() { return STRINGS[lang]; }
+
+function renderStatic() {
+  const s = t();
+  document.documentElement.lang = lang;
+  document.getElementById('title').textContent = s.title;
+  document.getElementById('langBtn').textContent = s.langBtn;
+  document.getElementById('scoreLabel').textContent = s.scoreLabel;
+  document.getElementById('ptsLabel').textContent = s.pts;
+  document.getElementById('refTitle').textContent = s.refTitle;
+  document.getElementById('refList').innerHTML = s.refItems.map(x => `<li>${x}</li>`).join('');
+  const sb = document.getElementById('submitBtn');
+  sb.textContent = submitted ? s.submitted : s.submit;
+}
+
+function renderRows() {
+  const s = t();
+  const host = document.getElementById('rows');
+  host.innerHTML = '';
+  state.forEach((r, i) => {
+    const valid = rowValid(i);
+    const div = document.createElement('div');
+    div.className = 'row' + (valid ? ' complete' : (rowTouched(i) ? ' partial' : ''))
+      + (r.collapsed && valid ? ' collapsed' : '');
+    div.innerHTML = `
+      <h2>
+        <span class="badge">${s.remix} ${i + 1}</span>
+        <span style="font-size:.85rem;color:${valid ? '#10b981' : '#94a3b8'};font-weight:500">
+          ${valid ? '✓ ' + s.complete : s.incomplete}
+        </span>
+        ${valid ? `<button class="toggle-collapse" data-toggle="${i}">${r.collapsed ? s.expand : s.collapse}</button>` : ''}
+      </h2>
+      <div class="summary">${summarize(i)}</div>
+      <div class="fields">
+        <label>${s.changeLabel}</label>
+        <select data-i="${i}" data-k="change">
+          <option value="">${s.pickOne}</option>
+          ${s.options.map((o, idx) => `<option value="${idx}" ${String(idx) === r.change ? 'selected' : ''}>${o}</option>`).join('')}
+        </select>
+        <div class="err" data-err="change-${i}"></div>
+
+        <label>${s.descLabel}</label>
+        <input type="text" data-i="${i}" data-k="desc" placeholder="${s.descPh}" value="${escapeAttr(r.desc)}" />
+        <div class="err" data-err="desc-${i}"></div>
+
+        <label>${s.predictLabel}</label>
+        <textarea data-i="${i}" data-k="predict" placeholder="${s.predictPh}">${escapeHtml(r.predict)}</textarea>
+        <div class="err" data-err="predict-${i}"></div>
+
+        <label>${s.actualLabel}</label>
+        <textarea data-i="${i}" data-k="actual" placeholder="${s.actualPh}">${escapeHtml(r.actual)}</textarea>
+        <div class="err" data-err="actual-${i}"></div>
+
+        <label>${s.linkLabel}</label>
+        <input type="url" data-i="${i}" data-k="link" placeholder="${s.linkPh}" value="${escapeAttr(r.link)}" />
+        <div class="err" data-err="link-${i}"></div>
+      </div>
+    `;
+    host.appendChild(div);
+  });
+
+  host.querySelectorAll('[data-i]').forEach(el => {
+    const ev = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(ev, e => {
+      const i = +el.dataset.i, k = el.dataset.k;
+      state[i][k] = el.value;
+      updateScore();
+    });
+    el.addEventListener('blur', e => {
+      const i = +el.dataset.i;
+      if (rowValid(i)) {
+        showErrors(i);
+        sendScore(false);
+      } else {
+        showErrors(i);
+      }
+    });
+  });
+  host.querySelectorAll('[data-toggle]').forEach(b => {
+    b.addEventListener('click', e => {
+      const i = +b.dataset.toggle;
+      state[i].collapsed = !state[i].collapsed;
+      renderRows();
+      updateScore();
+    });
+  });
+  updateScore();
+}
+
+function escapeHtml(s) { return String(s || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;'); }
+
+function rowTouched(i) {
+  const r = state[i];
+  return r.change || r.desc || r.predict || r.actual || r.link;
+}
+
+function validSunoUrl(u) {
+  return /^https:\/\/(suno\.com|app\.suno\.ai)\//i.test((u || '').trim());
+}
+
+function rowValid(i) {
+  const r = state[i];
+  return r.change !== '' && r.change !== undefined
+    && (r.desc || '').trim().length >= 10
+    && (r.predict || '').trim().length >= 15
+    && (r.actual || '').trim().length >= 15
+    && validSunoUrl(r.link);
+}
+
+function showErrors(i) {
+  const s = t();
+  const r = state[i];
+  const errs = {
+    change: r.change === '' ? s.errPickOne : '',
+    desc: (r.desc || '').trim().length >= 10 ? '' : ((r.desc || '').length ? s.errMinChars : ''),
+    predict: (r.predict || '').trim().length >= 15 ? '' : ((r.predict || '').length ? s.errMinChars15 : ''),
+    actual: (r.actual || '').trim().length >= 15 ? '' : ((r.actual || '').length ? s.errMinChars15 : ''),
+    link: !r.link ? '' : (validSunoUrl(r.link) ? '' : s.errSunoUrl),
+  };
+  Object.entries(errs).forEach(([k, v]) => {
+    const el = document.querySelector(`[data-err="${k}-${i}"]`);
+    if (el) el.textContent = v;
+  });
+}
+
+function summarize(i) {
+  const r = state[i];
+  const s = t();
+  const optLabel = s.options[+r.change] || '';
+  const linkHost = (() => { try { return new URL(r.link).hostname; } catch { return ''; } })();
+  return `✓ ${s.remix} ${i + 1}: ${optLabel} — ${escapeHtml((r.actual || '').slice(0, 80))}${(r.actual || '').length > 80 ? '…' : ''} <a href="${escapeAttr(r.link)}" target="_blank" style="color:#a5b4fc">${linkHost}</a>`;
+}
+
+function score() { return state.reduce((n, _, i) => n + (rowValid(i) ? 1 : 0), 0); }
+
+function updateScore() {
+  document.getElementById('scoreNum').textContent = score();
+}
+
+/* ---------- scoring postMessage ---------- */
+function sendScore(gameComplete) {
+  const sc = score();
+  if (sc <= 0 && !gameComplete) return;
+  try {
+    window.parent.postMessage({
+      type: 'activityScore',
+      score: sc,
+      maxScore: 3,
+      gameComplete: gameComplete,
+      completedAt: new Date().toISOString()
+    }, '*');
+  } catch (e) {}
+}
+
+/* ---------- submit ---------- */
+document.getElementById('submitBtn').addEventListener('click', () => {
+  // ALWAYS re-send on click, no guard (per scored-embed-checklist rule #1)
+  sendScore(true);
+  submitted = true;
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = t().submitted;
+  btn.style.opacity = '0.6';
+  btn.style.pointerEvents = 'none';
+});
+
+/* ---------- lang toggle ---------- */
+document.getElementById('langBtn').addEventListener('click', () => {
+  lang = lang === 'en' ? 'es' : 'en';
+  sessionStorage.setItem('remixLogLang', lang);
+  renderStatic();
+  renderRows();
+});
+
+/* ---------- boot ---------- */
+renderStatic();
+renderRows();
+</script>
+</body>
+</html>

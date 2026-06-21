@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Circuits Quiz</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#273449; --ink:#e2e8f0; --muted:#94a3b8;
+    --line:#334155; --brand:#38bdf8; --brand2:#0ea5e9; --good:#22c55e; --bad:#ef4444;
+    --warn:#f59e0b; --pick:#1d4ed8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:17px}
+  body{
+    font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#13243f,#0f172a 60%);
+    color:var(--ink); min-height:100vh; padding:18px; line-height:1.5;
+  }
+  .wrap{max-width:760px;margin:0 auto}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:18px;
+    padding:26px; box-shadow:0 20px 50px rgba(0,0,0,.35);
+  }
+  .hidden{display:none!important}
+
+  /* Top bar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .timer{
+    font-variant-numeric:tabular-nums; font-weight:800; font-size:1.35rem;
+    background:var(--panel2); border:1px solid var(--line); border-radius:12px;
+    padding:8px 14px; letter-spacing:.5px;
+  }
+  .timer.warn{color:var(--warn);border-color:var(--warn);animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.55}}
+  .vbadge{font-size:.8rem;color:var(--muted);font-weight:600}
+  .langtoggle button{
+    background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    padding:6px 12px;border-radius:9px;font-weight:700;cursor:pointer;font-size:.85rem
+  }
+  .langtoggle button.active{background:var(--brand);color:#03263a;border-color:var(--brand)}
+
+  h1{font-size:1.7rem;font-weight:800;margin-bottom:6px;letter-spacing:-.5px}
+  .sub{color:var(--muted);margin-bottom:22px}
+  .lede{margin-bottom:18px}
+
+  .seg{margin:18px 0}
+  .seg h3{font-size:.78rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px}
+  .choices{display:flex;gap:10px;flex-wrap:wrap}
+  .chip{
+    flex:1;min-width:90px;text-align:center;background:var(--panel2);border:2px solid var(--line);
+    color:var(--ink);padding:14px;border-radius:13px;font-weight:800;font-size:1.05rem;cursor:pointer;transition:.12s
+  }
+  .chip:hover{border-color:var(--brand2)}
+  .chip.sel{background:var(--pick);border-color:var(--brand);color:#fff}
+
+  .btn{
+    display:inline-block;background:var(--brand);color:#03263a;border:none;
+    padding:15px 26px;border-radius:13px;font-weight:800;font-size:1.05rem;cursor:pointer;transition:.12s
+  }
+  .btn:hover{background:var(--brand2);color:#fff}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.ghost{background:transparent;border:2px solid var(--line);color:var(--ink)}
+  .btn.ghost:hover{border-color:var(--brand);background:transparent;color:var(--ink)}
+  .btnrow{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:24px}
+
+  /* progress dots */
+  .dots{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}
+  .dot{width:13px;height:13px;border-radius:50%;background:var(--line);border:2px solid transparent}
+  .dot.done{background:var(--brand)}
+  .dot.cur{border-color:#fff;box-shadow:0 0 0 2px var(--brand)}
+
+  .qcount{color:var(--muted);font-weight:700;font-size:.85rem;margin-bottom:8px}
+  .qstem{font-size:1.22rem;font-weight:700;margin-bottom:20px;line-height:1.45}
+  .opts{display:flex;flex-direction:column;gap:12px}
+  .opt{
+    display:flex;gap:13px;align-items:flex-start;background:var(--panel2);border:2px solid var(--line);
+    border-radius:13px;padding:15px 16px;cursor:pointer;transition:.12s;font-size:1.05rem
+  }
+  .opt:hover{border-color:var(--brand2)}
+  .opt.sel{border-color:var(--brand);background:#15324a}
+  .opt .lab{font-weight:800;color:var(--brand);min-width:22px}
+  .opt.correct{border-color:var(--good);background:#0f2e1c}
+  .opt.wrong{border-color:var(--bad);background:#311618}
+  .opt .lab.gc{color:var(--good)} .opt .lab.bc{color:var(--bad)}
+
+  /* lock / pause screens */
+  .center{text-align:center;padding:30px 10px}
+  .bigicon{font-size:3rem;margin-bottom:14px}
+  .lockclock{font-size:2.4rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--brand);margin:12px 0}
+  .tiny{font-size:.78rem;color:var(--muted);margin-top:26px}
+  .tiny a{color:var(--muted);text-decoration:underline;cursor:pointer}
+
+  /* results */
+  .scorebig{font-size:3.2rem;font-weight:800;text-align:center;margin:8px 0}
+  .scorepct{text-align:center;color:var(--muted);font-weight:700;margin-bottom:8px}
+  .reviewq{border-top:1px solid var(--line);padding:16px 0}
+  .reviewq .rs{font-size:.9rem;font-weight:700;margin-bottom:6px}
+  .flag{background:#3a2a12;border:1px solid var(--warn);color:#fde68a;padding:12px 14px;border-radius:11px;margin-bottom:14px;font-weight:600}
+  .katex{font-size:1.02em}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- LOCKED (before window) -->
+  <section id="screen-locked" class="card center hidden">
+    <div class="bigicon">🔒</div>
+    <h1 data-i18n="lockTitle">Quiz is locked</h1>
+    <p class="sub" data-i18n="lockSub">This quiz opens at 8:20 AM and closes at 8:42 AM.</p>
+    <div class="lockclock" id="lockClock">--:--</div>
+    <p class="sub" id="lockMsg"></p>
+    <p class="tiny"><a id="makeupLink" data-i18n="makeup">Make-up access</a></p>
+  </section>
+
+  <!-- START -->
+  <section id="screen-start" class="card hidden">
+    <div class="topbar">
+      <h1 data-i18n="title">Circuits Quiz</h1>
+      <div class="langtoggle">
+        <button data-lang="en" class="active">EN</button>
+        <button data-lang="es">ES</button>
+      </div>
+    </div>
+    <p class="lede" data-i18n="startLede">15 multiple-choice questions. You have 20 minutes. Choose your language, then press Begin.</p>
+    <div class="btnrow">
+      <span class="vbadge"></span>
+      <button class="btn" id="beginBtn" data-i18n="begin">Begin</button>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="screen-quiz" class="card hidden">
+    <div class="topbar">
+      <div class="vbadge"></div>
+      <div class="timer" id="timer">20:00</div>
+      <div class="langtoggle">
+        <button data-lang="en" class="active">EN</button>
+        <button data-lang="es">ES</button>
+      </div>
+    </div>
+    <div class="dots" id="dots"></div>
+    <div class="qcount" id="qcount"></div>
+    <div class="qstem" id="qstem"></div>
+    <div class="opts" id="opts"></div>
+    <div class="btnrow">
+      <button class="btn ghost" id="backBtn" data-i18n="back">Back</button>
+      <button class="btn" id="nextBtn" data-i18n="next">Next</button>
+    </div>
+  </section>
+
+  <!-- REVIEW GATE -->
+  <section id="screen-review" class="card hidden">
+    <h1 data-i18n="reviewTitle">Ready to submit?</h1>
+    <p class="sub" id="reviewSub"></p>
+    <div id="reviewFlag"></div>
+    <div class="btnrow">
+      <button class="btn ghost" id="reviewBack" data-i18n="reviewBack">Keep working</button>
+      <button class="btn" id="submitBtn" data-i18n="submit">Submit Quiz</button>
+    </div>
+  </section>
+
+  <!-- PAUSED (hit 8:42) -->
+  <section id="screen-paused" class="card center hidden">
+    <div class="bigicon">⏸️</div>
+    <h1 data-i18n="pauseTitle">Time's up — your work is saved</h1>
+    <p class="sub" data-i18n="pauseSub">The quiz window has closed. Your answers so far have been saved. See Mr. McCarthy about finishing.</p>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="screen-results" class="card hidden">
+    <h1 data-i18n="resultsTitle">Quiz complete</h1>
+    <div class="scorebig" id="scoreBig"></div>
+    <div class="scorepct" id="scorePct"></div>
+    <div id="reviewList"></div>
+  </section>
+
+  <!-- ALREADY SUBMITTED -->
+  <section id="screen-done" class="card center hidden">
+    <div class="bigicon">✅</div>
+    <h1 data-i18n="doneTitle">You've already completed this quiz</h1>
+    <p class="sub" data-i18n="doneSub">Your answers were submitted. See Mr. McCarthy if you have questions.</p>
+  </section>
+
+</div>
+
+<script>
+/* ============ CONFIG ============ */
+var TARGET_DATE = "2026-05-21";   // window day (ET)
+var OPEN_MIN  = 8*60 + 20;        // 8:20 AM
+var CLOSE_MIN = 8*60 + 42;        // 8:42 AM
+var DURATION  = 20*60;            // 20 minutes (seconds)
+var MAKEUP_CODE = "p1unlock";     // teacher types this on the lock screen for make-ups / QA
+var MAXSCORE = 15;
+var PROJECT_ID = "pantherlearn-d6f7c";
+var API_KEY = "AIzaSyAlxvGxLIBUrVO3WWmEcslFpSygeYVeHpY";  // public Firebase web key (safe client-side)
+
+/* ============ STATE ============ */
+var DATA = {};            // {A:[...], B:[...], C:[...]}
+var lang = "en";
+var version = null;
+var order = [];           // shuffled question indices
+var optOrder = {};        // qid -> shuffled option index array
+var answers = {};         // qid -> chosen DISPLAY option index
+var cur = 0;
+var remaining = DURATION;
+var timerId = null, clockId = null, lockTickId = null;
+var status = "in_progress";
+var bypassWindow = false; // make-up / QA
+var uid=null, courseIdParam=null, lessonIdParam=null, blockIdParam=null;  // from EmbedBlock URL params
+var LSKEY = "circuitsQuizState:anon";
+
+var I18N = {
+  en:{lockTitle:"Quiz is locked",lockSub:"This quiz opens at 8:20 AM and closes at 8:42 AM.",
+    title:"Circuits Quiz",startLede:"15 multiple-choice questions. You have 20 minutes. Pick your assigned version, then press Begin.",
+    pickVersion:"Your version (Mr. McCarthy assigned it)",startHint:"Select a version to begin.",begin:"Begin",
+    back:"Back",next:"Next",finishReview:"Review & Submit",reviewTitle:"Ready to submit?",
+    reviewBack:"Keep working",submit:"Submit Quiz",makeup:"Make-up access",
+    pauseTitle:"Time's up — your work is saved",pauseSub:"The quiz window has closed. Your answers so far have been saved. See Mr. McCarthy about finishing.",
+    resultsTitle:"Quiz complete",opensAt:"Opens at 8:20 AM",closedMsg:"The quiz window (8:20–8:42 AM) has closed.",
+    qof:"Question {n} of {t}",allAnswered:"All 15 questions answered. Nice work!",
+    unanswered:"You have {n} unanswered: {list}. You can submit anyway, but unanswered = 0.",
+    yourScore:"You scored",correctLabel:"Correct answer:",yourAnswer:"Your answer:",noAnswer:"(no answer)",
+    doneTitle:"You've already completed this quiz",doneSub:"Your answers were submitted. See Mr. McCarthy if you have questions."},
+  es:{lockTitle:"El examen está bloqueado",lockSub:"Este examen abre a las 8:20 AM y cierra a las 8:42 AM.",
+    title:"Examen de Circuitos",startLede:"15 preguntas de opción múltiple. Tienes 20 minutos. Elige tu versión asignada y presiona Comenzar.",
+    pickVersion:"Tu versión (asignada por el Sr. McCarthy)",startHint:"Selecciona una versión para comenzar.",begin:"Comenzar",
+    back:"Atrás",next:"Siguiente",finishReview:"Revisar y enviar",reviewTitle:"¿Listo para enviar?",
+    reviewBack:"Seguir trabajando",submit:"Enviar examen",makeup:"Acceso de recuperación",
+    pauseTitle:"Se acabó el tiempo — tu trabajo está guardado",pauseSub:"La ventana del examen se cerró. Tus respuestas se guardaron. Habla con el Sr. McCarthy para terminar.",
+    resultsTitle:"Examen completado",opensAt:"Abre a las 8:20 AM",closedMsg:"La ventana del examen (8:20–8:42 AM) se cerró.",
+    qof:"Pregunta {n} de {t}",allAnswered:"¡Las 15 preguntas respondidas! Buen trabajo.",
+    unanswered:"Tienes {n} sin responder: {list}. Puedes enviar de todos modos, pero sin responder = 0.",
+    yourScore:"Obtuviste",correctLabel:"Respuesta correcta:",yourAnswer:"Tu respuesta:",noAnswer:"(sin respuesta)",
+    doneTitle:"Ya completaste este examen",doneSub:"Tus respuestas fueron enviadas. Habla con el Sr. McCarthy si tienes preguntas."}
+};
+function t(k){return (I18N[lang][k]||k);}
+
+/* ============ HELPERS ============ */
+function $(id){return document.getElementById(id);}
+function show(id){["screen-locked","screen-start","screen-quiz","screen-review","screen-paused","screen-results","screen-done"]
+  .forEach(function(s){$(s).classList.add("hidden");}); $(id).classList.remove("hidden");}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var x=a[i];a[i]=a[j];a[j]=x;}return a;}
+function km(el){ if(window.renderMathInElement){ try{renderMathInElement(el,{delimiters:[{left:"$",right:"$",display:false}],throwOnError:false});}catch(e){} } }
+function applyI18nStatic(){ document.querySelectorAll("[data-i18n]").forEach(function(el){ el.textContent=t(el.getAttribute("data-i18n")); }); }
+
+/* ============ TIME WINDOW ============ */
+function etParts(){
+  var f=new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",hour12:false,
+    year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  var p={}; f.formatToParts(new Date()).forEach(function(x){p[x.type]=x.value;});
+  return {date:p.year+"-"+p.month+"-"+p.day, min:(+p.hour)*60+(+p.minute), hh:p.hour, mm:p.minute};
+}
+function windowState(){
+  if(bypassWindow) return "open";
+  var e=etParts();
+  if(e.date < TARGET_DATE) return "before";
+  if(e.date > TARGET_DATE) return "after";
+  if(e.min < OPEN_MIN) return "before";
+  if(e.min >= CLOSE_MIN) return "after";
+  return "open";
+}
+
+/* ============ PERSISTENCE ============ */
+var saveTO=null;
+function buildState(){
+  return {version:version,language:lang,order:order,optionOrder:optOrder,
+    answers:answers,currentIndex:cur,remainingSeconds:remaining,status:status,savedAt:Date.now()};
+}
+function persistLocal(){            // synchronous — survives refresh/close instantly (same session/device)
+  try{ localStorage.setItem(LSKEY, JSON.stringify(buildState())); }catch(e){}
+}
+function persistRemote(){           // -> EmbedBlock -> Firestore (durable, cross-device, survives localStorage wipe)
+  try{ window.parent.postMessage({type:"html-activity-state",state:buildState()},"*"); }catch(e){}
+}
+function persist(){ persistLocal(); persistRemote(); }
+function persistDebounced(){ persistLocal(); if(saveTO)return; saveTO=setTimeout(function(){saveTO=null;persistRemote();},800); }
+function flushOnHide(){ if(status==="in_progress"){ persistLocal(); persistRemote(); } }
+
+/* ---- resume: read saved state from localStorage + Firestore ---- */
+function readLocalState(){ try{ var s=localStorage.getItem(LSKEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function decodeFs(v){
+  if(v==null) return null;
+  if("stringValue" in v) return v.stringValue;
+  if("integerValue" in v) return parseInt(v.integerValue,10);
+  if("doubleValue" in v) return v.doubleValue;
+  if("booleanValue" in v) return v.booleanValue;
+  if("nullValue" in v) return null;
+  if("arrayValue" in v) return (v.arrayValue.values||[]).map(decodeFs);
+  if("mapValue" in v){ var o={},f=v.mapValue.fields||{}; for(var k in f) o[k]=decodeFs(f[k]); return o; }
+  return null;
+}
+function getAuthToken(timeoutMs){
+  return new Promise(function(resolve){
+    var done=false;
+    function onMsg(e){ if(e.data&&e.data.type==="authToken"){ done=true; window.removeEventListener("message",onMsg); resolve(e.data.token||null); } }
+    window.addEventListener("message",onMsg);
+    try{ window.parent.postMessage({type:"requestAuthToken"},"*"); }catch(e){}
+    setTimeout(function(){ if(!done){ window.removeEventListener("message",onMsg); resolve(null); } }, timeoutMs);
+  });
+}
+function fetchSavedState(){
+  if(!uid||!courseIdParam||!lessonIdParam||!blockIdParam) return Promise.resolve(null);
+  return getAuthToken(3500).then(function(token){
+    if(!token) return null;
+    var url="https://firestore.googleapis.com/v1/projects/"+PROJECT_ID+"/databases/(default)/documents/"
+      +"courses/"+courseIdParam+"/lessons/"+lessonIdParam+"/responses/"+uid+"/blocks/"+blockIdParam+"?key="+API_KEY;
+    return fetch(url,{headers:{Authorization:"Bearer "+token}}).then(function(r){
+      if(!r.ok) return null;
+      return r.json().then(function(j){ return (j.fields&&j.fields.activityState)?decodeFs(j.fields.activityState):null; });
+    }).catch(function(){ return null; });
+  });
+}
+function pickBest(a,b){
+  if(a&&b){
+    if(a.status==="submitted"||b.status==="submitted") return {status:"submitted"};
+    var ca=Object.keys(a.answers||{}).length, cb=Object.keys(b.answers||{}).length;
+    if(ca!==cb) return ca>cb?a:b;
+    return (a.savedAt||0)>=(b.savedAt||0)?a:b;
+  }
+  return a||b||null;
+}
+function restoreFrom(s){
+  version=s.version||version;
+  lang=s.language||lang;
+  order=s.order||[];
+  optOrder=s.optionOrder||{};
+  answers=s.answers||{};
+  cur=s.currentIndex||0;
+  remaining=(s.remainingSeconds!=null)?s.remainingSeconds:DURATION;
+  status="in_progress";
+}
+
+function sendScore(gameComplete){
+  var sc=computeScore();
+  try{
+    window.parent.postMessage({
+      type:"activityScore", score:sc, maxScore:MAXSCORE,
+      gameComplete:gameComplete, version:version,
+      completedAt:new Date().toISOString()
+    },"*");
+  }catch(e){}
+}
+
+/* ============ QUIZ FLOW ============ */
+function enterQuiz(){            // shared: render the quiz screen + start timers (fresh OR resumed)
+  document.querySelectorAll(".langtoggle button").forEach(function(b){ b.classList.toggle("active", b.dataset.lang===lang); });
+  applyI18nStatic();
+  show("screen-quiz");
+  buildDots(); renderQ();
+  startTimer(); startClockWatch();
+  persist();
+}
+function startQuiz(){           // fresh attempt
+  if(!version){ version = ["A","B","C"][Math.floor(Math.random()*3)]; }  // silent auto-assign
+  var qs=DATA[version]; if(!qs){alert("Quiz not loaded");return;}
+  order = shuffle(qs.map(function(_,i){return i;}));
+  qs.forEach(function(q){ optOrder[q.id]=shuffle([0,1,2,3]); });
+  cur=0; remaining=DURATION; status="in_progress";
+  enterQuiz();
+}
+function buildDots(){
+  var d=$("dots"); d.innerHTML="";
+  order.forEach(function(_,i){ var s=document.createElement("div"); s.className="dot"; s.dataset.i=i;
+    s.onclick=function(){ saveCurrent(); cur=i; renderQ(); }; d.appendChild(s); });
+}
+function refreshDots(){
+  var qs=DATA[version];
+  $("dots").querySelectorAll(".dot").forEach(function(s){
+    var i=+s.dataset.i, qid=qs[order[i]].id;
+    s.classList.toggle("done", answers[qid]!=null);
+    s.classList.toggle("cur", i===cur);
+  });
+}
+function renderQ(){
+  var qs=DATA[version], q=qs[order[cur]], oo=optOrder[q.id], L=q[lang];
+  $("qcount").textContent=t("qof").replace("{n}",cur+1).replace("{t}",order.length);
+  $("qstem").innerHTML=L.stem; km($("qstem"));
+  var box=$("opts"); box.innerHTML="";
+  var labels=["A","B","C","D"];
+  oo.forEach(function(origIdx,disp){
+    var el=document.createElement("div"); el.className="opt"; el.dataset.disp=disp;
+    if(answers[q.id]===disp) el.classList.add("sel");
+    el.innerHTML='<span class="lab">'+labels[disp]+'</span><span class="otext">'+L.options[origIdx]+'</span>';
+    el.onclick=function(){ answers[q.id]=disp; refreshOpts(); refreshDots(); persistLocal(); persistDebounced(); };
+    box.appendChild(el);
+  });
+  km(box);
+  $("backBtn").style.visibility = cur===0 ? "hidden":"visible";
+  $("nextBtn").textContent = cur===order.length-1 ? t("finishReview") : t("next");
+  refreshDots();
+}
+function refreshOpts(){
+  var q=DATA[version][order[cur]];
+  $("opts").querySelectorAll(".opt").forEach(function(el){ el.classList.toggle("sel", +el.dataset.disp===answers[q.id]); });
+}
+function saveCurrent(){ persistDebounced(); }
+function next(){ saveCurrent(); if(cur===order.length-1){ openReview(); } else { cur++; renderQ(); persist(); } }
+function back(){ if(cur>0){ saveCurrent(); cur--; renderQ(); } }
+
+function openReview(){
+  var qs=DATA[version];
+  var un=[]; order.forEach(function(qi,i){ if(answers[qs[qi].id]==null) un.push(i+1); });
+  $("reviewSub").textContent="";
+  var fl=$("reviewFlag");
+  if(un.length){ fl.innerHTML='<div class="flag">'+t("unanswered").replace("{n}",un.length).replace("{list}",un.join(", "))+'</div>'; }
+  else { fl.innerHTML='<div class="flag" style="background:#0f2e1c;border-color:var(--good);color:#bbf7d0">'+t("allAnswered")+'</div>'; }
+  show("screen-review");
+}
+
+/* ============ SCORING ============ */
+function computeScore(){
+  var qs=DATA[version], sc=0;
+  order.forEach(function(qi){
+    var q=qs[qi], disp=answers[q.id];
+    if(disp==null) return;
+    var origChosen=optOrder[q.id][disp];
+    if(origChosen===q.correct) sc++;
+  });
+  return sc;
+}
+function submitQuiz(){
+  stopTimer();
+  status="submitted";
+  sendScore(true); persist();   // always re-send, no guard
+  showResults();
+}
+function showResults(){
+  var sc=computeScore(), pct=Math.round(sc/MAXSCORE*100);
+  $("scoreBig").textContent=sc+" / "+MAXSCORE;
+  $("scorePct").textContent=pct+"%";
+  sendScore(true);              // auto-send on results load too
+  var qs=DATA[version], labels=["A","B","C","D"], list=$("reviewList"); list.innerHTML="";
+  order.forEach(function(qi,i){
+    var q=qs[qi], L=q[lang], oo=optOrder[q.id], disp=answers[q.id];
+    var origChosen = disp!=null ? oo[disp] : null;
+    var correctDisp = oo.indexOf(q.correct);
+    var ok = origChosen===q.correct;
+    var div=document.createElement("div"); div.className="reviewq";
+    div.innerHTML='<div class="rs" style="color:'+(ok?"var(--good)":"var(--bad)")+'">'
+      +(i+1)+'. '+(ok?"✓":"✗")+'</div><div style="margin-bottom:10px">'+L.stem+'</div>';
+    var op=document.createElement("div"); op.className="opts";
+    oo.forEach(function(origIdx,d){
+      var cls="opt"; var lc="lab";
+      if(origIdx===q.correct){cls+=" correct";lc+=" gc";}
+      else if(d===disp){cls+=" wrong";lc+=" bc";}
+      op.innerHTML+='<div class="'+cls+'"><span class="'+lc+'">'+labels[d]+'</span><span>'+L.options[origIdx]+'</span></div>';
+    });
+    div.appendChild(op); list.appendChild(div); km(div);
+  });
+  show("screen-results");
+}
+
+/* ============ TIMER ============ */
+function fmt(s){var m=Math.floor(s/60),x=s%60;return (m<10?"0":"")+m+":"+(x<10?"0":"")+x;}
+function startTimer(){
+  $("timer").textContent=fmt(remaining);
+  timerId=setInterval(function(){
+    remaining--;
+    $("timer").textContent=fmt(remaining);
+    $("timer").classList.toggle("warn", remaining<=120);
+    if(remaining%5===0) persistDebounced();
+    if(remaining<=0){ stopTimer(); submitQuiz(); }   // personal time expired -> auto-submit
+  },1000);
+}
+function stopTimer(){ if(timerId){clearInterval(timerId);timerId=null;} }
+function startClockWatch(){
+  clockId=setInterval(function(){
+    if(windowState()==="after" && status==="in_progress"){ pauseForWindow(); }
+  },1000);
+}
+function pauseForWindow(){
+  stopTimer(); if(clockId){clearInterval(clockId);clockId=null;}
+  status="paused";
+  persist();                    // SAVE work — do NOT submit a score
+  show("screen-paused");
+}
+
+/* ============ LOCK SCREEN ============ */
+function runLockScreen(){
+  applyI18nStatic();
+  show("screen-locked");
+  var msg=$("lockMsg");
+  function tick(){
+    if(bypassWindow){ return; }            // make-up/QA bypass active — don't auto-reload
+    var st=windowState(), e=etParts();
+    $("lockClock").textContent=e.hh+":"+e.mm;
+    if(st==="before"){ msg.textContent=t("opensAt"); }
+    else if(st==="after"){ msg.textContent=t("closedMsg"); }
+    else { clearInterval(lockTickId); lockTickId=null; location.reload(); } // window opened at 8:20
+  }
+  tick(); lockTickId=setInterval(tick,1000);
+}
+
+/* ============ INIT ============ */
+function setLang(l){
+  lang=l;
+  document.querySelectorAll(".langtoggle button").forEach(function(b){ b.classList.toggle("active", b.dataset.lang===l); });
+  applyI18nStatic();
+  if(!$("screen-quiz").classList.contains("hidden")) renderQ();
+  if(!$("screen-results").classList.contains("hidden")) showResults();
+}
+function wireLang(){
+  document.querySelectorAll(".langtoggle button").forEach(function(b){ b.onclick=function(){ setLang(b.dataset.lang); }; });
+}
+function wireStart(){
+  $("beginBtn").onclick=startQuiz;
+}
+function wireQuiz(){
+  $("nextBtn").onclick=next; $("backBtn").onclick=back;
+  $("reviewBack").onclick=function(){ show("screen-quiz"); renderQ(); };
+  $("submitBtn").onclick=submitQuiz;
+}
+var savedPending=null;   // an in-progress saved attempt awaiting resume (e.g. after make-up unlock)
+function isResumable(s){ return s && s.answers && Object.keys(s.answers).length>0 && s.order && s.order.length; }
+function showAlreadySubmitted(){ applyI18nStatic(); show("screen-done"); }
+function afterUnlock(){       // called after window bypass (make-up code) — resume if there's an attempt, else fresh
+  if(isResumable(savedPending)){ restoreFrom(savedPending); enterQuiz(); }
+  else { boot(true); }
+}
+function wireMakeup(){
+  $("makeupLink").onclick=function(){
+    var code=prompt("Make-up / teacher code:");
+    if(code===MAKEUP_CODE){ bypassWindow=true; afterUnlock(); }
+    else if(code!=null){ alert("Incorrect code."); }
+  };
+}
+
+function boot(forceStart){
+  if(lockTickId){ clearInterval(lockTickId); lockTickId=null; }   // stop lock-screen ticker before leaving it
+  var st=windowState();
+  if(st!=="open" && !forceStart){ runLockScreen(); return; }
+  applyI18nStatic();
+  show("screen-start");
+}
+
+function loadData(){
+  var qp=new URLSearchParams(location.search);
+  if(qp.get("open")==="1") bypassWindow=true;        // teacher/QA bypass via URL
+  var vp=(qp.get("v")||"").toUpperCase();             // force a version (preview/make-up); never reveals answers
+  var forced = (vp==="A"||vp==="B"||vp==="C");
+  if(forced) version=vp;
+  uid=qp.get("studentId"); courseIdParam=qp.get("courseId"); lessonIdParam=qp.get("lessonId"); blockIdParam=qp.get("blockId");
+  LSKEY="circuitsQuizState:"+(uid||"anon");
+  wireLang(); wireStart(); wireQuiz(); wireMakeup();
+  window.addEventListener("pagehide", flushOnHide);
+  document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="hidden") flushOnHide(); });
+
+  Promise.all(["A","B","C"].map(function(v){
+    return fetch("version-"+v.toLowerCase()+".json").then(function(r){return r.json();})
+      .then(function(j){ DATA[v]=j.questions; });
+  })).then(function(){
+    return fetchSavedState();      // Firestore (durable); null if no identity/token or none saved
+  }).then(function(fs){
+    var saved=pickBest(readLocalState(), fs);
+    if(saved && saved.status==="submitted"){ showAlreadySubmitted(); return; }
+    if(isResumable(saved) && !forced){
+      savedPending=saved; restoreFrom(saved);
+      var st=windowState();
+      if(st==="open"){ enterQuiz(); return; }     // resume right where they left off
+      runLockScreen(); return;                    // before: reloads at open; after: make-up code resumes
+    }
+    boot(false);
+  }).catch(function(e){ document.body.innerHTML='<div class="wrap"><div class="card">Failed to load quiz data. Refresh the page.</div></div>'; });
+}
+window.addEventListener("DOMContentLoaded", loadData);
+</script>
+</body>
+</html>

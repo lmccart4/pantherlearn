@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Four Questions Courtroom</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--paper, #f1ead5); }
+  body { padding: 18px 16px 40px; }
+  .lang-toggle {
+    position: fixed; top: 12px; right: 12px; z-index: 50;
+    display: flex; gap: 4px; background: #fbf6e3; border: 1.5px solid #15130f;
+    border-radius: 999px; padding: 3px; font-family: 'Space Grotesk', system-ui, sans-serif;
+    box-shadow: 2px 2px 0 #15130f;
+  }
+  .lang-btn { border: none; background: transparent; padding: 4px 10px; font-size: 12px; font-weight: 700;
+    border-radius: 999px; cursor: pointer; color: #55503f; letter-spacing: 0.04em; }
+  .lang-btn.active { background: #15130f; color: #f1ead5; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  .header { margin-bottom: 18px; }
+  .eyebrow { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: #6b1e6b; margin-bottom: 6px; }
+  h1 { font-family: 'Fraunces', Georgia, serif; font-weight: 900; font-size: clamp(28px, 4vw, 42px);
+    line-height: 0.96; letter-spacing: -0.015em; color: #15130f; }
+  .lede { color: #55503f; margin-top: 8px; font-size: 15px; max-width: 720px; }
+
+  .panel { background: #fbf6e3; border: 1.5px solid #15130f; border-radius: 14px;
+    padding: 20px 22px; box-shadow: 4px 4px 0 #15130f; margin-bottom: 16px; }
+  .panel h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 800; font-size: 22px;
+    margin-bottom: 10px; }
+  .panel p { color: #55503f; line-height: 1.55; margin-bottom: 8px; }
+
+  /* Setup */
+  .roles-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 14px; }
+  @media (max-width: 600px) { .roles-grid { grid-template-columns: 1fr; } }
+  .role-card { background: #f1ead5; border: 1.5px solid #15130f; border-radius: 10px;
+    padding: 14px 16px; box-shadow: 3px 3px 0 #15130f; }
+  .role-card .badge { display: inline-block; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px;
+    border-radius: 999px; margin-bottom: 8px; font-weight: 700; }
+  .role-card .badge.benefit { background: #c6ff3f; color: #2a3b00; }
+  .role-card .badge.cost { background: #ff6a4d; color: #3a0f05; }
+  .role-card .badge.transparency { background: #2238ff; color: #e6ebff; }
+  .role-card .badge.contest { background: #ffd23a; color: #2b2200; }
+  .role-card h3 { font-family: 'Fraunces', Georgia, serif; font-size: 17px; margin-bottom: 4px; }
+  .role-card .q { font-size: 13.5px; color: #55503f; line-height: 1.45; margin-bottom: 8px; }
+  .role-card input { width: 100%; padding: 8px 10px; border: 1.5px solid #15130f;
+    border-radius: 7px; background: #fbf6e3; font-family: inherit; font-size: 14px; }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700; font-size: 15px; padding: 11px 18px; min-height: 44px; border-radius: 999px;
+    border: 1.5px solid #15130f; background: #c6ff3f; color: #2a3b00; cursor: pointer;
+    box-shadow: 3px 3px 0 #15130f; transition: transform 120ms, box-shadow 120ms; }
+  .btn:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #15130f; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.secondary { background: #fbf6e3; }
+  .btn.coral { background: #ff6a4d; color: #fff; }
+
+  /* Round */
+  .status-bar { display: flex; justify-content: space-between; align-items: center;
+    background: #15130f; color: #f1ead5; padding: 10px 16px; border-radius: 10px;
+    margin-bottom: 14px; font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    letter-spacing: 0.05em; }
+  .status-bar .score { color: #c6ff3f; font-weight: 700; }
+
+  .scenario-card { background: #15130f; color: #f1ead5; border: 1.5px solid #15130f;
+    border-radius: 14px; padding: 22px 26px; box-shadow: 4px 4px 0 #6b1e6b;
+    margin-bottom: 18px; position: relative; }
+  .scenario-card .scen-num { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: #c6ff3f; margin-bottom: 10px; }
+  .scenario-card .scen-text { font-family: 'Fraunces', Georgia, serif; font-size: 22px;
+    line-height: 1.35; font-weight: 500; }
+
+  .judge-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  @media (max-width: 700px) { .judge-grid { grid-template-columns: 1fr; } }
+  .judge-card { background: #fbf6e3; border: 1.5px solid #15130f; border-radius: 12px;
+    padding: 14px 16px; box-shadow: 3px 3px 0 #15130f; display: flex; flex-direction: column; }
+  .judge-card.benefit { border-top: 6px solid #c6ff3f; }
+  .judge-card.cost { border-top: 6px solid #ff6a4d; }
+  .judge-card.transparency { border-top: 6px solid #2238ff; }
+  .judge-card.contest { border-top: 6px solid #ffd23a; }
+  .judge-card .who { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: #6b1e6b; font-weight: 700; margin-bottom: 4px; }
+  .judge-card h4 { font-family: 'Fraunces', Georgia, serif; font-size: 16px; margin-bottom: 4px; }
+  .judge-card .q { font-size: 13px; color: #55503f; margin-bottom: 8px; line-height: 1.4; }
+  .judge-card textarea { width: 100%; min-height: 70px; resize: vertical;
+    border: 1.5px solid #15130f; border-radius: 8px; padding: 8px 10px;
+    font-family: inherit; font-size: 14px; background: #f1ead5; }
+  .judge-card .word-count { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: #9a917a; margin-top: 4px; text-align: right; }
+  .judge-card .word-count.ok { color: #2a3b00; }
+
+  .verdict { background: #fbf6e3; border: 1.5px solid #15130f; border-radius: 12px;
+    padding: 16px 18px; box-shadow: 3px 3px 0 #15130f; margin-top: 14px; }
+  .verdict h3 { font-family: 'Fraunces', Georgia, serif; font-size: 18px; margin-bottom: 8px; }
+  .verdict .v-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .v-btn { flex: 1; min-width: 130px; padding: 10px 14px; border: 1.5px solid #15130f;
+    border-radius: 8px; background: #f1ead5; cursor: pointer; font-family: inherit;
+    font-weight: 700; font-size: 14px; transition: all 0.12s; }
+  .v-btn:hover { transform: translate(-1px, -1px); box-shadow: 2px 2px 0 #15130f; }
+  .v-btn.selected.deploy { background: #c6ff3f; color: #2a3b00; }
+  .v-btn.selected.restrict { background: #ffd23a; color: #2b2200; }
+  .v-btn.selected.block { background: #ff6a4d; color: #fff; }
+  .verdict textarea { width: 100%; min-height: 50px; border: 1.5px solid #15130f;
+    border-radius: 8px; padding: 8px 10px; font-family: inherit; font-size: 14px; background: #f1ead5; }
+
+  .next-row { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+  /* Results */
+  .summary-card { background: #fbf6e3; border: 1.5px solid #15130f; border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 12px; box-shadow: 3px 3px 0 #15130f; }
+  .summary-card .sc-head { display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 6px; }
+  .summary-card .sc-num { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.15em; text-transform: uppercase; color: #6b1e6b; font-weight: 700; }
+  .summary-card .sc-verdict { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; font-weight: 700; }
+  .summary-card .sc-verdict.deploy { background: #c6ff3f; color: #2a3b00; }
+  .summary-card .sc-verdict.restrict { background: #ffd23a; color: #2b2200; }
+  .summary-card .sc-verdict.block { background: #ff6a4d; color: #fff; }
+  .summary-card .sc-text { font-family: 'Fraunces', Georgia, serif; font-size: 16px;
+    line-height: 1.4; margin-bottom: 8px; }
+  .summary-card .sc-rationale { font-size: 13px; color: #55503f; font-style: italic; }
+
+  .hidden { display: none !important; }
+  .error { color: #ff6a4d; font-weight: 700; font-size: 14px; margin-top: 8px; }
+</style>
+<link rel="stylesheet" href="/tools/savanna-embed.css">
+</head>
+<body class="savanna">
+
+<div class="lang-toggle">
+  <button class="lang-btn active" data-lang="en">EN</button>
+  <button class="lang-btn" data-lang="es">ES</button>
+</div>
+
+<div class="wrap">
+
+  <!-- ── SETUP SCREEN ── -->
+  <div id="setup">
+    <div class="header">
+      <div class="eyebrow" data-i18n="eyebrow">Group Activity · 5 Scenarios · Groups of 4</div>
+      <h1 data-i18n="title">Four Questions Courtroom</h1>
+      <p class="lede" data-i18n="lede">Every AI deployment hits the same four questions. Take a role, draw a scenario, push back where it doesn't hold.</p>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="setupHeading">Pick your roles</h2>
+      <p data-i18n="setupBody">In your group of 4, each person owns one of the four judge questions for the entire round. You'll each answer your question for every scenario the group draws.</p>
+
+      <div class="roles-grid">
+        <div class="role-card">
+          <span class="badge benefit" data-i18n="badgeBenefit">Judge Benefit</span>
+          <h3 data-i18n="rBenefitH">Who benefits from this?</h3>
+          <div class="q" data-i18n="rBenefitQ">If this AI works perfectly, who wins? Whose life gets easier or richer?</div>
+          <input type="text" id="name-benefit" data-i18n-ph="namePh" placeholder="Student name">
+        </div>
+        <div class="role-card">
+          <span class="badge cost" data-i18n="badgeCost">Judge Cost</span>
+          <h3 data-i18n="rCostH">Who bears the risk?</h3>
+          <div class="q" data-i18n="rCostQ">If it fails or misfires, who pays the price? Are they the same group as the winners?</div>
+          <input type="text" id="name-cost" data-i18n-ph="namePh" placeholder="Student name">
+        </div>
+        <div class="role-card">
+          <span class="badge transparency" data-i18n="badgeTransparency">Judge Transparency</span>
+          <h3 data-i18n="rTransH">Who can see how it works?</h3>
+          <div class="q" data-i18n="rTransQ">Can the people affected understand the AI's reasoning? Is the model open or hidden?</div>
+          <input type="text" id="name-transparency" data-i18n-ph="namePh" placeholder="Student name">
+        </div>
+        <div class="role-card">
+          <span class="badge contest" data-i18n="badgeContest">Judge Contest</span>
+          <h3 data-i18n="rContH">If it hurts you, can you fight back?</h3>
+          <div class="q" data-i18n="rContQ">Is there an appeal? A human in the loop? A way to challenge the decision?</div>
+          <input type="text" id="name-contest" data-i18n-ph="namePh" placeholder="Student name">
+        </div>
+      </div>
+
+      <div id="setupError" class="error hidden" data-i18n="setupError">Add a name for every judge before starting.</div>
+
+      <div style="margin-top: 18px;">
+        <button class="btn" id="startBtn" data-i18n="startBtn">Start round →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROUND SCREEN ── -->
+  <div id="round" class="hidden">
+    <div class="status-bar">
+      <span><span data-i18n="scenarioLabel">Scenario</span> <span id="roundNum">1</span> / 5</span>
+      <span class="score"><span data-i18n="scoreLabel">Score</span>: <span id="liveScore">0.0</span> / 5</span>
+    </div>
+
+    <div class="scenario-card">
+      <div class="scen-num"><span data-i18n="scenarioLabel">Scenario</span> #<span id="scenarioId">1</span></div>
+      <div class="scen-text" id="scenarioText">…</div>
+    </div>
+
+    <div class="judge-grid" id="judgeGrid"></div>
+
+    <div class="verdict">
+      <h3 data-i18n="verdictH">Group verdict</h3>
+      <p style="color:#55503f; font-size: 13.5px; margin-bottom: 10px;" data-i18n="verdictBody">After everyone answers, decide together.</p>
+      <div class="v-row">
+        <button class="v-btn" data-verdict="deploy" data-i18n="vDeploy">Deploy as-is</button>
+        <button class="v-btn" data-verdict="restrict" data-i18n="vRestrict">Deploy with limits</button>
+        <button class="v-btn" data-verdict="block" data-i18n="vBlock">Don't deploy</button>
+      </div>
+      <textarea id="rationale" data-i18n-ph="rationalePh" placeholder="One sentence: why this verdict?"></textarea>
+    </div>
+
+    <div id="roundError" class="error hidden"></div>
+
+    <div class="next-row">
+      <button class="btn" id="nextBtn" data-i18n="nextBtn">Lock in & next →</button>
+    </div>
+  </div>
+
+  <!-- ── RESULTS SCREEN ── -->
+  <div id="results" class="hidden">
+    <div class="header">
+      <div class="eyebrow" data-i18n="resultsEyebrow">Round complete</div>
+      <h1 data-i18n="resultsTitle">Your group's case file</h1>
+      <p class="lede" data-i18n="resultsLede">Five scenarios. Five verdicts. The patterns that showed up in your reasoning matter more than the verdicts themselves.</p>
+    </div>
+
+    <div id="summaryList"></div>
+
+    <div class="panel" style="margin-top: 20px;">
+      <h2 data-i18n="debriefH">Debrief together</h2>
+      <ul style="margin-left: 20px; color: #55503f; line-height: 1.7;" id="debriefList"></ul>
+    </div>
+
+    <div style="margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap;">
+      <button class="btn" id="submitBtn" data-i18n="submitBtn">Submit score & complete</button>
+      <button class="btn secondary" id="replayBtn" data-i18n="replayBtn">Play 5 more scenarios</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────
+const SCENARIOS = [
+  { id: 1,  en: "A hospital uses AI to decide which ER patients get seen first. It has been wrong 3 times this year about priority.",
+            es: "Un hospital usa IA para decidir qué pacientes de emergencia son vistos primero. Se equivocó 3 veces este año sobre la prioridad." },
+  { id: 2,  en: "A school district buys an AI to grade essays at scale. It flags 8% as likely AI-written. Appeals require proving a negative.",
+            es: "Un distrito escolar compra una IA para calificar ensayos a gran escala. Marca el 8% como probablemente escritos por IA. Apelar requiere probar lo contrario." },
+  { id: 3,  en: "A city deploys facial recognition at every major intersection. Court records show 1 wrongful arrest per month.",
+            es: "Una ciudad instala reconocimiento facial en cada intersección importante. Los registros judiciales muestran 1 arresto injustificado por mes." },
+  { id: 4,  en: "An AI denies 40% of mortgage applications in one zip code. The bank says the model is confidential.",
+            es: "Una IA niega el 40% de las solicitudes de hipoteca en un código postal. El banco dice que el modelo es confidencial." },
+  { id: 5,  en: "A resume-sorting AI downgrades applicants who mention “women’s college.” The company calls it pattern-matching.",
+            es: "Una IA que clasifica currículums baja la calificación de aspirantes que mencionan “universidad para mujeres.” La empresa lo llama coincidencia de patrones." },
+  { id: 6,  en: "An AI tutor promises equal access — but only runs well on devices less than 3 years old.",
+            es: "Un tutor de IA promete acceso igualitario — pero solo funciona bien en dispositivos de menos de 3 años." },
+  { id: 7,  en: "A federal agency uses an AI to predict visa overstays. The model includes country-of-origin as a feature.",
+            es: "Una agencia federal usa IA para predecir quién excederá su visa. El modelo incluye el país de origen como variable." },
+  { id: 8,  en: "An AI content moderator removes 20% of posts from activists in one country. Posts in other countries aren't flagged.",
+            es: "Un moderador de contenido con IA elimina el 20% de las publicaciones de activistas en un país. Publicaciones en otros países no son marcadas." },
+  { id: 9,  en: "A music-generation AI writes a top-10 hit using training data drawn from 50,000 uncredited songwriters.",
+            es: "Una IA generadora de música escribe un éxito del top 10 usando datos de 50,000 compositores sin crédito." },
+  { id: 10, en: "Your insurance company uses AI to decide whether your chronic condition qualifies for coverage. There is no human reviewer.",
+            es: "Tu aseguradora usa IA para decidir si tu condición crónica califica para cobertura. No hay revisor humano." },
+  { id: 11, en: "A court uses an AI risk score to set bail. Defendants cannot see the score, the formula, or the training data.",
+            es: "Un tribunal usa una puntuación de riesgo de IA para fijar la fianza. Los acusados no pueden ver la puntuación, la fórmula ni los datos de entrenamiento." },
+  { id: 12, en: "An AI translates school announcements from English to Spanish. Parents report it says the wrong dates and wrong grades.",
+            es: "Una IA traduce los anuncios escolares del inglés al español. Los padres reportan que dice fechas y calificaciones incorrectas." },
+  { id: 13, en: "A factory uses AI to predict worker injury risk. Workers flagged “high risk” are quietly passed over for hiring.",
+            es: "Una fábrica usa IA para predecir el riesgo de lesiones de trabajadores. A los marcados como “alto riesgo” los pasan por alto al contratar, sin avisarles." },
+  { id: 14, en: "An AI predicts which students are likely to drop out so counselors can “intervene.” Flagged students report feeling profiled.",
+            es: "Una IA predice qué estudiantes probablemente abandonarán la escuela para que los consejeros “intervengan.” Los estudiantes marcados reportan sentirse perfilados." },
+  { id: 15, en: "A utility company uses AI to decide which neighborhoods get power restored first after an outage.",
+            es: "Una compañía de servicios públicos usa IA para decidir qué barrios recuperan la electricidad primero tras un apagón." },
+  { id: 16, en: "An X-ray AI outperforms 9 of 10 radiologists — trained entirely on adult patients. It is now being used to screen children.",
+            es: "Una IA de radiografías supera a 9 de cada 10 radiólogos — entrenada solo con pacientes adultos. Ahora se usa para examinar niños." },
+  { id: 17, en: "A platform's algorithm pushes eating-disorder content to teens who linger on workout videos — by design.",
+            es: "El algoritmo de una plataforma empuja contenido sobre trastornos alimenticios a adolescentes que se detienen en videos de ejercicio — por diseño." },
+  { id: 18, en: "A startup sells an AI that generates personalized political ads for 50 cents each. No disclosure required.",
+            es: "Una startup vende una IA que genera anuncios políticos personalizados por 50 centavos cada uno. No requiere divulgación." },
+  { id: 19, en: "A school district's AI scans classroom cameras and flags students who “look disengaged.” Teachers see the reports.",
+            es: "La IA de un distrito escolar escanea cámaras del aula y marca a estudiantes que “se ven desconectados.” Los maestros ven los reportes." },
+  { id: 20, en: "A generative AI recreates the voice of a deceased musician for a new album. The family is split on whether it should exist.",
+            es: "Una IA generativa recrea la voz de un músico fallecido para un nuevo álbum. La familia está dividida sobre si debe existir." },
+];
+
+const I18N = {
+  en: {
+    eyebrow: "Group Activity · 5 Scenarios · Groups of 4",
+    title: "Four Questions Courtroom",
+    lede: "Every AI deployment hits the same four questions. Take a role, draw a scenario, push back where it doesn't hold.",
+    setupHeading: "Pick your roles",
+    setupBody: "In your group of 4, each person owns one of the four judge questions for the entire round. You'll each answer your question for every scenario the group draws.",
+    badgeBenefit: "Judge Benefit", badgeCost: "Judge Cost", badgeTransparency: "Judge Transparency", badgeContest: "Judge Contest",
+    rBenefitH: "Who benefits from this?",
+    rBenefitQ: "If this AI works perfectly, who wins? Whose life gets easier or richer?",
+    rCostH: "Who bears the risk?",
+    rCostQ: "If it fails or misfires, who pays the price? Are they the same group as the winners?",
+    rTransH: "Who can see how it works?",
+    rTransQ: "Can the people affected understand the AI's reasoning? Is the model open or hidden?",
+    rContH: "If it hurts you, can you fight back?",
+    rContQ: "Is there an appeal? A human in the loop? A way to challenge the decision?",
+    namePh: "Student name",
+    setupError: "Add a name for every judge before starting.",
+    startBtn: "Start round →",
+    scenarioLabel: "Scenario", scoreLabel: "Score",
+    verdictH: "Group verdict",
+    verdictBody: "After everyone answers, decide together.",
+    vDeploy: "Deploy as-is", vRestrict: "Deploy with limits", vBlock: "Don't deploy",
+    rationalePh: "One sentence: why this verdict?",
+    nextBtn: "Lock in & next →",
+    needAnswers: "Each judge needs at least 6 words. Group needs a verdict + rationale.",
+    resultsEyebrow: "Round complete",
+    resultsTitle: "Your group's case file",
+    resultsLede: "Five scenarios. Five verdicts. The patterns that showed up in your reasoning matter more than the verdicts themselves.",
+    debriefH: "Debrief together",
+    debriefItems: [
+      "Which of the four questions was hardest to answer most of the time?",
+      "Which judge pushed back most? Which one rubber-stamped?",
+      "Did your group lean toward Deploy, Restrict, or Block? Why?",
+      "If you had to add a fifth question, what would it be and why?"
+    ],
+    submitBtn: "Submit score & complete",
+    replayBtn: "Play 5 more scenarios",
+  },
+  es: {
+    eyebrow: "Actividad grupal · 5 Escenarios · Grupos de 4",
+    title: "Tribunal de Cuatro Preguntas",
+    lede: "Cada despliegue de IA enfrenta las mismas cuatro preguntas. Toma un rol, saca un escenario, cuestiona donde no se sostenga.",
+    setupHeading: "Elijan sus roles",
+    setupBody: "En su grupo de 4, cada persona se queda con una de las cuatro preguntas durante toda la ronda. Cada quien responderá su pregunta para cada escenario que saquen.",
+    badgeBenefit: "Juez Beneficio", badgeCost: "Juez Costo", badgeTransparency: "Juez Transparencia", badgeContest: "Juez Apelación",
+    rBenefitH: "¿Quién se beneficia?",
+    rBenefitQ: "Si esta IA funciona perfectamente, ¿quién gana? ¿La vida de quién mejora o se enriquece?",
+    rCostH: "¿Quién asume el riesgo?",
+    rCostQ: "Si falla, ¿quién paga el precio? ¿Son el mismo grupo que se beneficia?",
+    rTransH: "¿Quién puede ver cómo funciona?",
+    rTransQ: "¿Las personas afectadas pueden entender el razonamiento de la IA? ¿El modelo es abierto u oculto?",
+    rContH: "Si te perjudica, ¿puedes apelar?",
+    rContQ: "¿Hay apelación? ¿Un humano en el proceso? ¿Una forma de cuestionar la decisión?",
+    namePh: "Nombre del estudiante",
+    setupError: "Agrega un nombre para cada juez antes de empezar.",
+    startBtn: "Iniciar ronda →",
+    scenarioLabel: "Escenario", scoreLabel: "Puntaje",
+    verdictH: "Veredicto del grupo",
+    verdictBody: "Después de que todos respondan, decidan juntos.",
+    vDeploy: "Desplegar tal cual", vRestrict: "Desplegar con límites", vBlock: "No desplegar",
+    rationalePh: "Una oración: ¿por qué este veredicto?",
+    nextBtn: "Confirmar y siguiente →",
+    needAnswers: "Cada juez necesita al menos 6 palabras. El grupo necesita un veredicto + justificación.",
+    resultsEyebrow: "Ronda completa",
+    resultsTitle: "Expediente de su grupo",
+    resultsLede: "Cinco escenarios. Cinco veredictos. Los patrones en su razonamiento importan más que los veredictos.",
+    debriefH: "Debate grupal",
+    debriefItems: [
+      "¿Cuál de las cuatro preguntas fue la más difícil de responder?",
+      "¿Qué juez cuestionó más? ¿Cuál aprobó todo sin pelear?",
+      "¿Su grupo se inclinó por Desplegar, Limitar o Bloquear? ¿Por qué?",
+      "Si tuvieran que agregar una quinta pregunta, ¿cuál sería y por qué?"
+    ],
+    submitBtn: "Enviar puntaje y completar",
+    replayBtn: "Jugar 5 escenarios más",
+  }
+};
+
+const ROLES = ['benefit', 'cost', 'transparency', 'contest'];
+const MIN_WORDS = 6;
+const ROUNDS_PER_SESSION = 5;
+
+let lang = 'en';
+let names = { benefit: '', cost: '', transparency: '', contest: '' };
+let deck = [];
+let roundIdx = 0;
+let currentVerdict = null;
+let currentAnswers = { benefit: '', cost: '', transparency: '', contest: '' };
+let history = [];
+let totalScore = 0;
+
+// ── I18N ──────────────────────────────────────────────────────────
+function applyLang() {
+  const dict = I18N[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (dict[k]) el.textContent = dict[k];
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const k = el.getAttribute('data-i18n-ph');
+    if (dict[k]) el.placeholder = dict[k];
+  });
+  // Refresh dynamic content if mid-round
+  if (!document.getElementById('round').classList.contains('hidden')) renderRound(true);
+  if (!document.getElementById('results').classList.contains('hidden')) renderResults();
+}
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    lang = btn.dataset.lang;
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b === btn));
+    applyLang();
+  });
+});
+
+// ── SETUP ─────────────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click', () => {
+  const inputs = ROLES.map(r => ({ role: r, val: document.getElementById('name-' + r).value.trim() }));
+  if (inputs.some(i => !i.val)) {
+    document.getElementById('setupError').classList.remove('hidden');
+    return;
+  }
+  inputs.forEach(i => names[i.role] = i.val);
+  deck = shuffle(SCENARIOS.slice());
+  roundIdx = 0;
+  history = [];
+  totalScore = 0;
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('round').classList.remove('hidden');
+  renderRound();
+});
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ── ROUND ─────────────────────────────────────────────────────────
+function renderRound(refreshOnly = false) {
+  const dict = I18N[lang];
+  const scenario = deck[roundIdx];
+  document.getElementById('roundNum').textContent = (roundIdx + 1);
+  document.getElementById('scenarioId').textContent = scenario.id;
+  document.getElementById('scenarioText').textContent = scenario[lang];
+  document.getElementById('liveScore').textContent = totalScore.toFixed(1);
+
+  if (!refreshOnly) {
+    currentVerdict = null;
+    currentAnswers = { benefit: '', cost: '', transparency: '', contest: '' };
+    document.getElementById('rationale').value = '';
+    document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('selected', 'deploy', 'restrict', 'block'));
+    document.getElementById('roundError').classList.add('hidden');
+  }
+
+  const grid = document.getElementById('judgeGrid');
+  grid.innerHTML = ROLES.map(r => {
+    const heading = dict['r' + cap(r) + 'H'];
+    const q = dict['r' + cap(r) + 'Q'];
+    const badge = dict['badge' + cap(r)];
+    const val = currentAnswers[r] || '';
+    return `
+      <div class="judge-card ${r}">
+        <div class="who">${escapeHtml(names[r])} · ${badge}</div>
+        <h4>${heading}</h4>
+        <div class="q">${q}</div>
+        <textarea data-role="${r}" placeholder="…">${escapeHtml(val)}</textarea>
+        <div class="word-count" data-wc="${r}">0 / ${MIN_WORDS} words</div>
+      </div>
+    `;
+  }).join('');
+
+  grid.querySelectorAll('textarea').forEach(ta => {
+    updateWordCount(ta);
+    ta.addEventListener('input', () => {
+      currentAnswers[ta.dataset.role] = ta.value;
+      updateWordCount(ta);
+    });
+  });
+}
+
+function cap(s) { return s[0].toUpperCase() + s.slice(1); }
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function wordCount(s) { return (s.trim().match(/\S+/g) || []).length; }
+
+function updateWordCount(ta) {
+  const wc = wordCount(ta.value);
+  const el = document.querySelector(`[data-wc="${ta.dataset.role}"]`);
+  el.textContent = `${wc} / ${MIN_WORDS} words`;
+  el.classList.toggle('ok', wc >= MIN_WORDS);
+}
+
+document.querySelectorAll('.v-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentVerdict = btn.dataset.verdict;
+    document.querySelectorAll('.v-btn').forEach(b => {
+      b.classList.remove('selected', 'deploy', 'restrict', 'block');
+    });
+    btn.classList.add('selected', currentVerdict);
+  });
+});
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  const dict = I18N[lang];
+  const allAnswered = ROLES.every(r => wordCount(currentAnswers[r]) >= MIN_WORDS);
+  const rationale = document.getElementById('rationale').value.trim();
+  if (!allAnswered || !currentVerdict || rationale.length < 4) {
+    const err = document.getElementById('roundError');
+    err.textContent = dict.needAnswers;
+    err.classList.remove('hidden');
+    return;
+  }
+  history.push({
+    scenario: deck[roundIdx],
+    answers: { ...currentAnswers },
+    verdict: currentVerdict,
+    rationale,
+  });
+  totalScore = +(((roundIdx + 1) / ROUNDS_PER_SESSION) * 5).toFixed(2);
+  document.getElementById('liveScore').textContent = totalScore.toFixed(1);
+  sendScore(false);
+  roundIdx++;
+  if (roundIdx >= ROUNDS_PER_SESSION) {
+    document.getElementById('round').classList.add('hidden');
+    document.getElementById('results').classList.remove('hidden');
+    renderResults();
+    sendScore(true);
+  } else {
+    renderRound();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
+
+// ── RESULTS ───────────────────────────────────────────────────────
+function renderResults() {
+  const dict = I18N[lang];
+  const list = document.getElementById('summaryList');
+  list.innerHTML = history.map((h, i) => {
+    const vText = dict['v' + cap(h.verdict)];
+    return `
+      <div class="summary-card">
+        <div class="sc-head">
+          <span class="sc-num">${dict.scenarioLabel} ${i + 1} · #${h.scenario.id}</span>
+          <span class="sc-verdict ${h.verdict}">${vText}</span>
+        </div>
+        <div class="sc-text">${escapeHtml(h.scenario[lang])}</div>
+        <div class="sc-rationale">${escapeHtml(h.rationale)}</div>
+      </div>
+    `;
+  }).join('');
+
+  const debriefList = document.getElementById('debriefList');
+  debriefList.innerHTML = dict.debriefItems.map(t => `<li>${t}</li>`).join('');
+}
+
+document.getElementById('submitBtn').addEventListener('click', () => {
+  sendScore(true);
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = lang === 'es' ? 'Puntaje enviado ✓' : 'Score submitted ✓';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+});
+
+document.getElementById('replayBtn').addEventListener('click', () => {
+  deck = shuffle(SCENARIOS.slice());
+  roundIdx = 0;
+  history = [];
+  totalScore = 0;
+  document.getElementById('results').classList.add('hidden');
+  document.getElementById('round').classList.remove('hidden');
+  renderRound();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// ── SCORING ───────────────────────────────────────────────────────
+function sendScore(gameComplete) {
+  if (totalScore <= 0 && !gameComplete) return;
+  try {
+    window.parent.postMessage({
+      type: 'activityScore',
+      score: Math.max(0, Math.min(5, totalScore)),
+      maxScore: 5,
+      gameComplete,
+      completedAt: new Date().toISOString()
+    }, '*');
+  } catch (e) {}
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+applyLang();
+</script>
+</body>
+</html>

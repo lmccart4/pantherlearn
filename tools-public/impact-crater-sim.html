@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Impact Energy / Crater Simulator</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:920px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .tab{background:var(--panel);border:1px solid #334155;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;color:var(--muted);}
+  .tab.active{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .panel{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .panel h2{font-size:16px;margin:0 0 4px;}
+  .panel p.subtitle{margin:0 0 14px;color:var(--muted);font-size:13px;}
+  .field{margin-bottom:12px;}
+  .field-label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .choice-btn{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:6px 10px;color:var(--muted);font-size:12px;cursor:pointer;}
+  .choice-btn:hover{border-color:var(--accent);}
+  .choice-btn.selected{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;}
+  .pill{padding:5px 12px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .pill .val{color:var(--accent);}
+  .question{margin:14px 0;}
+  .question-label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .primary{flex:1;min-width:160px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  .crater-wrap{display:flex;align-items:center;justify-content:center;min-height:140px;background:#0b1220;border-radius:10px;margin:14px 0;position:relative;overflow:hidden;}
+  .crater{border-radius:50%;background:#0f172a;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);}
+  .airburst-icon{font-size:48px;}
+  #scoreBox{font-size:13px;color:var(--muted);margin-top:10px;}
+  .correct{color:var(--ok);} .wrong{color:var(--bad);}
+  .preset-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+  .preset-item{background:#0b1220;border-radius:6px;padding:6px 10px;font-size:12px;color:var(--muted);}
+  .preset-item strong{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div id="panelHost"></div>
+
+  <div class="actions">
+    <button class="primary" id="runBtn"></button>
+    <button class="secondary" id="submitBtn" style="border-color:var(--accent);color:var(--accent)"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+  <p class="hint" id="progressEl" style="margin-top:8px;"></p>
+</div>
+
+<script type="module">
+import {
+  TARGETS, MASS_OPTIONS, VELOCITY_OPTIONS, ENERGY_CATEGORIES, CRATER_CATEGORIES, SCENARIOS,
+  computeImpact, emptyState, scoreScenarios
+} from "./impact-crater-sim-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Impact Energy / Crater Simulator", es: "Simulador de Energía de Impacto / Cráter" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: {
+    en: "Vary an impactor's mass, velocity, and target surface. Then predict the kinetic energy and crater size for three famous impacts.",
+    es: "Varía la masa, velocidad y superficie de un impactor. Luego predice la energía cinética y el tamaño del cráter para tres impactos famosos.",
+  },
+  exploreTab: { en: "Explore", es: "Explorar" },
+  massLabel: { en: "Impactor mass", es: "Masa del impactor" },
+  velocityLabel: { en: "Impact velocity", es: "Velocidad de impacto" },
+  targetLabel: { en: "Target surface", es: "Superficie objetivo" },
+  energyLabel: { en: "Kinetic energy", es: "Energía cinética" },
+  tntLabel: { en: "TNT equivalent", es: "Equivalente en TNT" },
+  craterLabel: { en: "Crater diameter", es: "Diámetro del cráter" },
+  predictEnergy: { en: "Predict the energy category", es: "Predice la categoría de energía" },
+  predictCrater: { en: "Predict the crater category", es: "Predice la categoría del cráter" },
+  run: { en: "Run Impact", es: "Ejecutar impacto" },
+  submit: { en: "Submit Score", es: "Enviar puntuación" },
+  submitted: { en: "✓ Submitted", es: "✓ Enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+  airburstNote: { en: "No crater — the object broke up in the atmosphere.", es: "No hay cráter: el objeto se desintegró en la atmósfera." },
+  progress: { en: "Predictions made: {done}/6 across the three scenarios.", es: "Predicciones hechas: {done}/6 en los tres escenarios." },
+  progressDone: { en: "All predictions made — score sent automatically. Use Submit Score to re-send.", es: "Todas las predicciones hechas: la puntuación se envió automáticamente. Usa Enviar puntuación para reenviar." },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+let state = emptyState();
+let submitted = false;
+let autoSent = false; // one-shot guard for AUTO-send (manual submit ignores this)
+
+function countPredictions() {
+  let done = 0;
+  for (const sc of SCENARIOS) {
+    const st = state.scenarios[sc.id] || {};
+    if (st.energyPred) done += 1;
+    if (st.craterPred) done += 1;
+  }
+  return done;
+}
+
+// AUTO-send once when the student has filled all 6 predictions (natural "done" state).
+function maybeAutoSend() {
+  if (autoSent) return;
+  if (countPredictions() < 6) return;
+  autoSent = true;
+  const result = scoreScenarios(state);
+  sendActivityScore(result.score, result.maxScore, true);
+}
+
+function formatSci(n) {
+  if (n === 0) return "0";
+  const exp = Math.floor(Math.log10(n));
+  const mant = (n / Math.pow(10, exp)).toFixed(2);
+  return `${mant} × 10^${exp}`;
+}
+
+function formatEnergy(joules) {
+  if (joules >= 1e18) return `${(joules / 1e18).toFixed(2)} EJ`;
+  if (joules >= 1e15) return `${(joules / 1e15).toFixed(2)} PJ`;
+  if (joules >= 1e12) return `${(joules / 1e12).toFixed(2)} TJ`;
+  if (joules >= 1e9) return `${(joules / 1e9).toFixed(2)} GJ`;
+  if (joules >= 1e6) return `${(joules / 1e6).toFixed(2)} MJ`;
+  return `${joules.toFixed(0)} J`;
+}
+
+function formatTnt(tonnes) {
+  if (tonnes >= 1e9) return `${(tonnes / 1e9).toFixed(1)} billion tonnes`;
+  if (tonnes >= 1e6) return `${(tonnes / 1e6).toFixed(1)} million tonnes`;
+  if (tonnes >= 1e3) return `${(tonnes / 1e3).toFixed(1)} thousand tonnes`;
+  return `${tonnes.toFixed(1)} tonnes`;
+}
+
+function formatDiameter(m) {
+  if (m >= 1000) return `${(m / 1000).toFixed(2)} km`;
+  return `${m.toFixed(1)} m`;
+}
+
+function getScenarioParams() {
+  const sc = SCENARIOS.find((s) => s.id === state.activeTab);
+  if (!sc) return null;
+  const mass = (MASS_OPTIONS.find((m) => m.id === sc.massId) || MASS_OPTIONS[0]).kg;
+  const velocity = (VELOCITY_OPTIONS.find((v) => v.id === sc.velocityId) || VELOCITY_OPTIONS[0]).mps;
+  return { mass, velocity, targetId: sc.targetId, sc };
+}
+
+function getExploreParams() {
+  const mass = (MASS_OPTIONS.find((m) => m.id === state.explore.massId) || MASS_OPTIONS[0]).kg;
+  const velocity = (VELOCITY_OPTIONS.find((v) => v.id === state.explore.velocityId) || VELOCITY_OPTIONS[0]).mps;
+  return { mass, velocity, targetId: state.explore.targetId };
+}
+
+function currentImpact() {
+  if (state.activeTab === "explore") {
+    const p = getExploreParams();
+    return computeImpact(p.mass, p.velocity, p.targetId);
+  }
+  const p = getScenarioParams();
+  if (!p) return computeImpact(1, 13000, "rocky");
+  return computeImpact(p.mass, p.velocity, p.targetId);
+}
+
+function renderTabs() {
+  const host = document.getElementById("tabs");
+  host.innerHTML = "";
+  const exploreBtn = document.createElement("button");
+  exploreBtn.className = "tab" + (state.activeTab === "explore" ? " active" : "");
+  exploreBtn.textContent = tr.t("exploreTab");
+  exploreBtn.onclick = () => { state.activeTab = "explore"; saveState(); render(); };
+  host.appendChild(exploreBtn);
+  for (const sc of SCENARIOS) {
+    const btn = document.createElement("button");
+    btn.className = "tab" + (state.activeTab === sc.id ? " active" : "");
+    btn.textContent = sc.title[tr.lang];
+    btn.onclick = () => { state.activeTab = sc.id; saveState(); render(); };
+    host.appendChild(btn);
+  }
+}
+
+function makeButtonGroup(options, selectedId, onSelect) {
+  const group = document.createElement("div");
+  group.className = "btn-group";
+  for (const opt of options) {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn" + (opt.id === selectedId ? " selected" : "");
+    btn.textContent = opt.label[tr.lang];
+    btn.onclick = () => { onSelect(opt.id); };
+    group.appendChild(btn);
+  }
+  return group;
+}
+
+function renderExplore(panel) {
+  panel.innerHTML = "";
+
+  const massField = document.createElement("div");
+  massField.className = "field";
+  massField.innerHTML = `<label class="field-label">${tr.t("massLabel")}</label>`;
+  massField.appendChild(makeButtonGroup(MASS_OPTIONS, state.explore.massId, (id) => {
+    state.explore.massId = id; state.explore.revealed = false; submitted = false; saveState(); render();
+  }));
+  panel.appendChild(massField);
+
+  const velocityField = document.createElement("div");
+  velocityField.className = "field";
+  velocityField.innerHTML = `<label class="field-label">${tr.t("velocityLabel")}</label>`;
+  velocityField.appendChild(makeButtonGroup(VELOCITY_OPTIONS, state.explore.velocityId, (id) => {
+    state.explore.velocityId = id; state.explore.revealed = false; submitted = false; saveState(); render();
+  }));
+  panel.appendChild(velocityField);
+
+  const targetField = document.createElement("div");
+  targetField.className = "field";
+  targetField.innerHTML = `<label class="field-label">${tr.t("targetLabel")}</label>`;
+  targetField.appendChild(makeButtonGroup(TARGETS, state.explore.targetId, (id) => {
+    state.explore.targetId = id; state.explore.revealed = false; submitted = false; saveState(); render();
+  }));
+  panel.appendChild(targetField);
+}
+
+function renderScenario(panel) {
+  const p = getScenarioParams();
+  if (!p) return;
+  const st = state.scenarios[p.sc.id];
+  panel.innerHTML = "";
+
+  const title = document.createElement("h2");
+  title.textContent = p.sc.title[tr.lang];
+  panel.appendChild(title);
+
+  const sub = document.createElement("p");
+  sub.className = "subtitle";
+  sub.textContent = p.sc.subtitle[tr.lang];
+  panel.appendChild(sub);
+
+  const presets = document.createElement("div");
+  presets.className = "preset-row";
+  const massOpt = MASS_OPTIONS.find((m) => m.id === p.sc.massId);
+  const velOpt = VELOCITY_OPTIONS.find((v) => v.id === p.sc.velocityId);
+  const tgtOpt = TARGETS.find((t) => t.id === p.sc.targetId);
+  presets.innerHTML = `
+    <span class="preset-item"><strong>${tr.t("massLabel")}:</strong> ${massOpt.label[tr.lang]}</span>
+    <span class="preset-item"><strong>${tr.t("velocityLabel")}:</strong> ${velOpt.label[tr.lang]}</span>
+    <span class="preset-item"><strong>${tr.t("targetLabel")}:</strong> ${tgtOpt.label[tr.lang]}</span>
+  `;
+  panel.appendChild(presets);
+
+  const energyQ = document.createElement("div");
+  energyQ.className = "question";
+  energyQ.innerHTML = `<label class="question-label">${tr.t("predictEnergy")}</label>`;
+  energyQ.appendChild(makeButtonGroup(ENERGY_CATEGORIES, st.energyPred, (id) => {
+    st.energyPred = id; st.revealed = false; submitted = false; saveState(); render();
+  }));
+  panel.appendChild(energyQ);
+
+  const craterQ = document.createElement("div");
+  craterQ.className = "question";
+  craterQ.innerHTML = `<label class="question-label">${tr.t("predictCrater")}</label>`;
+  craterQ.appendChild(makeButtonGroup(CRATER_CATEGORIES, st.craterPred, (id) => {
+    st.craterPred = id; st.revealed = false; submitted = false; saveState(); render();
+  }));
+  panel.appendChild(craterQ);
+}
+
+function renderCrater(panel, impact) {
+  const wrap = document.createElement("div");
+  wrap.className = "crater-wrap";
+  if (impact.craterCategory === "none") {
+    wrap.innerHTML = `<div class="airburst-icon">💥</div>`;
+  } else {
+    // Scale visual: clamp between 40 px and 220 px for the canvas.
+    const maxD = 50000; // 50 km
+    const minPx = 40;
+    const maxPx = 220;
+    const px = Math.max(minPx, Math.min(maxPx, minPx + (impact.diameterM / maxD) * (maxPx - minPx)));
+    wrap.innerHTML = `<div class="crater" style="width:${px}px;height:${px}px;">${formatDiameter(impact.diameterM)}</div>`;
+  }
+  panel.appendChild(wrap);
+
+  const readout = document.createElement("div");
+  readout.className = "readout";
+  readout.innerHTML = `
+    <span class="pill">${tr.t("energyLabel")}: <span class="val">${formatEnergy(impact.joules)}</span></span>
+    <span class="pill">${tr.t("tntLabel")}: <span class="val">${formatTnt(impact.tntTonnes)}</span></span>
+    <span class="pill">${tr.t("craterLabel")}: <span class="val">${impact.craterCategory === "none" ? tr.t("airburstNote") : formatDiameter(impact.diameterM)}</span></span>
+  `;
+  panel.appendChild(readout);
+}
+
+function renderPanel() {
+  const host = document.getElementById("panelHost");
+  host.innerHTML = "";
+  const panel = document.createElement("div");
+  panel.className = "panel";
+
+  if (state.activeTab === "explore") {
+    renderExplore(panel);
+  } else {
+    renderScenario(panel);
+  }
+
+  const revealed = state.activeTab === "explore" ? state.explore.revealed : state.scenarios[state.activeTab]?.revealed;
+  if (revealed) {
+    renderCrater(panel, currentImpact());
+  }
+
+  host.appendChild(panel);
+}
+
+function runImpact() {
+  if (state.activeTab === "explore") {
+    state.explore.revealed = true;
+  } else {
+    state.scenarios[state.activeTab].revealed = true;
+  }
+  saveState();
+  render();
+}
+
+function submitScore() {
+  const result = scoreScenarios(state);
+  sendActivityScore(result.score, result.maxScore, true); // ALWAYS re-send, no guard
+  submitted = true;
+  autoSent = true;
+  saveState();
+  const box = document.getElementById("scoreBox");
+  box.innerHTML = `<span class="correct">${tr.t("submitted")}</span> — ${tr.t("scoreLbl")}: ${result.score}/5 (${result.correct}/${result.total} predictions)`;
+}
+
+function resetAll() {
+  state = emptyState();
+  submitted = false;
+  autoSent = false;
+  document.getElementById("scoreBox").innerHTML = "";
+  saveState();
+  render();
+}
+
+function saveState() {
+  saver.save({ state, submitted });
+}
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("runBtn").textContent = tr.t("run");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+}
+
+function renderProgress() {
+  const el = document.getElementById("progressEl");
+  if (!el) return;
+  const done = countPredictions();
+  el.textContent = done >= 6 ? tr.t("progressDone") : tr.t("progress").replace("{done}", String(done));
+}
+
+function render() {
+  renderStaticText();
+  renderTabs();
+  renderPanel();
+  renderProgress();
+  // AUTO-send fires here so any path that fills the last prediction triggers it.
+  maybeAutoSend();
+}
+
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+document.getElementById("runBtn").onclick = runImpact;
+document.getElementById("submitBtn").onclick = submitScore;
+document.getElementById("resetBtn").onclick = resetAll;
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

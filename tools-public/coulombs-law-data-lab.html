@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coulomb's Law: Data Collection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; padding: 18px 14px 60px; background: #f6f1e3; color: #15130f;
+    font-family: 'Space Grotesk', system-ui, sans-serif; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  .lang-toggle { position: absolute; top: 14px; right: 14px; display: flex; gap: 6px; z-index: 10; }
+  .lang-btn { font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 4px 10px;
+    border: 1.5px solid #15130f; border-radius: 999px; background: #fff; cursor: pointer;
+    box-shadow: 2px 2px 0 #15130f; }
+  .lang-btn.active { background: #c6ff3f; }
+
+  .header { margin-bottom: 16px; }
+  .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: #6b1e6b; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+  h1 { font-size: 26px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .lede { color: #2f2a1f; margin: 0 0 6px; font-size: 15.5px; line-height: 1.5; }
+
+  .status-bar { display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+    background: #fff; border: 1.5px solid #15130f; border-radius: 999px;
+    padding: 8px 16px; box-shadow: 3px 3px 0 #15130f;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; margin-bottom: 18px; }
+  .status-bar .progress { color: #6b1e6b; }
+  .status-bar .score { color: #2a3b00; font-weight: 700; margin-left: auto; }
+
+  .panel { background: #fff; border: 1.5px solid #15130f; border-radius: 12px;
+    padding: 16px 18px; box-shadow: 4px 4px 0 #15130f; margin-bottom: 18px; }
+  .panel h2 { font-size: 19px; margin: 0 0 8px; }
+  .panel p { font-size: 14.5px; line-height: 1.55; margin: 0 0 8px; color: #2f2a1f; }
+
+  .settings-callout { background: #fff7d6; border: 1.5px solid #15130f; border-radius: 8px;
+    padding: 10px 14px; margin: 10px 0; font-size: 14px; }
+  .settings-callout ul { margin: 6px 0 0; padding-left: 18px; }
+  .settings-callout li { margin: 3px 0; }
+
+  .units-hint { font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: #55503f; margin: 8px 0 4px; }
+
+  .sim-frame { border: 1.5px solid #15130f; border-radius: 10px; overflow: hidden;
+    background: #fff; margin: 0 0 18px; box-shadow: 4px 4px 0 #15130f; }
+  .sim-caption { background: #15130f; color: #c6ff3f; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; padding: 6px 12px; letter-spacing: 0.1em; }
+  .sim-frame iframe { display: block; width: 100%; height: 540px; border: 0; background: #fff; }
+
+  .table-scroll { overflow-x: auto; }
+  table.data { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 14px; }
+  table.data th { background: #15130f; color: #c6ff3f; padding: 8px 10px; text-align: left;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.06em; white-space: nowrap; }
+  table.data td { border: 1px solid #d9d2bf; padding: 6px 8px; vertical-align: middle; }
+  table.data td.given { background: #fff7d6; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  table.data input { width: 100%; box-sizing: border-box; padding: 6px 8px;
+    border: 1.5px solid #9a917a; border-radius: 4px; font-size: 14px;
+    font-family: 'JetBrains Mono', monospace; background: #fafaf3; }
+  table.data input:focus { outline: 2px solid #6b1e6b; outline-offset: 1px; }
+  table.data input.filled { background: #e7ffb1; border-color: #2a3b00; }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700; font-size: 15px; padding: 11px 20px; min-height: 44px; border-radius: 999px;
+    border: 1.5px solid #15130f; background: #c6ff3f; color: #2a3b00; cursor: pointer;
+    box-shadow: 3px 3px 0 #15130f; transition: transform 120ms, box-shadow 120ms; }
+  .btn:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #15130f; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .submit-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .error { color: #b03a2c; font-weight: 700; font-size: 14px; margin-top: 8px; }
+  .ok-msg { color: #2a3b00; font-weight: 700; font-size: 14px; margin-top: 8px; }
+
+  @media (max-width: 480px) {
+    .status-bar { margin-top: 36px; }
+  }
+</style>
+<link rel="stylesheet" href="/tools/savanna-embed.css">
+</head>
+<body class="savanna">
+
+<div class="lang-toggle">
+  <button class="lang-btn active" data-lang="en">EN</button>
+  <button class="lang-btn" data-lang="es">ES</button>
+</div>
+
+<div class="wrap">
+
+  <div class="status-bar">
+    <span class="progress"><span data-i18n="progressLabel">Progress</span>: <span id="progressText">0 / 0</span></span>
+    <span class="score"><span data-i18n="scoreLabel">Score</span>: <span id="liveScore">0.0</span> / 5</span>
+  </div>
+
+  <!-- ── PhET SIM ── -->
+  <div class="sim-frame">
+    <div class="sim-caption" data-i18n="simCaption">Coulomb's Law Interactive · PhET Simulations · University of Colorado Boulder</div>
+    <iframe src="https://phet.colorado.edu/sims/html/coulombs-law/latest/coulombs-law_en.html" allowfullscreen></iframe>
+  </div>
+
+  <!-- ── PART 1 ── -->
+  <div class="panel" id="panel-part1" style="display:none;">
+    <div class="settings-callout">
+      <strong data-i18n="initialSettings">Initial settings:</strong>
+      <ul>
+        <li data-i18n="p1S1">Open the <strong>Macro Scale</strong> portion of the sim (top tab).</li>
+        <li data-i18n="p1S2">Set q1 and q2 <strong>3 cm apart</strong> — measure from the center dot of one circle to the center dot of the other.</li>
+        <li data-i18n="p1S3">Make sure <strong>"Force values"</strong> is checked.</li>
+        <li data-i18n="p1S4">Make sure <strong>"Scientific notation"</strong> is <em>not</em> checked.</li>
+      </ul>
+    </div>
+
+    <p data-i18n="p1Directions"><strong>Directions:</strong> Set the charges to the values listed in each row, then read both force values from the sim and enter them below.</p>
+    <div class="units-hint" data-i18n="unitsHint">Force values shown in Newtons (N). Distance held at 3 cm for all of Part 1.</div>
+
+    <div class="table-scroll"><table class="data" id="table-part1">
+      <thead>
+        <tr>
+          <th data-i18n="thQ1">Charge on q1</th>
+          <th data-i18n="thQ2">Charge on q2</th>
+          <th data-i18n="thF12">Force on q1 by q2 (N)</th>
+          <th data-i18n="thF21">Force on q2 by q1 (N)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="given">−1 µC</td><td class="given">+1 µC</td><td><input data-row="1" data-col="f12" inputmode="decimal"></td><td><input data-row="1" data-col="f21" inputmode="decimal"></td></tr>
+        <tr><td class="given">−2 µC</td><td class="given">+1 µC</td><td><input data-row="2" data-col="f12" inputmode="decimal"></td><td><input data-row="2" data-col="f21" inputmode="decimal"></td></tr>
+        <tr><td class="given">−3 µC</td><td class="given">+1 µC</td><td><input data-row="3" data-col="f12" inputmode="decimal"></td><td><input data-row="3" data-col="f21" inputmode="decimal"></td></tr>
+        <tr><td class="given">−1 µC</td><td class="given">+2 µC</td><td><input data-row="4" data-col="f12" inputmode="decimal"></td><td><input data-row="4" data-col="f21" inputmode="decimal"></td></tr>
+        <tr><td class="given">−1 µC</td><td class="given">+3 µC</td><td><input data-row="5" data-col="f12" inputmode="decimal"></td><td><input data-row="5" data-col="f21" inputmode="decimal"></td></tr>
+        <tr><td class="given">−2 µC</td><td class="given">+2 µC</td><td><input data-row="6" data-col="f12" inputmode="decimal"></td><td><input data-row="6" data-col="f21" inputmode="decimal"></td></tr>
+        <tr><td class="given">−3 µC</td><td class="given">+3 µC</td><td><input data-row="7" data-col="f12" inputmode="decimal"></td><td><input data-row="7" data-col="f21" inputmode="decimal"></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- ── PART 2 ── -->
+  <div class="panel" id="panel-part2" style="display:none;">
+    <div class="settings-callout">
+      <strong data-i18n="initialSettings">Initial settings:</strong>
+      <ul>
+        <li data-i18n="p2S1">Set q1 to <strong>−10 µC</strong> and q2 to <strong>+10 µC</strong>.</li>
+        <li data-i18n="p2S2"><strong>Force values</strong> checked, <strong>Scientific notation</strong> NOT checked.</li>
+        <li data-i18n="p2S3"><strong>Measure from the center dot of one circle to the center dot of the other</strong> — not from the edges.</li>
+      </ul>
+    </div>
+
+    <p data-i18n="p2Directions"><strong>Directions:</strong> Move the charges to the listed distances and read the force on q2 from q1.</p>
+
+    <div class="table-scroll"><table class="data" id="table-part2">
+      <thead>
+        <tr>
+          <th data-i18n="thDist">Distance between q1 and q2</th>
+          <th data-i18n="thF21Single">Force on q2 by q1 (N)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="given">10 cm</td><td><input data-row="1" data-col="f" data-table="2" inputmode="decimal"></td></tr>
+        <tr><td class="given">8 cm</td><td><input data-row="2" data-col="f" data-table="2" inputmode="decimal"></td></tr>
+        <tr><td class="given">5 cm</td><td><input data-row="3" data-col="f" data-table="2" inputmode="decimal"></td></tr>
+        <tr><td class="given">4 cm</td><td><input data-row="4" data-col="f" data-table="2" inputmode="decimal"></td></tr>
+        <tr><td class="given">2 cm</td><td><input data-row="5" data-col="f" data-table="2" inputmode="decimal"></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- ── SUBMIT ── -->
+  <div class="panel">
+    <h3 data-i18n="submitH">Submit your data</h3>
+    <p data-i18n="submitBody">When all force values are entered, submit to record your score. Then continue with the reflection questions below the activity.</p>
+    <div id="submitError" class="error" style="display:none;"></div>
+    <div class="submit-row">
+      <button class="btn" id="submitBtn" data-i18n="submitBtn">Submit data</button>
+      <span id="submitOk" class="ok-msg" style="display:none;" data-i18n="submitOk">Submitted ✓ — your teacher can see this.</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const PART = (new URLSearchParams(location.search).get('part') === '2') ? 2 : 1;
+
+const I18N = {
+  en: {
+    eyebrow: "Physics · Electrostatics · Data Collection Lab",
+    title1: "Coulomb's Law: Force vs. Charge",
+    title2: "Coulomb's Law: Force vs. Distance",
+    lede1: "Use the simulation to collect data on how the force changes as you change the amount of charge. Distance is held constant at 3 cm.",
+    lede2: "Use the simulation to collect data on how the force changes as you change the distance between two ±10 µC charges.",
+    progressLabel: "Progress",
+    scoreLabel: "Score",
+    simCaption: "Coulomb's Law Interactive · PhET Simulations · University of Colorado Boulder",
+    p1Title: "Part 1: Force vs. Charge",
+    p1Consider: "<strong>Consider:</strong> How does the amount of charge affect the force between the charges?",
+    initialSettings: "Initial settings:",
+    p1S1: 'Open the <strong>Macro Scale</strong> portion of the sim (top tab).',
+    p1S2: 'Set q1 and q2 <strong>3 cm apart</strong> — measure from the center dot of one circle to the center dot of the other.',
+    p1S3: 'Make sure <strong>"Force values"</strong> is checked.',
+    p1S4: 'Make sure <strong>"Scientific notation"</strong> is <em>not</em> checked.',
+    p1Directions: "<strong>Directions:</strong> Set the charges to the values listed in each row, then read both force values from the sim and enter them below.",
+    unitsHint: "Force values shown in Newtons (N). Distance held at 3 cm for all of Part 1.",
+    thQ1: "Charge on q1", thQ2: "Charge on q2", thF12: "Force on q1 by q2 (N)", thF21: "Force on q2 by q1 (N)",
+    p2Title: "Part 2: Force vs. Distance",
+    p2Consider: "<strong>Consider:</strong> How does the distance between the charges affect the force?",
+    p2S1: "Set q1 to <strong>−10 µC</strong> and q2 to <strong>+10 µC</strong>.",
+    p2S2: "<strong>Force values</strong> checked, <strong>Scientific notation</strong> NOT checked.",
+    p2S3: "<strong>Measure from the center dot of one circle to the center dot of the other</strong> — not from the edges.",
+    p2Directions: "<strong>Directions:</strong> Move the charges to the listed distances and read the force on q2 from q1.",
+    thDist: "Distance between q1 and q2", thF21Single: "Force on q2 by q1 (N)",
+    submitH: "Submit your data",
+    submitBody: "When all force values are entered, submit to record your score. Then continue with the reflection questions below the activity.",
+    submitBtn: "Submit data",
+    submitOk: "Submitted ✓ — your teacher can see this.",
+    needAll: "Still missing — you need:",
+    needTable: "force values",
+  },
+  es: {
+    eyebrow: "Física · Electrostática · Laboratorio de Datos",
+    title1: "Ley de Coulomb: Fuerza vs. Carga",
+    title2: "Ley de Coulomb: Fuerza vs. Distancia",
+    lede1: "Usa la simulación para recolectar datos sobre cómo cambia la fuerza cuando cambia la cantidad de carga. La distancia se mantiene en 3 cm.",
+    lede2: "Usa la simulación para recolectar datos sobre cómo cambia la fuerza cuando cambias la distancia entre dos cargas de ±10 µC.",
+    progressLabel: "Progreso",
+    scoreLabel: "Puntaje",
+    simCaption: "Ley de Coulomb · Simulaciones PhET · Universidad de Colorado Boulder",
+    p1Title: "Parte 1: Fuerza vs. Carga",
+    p1Consider: "<strong>Considera:</strong> ¿Cómo afecta la cantidad de carga a la fuerza entre las cargas?",
+    initialSettings: "Configuración inicial:",
+    p1S1: 'Abre la parte de <strong>Escala Macro</strong> de la simulación (pestaña superior).',
+    p1S2: 'Coloca q1 y q2 a <strong>3 cm</strong> — mide del punto central de un círculo al punto central del otro.',
+    p1S3: 'Asegúrate de que <strong>"Valores de fuerza"</strong> esté marcado.',
+    p1S4: 'Asegúrate de que <strong>"Notación científica"</strong> <em>no</em> esté marcada.',
+    p1Directions: "<strong>Instrucciones:</strong> Configura las cargas a los valores indicados en cada fila, luego lee ambos valores de fuerza de la simulación e ingrésalos abajo.",
+    unitsHint: "Valores de fuerza en Newtons (N). Distancia constante a 3 cm en toda la Parte 1.",
+    thQ1: "Carga en q1", thQ2: "Carga en q2", thF12: "Fuerza sobre q1 por q2 (N)", thF21: "Fuerza sobre q2 por q1 (N)",
+    p2Title: "Parte 2: Fuerza vs. Distancia",
+    p2Consider: "<strong>Considera:</strong> ¿Cómo afecta la distancia entre las cargas a la fuerza?",
+    p2S1: "Configura q1 a <strong>−10 µC</strong> y q2 a <strong>+10 µC</strong>.",
+    p2S2: "<strong>Valores de fuerza</strong> marcado, <strong>Notación científica</strong> NO marcada.",
+    p2S3: "<strong>Mide del punto central de un círculo al punto central del otro</strong> — no desde los bordes.",
+    p2Directions: "<strong>Instrucciones:</strong> Mueve las cargas a las distancias indicadas y lee la fuerza sobre q2 por q1.",
+    thDist: "Distancia entre q1 y q2", thF21Single: "Fuerza sobre q2 por q1 (N)",
+    submitH: "Envía tus datos",
+    submitBody: "Cuando todos los valores de fuerza estén ingresados, envía para registrar tu puntaje. Luego continúa con las preguntas de reflexión debajo de la actividad.",
+    submitBtn: "Enviar datos",
+    submitOk: "Enviado ✓ — tu maestro puede verlo.",
+    needAll: "Aún falta — necesitas:",
+    needTable: "valores de fuerza",
+  }
+};
+
+// Show only this part's panel
+document.getElementById('panel-part' + PART).style.display = '';
+
+let lang = 'en';
+
+function applyLang() {
+  const dict = I18N[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (dict[k]) el.innerHTML = dict[k];
+  });
+}
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    lang = btn.dataset.lang;
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b === btn));
+    applyLang();
+  });
+});
+
+const TABLE_SEL = '#table-part' + PART + ' input';
+const TOTAL = document.querySelectorAll(TABLE_SEL).length;
+
+document.querySelectorAll(TABLE_SEL).forEach(inp => {
+  inp.addEventListener('input', () => {
+    inp.classList.toggle('filled', inp.value.trim() !== '');
+    updateProgress();
+  });
+});
+
+function countCompleted() {
+  let done = 0;
+  document.querySelectorAll(TABLE_SEL).forEach(i => { if (i.value.trim() !== '') done++; });
+  return done;
+}
+
+function updateProgress() {
+  const done = countCompleted();
+  document.getElementById('progressText').textContent = `${done} / ${TOTAL}`;
+  const pct = done / TOTAL;
+  const score = +(Math.min(5, pct * 5)).toFixed(2);
+  document.getElementById('liveScore').textContent = score.toFixed(1);
+  if (score > 0) sendScore(false, score);
+}
+
+document.getElementById('submitBtn').addEventListener('click', () => {
+  const dict = I18N[lang];
+  const empty = [...document.querySelectorAll(TABLE_SEL)].filter(i => i.value.trim() === '').length;
+  const errEl = document.getElementById('submitError');
+  if (empty > 0) {
+    errEl.style.display = 'block';
+    errEl.innerHTML = '<strong>' + dict.needAll + '</strong> ' + empty + ' ' + dict.needTable;
+    return;
+  }
+  errEl.style.display = 'none';
+  sendScore(true, 5);
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  document.getElementById('submitOk').style.display = 'inline';
+});
+
+let lastSent = -1;
+function sendScore(gameComplete, scoreVal) {
+  if (scoreVal <= 0 && !gameComplete) return;
+  if (!gameComplete && scoreVal === lastSent) return;
+  lastSent = scoreVal;
+  try {
+    window.parent.postMessage({
+      type: 'activityScore',
+      score: Math.max(0, Math.min(5, scoreVal)),
+      maxScore: 5,
+      gameComplete: !!gameComplete,
+      completedAt: new Date().toISOString()
+    }, '*');
+  } catch (e) {}
+}
+
+applyLang();
+updateProgress();
+</script>
+</body>
+</html>

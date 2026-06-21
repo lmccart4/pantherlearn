@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Wave Properties Explorer</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .chart{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:12px;}
+  svg{width:100%;height:220px;display:block;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .pill{padding:5px 11px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px;}
+  .ctl{background:var(--panel);border:1px solid #334155;border-radius:10px;padding:12px;}
+  .ctl label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .ctl input[type=range]{width:100%;}
+  .ctl .val{font-size:14px;color:var(--accent);font-weight:600;}
+  .questions{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:14px;}
+  .q{margin-bottom:14px;}
+  .q:last-child{margin-bottom:0;}
+  .q-label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block;}
+  .q input[type=number]{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:7px 10px;color:var(--ink);font-size:14px;width:120px;}
+  .q-unit{margin-left:6px;font-size:13px;color:var(--muted);}
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .choice-btn{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:6px 12px;color:var(--muted);font-size:13px;cursor:pointer;}
+  .choice-btn:hover{border-color:var(--accent);}
+  .choice-btn.selected{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .primary{flex:1;min-width:160px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  #scoreBox{font-size:13px;color:var(--muted);margin-top:10px;}
+  .muted{font-size:12px;color:var(--muted);margin-top:4px;}
+  .ok{color:var(--ok);} .bad{color:var(--bad);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="chart">
+    <svg id="waveSvg" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="readout">
+    <span class="pill" id="ampPill">—</span>
+    <span class="pill" id="lambdaPill">—</span>
+    <span class="pill" id="freqPill">—</span>
+    <span class="pill" id="speedPill">—</span>
+    <span class="pill" id="periodPill">—</span>
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <label id="ampLabel"></label>
+      <input type="range" id="ampSlider" min="0.5" max="3.0" step="0.1" />
+      <div class="val" id="ampVal">—</div>
+    </div>
+    <div class="ctl">
+      <label id="lambdaLabel"></label>
+      <input type="range" id="lambdaSlider" min="1.0" max="8.0" step="0.2" />
+      <div class="val" id="lambdaVal">—</div>
+    </div>
+    <div class="ctl">
+      <label id="freqLabel"></label>
+      <input type="range" id="freqSlider" min="0.2" max="2.0" step="0.1" />
+      <div class="val" id="freqVal">—</div>
+    </div>
+  </div>
+
+  <div class="questions">
+    <div class="q">
+      <label class="q-label" id="qAmpLabel"></label>
+      <input type="number" id="qAmp" step="0.1" />
+      <span class="q-unit">m</span>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qLambdaLabel"></label>
+      <input type="number" id="qLambda" step="0.1" />
+      <span class="q-unit">m</span>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qSpeedLabel"></label>
+      <input type="number" id="qSpeed" step="0.1" />
+      <span class="q-unit">m/s</span>
+      <div class="muted" id="speedHint"></div>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qDoubleFLabel"></label>
+      <div class="btn-group" id="qDoubleF"></div>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qLambdaUpLabel"></label>
+      <div class="btn-group" id="qLambdaUp"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import { PARAMS, createState, sampleWave, waveSpeed, wavePeriod, checkAnswers, answersComplete } from "./wave-properties-explorer-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Wave Properties Explorer", es: "Explorador de Propiedades de Ondas" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: { en: "Adjust the wave. Read amplitude and wavelength from the scale, then calculate speed and answer the prediction checks.", es: "Ajusta la onda. Lee la amplitud y la longitud de onda en la escala, luego calcula la velocidad y responde las verificaciones de predicción." },
+  amplitude: { en: "Amplitude", es: "Amplitud" },
+  wavelength: { en: "Wavelength", es: "Longitud de onda" },
+  frequency: { en: "Frequency", es: "Frecuencia" },
+  speed: { en: "Wave speed", es: "Velocidad de onda" },
+  period: { en: "Period", es: "Período" },
+  qAmp: { en: "1. Read the amplitude from the y-axis scale.", es: "1. Lee la amplitud en la escala del eje y." },
+  qLambda: { en: "2. Read one full wavelength from the x-axis scale.", es: "2. Lee una longitud de onda completa en la escala del eje x." },
+  qSpeed: { en: "3. Calculate wave speed using v = f · λ.", es: "3. Calcula la velocidad de onda usando v = f · λ." },
+  speedHint: { en: "Use the frequency and wavelength shown above.", es: "Usa la frecuencia y la longitud de onda mostradas arriba." },
+  qDoubleF: { en: "4. If frequency doubles and wavelength stays the same, wave speed...", es: "4. Si la frecuencia se duplica y la longitud de onda se mantiene, la velocidad de onda..." },
+  qLambdaUp: { en: "5. If wavelength increases and frequency stays the same, wave speed...", es: "5. Si la longitud de onda aumenta y la frecuencia se mantiene, la velocidad de onda..." },
+  optDoubles: { en: "doubles", es: "se duplica" },
+  optHalves: { en: "halves", es: "se reduce a la mitad" },
+  optStaysSame: { en: "stays the same", es: "permanece igual" },
+  optZero: { en: "becomes zero", es: "se vuelve cero" },
+  optIncreases: { en: "increases", es: "aumenta" },
+  optDecreases: { en: "decreases", es: "disminuye" },
+  submit: { en: "Submit Answers", es: "Enviar respuestas" },
+  submitted: { en: "✓ Submitted", es: "✓ Enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+};
+
+const PRED_OPTS = [
+  { id: "doubles", label: "optDoubles" },
+  { id: "halves", label: "optHalves" },
+  { id: "staysSame", label: "optStaysSame" },
+  { id: "zero", label: "optZero" },
+];
+
+const PRED_LAMBDA_OPTS = [
+  { id: "increases", label: "optIncreases" },
+  { id: "decreases", label: "optDecreases" },
+  { id: "staysSame", label: "optStaysSame" },
+  { id: "zero", label: "optZero" },
+];
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+let state = createState();
+let answers = { amplitudeRead: "", wavelengthRead: "", speedCalc: "", predDoubleF: null, predLambdaUp: null };
+let submitted = false;
+let scoreResult = null;
+let autoSent = false;
+
+function fmt(n) { return Number(n).toFixed(1); }
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("ampLabel").textContent = tr.t("amplitude");
+  document.getElementById("lambdaLabel").textContent = tr.t("wavelength");
+  document.getElementById("freqLabel").textContent = tr.t("frequency");
+  document.getElementById("qAmpLabel").textContent = tr.t("qAmp");
+  document.getElementById("qLambdaLabel").textContent = tr.t("qLambda");
+  document.getElementById("qSpeedLabel").textContent = tr.t("qSpeed");
+  document.getElementById("speedHint").textContent = tr.t("speedHint");
+  document.getElementById("qDoubleFLabel").textContent = tr.t("qDoubleF");
+  document.getElementById("qLambdaUpLabel").textContent = tr.t("qLambdaUp");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+}
+
+function renderReadouts() {
+  document.getElementById("ampPill").textContent = `${tr.t("amplitude")}: ${fmt(state.amplitude)} m`;
+  document.getElementById("lambdaPill").textContent = `${tr.t("wavelength")}: ${fmt(state.wavelength)} m`;
+  document.getElementById("freqPill").textContent = `${tr.t("frequency")}: ${fmt(state.frequency)} Hz`;
+  document.getElementById("speedPill").textContent = `${tr.t("speed")}: ${fmt(waveSpeed(state))} m/s`;
+  document.getElementById("periodPill").textContent = `${tr.t("period")}: ${fmt(wavePeriod(state))} s`;
+}
+
+function renderControls() {
+  document.getElementById("ampSlider").value = state.amplitude;
+  document.getElementById("lambdaSlider").value = state.wavelength;
+  document.getElementById("freqSlider").value = state.frequency;
+  document.getElementById("ampVal").textContent = `${fmt(state.amplitude)} m`;
+  document.getElementById("lambdaVal").textContent = `${fmt(state.wavelength)} m`;
+  document.getElementById("freqVal").textContent = `${fmt(state.frequency)} Hz`;
+}
+
+function drawWave() {
+  const svg = document.getElementById("waveSvg");
+  const W = 600, H = 220, pad = 30;
+  const xMax = 12;
+  const yMax = 3.5;
+  const pts = sampleWave(state, { xMin: 0, xMax, steps: 300, time: 0 });
+
+  const toX = x => pad + (x / xMax) * (W - 2 * pad);
+  const toY = y => H / 2 - (y / yMax) * (H / 2 - pad);
+
+  const wavePts = pts.map(p => `${toX(p.x)},${toY(p.y)}`).join(" ");
+
+  // x-axis ticks
+  let ticks = "";
+  let labels = "";
+  for (let xm = 0; xm <= xMax; xm += 1) {
+    const x = toX(xm);
+    ticks += `<line x1="${x}" y1="${H-pad}" x2="${x}" y2="${H-pad+5}" stroke="#64748b" />`;
+    labels += `<text x="${x}" y="${H-pad+18}" fill="#94a3b8" font-size="11" text-anchor="middle">${xm}</text>`;
+  }
+
+  // y-axis ticks
+  let yTicks = "", yLabels = "";
+  for (let ym = -3; ym <= 3; ym += 1) {
+    if (ym === 0) continue;
+    const y = toY(ym);
+    yTicks += `<line x1="${pad-5}" y1="${y}" x2="${pad}" y2="${y}" stroke="#64748b" />`;
+    yLabels += `<text x="${pad-10}" y="${y+4}" fill="#94a3b8" font-size="11" text-anchor="end">${ym}</text>`;
+  }
+
+  // one-wavelength highlight
+  const x0 = toX(0);
+  const x1 = toX(state.wavelength);
+  const highlight = `<rect x="${x0}" y="${pad}" width="${x1-x0}" height="${H-2*pad}" fill="#38bdf81a" rx="4" />`;
+
+  svg.innerHTML = `
+    ${highlight}
+    <line x1="${pad}" y1="${H/2}" x2="${W-pad}" y2="${H/2}" stroke="#475569" stroke-width="1" />
+    <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#64748b" />
+    <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#64748b" />
+    ${ticks}${labels}${yTicks}${yLabels}
+    <polyline points="${wavePts}" fill="none" stroke="var(--accent)" stroke-width="3" />
+    <text x="${W/2}" y="${H-6}" fill="#94a3b8" font-size="12" text-anchor="middle">x (m)</text>
+    <text x="12" y="${H/2}" fill="#94a3b8" font-size="12" text-anchor="middle" transform="rotate(-90 12 ${H/2})">y (m)</text>
+  `;
+}
+
+function renderQuestionChoices(groupId, options, field) {
+  const host = document.getElementById(groupId);
+  host.innerHTML = "";
+  for (const opt of options) {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn" + (answers[field] === opt.id ? " selected" : "");
+    btn.textContent = tr.t(opt.label);
+    btn.onclick = () => {
+      answers[field] = opt.id;
+      submitted = false;
+      saveState();
+      maybeAutoSend();
+      render();
+    };
+    host.appendChild(btn);
+  }
+}
+
+function renderInputs() {
+  document.getElementById("qAmp").value = answers.amplitudeRead;
+  document.getElementById("qLambda").value = answers.wavelengthRead;
+  document.getElementById("qSpeed").value = answers.speedCalc;
+  renderQuestionChoices("qDoubleF", PRED_OPTS, "predDoubleF");
+  renderQuestionChoices("qLambdaUp", PRED_LAMBDA_OPTS, "predLambdaUp");
+}
+
+function saveState() {
+  saver.save({ state, answers, submitted, scoreResult });
+}
+
+// AUTO-SEND once when all five inputs are filled (natural "done" state).
+function maybeAutoSend() {
+  if (autoSent || !answersComplete(answers)) return;
+  const r = checkAnswers(state, answers);
+  sendActivityScore(r.score, 5, true);
+  autoSent = true;
+}
+
+function submitAnswers() {
+  scoreResult = checkAnswers(state, answers);
+  submitted = true;
+  sendActivityScore(scoreResult.score, 5, true); // ALWAYS re-send, no guard
+  saveState();
+  renderScore();
+}
+
+function renderScore() {
+  const box = document.getElementById("scoreBox");
+  if (!submitted || !scoreResult) {
+    box.textContent = "";
+    return;
+  }
+  const cls = scoreResult.score === 5 ? "ok" : "bad";
+  box.innerHTML = `<span class="${cls}">${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${scoreResult.score}/5</span>`;
+}
+
+function resetAll() {
+  state = createState();
+  answers = { amplitudeRead: "", wavelengthRead: "", speedCalc: "", predDoubleF: null, predLambdaUp: null };
+  submitted = false;
+  scoreResult = null;
+  autoSent = false;
+  saveState();
+  render();
+}
+
+function render() {
+  renderStaticText();
+  renderReadouts();
+  renderControls();
+  drawWave();
+  renderInputs();
+  renderScore();
+}
+
+// Events
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+
+document.getElementById("ampSlider").oninput = (e) => {
+  state.amplitude = clampState("amplitude", e.target.value);
+  saveState();
+  render();
+};
+document.getElementById("lambdaSlider").oninput = (e) => {
+  state.wavelength = clampState("wavelength", e.target.value);
+  saveState();
+  render();
+};
+document.getElementById("freqSlider").oninput = (e) => {
+  state.frequency = clampState("frequency", e.target.value);
+  saveState();
+  render();
+};
+
+function clampState(key, v) {
+  const spec = PARAMS[key];
+  const rounded = Math.round(Math.max(spec.min, Math.min(spec.max, Number(v))) / spec.step) * spec.step;
+  return Math.round(rounded * 100) / 100;
+}
+
+document.getElementById("qAmp").oninput = (e) => { answers.amplitudeRead = e.target.value; submitted = false; saveState(); maybeAutoSend(); renderScore(); };
+document.getElementById("qLambda").oninput = (e) => { answers.wavelengthRead = e.target.value; submitted = false; saveState(); maybeAutoSend(); renderScore(); };
+document.getElementById("qSpeed").oninput = (e) => { answers.speedCalc = e.target.value; submitted = false; saveState(); maybeAutoSend(); renderScore(); };
+
+document.getElementById("submitBtn").onclick = submitAnswers;
+document.getElementById("resetBtn").onclick = resetAll;
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

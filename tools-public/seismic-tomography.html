@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seismic Tomography Explorer</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui, sans-serif; }
+  .wrap { max-width:960px; margin:0 auto; padding:16px; }
+  header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; }
+  h1 { font-size:20px; margin:0; }
+  h2 { font-size:15px; margin:0 0 8px; color:var(--ink); }
+  .lang { background:var(--panel); border:1px solid #334155; color:var(--ink); border-radius:8px; padding:6px 10px; cursor:pointer; font-size:13px; }
+  .hint { font-size:13px; color:var(--muted); margin:0 0 14px; }
+  .readout { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .pill { padding:4px 10px; border-radius:999px; background:#0b1220; font-size:13px; }
+  .viz { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
+  .viz-col { flex:1; min-width:280px; background:var(--panel); border-radius:12px; padding:12px; }
+  svg { display:block; width:100%; height:auto; }
+  .zone { cursor:pointer; transition:opacity .15s; }
+  .zone:hover { opacity:.85; }
+  .zone.selected { stroke:var(--accent); stroke-opacity:1; }
+  .axis-label { font-size:10px; fill:var(--muted); }
+  .curve-p { fill:none; stroke:var(--accent); stroke-width:2; }
+  .curve-s { fill:none; stroke:var(--warn); stroke-width:2; }
+  .legend { display:flex; gap:14px; margin-top:8px; font-size:12px; color:var(--muted); }
+  .legend span { display:flex; align-items:center; gap:6px; }
+  .dot { width:14px; height:4px; border-radius:2px; display:inline-block; }
+  .controls { display:flex; flex-direction:column; gap:12px; margin-bottom:12px; }
+  .scenario { background:var(--panel); border-radius:12px; padding:14px; border:1px solid transparent; }
+  .scenario.selected { border-color:var(--accent); }
+  .scenario h2 { font-size:15px; margin:0 0 10px; }
+  .scenario p { margin:0 0 10px; font-size:13px; color:var(--muted); }
+  .question { margin-bottom:14px; }
+  .question:last-child { margin-bottom:0; }
+  .question-label { font-size:13px; color:var(--muted); margin-bottom:6px; display:block; }
+  .btn-group { display:flex; gap:6px; flex-wrap:wrap; }
+  .choice-btn { background:#0b1220; border:1px solid #334155; border-radius:6px; padding:6px 12px; color:var(--muted); font-size:13px; cursor:pointer; }
+  .choice-btn:hover { border-color:var(--accent); }
+  .choice-btn.selected { border-color:var(--accent); color:var(--accent); background:#0f172a; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+  .primary { flex:1; min-width:160px; padding:10px; border-radius:8px; border:1px solid var(--accent); background:#0b1220; color:var(--accent); font-size:14px; cursor:pointer; }
+  .primary:hover { background:#0f172a; }
+  .secondary { padding:10px 14px; border-radius:8px; border:1px solid #334155; background:var(--panel); color:var(--ink); font-size:14px; cursor:pointer; }
+  #scoreBox { font-size:13px; color:var(--muted); margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+  <div class="readout"><span class="pill" id="progressPill">—</span></div>
+
+  <div class="viz">
+    <div class="viz-col">
+      <h2 id="crossTitle"></h2>
+      <svg id="crossSection" viewBox="-180 -180 360 360"></svg>
+      <p class="hint" id="crossHint"></p>
+    </div>
+    <div class="viz-col">
+      <h2 id="graphTitle"></h2>
+      <svg id="waveGraph" viewBox="0 0 340 360"></svg>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--accent)"></i><span id="pLegend"></span></span>
+        <span><i class="dot" style="background:var(--warn)"></i><span id="sLegend"></span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div id="regionControls"></div>
+    <div id="reasoningControls"></div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import {
+  EARTH_RADIUS_KM, MAX_WAVE_SPEED, REGIONS, LABEL_OPTIONS, REASONING_QUESTIONS,
+  sampleWaveData, emptyState, scoreState
+} from "./seismic-tomography-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Seismic Tomography Explorer", es: "Explorador de Tomografía Sísmica" },
+  langName: { en: "Español", es: "English" },
+  prompt: {
+    en: "Explore P- and S-wave speeds through Earth. Label each layer and use the evidence to reason about the material state.",
+    es: "Explora las velocidades de las ondas P y S a través de la Tierra. Etiqueta cada capa y usa la evidencia para razonar sobre el estado del material.",
+  },
+  progress: { en: "Completed", es: "Completado" },
+  of: { en: "of", es: "de" },
+  labels: { en: "Labels", es: "Etiquetas" },
+  reasoning: { en: "Reasoning", es: "Razonamiento" },
+  crossTitle: { en: "Slice through Earth", es: "Corte a través de la Tierra" },
+  graphTitle: { en: "Wave speed vs depth", es: "Velocidad de onda vs profundidad" },
+  crossHint: { en: "Click a layer to select it, then choose its name below.", es: "Haz clic en una capa para seleccionarla, luego elige su nombre abajo." },
+  pLegend: { en: "P-wave", es: "Onda P" },
+  sLegend: { en: "S-wave", es: "Onda S" },
+  depthAxis: { en: "Depth (km)", es: "Profundidad (km)" },
+  speedAxis: { en: "Speed (km/s)", es: "Velocidad (km/s)" },
+  regionName: { en: "Region", es: "Región" },
+  depthRange: { en: "depth", es: "profundidad" },
+  submit: { en: "Submit", es: "Enviar" },
+  submitted: { en: "Submitted", es: "Enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+};
+
+const CROSS_MAX_R = 170;
+const GRAPH_W = 340;
+const GRAPH_H = 360;
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+let state = emptyState();
+let selectedRegionId = null;
+let submitted = false;
+let autoSent = false;
+
+function radiusForDepth(depth) {
+  return CROSS_MAX_R * (1 - depth / EARTH_RADIUS_KM);
+}
+
+function graphX(speed) {
+  return (speed / MAX_WAVE_SPEED) * GRAPH_W;
+}
+
+function graphY(depth) {
+  return (depth / EARTH_RADIUS_KM) * GRAPH_H;
+}
+
+function countCompleted() {
+  let n = 0;
+  for (const r of REGIONS) if (state.labels[r.id]) n++;
+  for (const q of REASONING_QUESTIONS) if (state.reasoning[q.id]) n++;
+  return n;
+}
+
+function totalItems() {
+  return REGIONS.length + REASONING_QUESTIONS.length;
+}
+
+function allComplete() {
+  return countCompleted() === totalItems();
+}
+
+function regionLabel(letter, depthMin, depthMax) {
+  return `${tr.t("regionName")} ${letter} (${depthMin}–${depthMax} km ${tr.t("depthRange")})`;
+}
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("crossTitle").textContent = tr.t("crossTitle");
+  document.getElementById("graphTitle").textContent = tr.t("graphTitle");
+  document.getElementById("crossHint").textContent = tr.t("crossHint");
+  document.getElementById("pLegend").textContent = tr.t("pLegend");
+  document.getElementById("sLegend").textContent = tr.t("sLegend");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+}
+
+function renderProgress() {
+  const pill = document.getElementById("progressPill");
+  pill.textContent = `${tr.t("progress")}: ${countCompleted()} ${tr.t("of")} ${totalItems()}`;
+}
+
+function renderCrossSection() {
+  const svg = document.getElementById("crossSection");
+  svg.innerHTML = "";
+  const letters = ["A", "B", "C", "D"];
+  for (let i = 0; i < REGIONS.length; i++) {
+    const r = REGIONS[i];
+    const innerR = radiusForDepth(r.depthMax);
+    const outerR = radiusForDepth(r.depthMin);
+    const midR = (innerR + outerR) / 2;
+    const width = Math.max(outerR - innerR, 2);
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", 0);
+    circle.setAttribute("cy", 0);
+    circle.setAttribute("r", midR);
+    circle.setAttribute("stroke", r.color);
+    circle.setAttribute("stroke-width", width);
+    circle.setAttribute("fill", "none");
+    circle.setAttribute("class", "zone" + (selectedRegionId === r.id ? " selected" : ""));
+    circle.setAttribute("data-id", r.id);
+    circle.addEventListener("click", () => { selectedRegionId = r.id; render(); });
+    svg.appendChild(circle);
+
+    const labelR = (innerR + outerR) / 2;
+    const labelAngle = -Math.PI / 4;
+    const lx = labelR * Math.cos(labelAngle);
+    const ly = labelR * Math.sin(labelAngle);
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", lx);
+    text.setAttribute("y", ly);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("dominant-baseline", "middle");
+    text.setAttribute("fill", "#0f172a");
+    text.setAttribute("font-size", "11");
+    text.setAttribute("font-weight", "bold");
+    text.setAttribute("pointer-events", "none");
+    text.textContent = letters[i];
+    svg.appendChild(text);
+  }
+}
+
+function renderGraph() {
+  const svg = document.getElementById("waveGraph");
+  svg.innerHTML = "";
+
+  for (const r of REGIONS) {
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", 0);
+    rect.setAttribute("y", graphY(r.depthMin));
+    rect.setAttribute("width", GRAPH_W);
+    rect.setAttribute("height", graphY(r.depthMax) - graphY(r.depthMin));
+    rect.setAttribute("fill", r.color);
+    rect.setAttribute("fill-opacity", "0.12");
+    rect.setAttribute("class", "zone" + (selectedRegionId === r.id ? " selected" : ""));
+    rect.setAttribute("data-id", r.id);
+    rect.addEventListener("click", () => { selectedRegionId = r.id; render(); });
+    svg.appendChild(rect);
+  }
+
+  for (const r of REGIONS) {
+    if (r.depthMin === 0) continue;
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", 0);
+    line.setAttribute("x2", GRAPH_W);
+    line.setAttribute("y1", graphY(r.depthMin));
+    line.setAttribute("y2", graphY(r.depthMin));
+    line.setAttribute("stroke", "#475569");
+    line.setAttribute("stroke-dasharray", "4 4");
+    svg.appendChild(line);
+  }
+
+  const data = sampleWaveData(120);
+  const pPts = data.map((p) => `${graphX(p.p)},${graphY(p.depth)}`).join(" ");
+  const sPts = data.map((p) => `${graphX(p.s)},${graphY(p.depth)}`).join(" ");
+
+  const pLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  pLine.setAttribute("points", pPts);
+  pLine.setAttribute("class", "curve-p");
+  svg.appendChild(pLine);
+
+  const sLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  sLine.setAttribute("points", sPts);
+  sLine.setAttribute("class", "curve-s");
+  svg.appendChild(sLine);
+
+  const ticks = [0, 7, 14];
+  for (const s of ticks) {
+    const x = graphX(s);
+    const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    tick.setAttribute("x1", x);
+    tick.setAttribute("x2", x);
+    tick.setAttribute("y1", 0);
+    tick.setAttribute("y2", GRAPH_H);
+    tick.setAttribute("stroke", "#334155");
+    svg.appendChild(tick);
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    t.setAttribute("x", x + 3);
+    t.setAttribute("y", 12);
+    t.setAttribute("class", "axis-label");
+    t.textContent = s;
+    svg.appendChild(t);
+  }
+
+  const depthTicks = [0, 2000, 4000, 6371];
+  for (const d of depthTicks) {
+    const y = graphY(d);
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    t.setAttribute("x", 4);
+    t.setAttribute("y", y + 11);
+    t.setAttribute("class", "axis-label");
+    t.textContent = d;
+    svg.appendChild(t);
+  }
+}
+
+function renderRegionControls() {
+  const host = document.getElementById("regionControls");
+  host.innerHTML = "";
+  const letters = ["A", "B", "C", "D"];
+  for (let i = 0; i < REGIONS.length; i++) {
+    const r = REGIONS[i];
+    const panel = document.createElement("div");
+    panel.className = "scenario" + (selectedRegionId === r.id ? " selected" : "");
+    panel.onclick = (e) => {
+      if (e.target.closest("button")) return;
+      selectedRegionId = r.id;
+      render();
+    };
+
+    const title = document.createElement("h2");
+    title.textContent = regionLabel(letters[i], r.depthMin, r.depthMax);
+    panel.appendChild(title);
+
+    const current = document.createElement("p");
+    const chosen = state.labels[r.id];
+    const chosenOpt = LABEL_OPTIONS.find((o) => o.id === chosen);
+    current.textContent = chosenOpt ? chosenOpt.label[tr.lang] : (tr.lang === "en" ? "No label yet" : "Sin etiqueta aún");
+    panel.appendChild(current);
+
+    const group = document.createElement("div");
+    group.className = "btn-group";
+    for (const opt of LABEL_OPTIONS) {
+      const btn = document.createElement("button");
+      btn.className = "choice-btn" + (state.labels[r.id] === opt.id ? " selected" : "");
+      btn.textContent = opt.label[tr.lang];
+      btn.onclick = () => {
+        state.labels[r.id] = opt.id;
+        selectedRegionId = r.id;
+        submitted = false;
+        saveState();
+        render();
+      };
+      group.appendChild(btn);
+    }
+    panel.appendChild(group);
+    host.appendChild(panel);
+  }
+}
+
+function renderReasoningControls() {
+  const host = document.getElementById("reasoningControls");
+  host.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "scenario";
+
+  const heading = document.createElement("h2");
+  heading.textContent = tr.t("reasoning");
+  wrap.appendChild(heading);
+
+  for (const q of REASONING_QUESTIONS) {
+    const qWrap = document.createElement("div");
+    qWrap.className = "question";
+
+    const label = document.createElement("label");
+    label.className = "question-label";
+    label.textContent = q.prompt[tr.lang];
+    qWrap.appendChild(label);
+
+    const group = document.createElement("div");
+    group.className = "btn-group";
+    for (const opt of q.options) {
+      const btn = document.createElement("button");
+      btn.className = "choice-btn" + (state.reasoning[q.id] === opt.id ? " selected" : "");
+      btn.textContent = opt.label[tr.lang];
+      btn.onclick = () => {
+        state.reasoning[q.id] = opt.id;
+        submitted = false;
+        saveState();
+        render();
+      };
+      group.appendChild(btn);
+    }
+    qWrap.appendChild(group);
+    wrap.appendChild(qWrap);
+  }
+  host.appendChild(wrap);
+}
+
+function saveState() {
+  saver.save({ state, submitted, selectedRegionId });
+}
+
+function submitAll() {
+  const result = scoreState(state);
+  sendActivityScore(result.score, 5, true);
+  submitted = true;
+  saveState();
+  document.getElementById("scoreBox").textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5`;
+}
+
+function resetAll() {
+  state = emptyState();
+  selectedRegionId = null;
+  submitted = false;
+  autoSent = false;
+  document.getElementById("scoreBox").textContent = "";
+  saveState();
+  render();
+}
+
+function render() {
+  renderStaticText();
+  renderProgress();
+  renderCrossSection();
+  renderGraph();
+  renderRegionControls();
+  renderReasoningControls();
+
+  // AUTO-SEND once on completion (one-shot guard so it doesn't spam on every render)
+  if (allComplete() && !autoSent && !submitted) {
+    autoSent = true;
+    const result = scoreState(state);
+    sendActivityScore(result.score, 5, true);
+    submitted = true;
+    saveState();
+    document.getElementById("scoreBox").textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5`;
+  }
+}
+
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+document.getElementById("submitBtn").onclick = submitAll;
+document.getElementById("resetBtn").onclick = resetAll;
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

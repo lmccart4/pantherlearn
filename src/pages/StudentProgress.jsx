@@ -75,6 +75,7 @@ export default function StudentProgress() {
   const [resettingXP, setResettingXP] = useState(false);
   const [confirmResetBlock, setConfirmResetBlock] = useState(null); // { studentUid, studentName, lessonId, lessonTitle, blockId, blockLabel }
   const [resettingBlock, setResettingBlock] = useState(false);
+  const [blockResetMenu, setBlockResetMenu] = useState(null); // { studentUid, studentName, lessonId, lessonTitle } — overview-grid per-answer reset picker
   const [xpConfig, setXpConfig] = useState(null);
   const [activityData, setActivityData] = useState({}); // { uid: { activityId: { activityScore, activityLabel, ... } } }
   const [unitFilter, setUnitFilter] = useState("all");
@@ -886,6 +887,123 @@ export default function StudentProgress() {
           >
             Cancel
           </button>
+        </div>
+      </div>
+    );
+  };
+
+  // --- Per-Answer Reset Picker (overview grid) ---
+  const renderBlockResetMenu = () => {
+    if (!blockResetMenu) return null;
+    const { studentUid, studentName, lessonId, lessonTitle } = blockResetMenu;
+    const lesson = lessons.find((l) => l.id === lessonId);
+    const answers = progressData[studentUid]?.[lessonId] || {};
+    const blocks = lesson?.blocks || [];
+
+    // number question-type blocks for friendly labels; index every block for ordering
+    const meta = {};
+    let qNum = 0;
+    blocks.forEach((b, idx) => {
+      if (b.type === "question") qNum++;
+      meta[b.id] = { block: b, order: idx, qNum: b.type === "question" ? qNum : null };
+    });
+    const prettyType = (t) => ({
+      embed: "Activity", connect_four: "Activity", teacher_checkpoint: "Checkpoint",
+      data_table: "Data table", sketch: "Sketch", sorting: "Sorting", storyboard_submit: "Storyboard",
+    }[t] || (t ? t.replace(/_/g, " ") : "Answer"));
+
+    const rows = Object.keys(answers)
+      .filter((k) => !k.startsWith("_"))
+      .map((blockId) => {
+        const a = answers[blockId] || {};
+        const m = meta[blockId];
+        const block = m?.block;
+        let label;
+        if (m?.qNum) {
+          const isMC = block.questionType === "multiple_choice";
+          const snip = (block.prompt || "").slice(0, 50);
+          label = `Q${m.qNum}${isMC ? "" : " (written)"}${snip ? " — " + snip + ((block.prompt || "").length > 50 ? "…" : "") : ""}`;
+        } else {
+          label = block?.title || block?.caption || block?.label || prettyType(block?.type);
+        }
+        let status = "answered";
+        let color = "var(--text3)";
+        if (a.correct === true) { status = "correct"; color = "var(--green)"; }
+        else if (a.correct === false) { status = "incorrect"; color = "#ef4444"; }
+        else if (typeof a.writtenScore === "number") { status = a.writtenLabel || "graded"; color = "var(--amber)"; }
+        else if (typeof a.score === "number") { status = `scored ${a.score}${typeof a.maxScore === "number" ? "/" + a.maxScore : ""}`; color = "var(--amber)"; }
+        else if (a.approved === true) { status = "approved"; color = "var(--green)"; }
+        else if (a.submitted) { status = "submitted"; }
+        return { blockId, label, status, color, order: m?.order ?? 9999 };
+      })
+      .sort((x, y) => x.order - y.order);
+
+    return (
+      <div style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9990,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }} onClick={() => setBlockResetMenu(null)}>
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+          padding: "22px 24px", maxWidth: 480, width: "92%", maxHeight: "80vh",
+          display: "flex", flexDirection: "column", boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+        }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, marginBottom: 2 }}>
+            Reset a single answer
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text2)", marginBottom: 14 }}>
+            <strong>{studentName}</strong> · {lessonTitle}
+          </div>
+          {rows.length === 0 ? (
+            <div style={{ fontSize: 13, color: "var(--text3)", fontStyle: "italic", padding: "12px 0" }}>
+              No individual answers recorded for this lesson.
+            </div>
+          ) : (
+            <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+              {rows.map(({ blockId, label, status, color }) => (
+                <div key={blockId} style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px",
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color }}>{status}</div>
+                  </div>
+                  <button
+                    onClick={() => setConfirmResetBlock({ studentUid, studentName, lessonId, lessonTitle, blockId, blockLabel: label, source: "overview-grid-menu" })}
+                    title="Reset this answer"
+                    style={{
+                      flexShrink: 0, background: "transparent", border: "1px solid var(--border)",
+                      borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 700,
+                      color: "var(--amber)", cursor: "pointer",
+                    }}
+                  >
+                    Reset
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
+            <button
+              onClick={(e) => { handleResetProgress(e, studentUid, lessonId, studentName); setBlockResetMenu(null); }}
+              style={{
+                flex: 1, padding: "9px 14px", borderRadius: 8, border: "1px solid var(--border)",
+                background: "transparent", color: "#ef4444", fontWeight: 700, fontSize: 12, cursor: "pointer",
+              }}
+            >
+              Reset entire lesson
+            </button>
+            <button
+              onClick={() => setBlockResetMenu(null)}
+              style={{
+                padding: "9px 16px", borderRadius: 8, border: "1px solid var(--border)",
+                background: "transparent", color: "var(--text)", fontWeight: 600, fontSize: 12, cursor: "pointer",
+              }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -2056,7 +2174,12 @@ export default function StudentProgress() {
               const isApproved = !!a?.approved;
               if (isApproved) approvedCount++;
               else pendingCount++;
-              rows.push({ student: s, block: cp, approved: isApproved, approvedAt: a?.approvedAt });
+              rows.push({
+                student: s, block: cp,
+                approved: isApproved, approvedAt: a?.approvedAt,
+                studentLevel: typeof a?.studentLevel === "number" ? a.studentLevel : null,
+                levelLabel: a?.levelLabel || null,
+              });
             });
           });
           const total = rows.length;
@@ -2087,9 +2210,17 @@ export default function StudentProgress() {
                 </div>
               )}
               <div className="card" style={{ padding: "10px 4px" }}>
-                {rows.map(({ student, block, approved, approvedAt }, i) => {
+                {rows.map(({ student, block, approved, approvedAt, studentLevel, levelLabel }, i) => {
                   const label = block.prompt || block.label || block.caption || "Show me";
                   const ts = approvedAt ? new Date(approvedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : null;
+                  const isCrack = block.activityType === "crack_the_circuit";
+                  const maxLevel = block.maxLevel || 18;
+                  const tiers = Array.isArray(block.tiers) ? block.tiers : [];
+                  const crackTier = (isCrack && studentLevel != null) ? (function () {
+                    for (const t of tiers) if (studentLevel >= t.minLevel) return t;
+                    return tiers[tiers.length - 1];
+                  })() : null;
+                  const crackPct = isCrack ? Math.max(0, Math.min(100, ((studentLevel || 0) / maxLevel) * 100)) : 0;
                   return (
                     <div key={`${student.uid}-${block.id}`} style={{
                       display: "flex", alignItems: "center", gap: 10,
@@ -2108,10 +2239,38 @@ export default function StudentProgress() {
                       >
                         {student.displayName}
                       </span>
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.4, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {approved ? "✓" : "⏳"} {label}
-                      </span>
-                      {approved ? (
+                      {isCrack ? (
+                        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ position: "relative", flex: 1, height: 16, background: "var(--surface2)", borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }}>
+                            <div style={{
+                              position: "absolute", inset: 0, width: `${crackPct}%`,
+                              background: crackTier ? `linear-gradient(90deg, ${crackTier.color}aa, ${crackTier.color})` : "var(--surface2)",
+                              transition: "width 240ms ease, background 240ms ease",
+                            }} />
+                            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "var(--text)", mixBlendMode: "difference" }}>
+                              {studentLevel != null ? `${studentLevel}/${maxLevel}` : "—"}
+                            </div>
+                          </div>
+                          {crackTier && (
+                            <span style={{ fontSize: 11, fontWeight: 700, color: crackTier.color, flexShrink: 0, minWidth: 70, textAlign: "right" }}>
+                              {crackTier.label.split(" — ")[0]} · {crackTier.pct}%
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.4, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {approved ? "✓" : "⏳"} {label}
+                        </span>
+                      )}
+                      {isCrack ? (
+                        <a
+                          href={`/teacher/show-me/${selectedCourse}/${lesson.id}`}
+                          style={{ fontSize: 11, fontWeight: 700, color: "var(--accent, #6366f1)", textDecoration: "none", flexShrink: 0 }}
+                          title="Open Show-Me grader"
+                        >
+                          Mark →
+                        </a>
+                      ) : approved ? (
                         <>
                           {ts && <span style={{ fontSize: 10, color: "var(--text3)", flexShrink: 0 }}>Approved {ts}</span>}
                           <button
@@ -2295,15 +2454,26 @@ export default function StudentProgress() {
                               </span>
                             )}
                             {hasProgress && (
-                              <span
-                                onClick={(e) => handleResetProgress(e, s.uid, lesson.id, s.displayName)}
-                                title="Reset progress"
-                                style={{ cursor: "pointer", fontSize: 11, opacity: 0.5, transition: "opacity 0.15s" }}
-                                onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                                onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
-                              >
-                                🔄
-                              </span>
+                              <>
+                                <span
+                                  onClick={(e) => { e.stopPropagation(); setBlockResetMenu({ studentUid: s.uid, studentName: s.displayName, lessonId: lesson.id, lessonTitle: lesson.title }); }}
+                                  title="Reset a single answer"
+                                  style={{ cursor: "pointer", fontSize: 11, opacity: 0.5, transition: "opacity 0.15s" }}
+                                  onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                                  onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
+                                >
+                                  📝
+                                </span>
+                                <span
+                                  onClick={(e) => handleResetProgress(e, s.uid, lesson.id, s.displayName)}
+                                  title="Reset entire lesson"
+                                  style={{ cursor: "pointer", fontSize: 11, opacity: 0.5, transition: "opacity 0.15s" }}
+                                  onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                                  onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
+                                >
+                                  🔄
+                                </span>
+                              </>
                             )}
                           </div>
                         </td>
@@ -2647,6 +2817,8 @@ export default function StudentProgress() {
       {renderConfirmComplete()}
       {/* Reset XP confirmation modal */}
       {renderConfirmResetXP()}
+      {/* Per-answer reset picker (overview grid) */}
+      {renderBlockResetMenu()}
       {/* Reset single block confirmation modal */}
       {renderConfirmResetBlock()}
     </main>

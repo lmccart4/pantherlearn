@@ -55,8 +55,8 @@ const lesson = {
       items: [
         "Apply a polish pass to your video — tighten the hook, fix caption timing, balance audio levels",
         "Export a final 30-60 second .mp4 in vertical 1080×1920 and upload it to PantherLearn",
-        "Critically evaluate classmates' videos using the four rubric categories (Hook, Pacing, Audio + Captions, Story)",
-        "Cast informed votes for Best Hook / Best Pacing / Most Surprising / Most Likely to Go Viral"
+        "Show your video to 3 classmates and give & receive specific, rubric-based peer feedback",
+        "Use peer feedback to identify the highest-leverage fix for any future video"
       ]
     },
 
@@ -124,65 +124,94 @@ const lesson = {
       difficulty: "remember"
     },
 
+    // ─── SUBMIT ─────────────────────────────────────────────
+
+    {
+      id: "section-submit",
+      type: "section_header",
+      icon: "📤",
+      title: "Submit Your Final Video",
+      subtitle: "~3 minutes"
+    },
+    {
+      id: "callout-submit-instructions",
+      type: "callout",
+      style: "important",
+      icon: "📤",
+      content: "**Required:** Submit your final 30-60 second video below. Toggle between **📤 Upload video file** or **🔗 Paste a link** — whichever matches how you exported:\n\n- On your **Chromebook**? Upload the .mp4 directly.\n- On your **phone**? Drop it in Google Drive (set sharing to \"anyone with the link\") and paste the share link. Same for an unlisted YouTube.\n\nDon't forget to hit **Submit Final Video** when you're ready."
+    },
+    {
+      id: "submit-final-video",
+      type: "video_or_link_submit",
+      title: "Final Video",
+      prompt: "Submit your final 30-60 second video (vertical 1080×1920). **Pick ONE:** upload the .mp4 directly, OR paste a Google Drive / unlisted YouTube link.",
+      accept: "video/*",
+      maxMB: 200,
+      scored: false
+    },
+
     // ─── ACTIVITY: SHOWCASE ─────────────────────────────────
 
     {
       id: "section-activity",
       type: "section_header",
       icon: "🏆",
-      title: "Showcase + Vote",
+      title: "Showcase — Travel + Feedback",
       subtitle: "~20 minutes"
     },
     {
       id: "b-showcase-format",
       type: "text",
-      content: "## Showcase Format\n\nEvery video plays. **No skipping.** Sound on, full screen, projector. We watch every classmate's video the way the algorithm would — full-screen, with sound, no distractions.\n\nAfter each video — round of applause. That's the rule.\n\n## What You're Watching For\n\nYou're voting at the end, so watch with intent. Use the rubric categories as your lens:\n\n- **Best Hook** — Did the first 3 seconds stop you?\n- **Best Pacing** — Did it feel tight? No dead air? Energy maintained from start to finish?\n- **Most Surprising** — Did the payoff actually surprise you in a way you didn't see coming?\n- **Most Likely to Go Viral** — Knowing what we know about the algorithm — would this video actually spread?\n\nAt the end of the showcase, vote on a slip or quick form for each category. **Mana goes to the winners.**"
+      content: "## How the Showcase Works\n\nNo projector, no class-wide vote. Today you **travel** — get up, move around, and show your video to **3 different classmates** one-on-one. Each classmate watches your video on your phone or Chromebook (sound on, headphones if it's loud) and then gives you specific feedback using the rubric. Then you do the same for them.\n\n**Goal:** end class with 3 sets of real, specific peer notes on your video — not vibes, not \"it was good,\" but rubric-anchored feedback you could actually use to revise."
     },
     {
       id: "b-showcase-rubric",
       type: "text",
-      content: "## The Project Rubric (out of 20)\n\nThis is how your video is graded — independent of the showcase votes.\n\n- **Hook (5)** — First 3 seconds. Does it stop the scroll? Specific visual, question, claim, or pattern interrupt.\n- **Pacing & Editing (5)** — Cut density, no dead air, jump cuts where needed, length feels tight.\n- **Audio & Captions (5)** — Music synced to a beat or moment, captions readable on mute, audio levels balanced.\n- **Story & Concept (5)** — Clear idea. Payoff matches setup. You can describe it in one sentence.\n\nShowcase awards (Best Hook / Best Pacing / Most Surprising / Most Likely to Go Viral) are peer votes — they don't change your grade, but winners get mana."
+      content: "## How to Give Useful Feedback\n\nWhen it's your turn to watch a classmate's video, use the rubric as your lens. For each category, give **one specific observation** — name the moment, not a vague feeling.\n\n- **Hook (first 3 seconds)** — What stopped your scroll? Or what would have stopped it?\n- **Pacing & Editing** — Where did the energy stay tight? Where did it dip?\n- **Audio & Captions** — Could you read the captions on mute? Was music in balance with voice?\n- **Story & Concept** — Can you describe the idea in one sentence? Did the payoff land?\n\nClose with: **\"If I had one more day on this, I'd change ___.\"**\n\nThat last line is the most valuable feedback you can give — and the hardest to receive well. Receive it without defending. Write it down."
     },
     {
-      id: "img-showcase-awards",
-      type: "image",
-      url: "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/showcase-awards.jpg",
-      alt: "Four trophy-style award cards arranged in a row: Best Hook, Best Pacing, Most Surprising, and Most Likely to Go Viral, each with a distinctive icon and color",
-      caption: "The four showcase categories. Cast an informed vote — back it up with the rubric."
+      id: "callout-feedback-rules",
+      type: "callout",
+      style: "tip",
+      icon: "🤝",
+      content: "**The rules of feedback travel:**\n\n- 3 classmates total — pick 3 you didn't shoot or edit with this week so the feedback is fresh\n- One at a time. Watch their video first, then they watch yours\n- Fill in your feedback form below **as you go**, not at the end (you'll forget)\n- Headphones if your music is loud — be respectful of other pairs\n- Mr. McCarthy is circulating — flag him if a pairing isn't working"
     },
     {
-      id: "q-vote-sa",
+      id: "q-peer-1",
       type: "question",
       questionType: "short_answer",
-      prompt: "After the showcase, fill this in. For each category, name the classmate's video that won your vote AND give a one-sentence reason tied to the rubric.",
-      placeholder: "Best Hook: ... — because ...\nBest Pacing: ... — because ...\nMost Surprising: ... — because ...\nMost Likely to Go Viral: ... — because ...",
+      prompt: "**Peer Review 1.** Show your video to a classmate, then capture their feedback here. Be specific — quote what they actually said.",
+      placeholder: "Classmate's name: ...\nHook — what they noticed: ...\nPacing & Editing — what they noticed: ...\nAudio & Captions — what they noticed: ...\nStory & Concept — what they noticed: ...\n\"If I had one more day, I'd change\": ...",
       difficulty: "evaluate"
     },
     {
-      id: "b-resources",
+      id: "q-peer-2",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "**Peer Review 2.** Travel to a different classmate. Show your video, capture their feedback.",
+      placeholder: "Classmate's name: ...\nHook — what they noticed: ...\nPacing & Editing — what they noticed: ...\nAudio & Captions — what they noticed: ...\nStory & Concept — what they noticed: ...\n\"If I had one more day, I'd change\": ...",
+      difficulty: "evaluate"
+    },
+    {
+      id: "q-peer-3",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "**Peer Review 3.** One more — travel to a third classmate. Show your video, capture their feedback.",
+      placeholder: "Classmate's name: ...\nHook — what they noticed: ...\nPacing & Editing — what they noticed: ...\nAudio & Captions — what they noticed: ...\nStory & Concept — what they noticed: ...\n\"If I had one more day, I'd change\": ...",
+      difficulty: "evaluate"
+    },
+    {
+      id: "q-synthesize",
+      type: "question",
+      questionType: "short_answer",
+      prompt: "**Synthesize.** Look back at all 3 peer reviews. Did the same feedback come up more than once? What's the **single highest-leverage change** you'd make to this video if you had another day — based on what your peers actually told you?",
+      placeholder: "Pattern I noticed across all 3: ...\nThe one change I'd make: ...\nWhy that's the highest-leverage fix: ...",
+      difficulty: "evaluate"
+    },
+    {
+      id: "b-rubric-grading",
       type: "text",
-      content: "## After Class — If You Want to Keep Going\n\nThis project ends today, but if you caught the bug, the links below are where to keep learning. None of these are required."
-    },
-    {
-      id: "ext-tiktok-creator-academy",
-      type: "external_link",
-      url: "https://www.tiktok.com/creators/creator-portal/en-us/",
-      title: "TikTok Creator Portal",
-      description: "Free official resource. Deep dives on hooks, watch time, monetization, and what the algorithm actually rewards."
-    },
-    {
-      id: "ext-capcut-effects",
-      type: "external_link",
-      url: "https://www.capcut.com/learning-hub",
-      title: "CapCut Learning Hub — Advanced",
-      description: "Once you've got the basics, this hub has color grading, masking, keyframe animation, and effects walkthroughs."
-    },
-    {
-      id: "ext-mrbeast-rules",
-      type: "external_link",
-      url: "https://www.youtube.com/watch?v=q1c4_R2AfmM",
-      title: "Why MrBeast's videos work (analysis)",
-      description: "An analysis of MrBeast's hook structure, retention strategy, and why his videos hold viewers to the end. Practical takeaways for any short-form creator."
+      content: "## How Your Video Is Graded (out of 20)\n\nYour grade is on the rubric below — independent of any peer feedback you got. The peer reviews are for your growth as a creator; the rubric is the grade.\n\n- **Hook (5)** — First 3 seconds. Does it stop the scroll? Specific visual, question, claim, or pattern interrupt.\n- **Pacing & Editing (5)** — Cut density, no dead air, jump cuts where needed, length feels tight.\n- **Audio & Captions (5)** — Music synced to a beat or moment, captions readable on mute, audio levels balanced.\n- **Story & Concept (5)** — Clear idea. Payoff matches setup. You can describe it in one sentence."
     },
 
     // ─── CLOSING ────────────────────────────────────────────
@@ -242,7 +271,8 @@ const lesson = {
         { term: "Audio balance", definition: "Adjusting the volume of voice and music so dialogue stays readable above the music without either clipping or distorting." },
         { term: "Export", definition: "Rendering your CapCut project into a finished .mp4 file. Settings: 1080p, 9:16 vertical, 30fps for short-form video." },
         { term: "Submission block", definition: "The PantherLearn block where you upload your final .mp4. Required for the project grade." },
-        { term: "Showcase", definition: "Class viewing of every video on the projector with sound and full screen. Followed by peer voting on Best Hook / Best Pacing / Most Surprising / Most Likely to Go Viral." },
+        { term: "Showcase", definition: "Peer-to-peer travel format. You show your video to 3 different classmates and collect rubric-anchored feedback from each one. Reciprocal — they show you theirs too." },
+        { term: "Peer feedback", definition: "Specific, rubric-anchored observations from a classmate about your video — what worked, what didn't, and what you'd change with another day. Useful only if it's specific." },
         { term: "Rubric", definition: "The 4-category scoring guide (Hook, Pacing & Editing, Audio & Captions, Story & Concept) used to grade your project out of 20." }
       ]
     }

@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Force and Motion: Basics</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .chart{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:12px;}
+  svg{width:100%;height:200px;display:block;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .pill{padding:5px 11px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .pill.big{font-size:15px;font-weight:600;color:var(--accent);}
+  .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px;}
+  .ctl{background:var(--panel);border:1px solid #334155;border-radius:10px;padding:12px;}
+  .ctl label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .ctl input[type=range]{width:100%;}
+  .ctl .val{font-size:14px;color:var(--accent);font-weight:600;}
+  .questions{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:14px;}
+  .q{margin-bottom:14px;}
+  .q:last-child{margin-bottom:0;}
+  .q-label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block;}
+  .q input[type=number]{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:7px 10px;color:var(--ink);font-size:14px;width:120px;}
+  .q-unit{margin-left:6px;font-size:13px;color:var(--muted);}
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .choice-btn{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:6px 12px;color:var(--muted);font-size:13px;cursor:pointer;}
+  .choice-btn:hover{border-color:var(--accent);}
+  .choice-btn.selected{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .primary{flex:1;min-width:160px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  #scoreBox{font-size:13px;color:var(--muted);margin-top:10px;}
+  .muted{font-size:12px;color:var(--muted);margin-top:4px;}
+  .ok{color:var(--ok);} .bad{color:var(--bad);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="chart">
+    <svg id="cartSvg" viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+
+  <div class="readout">
+    <span class="pill" id="forcePill">—</span>
+    <span class="pill" id="massPill">—</span>
+    <span class="pill big" id="accelPill">—</span>
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <label id="forceLabel"></label>
+      <input type="range" id="forceSlider" min="0" max="20" step="1" />
+      <div class="val" id="forceVal">—</div>
+    </div>
+    <div class="ctl">
+      <label id="massLabel"></label>
+      <input type="range" id="massSlider" min="1" max="10" step="1" />
+      <div class="val" id="massVal">—</div>
+    </div>
+  </div>
+
+  <div class="questions">
+    <div class="q">
+      <label class="q-label" id="qDoubleFLabel"></label>
+      <div class="btn-group" id="qDoubleF"></div>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qDoubleMLabel"></label>
+      <div class="btn-group" id="qDoubleM"></div>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qCartTruckLabel"></label>
+      <div class="btn-group" id="qCartTruck"></div>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qNumericLabel"></label>
+      <input type="number" id="qNumeric" step="0.1" />
+      <span class="q-unit">m/s²</span>
+      <div class="muted" id="numericHint"></div>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qRelationLabel"></label>
+      <div class="btn-group" id="qRelation"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import { PARAMS, createState, acceleration, stateAcceleration, scoreQuestions, answersComplete } from "./force-and-motion-basics-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Force and Motion: Basics", es: "Fuerza y Movimiento: Básico" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: { en: "Drag the sliders to change the push (force) on the cart and its mass. Watch how the acceleration a = F/m changes, then answer the prediction checks.", es: "Mueve los controles para cambiar el empuje (fuerza) sobre el carrito y su masa. Observa cómo cambia la aceleración a = F/m, luego responde las verificaciones de predicción." },
+  force: { en: "Applied force", es: "Fuerza aplicada" },
+  mass: { en: "Mass", es: "Masa" },
+  accel: { en: "Acceleration", es: "Aceleración" },
+
+  qDoubleF: { en: "1. If you double the force (same mass), the acceleration...", es: "1. Si duplicas la fuerza (misma masa), la aceleración..." },
+  qDoubleM: { en: "2. If you double the mass (same force), the acceleration...", es: "2. Si duplicas la masa (misma fuerza), la aceleración..." },
+  qCartTruck: { en: "3. You give the SAME push to a shopping cart and a loaded truck. Which one accelerates more?", es: "3. Das el MISMO empuje a un carrito de compras y a un camión cargado. ¿Cuál acelera más?" },
+  qNumeric: { en: "4. What is the acceleration if F = 12 N and m = 3 kg?", es: "4. ¿Cuál es la aceleración si F = 12 N y m = 3 kg?" },
+  numericHint: { en: "Use a = F ÷ m.", es: "Usa a = F ÷ m." },
+  qRelation: { en: "5. In a = F/m, when mass goes UP (same force), acceleration is...", es: "5. En a = F/m, cuando la masa AUMENTA (misma fuerza), la aceleración es..." },
+
+  optDoubles: { en: "doubles", es: "se duplica" },
+  optHalves: { en: "is cut in half", es: "se reduce a la mitad" },
+  optStaysSame: { en: "stays the same", es: "permanece igual" },
+  optQuadruples: { en: "becomes four times bigger", es: "se vuelve cuatro veces mayor" },
+  optCart: { en: "the shopping cart", es: "el carrito de compras" },
+  optTruck: { en: "the loaded truck", es: "el camión cargado" },
+  optBothSame: { en: "both the same", es: "ambos igual" },
+  optNeither: { en: "neither moves", es: "ninguno se mueve" },
+  optInverse: { en: "smaller (inversely proportional)", es: "menor (inversamente proporcional)" },
+  optDirect: { en: "bigger (directly proportional)", es: "mayor (directamente proporcional)" },
+  optUnchanged: { en: "unchanged", es: "sin cambios" },
+
+  submit: { en: "Submit Answers", es: "Enviar respuestas" },
+  submitted: { en: "✓ Submitted", es: "✓ Enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+};
+
+const OPTS_DOUBLE_F = [
+  { id: "doubles", label: "optDoubles" },
+  { id: "halves", label: "optHalves" },
+  { id: "staysSame", label: "optStaysSame" },
+  { id: "quadruples", label: "optQuadruples" },
+];
+const OPTS_DOUBLE_M = [
+  { id: "halves", label: "optHalves" },
+  { id: "doubles", label: "optDoubles" },
+  { id: "staysSame", label: "optStaysSame" },
+  { id: "quadruples", label: "optQuadruples" },
+];
+const OPTS_CART_TRUCK = [
+  { id: "cart", label: "optCart" },
+  { id: "truck", label: "optTruck" },
+  { id: "bothSame", label: "optBothSame" },
+  { id: "neither", label: "optNeither" },
+];
+const OPTS_RELATION = [
+  { id: "inverse", label: "optInverse" },
+  { id: "direct", label: "optDirect" },
+  { id: "unchanged", label: "optUnchanged" },
+];
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+let state = createState();
+let answers = { doubleForce: null, doubleMass: null, cartVsTruck: null, numericA: "", massRelation: null };
+let submitted = false;
+let scoreResult = null;
+let autoSent = false;
+
+function fmt(n) { return Number(n).toFixed(2); }
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("forceLabel").textContent = tr.t("force");
+  document.getElementById("massLabel").textContent = tr.t("mass");
+  document.getElementById("qDoubleFLabel").textContent = tr.t("qDoubleF");
+  document.getElementById("qDoubleMLabel").textContent = tr.t("qDoubleM");
+  document.getElementById("qCartTruckLabel").textContent = tr.t("qCartTruck");
+  document.getElementById("qNumericLabel").textContent = tr.t("qNumeric");
+  document.getElementById("numericHint").textContent = tr.t("numericHint");
+  document.getElementById("qRelationLabel").textContent = tr.t("qRelation");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+}
+
+function renderReadouts() {
+  const a = stateAcceleration(state);
+  document.getElementById("forcePill").textContent = `${tr.t("force")}: ${state.force} N`;
+  document.getElementById("massPill").textContent = `${tr.t("mass")}: ${state.mass} kg`;
+  document.getElementById("accelPill").textContent = `${tr.t("accel")} a = ${fmt(a)} m/s²`;
+}
+
+function renderControls() {
+  document.getElementById("forceSlider").value = state.force;
+  document.getElementById("massSlider").value = state.mass;
+  document.getElementById("forceVal").textContent = `${state.force} N`;
+  document.getElementById("massVal").textContent = `${state.mass} kg`;
+}
+
+// Cart with an acceleration arrow whose length grows with a. Mass shown as cart size.
+function drawCart() {
+  const svg = document.getElementById("cartSvg");
+  const W = 600, H = 200;
+  const a = stateAcceleration(state);
+  const aMax = acceleration(PARAMS.force.max, PARAMS.mass.min); // 20/1 = 20 m/s^2 (full scale)
+
+  // ground line
+  const groundY = 150;
+  // cart body scales a little with mass so heavier looks bigger
+  const cw = 70 + (state.mass / PARAMS.mass.max) * 70; // 70..140
+  const ch = 38 + (state.mass / PARAMS.mass.max) * 22;  // 38..60
+  const cx = 80;
+  const cy = groundY - ch;
+  const wheelR = 12;
+
+  // arrow length proportional to acceleration (0..1 of available width)
+  const maxArrow = W - (cx + cw) - 40;
+  const arrowLen = aMax > 0 ? Math.max(0, (a / aMax)) * maxArrow : 0;
+  const arrowY = cy + ch / 2;
+  const ax0 = cx + cw + 6;
+  const ax1 = ax0 + arrowLen;
+
+  let arrow = "";
+  if (arrowLen > 4) {
+    arrow = `
+      <line x1="${ax0}" y1="${arrowY}" x2="${ax1}" y2="${arrowY}" stroke="var(--ok)" stroke-width="6" />
+      <polygon points="${ax1},${arrowY} ${ax1-14},${arrowY-9} ${ax1-14},${arrowY+9}" fill="var(--ok)" />
+      <text x="${ax0 + arrowLen/2}" y="${arrowY-14}" fill="var(--ok)" font-size="13" text-anchor="middle" font-weight="600">a</text>
+    `;
+  } else {
+    arrow = `<text x="${ax0 + 30}" y="${arrowY+4}" fill="var(--muted)" font-size="12">a ≈ 0</text>`;
+  }
+
+  svg.innerHTML = `
+    <line x1="20" y1="${groundY}" x2="${W-20}" y2="${groundY}" stroke="#475569" stroke-width="2" />
+    <rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="6" fill="var(--accent)" opacity="0.9" />
+    <text x="${cx + cw/2}" y="${cy + ch/2 + 5}" fill="#0b1220" font-size="13" text-anchor="middle" font-weight="700">${state.mass} kg</text>
+    <circle cx="${cx + wheelR + 6}" cy="${groundY}" r="${wheelR}" fill="#0b1220" stroke="#64748b" stroke-width="2" />
+    <circle cx="${cx + cw - wheelR - 6}" cy="${groundY}" r="${wheelR}" fill="#0b1220" stroke="#64748b" stroke-width="2" />
+    ${arrow}
+    <text x="${W/2}" y="${H-12}" fill="#94a3b8" font-size="12" text-anchor="middle">a = F / m = ${state.force} N ÷ ${state.mass} kg = ${fmt(a)} m/s²</text>
+  `;
+}
+
+function renderQuestionChoices(groupId, options, field) {
+  const host = document.getElementById(groupId);
+  host.innerHTML = "";
+  for (const opt of options) {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn" + (answers[field] === opt.id ? " selected" : "");
+    btn.textContent = tr.t(opt.label);
+    btn.onclick = () => {
+      answers[field] = opt.id;
+      submitted = false;
+      saveState();
+      maybeAutoSend();
+      render();
+    };
+    host.appendChild(btn);
+  }
+}
+
+function renderInputs() {
+  document.getElementById("qNumeric").value = answers.numericA;
+  renderQuestionChoices("qDoubleF", OPTS_DOUBLE_F, "doubleForce");
+  renderQuestionChoices("qDoubleM", OPTS_DOUBLE_M, "doubleMass");
+  renderQuestionChoices("qCartTruck", OPTS_CART_TRUCK, "cartVsTruck");
+  renderQuestionChoices("qRelation", OPTS_RELATION, "massRelation");
+}
+
+function saveState() {
+  saver.save({ state, answers, submitted, scoreResult });
+}
+
+// AUTO-SEND once when all questions answered (natural "done" state).
+function maybeAutoSend() {
+  if (autoSent || !answersComplete(answers)) return;
+  const r = scoreQuestions(state, answers);
+  sendActivityScore(r.score, 5, true);
+  autoSent = true;
+}
+
+function submitAnswers() {
+  scoreResult = scoreQuestions(state, answers);
+  submitted = true;
+  sendActivityScore(scoreResult.score, 5, true); // ALWAYS re-send, no guard
+  saveState();
+  renderScore();
+}
+
+function renderScore() {
+  const box = document.getElementById("scoreBox");
+  if (!submitted || !scoreResult) {
+    box.textContent = "";
+    return;
+  }
+  const cls = scoreResult.score === 5 ? "ok" : "bad";
+  box.innerHTML = `<span class="${cls}">${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${scoreResult.score}/5</span>`;
+}
+
+function resetAll() {
+  state = createState();
+  answers = { doubleForce: null, doubleMass: null, cartVsTruck: null, numericA: "", massRelation: null };
+  submitted = false;
+  scoreResult = null;
+  autoSent = false;
+  saveState();
+  render();
+}
+
+function render() {
+  renderStaticText();
+  renderReadouts();
+  renderControls();
+  drawCart();
+  renderInputs();
+  renderScore();
+}
+
+function clampState(key, v) {
+  const spec = PARAMS[key];
+  const rounded = Math.round(Math.max(spec.min, Math.min(spec.max, Number(v))) / spec.step) * spec.step;
+  return Math.round(rounded * 100) / 100;
+}
+
+// Events
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+
+document.getElementById("forceSlider").oninput = (e) => {
+  state.force = clampState("force", e.target.value);
+  saveState();
+  render();
+};
+document.getElementById("massSlider").oninput = (e) => {
+  state.mass = clampState("mass", e.target.value);
+  saveState();
+  render();
+};
+
+document.getElementById("qNumeric").oninput = (e) => {
+  answers.numericA = e.target.value;
+  submitted = false;
+  saveState();
+  maybeAutoSend();
+  renderScore();
+};
+
+document.getElementById("submitBtn").onclick = submitAnswers;
+document.getElementById("resetBtn").onclick = resetAll;
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

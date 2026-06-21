@@ -45,7 +45,7 @@ const lesson = {
       id: "q-warmup",
       type: "question",
       questionType: "short_answer",
-      prompt: "Read your topic, audience, and CTA from Day 1 back to yourself. Has anything changed over the weekend? Is there a sharper angle now that you've done more research? Lock in your final version below — this is the version we're building today.",
+      prompt: "Read your topic, audience, and CTA from Day 1 back to yourself. Has anything changed since yesterday? Is there a sharper angle now that you've done more research? Lock in your final version below — this is the version we're building today.",
       placeholder: "Topic: ...\nAudience: ...\nCTA: ...\nFormat (60-sec video or 3-poster series): ...",
       difficulty: "remember"
     },
@@ -206,7 +206,7 @@ const lesson = {
     {
       id: "b-checkoff",
       type: "text",
-      content: "Before you leave today, **show me three things at the front:**\n\n1. **Storyboard or poster sketch** — fully drawn, all panels/posters, with shot details or layout details written out.\n2. **Source list** — your 3+ credible sources, written down, with the organization and one specific stat from each.\n3. **Design lock sheet** — colors, fonts, voice, music vibe.\n\n**No check-off, no production day tomorrow.** I'm not being mean — production goes wrong fast when the plan is fuzzy. The check-off catches the fuzziness today instead of letting it eat your whole Wednesday."
+      content: "Before you leave today, **show me three things at the front:**\n\n1. **Storyboard or poster sketch** — fully drawn, all panels/posters, with shot details or layout details written out.\n2. **Source list** — your 3+ credible sources, written down, with the organization and one specific stat from each.\n3. **Design lock sheet** — colors, fonts, voice, music vibe.\n\n**No check-off, no production day tomorrow.** I'm not being mean — production goes wrong fast when the plan is fuzzy. The check-off catches the fuzziness today instead of letting it eat your whole production day tomorrow."
     },
     {
       id: "callout-sensitive",
@@ -237,7 +237,7 @@ const lesson = {
       type: "callout",
       style: "info",
       icon: "📅",
-      content: "**Tomorrow (Wed 5/27):** Production day. Heads-down work. Bring everything — your storyboard, your sources, your scripts, your phone if you're filming, your laptop logged in to CapCut/Canva. Mid-period checkpoint at minute 25: every student must show me a rough cut or draft poster."
+      content: "**Tomorrow (Thu 5/21):** Production day. Heads-down work. Bring everything — your storyboard, your sources, your scripts, your phone if you're filming, your laptop logged in to CapCut/Canva. Mid-period checkpoint at minute 25: every student must show me a rough cut or draft poster."
     },
     {
       id: "q-reflection",

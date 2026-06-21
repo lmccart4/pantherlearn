@@ -22,6 +22,14 @@ function pctOf(score, max) {
   return Math.round((score / max) * 100);
 }
 
+function tierForLevel(block, level) {
+  const tiers = Array.isArray(block.tiers) ? block.tiers : [];
+  for (const t of tiers) {
+    if (level >= t.minLevel) return t;
+  }
+  return tiers[tiers.length - 1] || { score: 0, label: "—", pct: 0, color: "#94a3b8" };
+}
+
 function studentName(s) {
   const fn = s.firstName || "";
   const ln = s.lastName || "";
@@ -132,6 +140,9 @@ export default function ShowMeGrader() {
       levelLabel: level.label,
       needsApproval: true,
     };
+    if (typeof level.studentLevel === "number") {
+      payload.studentLevel = level.studentLevel;
+    }
     try {
       await setDoc(ref, { answers: { [block.id]: payload } }, { merge: true });
       setAnswers((prev) => ({
@@ -248,6 +259,26 @@ export default function ShowMeGrader() {
       </div>
 
       {checkpoints.map((block) => {
+        if (block.activityType === "crack_the_circuit") {
+          return (
+            <CrackTheCircuitSection
+              key={block.id}
+              block={block}
+              students={visibleStudents}
+              answers={answers}
+              savingKey={savingKey}
+              onSet={(s, lvl) => {
+                const tier = tierForLevel(block, lvl);
+                grade(s.uid, block, {
+                  score: tier.score,
+                  label: `${tier.label} · Level ${lvl}/${block.maxLevel || 18}`,
+                  studentLevel: lvl,
+                });
+              }}
+              onClear={(s) => clearGrade(s.uid, block)}
+            />
+          );
+        }
         const levels = Array.isArray(block.levels) && block.levels.length > 0
           ? block.levels
           : [
@@ -365,6 +396,141 @@ export default function ShowMeGrader() {
           </section>
         );
       })}
+    </div>
+  );
+}
+
+function CrackTheCircuitSection({ block, students, answers, savingKey, onSet, onClear }) {
+  const maxLevel = block.maxLevel || 18;
+  const tiers = Array.isArray(block.tiers) ? block.tiers : [];
+  const stats = students.reduce((acc, s) => {
+    const a = (answers[s.uid] || {})[block.id];
+    if (typeof a?.studentLevel === "number") {
+      acc.graded++;
+      acc.totalLevels += a.studentLevel;
+    }
+    return acc;
+  }, { graded: 0, totalLevels: 0 });
+  const classAvgLevel = stats.graded > 0 ? stats.totalLevels / stats.graded : 0;
+
+  return (
+    <section className="smg-section" key={block.id}>
+      <div className="smg-section-header">
+        <h2>{block.title || "Crack the Circuit"}</h2>
+        <div className="smg-count">{stats.graded} / {students.length} marked</div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        {tiers.slice().reverse().map((t) => (
+          <div key={t.label} style={{
+            fontSize: 11, padding: "4px 10px", borderRadius: 6,
+            background: `${t.color}22`, color: t.color, fontWeight: 600,
+            border: `1px solid ${t.color}44`,
+          }}>
+            ≥{t.minLevel} → {t.label} ({t.pct}%)
+          </div>
+        ))}
+      </div>
+
+      <div style={{ marginBottom: 16, padding: "8px 12px", background: "var(--surface2)", borderRadius: 8 }}>
+        <div style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
+          Class Average
+        </div>
+        <CrackBar level={classAvgLevel} maxLevel={maxLevel} tiers={tiers} />
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {students.map((s) => {
+          const a = (answers[s.uid] || {})[block.id] || {};
+          const currentLevel = typeof a.studentLevel === "number" ? a.studentLevel : null;
+          const saving = savingKey?.startsWith(`${s.uid}:${block.id}`);
+          const tier = currentLevel != null ? tierForLevel(block, currentLevel) : null;
+          return (
+            <div key={s.uid} style={{
+              padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10,
+              background: currentLevel != null ? "var(--surface)" : "var(--surface2)",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{studentName(s)}</div>
+                  {s.email && <div style={{ fontSize: 11, color: "var(--text3)" }}>{s.email}</div>}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {tier && (
+                    <span style={{
+                      fontSize: 12, padding: "3px 10px", borderRadius: 6,
+                      background: `${tier.color}22`, color: tier.color, fontWeight: 700,
+                    }}>
+                      Level {currentLevel}/{maxLevel} · {tier.label} · {tier.pct}%
+                    </span>
+                  )}
+                  {currentLevel != null && (
+                    <button
+                      disabled={saving}
+                      onClick={() => onClear(s)}
+                      style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "transparent", color: "var(--text3)", cursor: "pointer" }}
+                      title="Clear"
+                    >✕</button>
+                  )}
+                </div>
+              </div>
+
+              <CrackBar level={currentLevel || 0} maxLevel={maxLevel} tiers={tiers} />
+
+              <div style={{ display: "flex", gap: 4, marginTop: 8, flexWrap: "wrap" }}>
+                {Array.from({ length: maxLevel + 1 }, (_, i) => i).map((lvl) => {
+                  const lvlTier = tierForLevel(block, lvl);
+                  const isCurrent = currentLevel === lvl;
+                  const isReached = currentLevel != null && currentLevel >= lvl && lvl > 0;
+                  return (
+                    <button
+                      key={lvl}
+                      disabled={saving}
+                      onClick={() => onSet(s, lvl)}
+                      title={`Set to Level ${lvl} (${lvlTier.label})`}
+                      style={{
+                        width: 32, height: 32, padding: 0, borderRadius: 6,
+                        fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        border: isCurrent ? `2px solid ${lvlTier.color}` : "1px solid var(--border)",
+                        background: isCurrent ? lvlTier.color : isReached ? `${lvlTier.color}33` : "var(--surface2)",
+                        color: isCurrent ? "#fff" : isReached ? lvlTier.color : "var(--text2)",
+                      }}
+                    >
+                      {lvl}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+        {students.length === 0 && (
+          <div className="smg-empty">No students enrolled.</div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function CrackBar({ level, maxLevel, tiers }) {
+  const pct = Math.max(0, Math.min(100, (level / maxLevel) * 100));
+  const tier = tiers.length ? (function () {
+    for (const t of tiers) if (level >= t.minLevel) return t;
+    return tiers[tiers.length - 1];
+  })() : { color: "#10b981", label: "" };
+  return (
+    <div style={{ position: "relative", height: 18, background: "var(--surface2)", borderRadius: 9, overflow: "hidden", border: "1px solid var(--border)" }}>
+      <div style={{
+        position: "absolute", inset: 0, width: `${pct}%`,
+        background: `linear-gradient(90deg, ${tier.color}aa, ${tier.color})`,
+        transition: "width 240ms ease, background 240ms ease",
+      }} />
+      <div style={{
+        position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 11, fontWeight: 700, color: "var(--text)", mixBlendMode: "difference",
+      }}>
+        {level.toFixed(level % 1 === 0 ? 0 : 1)} / {maxLevel}
+      </div>
     </div>
   );
 }

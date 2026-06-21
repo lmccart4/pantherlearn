@@ -88,7 +88,15 @@
     padding:13px 26px; font-size:1rem; font-weight:800; cursor:pointer; font-family:inherit;
   }
   .submit:hover{filter:brightness(1.06)}
+  .submit.resubmit{ background:var(--accent); color:#04212e; }
+  .submit.resubmit-ready{
+    background:var(--warn); color:#1a1505;
+    box-shadow:0 0 0 4px rgba(245,158,11,.18);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{ filter:brightness(1) } 50%{ filter:brightness(1.12) } }
   .save-note{color:var(--muted); font-size:.8rem; margin-top:8px}
+  .last-sub{color:var(--good); font-size:.85rem; font-weight:600; margin-top:6px}
   .err{background:#3b0d0d; border:1px solid var(--bad); color:#fecaca; padding:10px 12px; border-radius:10px; font-size:.85rem; margin-bottom:14px}
 </style>
 </head>
@@ -111,15 +119,16 @@
   <p class="readtip">Tip: drop in the <b>ammeter</b> (current, A) or <b>voltmeter</b> (volts, V) and type the reading <b>exactly as the meter shows it</b> (e.g. 0.24).</p>
 
   <div class="progress">
-    <span id="progText">0 / 6 stations correct</span>
+    <span id="progText">0 / 10 stations correct</span>
     <div class="bar"><div class="bar-fill" id="barFill"></div></div>
   </div>
 
   <div id="stations"></div>
 
   <div class="submit-wrap">
-    <button class="submit" id="submitBtn">Submit My Scores</button>
-    <div class="save-note" id="saveNote">Your progress saves automatically as you check each station.</div>
+    <button class="submit" id="submitBtn">Submit My Score</button>
+    <div class="last-sub" id="lastSub" style="display:none"></div>
+    <div class="save-note" id="saveNote">Tip: each time you lock in more stations, click <b>Resubmit Score</b> to update your grade. Only your best score is kept.</div>
   </div>
 </div>
 
@@ -156,10 +165,21 @@ while (true) {
   let pool = R_SET.slice();
   const drawR = () => pool.splice(Math.floor(rng()*pool.length), 1)[0];
   R1 = drawR(); R2 = drawR(); R3 = drawR();
-  // keep every reading on a clean, readable scale
-  const currents = [V/R1, V/(R1+R2), V/R1+V/R2, V/R2, V/(R1+Rp(R2,R3))].map(round2);
+  // keep every reading on a clean, readable scale (covers all 10 stations)
+  const currents = [
+    V/R1, V/(R1+R2), V/R1+V/R2, V/R2, V/(R1+Rp(R2,R3)),
+    V/(R1+R2+R3),                 // D8: series of 3
+    V/R1 + V/R2 + V/R3            // D10: 3-branch parallel total
+  ].map(round2);
   const vdrop = round2(V*R1/(R1+R2));
-  if ((currents.every(c => c>=0.05 && c<=4.5) && vdrop>=0.8) || _guard>50) break;
+  const vdiv  = round2(V*R2/(R1+R2)); // D9 voltage across R2
+  const power = round2((V*V)/R1);     // D7 power on R1
+  if ((
+        currents.every(c => c>=0.05 && c<=6.0) &&
+        vdrop >= 0.8 &&
+        vdiv  >= 0.8 &&
+        power >= 0.5 && power <= 50
+      ) || _guard>80) break;
 }
 const cardLetter = String.fromCharCode(65 + (hashStr(seedStr) % 24)); // A..X (cosmetic label)
 
@@ -192,16 +212,38 @@ const STATIONS = [
     task:`Wire <b>R1 in series with (R2 parallel R3)</b>. Read the <b>total current</b> from the battery.`,
     formula:'I = V ÷ ( R1 + (R2·R3)÷(R2+R3) )',
     expected: round2(V / (R1 + Rp(R2,R3))) },
+  { id:'D7', title:'Power on R1', kind:'P', unit:'W', floor:0.3,
+    task:`Connect the battery to <b>R1 only</b>. Read the <b>current</b>, then compute <b>power dissipated</b> by R1.`,
+    formula:'P = V × I  (or  P = V² ÷ R1)',
+    expected: round2((V*V) / R1) },
+  { id:'D8', title:'Series of Three', kind:'I', unit:'A', floor:0.05,
+    task:`Wire <b>R1, R2, and R3 all in series</b> with the battery. Read the <b>total current</b>.`,
+    formula:'I = V ÷ (R1 + R2 + R3)',
+    expected: round2(V / (R1+R2+R3)) },
+  { id:'D9', title:'Voltage Divider', kind:'V', unit:'V', floor:0.15,
+    task:`Wire <b>R1 and R2 in series</b>. Put the <b>voltmeter across R2</b> and read the <b>voltage across R2</b>.`,
+    formula:'V₂ = V × R2 ÷ (R1 + R2)',
+    expected: round2(V * R2 / (R1+R2)) },
+  { id:'D10', title:'Three-Branch Parallel', kind:'I', unit:'A', floor:0.05,
+    task:`Wire <b>R1, R2, and R3 all in parallel</b> across the battery. Read the <b>total current</b> leaving the battery.`,
+    formula:'I = V÷R1 + V÷R2 + V÷R3',
+    expected: round2(V/R1 + V/R2 + V/R3) },
 ];
 
 /* ---------- State ---------- */
 let state = {};
 STATIONS.forEach(s=> state[s.id] = { value:null, correct:false });
 
-/* Restore prior work (localStorage fallback) */
+/* Restore prior work (localStorage fallback). MERGE — never replace — so new
+   stations added after a student already started get default {value:null,correct:false}
+   instead of becoming undefined and crashing renderStations. */
 try{
   const saved = JSON.parse(localStorage.getItem('circuit-stations-'+seedStr) || 'null');
-  if(saved && saved.state) state = saved.state;
+  if(saved && saved.state){
+    for(const s of STATIONS){
+      if(saved.state[s.id]) state[s.id] = saved.state[s.id];
+    }
+  }
 }catch(e){}
 
 /* ---------- Render ---------- */
@@ -270,12 +312,39 @@ function checkStation(id){
   }
   persist(false);
   updateProgress();
+  updateSubmitButton();
+}
+
+/* Track best submitted score so the resubmit button can highlight when there
+   are new locked-in stations to send. */
+let lastSubmittedScore = null;
+
+function updateSubmitButton(){
+  const btn = document.getElementById('submitBtn');
+  const sub = document.getElementById('lastSub');
+  const cur = scoreNow();
+  if(lastSubmittedScore == null){
+    btn.textContent = 'Submit My Score';
+    btn.className = 'submit';
+    sub.style.display = 'none';
+  } else {
+    sub.style.display = '';
+    sub.textContent = `Last submitted: ${lastSubmittedScore} / ${STATIONS.length}  ✓`;
+    if(cur > lastSubmittedScore){
+      btn.textContent = `Resubmit Score (${cur}/${STATIONS.length} now)`;
+      btn.className = 'submit resubmit-ready';
+    } else {
+      btn.textContent = 'Resubmit Score';
+      btn.className = 'submit resubmit';
+    }
+  }
 }
 
 function updateProgress(){
   const n = STATIONS.filter(s=>state[s.id].correct).length;
-  document.getElementById('progText').textContent = `${n} / 6 stations correct`;
-  document.getElementById('barFill').style.width = (n/6*100)+'%';
+  const total = STATIONS.length;
+  document.getElementById('progText').textContent = `${n} / ${total} stations correct`;
+  document.getElementById('barFill').style.width = (n/total*100)+'%';
 }
 
 /* ---------- Scoring / persistence ---------- */
@@ -294,12 +363,13 @@ function persist(final){
   // Save full work-state to parent (belt-and-suspenders persistence)
   try{ window.parent.postMessage({ type:'html-activity-state', state:{state, breakdown:buildBreakdown()} }, '*'); }catch(e){}
   // Score to gradebook. Interim => gameComplete:false; final/all-correct => true.
-  const allDone = score === 6;
+  const maxScore = STATIONS.length;
+  const allDone = score === maxScore;
   try{
     window.parent.postMessage({
       type:'activityScore',
       score: score,
-      maxScore: 6,
+      maxScore: maxScore,
       gameComplete: final || allDone,
       completedAt: new Date().toISOString(),
       breakdown: buildBreakdown()
@@ -309,11 +379,11 @@ function persist(final){
 
 document.getElementById('submitBtn').addEventListener('click', ()=>{
   persist(true); // ALWAYS re-send, no guard (per scored-embed checklist)
-  const btn=document.getElementById('submitBtn');
-  const score=scoreNow();
+  const score = scoreNow();
+  lastSubmittedScore = (lastSubmittedScore == null) ? score : Math.max(lastSubmittedScore, score);
   document.getElementById('saveNote').textContent =
-    `Submitted: ${score}/6 stations correct. You can keep working and re-submit — your best score is kept.`;
-  btn.textContent='Score Submitted ✓';
+    `Submitted ${score}/${STATIONS.length}. Keep going — each time you lock in a new station, click Resubmit Score to update your grade.`;
+  updateSubmitButton();
 });
 
 /* ---------- Init ---------- */

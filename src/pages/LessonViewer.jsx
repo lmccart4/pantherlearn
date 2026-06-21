@@ -316,6 +316,13 @@ export default function LessonViewer() {
         extraProps.lessonId = lessonId;
         extraProps.readOnly = isViewAsStudent;
       }
+      if (block.type === "video_or_link_submit") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+        extraProps.courseId = courseId;
+        extraProps.lessonId = lessonId;
+        extraProps.readOnly = isViewAsStudent;
+      }
       if (block.type === "simulation") {
         extraProps.studentData = studentData;
         extraProps.onAnswer = handleAnswer;
@@ -382,6 +389,9 @@ export default function LessonViewer() {
         extraProps.studentData = studentData;
       }
       if (block.type === "rubric") {
+        extraProps.studentData = studentData;
+      }
+      if (block.type === "level_progress") {
         extraProps.studentData = studentData;
       }
       return { block, extraProps };

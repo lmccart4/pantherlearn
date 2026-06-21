@@ -1,5 +1,7 @@
 // src/components/blocks/EmbedBlock.jsx
 import { useEffect, useRef } from "react";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../../lib/firebase.jsx";
 import { useTranslatedText } from "../../hooks/useTranslatedText.jsx";
 import { renderMarkdown } from "../../lib/utils";
 import "./EmbedBlock.css";
@@ -28,9 +30,45 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
   const iframeRef = useRef(null);
   const height = block.height || 400;
   const data = studentData?.[block.id] || {};
+  // Debounced persistence for in-tool work state (textareas, diagrams, etc.).
+  // Tools post {type:'html-activity-state', state} on every change; we save the
+  // latest to Firestore so a student's work is NEVER lost (the #1 rule).
+  const stateTimer = useRef(null);
+  const pendingState = useRef(null);
 
-  // Listen for messages from embedded iframes (scores + auth token requests)
+  // Listen for messages from embedded iframes (scores + auth token + work-state)
   useEffect(() => {
+    const canPersistState = () => db && user?.uid && courseId && lessonId && block.id;
+
+    const writeActivityState = async (state) => {
+      if (!canPersistState()) return;
+      try {
+        const ref = doc(db, "courses", courseId, "lessons", lessonId, "responses", user.uid, "blocks", block.id);
+        await setDoc(ref, {
+          type: "html_activity",
+          blockId: block.id,
+          activityState: state,
+          studentId: user.uid,
+          studentName: user.displayName || "Unknown",
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      } catch (err) {
+        console.warn("[EmbedBlock] Failed to persist activity state:", err);
+      }
+    };
+
+    // Leading-throttle: save at most once per interval with the latest state.
+    const scheduleStateSave = (state) => {
+      pendingState.current = state;
+      if (stateTimer.current) return;
+      stateTimer.current = setTimeout(() => {
+        stateTimer.current = null;
+        const latest = pendingState.current;
+        pendingState.current = null;
+        if (latest != null) writeActivityState(latest);
+      }, 2500);
+    };
+
     const handleMessage = async (event) => {
       const msg = event.data;
       if (!msg) return;
@@ -38,6 +76,11 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
       if (event.source !== iframeRef.current?.contentWindow) return;
 
       if (!isAllowedOrigin(event.origin)) {
+        return;
+      }
+
+      if (msg.type === "html-activity-state") {
+        if (msg.state != null) scheduleStateSave(msg.state);
         return;
       }
 
@@ -78,8 +121,20 @@ export default function EmbedBlock({ block, courseId, lessonId, user, onAnswer, 
     };
 
     window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [onAnswer, block.id, studentData, user]);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      // Flush any pending work state immediately so navigating away never drops it.
+      if (stateTimer.current) {
+        clearTimeout(stateTimer.current);
+        stateTimer.current = null;
+      }
+      if (pendingState.current != null) {
+        const latest = pendingState.current;
+        pendingState.current = null;
+        writeActivityState(latest);
+      }
+    };
+  }, [onAnswer, block.id, studentData, user, courseId, lessonId]);
 
   if (!block.url) return null;
 

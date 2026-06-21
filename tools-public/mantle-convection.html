@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mantle Convection Model</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:920px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 12px;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .pill{padding:4px 10px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .canvas-wrap{background:var(--panel);border-radius:12px;padding:10px;margin-bottom:12px;}
+  canvas{width:100%;height:auto;display:block;border-radius:8px;background:#020617;}
+  .controls{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .slider-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+  .slider-row label{min-width:160px;font-size:13px;color:var(--muted);}
+  input[type=range]{flex:1;min-width:160px;}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .secondary{padding:8px 14px;border-radius:8px;border:1px solid #334155;background:#0b1220;color:var(--ink);font-size:13px;cursor:pointer;}
+  .secondary:hover{background:#0f172a;}
+  .question{margin-bottom:14px;}
+  .question-label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block;}
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .choice-btn{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:6px 12px;color:var(--muted);font-size:13px;cursor:pointer;text-align:left;}
+  .choice-btn:hover{border-color:var(--accent);}
+  .choice-btn.selected{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+  .primary{flex:1;min-width:160px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  #scoreBox{font-size:13px;color:var(--muted);margin-top:10px;}
+  .legend{font-size:12px;color:var(--muted);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+  .legend span{display:inline-flex;align-items:center;gap:4px;}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="readout">
+    <span class="pill" id="heatPill">—</span>
+    <span class="pill" id="viscPill">—</span>
+    <span class="pill" id="platePill">—</span>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="mantleCanvas" width="800" height="360"></canvas>
+  </div>
+
+  <div class="controls">
+    <div class="slider-row">
+      <label id="heatLabel"></label>
+      <input type="range" id="heatSlider" min="0" max="100" value="55">
+    </div>
+    <div class="slider-row">
+      <label id="viscLabel"></label>
+      <input type="range" id="viscSlider" min="5" max="50" value="10">
+    </div>
+    <div class="btn-row">
+      <button class="secondary" id="toggleBtn"></button>
+      <button class="secondary" id="resetBtn"></button>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:#f97316"></span><span id="hotLbl"></span></span>
+      <span><span class="dot" style="background:#3b82f6"></span><span id="coolLbl"></span></span>
+      <span><span class="dot" style="background:#94a3b8"></span><span id="particleLbl"></span></span>
+    </div>
+  </div>
+
+  <div id="questionsHost"></div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import {
+  createModel, resetModel, setHeat, setViscosity, stepModel,
+  getSurfaceMetrics, QUESTIONS, scoreAnswers, emptyAnswers
+} from "./mantle-convection-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Mantle Convection / Plate Motion Model", es: "Modelo de Convección del Manto / Movimiento de Placas" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: { en: "Adjust the heat source and mantle viscosity. Watch convection circulate, then explain how it drags the plates.", es: "Ajusta la fuente de calor y la viscosidad del manto. Observa la circulación por convección y luego explica cómo arrastra las placas." },
+  heat: { en: "Core heat source", es: "Fuente de calor del núcleo" },
+  viscosity: { en: "Mantle viscosity", es: "Viscosidad del manto" },
+  start: { en: "▶ Start", es: "▶ Iniciar" },
+  pause: { en: "⏸ Pause", es: "⏸ Pausar" },
+  reset: { en: "Reset", es: "Reiniciar" },
+  hot: { en: "Hot mantle", es: "Manto caliente" },
+  cool: { en: "Cool mantle", es: "Manto frío" },
+  particle: { en: "Mantle tracer", es: "Trazador del manto" },
+  submit: { en: "Submit Explanations", es: "Enviar explicaciones" },
+  submitted: { en: "✓ Submitted", es: "✓ Enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  heatReadout: { en: "Heat", es: "Calor" },
+  viscReadout: { en: "Viscosity", es: "Viscosidad" },
+  plates: { en: "Plate motion", es: "Movimiento de placas" },
+  platesMoving: { en: "plates moving", es: "placas en movimiento" },
+  platesStill: { en: "plates still", es: "placas quietas" },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+const canvas = document.getElementById("mantleCanvas");
+const ctx = canvas.getContext("2d");
+
+const model = createModel();
+let answers = emptyAnswers();
+let running = true;
+let submitted = false;
+let autoSent = false;
+
+function answersComplete() {
+  return QUESTIONS.every(q => answers[q.id]);
+}
+
+function saveWork() {
+  saver.save({
+    answers,
+    heat: model.heat,
+    viscosity: model.viscosity,
+    running,
+    submitted,
+  });
+}
+
+function updateReadouts() {
+  document.getElementById("heatPill").textContent = `${tr.t("heatReadout")}: ${Math.round(model.heat * 100)}%`;
+  document.getElementById("viscPill").textContent = `${tr.t("viscReadout")}: ${model.viscosity.toFixed(1)}×`;
+  const m = getSurfaceMetrics(model);
+  const pp = document.getElementById("platePill");
+  if (m.active && (m.leftPlateSpeed > 0.005 || m.rightPlateSpeed > 0.005)) {
+    const avg = ((m.leftPlateSpeed + m.rightPlateSpeed) / 2 * 100).toFixed(1);
+    pp.textContent = `${tr.t("plates")}: ${avg} · ${tr.t("platesMoving")}`;
+    pp.style.color = "var(--ok)";
+  } else {
+    pp.textContent = `${tr.t("plates")}: ${tr.t("platesStill")}`;
+    pp.style.color = "var(--muted)";
+  }
+}
+
+function temperatureColor(T) {
+  // T in [0,1] -> cool blue to hot orange/red
+  if (T < 0.5) {
+    const t = T * 2;
+    return `rgb(${Math.round(30 + 40 * t)}, ${Math.round(58 + 100 * t)}, ${Math.round(95 + 160 * t)})`;
+  }
+  const t = (T - 0.5) * 2;
+  return `rgb(${Math.round(70 + 185 * t)}, ${Math.round(130 + 80 * t)}, ${Math.round(255 * (1 - t))})`;
+}
+
+function draw() {
+  const W = canvas.width;
+  const H = canvas.height;
+  const crustH = 46;
+  const coreH = 50;
+  const mantleTop = crustH;
+  const mantleBottom = H - coreH;
+
+  ctx.fillStyle = "#020617";
+  ctx.fillRect(0, 0, W, H);
+
+  const nx = model.nx;
+  const nz = model.nz;
+  const cw = (W - 20) / nx;
+  const ch = (mantleBottom - mantleTop) / nz;
+
+  // Draw temperature field
+  for (let z = 0; z < nz; z++) {
+    for (let x = 0; x < nx; x++) {
+      const px = 10 + x * cw;
+      const pz = mantleTop + (nz - 1 - z) * ch; // flip so z=0 bottom
+      ctx.fillStyle = temperatureColor(model.T[z][x]);
+      ctx.fillRect(px, pz, cw + 0.5, ch + 0.5);
+    }
+  }
+
+  // Draw particles
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  for (const p of model.particles) {
+    const px = 10 + p.x * (W - 20);
+    const pz = mantleTop + (1 - p.z) * (mantleBottom - mantleTop);
+    const gz = Math.floor(p.z * (nz - 1));
+    const gx = Math.floor(p.x * (nx - 1));
+    const T = model.T[gz]?.[gx] ?? 0.5;
+    ctx.fillStyle = T > 0.55 ? "rgba(255,247,237,0.8)" : "rgba(148,163,184,0.65)";
+    ctx.beginPath();
+    ctx.arc(px, pz, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Core
+  ctx.fillStyle = "#7f1d1d";
+  ctx.fillRect(10, mantleBottom, W - 20, coreH);
+  ctx.fillStyle = "#f87171";
+  ctx.font = "12px system-ui";
+  ctx.textAlign = "center";
+  ctx.fillText(tr.lang === "en" ? "Core heat source" : "Fuente de calor del núcleo", W / 2, mantleBottom + coreH / 2 + 4);
+
+  // Surface plates
+  const metrics = getSurfaceMetrics(model);
+  const plateY = 14;
+  const plateH = 24;
+  const mid = W / 2;
+
+  ctx.fillStyle = "#475569";
+  ctx.fillRect(10, plateY, mid - 10, plateH);
+  ctx.fillRect(mid, plateY, mid - 10, plateH);
+
+  // Plate motion arrows
+  ctx.strokeStyle = "#f1f5f9";
+  ctx.lineWidth = 2;
+  ctx.fillStyle = "#f1f5f9";
+  function arrow(x, y, dir) {
+    const len = 26;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + dir * len, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + dir * len, y - 5);
+    ctx.lineTo(x + dir * len + dir * 7, y);
+    ctx.lineTo(x + dir * len, y + 5);
+    ctx.fill();
+  }
+  if (metrics.active) {
+    if (metrics.leftPlateSpeed > 0.005) arrow(mid - 30, plateY + plateH / 2, -1);
+    if (metrics.rightPlateSpeed > 0.005) arrow(mid + 30, plateY + plateH / 2, 1);
+  }
+
+  // Labels
+  ctx.fillStyle = "#94a3b8";
+  ctx.font = "12px system-ui";
+  ctx.textAlign = "left";
+  ctx.fillText(tr.lang === "en" ? "Surface plates" : "Placas de la superficie", 16, plateY + plateH + 14);
+  ctx.fillText(tr.lang === "en" ? "Mantle" : "Manto", 16, mantleTop + 18);
+}
+
+function renderQuestions() {
+  const host = document.getElementById("questionsHost");
+  host.innerHTML = "";
+  for (const q of QUESTIONS) {
+    const wrap = document.createElement("div");
+    wrap.className = "question";
+    const label = document.createElement("label");
+    label.className = "question-label";
+    label.textContent = q.prompt[tr.lang];
+    wrap.appendChild(label);
+
+    const group = document.createElement("div");
+    group.className = "btn-group";
+    for (const opt of q.options) {
+      const btn = document.createElement("button");
+      btn.className = "choice-btn" + (answers[q.id] === opt.id ? " selected" : "");
+      btn.textContent = opt.label[tr.lang];
+      btn.onclick = () => {
+        answers[q.id] = opt.id;
+        submitted = false;
+        saveWork();
+        renderQuestions();
+        if (answersComplete() && !autoSent) {
+          autoSent = true;
+          submitScore();
+        }
+      };
+      group.appendChild(btn);
+    }
+    wrap.appendChild(group);
+    host.appendChild(wrap);
+  }
+}
+
+function submitScore() {
+  const result = scoreAnswers(answers);
+  sendActivityScore(result.score, 5, true); // ALWAYS re-send, no guard
+  submitted = true;
+  saveWork();
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5`;
+}
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("heatLabel").textContent = tr.t("heat");
+  document.getElementById("viscLabel").textContent = tr.t("viscosity");
+  document.getElementById("toggleBtn").textContent = running ? tr.t("pause") : tr.t("start");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("hotLbl").textContent = tr.t("hot");
+  document.getElementById("coolLbl").textContent = tr.t("cool");
+  document.getElementById("particleLbl").textContent = tr.t("particle");
+}
+
+function render() {
+  renderStaticText();
+  renderQuestions();
+  updateReadouts();
+  draw();
+}
+
+// Controls
+document.getElementById("heatSlider").addEventListener("input", (e) => {
+  setHeat(model, parseInt(e.target.value, 10) / 100);
+  saveWork();
+  updateReadouts();
+});
+document.getElementById("viscSlider").addEventListener("input", (e) => {
+  setViscosity(model, parseInt(e.target.value, 10) / 10);
+  saveWork();
+  updateReadouts();
+});
+document.getElementById("toggleBtn").onclick = () => {
+  running = !running;
+  saveWork();
+  render();
+};
+document.getElementById("resetBtn").onclick = () => {
+  resetModel(model);
+  answers = emptyAnswers();
+  submitted = false;
+  autoSent = false;
+  document.getElementById("scoreBox").textContent = "";
+  saveWork();
+  render();
+};
+document.getElementById("submitBtn").onclick = submitScore;
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+window.addEventListener("beforeunload", () => saver.flush());
+
+// Animation loop
+function loop() {
+  if (running) {
+    stepModel(model);
+    updateReadouts();
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Init sliders to model defaults
+document.getElementById("heatSlider").value = Math.round(model.heat * 100);
+document.getElementById("viscSlider").value = Math.round(model.viscosity * 10);
+render();
+loop();
+</script>
+</body>
+</html>

@@ -21,14 +21,18 @@ function renderKaTeX(text) {
     catch { return expr; }
   });
   // Inline math: $...$  (not preceded/followed by $)
-  // Two guards against currency being misread as math:
-  //   1. Reject matches that contain HTML tags or newlines — math never spans structure.
-  //   2. Require at least one math-specific char (\, ^, _, {, }). Currency spans
-  //      like "$100 to $5,000" would otherwise get rendered as italic math gibberish.
+  // Render as math when the span looks mathematical; leave it alone when it looks
+  // like currency. A span counts as math if it has a LaTeX/operator token
+  // (\, ^, _, {, }, =, +, -, *, /) OR is a bare variable name (R, V, IR, KE).
+  //   - "$V = IR$", "$R$", "$2 + 6$"      → render
+  //   - "$100 to $5,000" (expr "100 to ") → left as literal currency
   text = text.replace(/(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g, (match, expr) => {
     if (/[<>\n]/.test(expr)) return match;
-    if (!/[\\^_{}]/.test(expr)) return match;
-    try { return katex.renderToString(expr.trim(), { displayMode: false, throwOnError: false }); }
+    const trimmed = expr.trim();
+    const hasMathToken = /[\\^_{}=+\-*\/]/.test(trimmed);
+    const isBareVariable = /^[A-Za-z][A-Za-z0-9]*$/.test(trimmed);
+    if (!hasMathToken && !isBareVariable) return match;
+    try { return katex.renderToString(trimmed, { displayMode: false, throwOnError: false }); }
     catch { return match; }
   });
   // Restore escaped dollars as literal $
