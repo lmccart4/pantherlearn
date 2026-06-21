@@ -1,0 +1,509 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Secret Chat signaling — ephemeral SDP/ICE exchange for WebRTC peer connections.
+    // Open read/write by design (no auth on student build site). Isolated to its own
+    // collection; no PII or grade data stored. Docs are short-lived.
+    match /secretChatSignaling/{roomCode} {
+      allow read, write: if true;
+      match /{subcol}/{docId} {
+        allow read, write: if true;
+      }
+    }
+
+    // Secret Chat (Firestore relay) — encrypted message bus for the
+    // student build site. Payloads are AES-GCM ciphertext; server cannot read.
+    match /secretChatRooms/{roomId} {
+      allow read, write: if true;
+      match /messages/{msgId} {
+        allow read, write: if true;
+      }
+    }
+
+    // PAPS AI Builds — JARVIS memory bank. Open read/write scoped to the
+    // paps-ai-builds-jarvis app id. Each browser uses a localStorage UUID;
+    // no auth, no PII, isolated from production data.
+    match /artifacts/paps-ai-builds-jarvis/users/{uid}/memories/{docId} {
+      allow read, write: if true;
+    }
+
+    // Student notes UI (Lachlan-internal, obscure URL). Anonymous auth ok.
+    // Blocks unauthenticated API scans; only the UI which auto-anon-signs-in
+    // can read/write. Contains student notes for Suno song generation.
+    // AUDIT-C4: these docs are teacher-facing notes; students must not read/write them.
+    match /studentProfiles/{id} {
+      allow read, write: if isTeacher();
+    }
+
+    // Class-level Suno song drafts. Same access model as studentProfiles.
+    // AUDIT-C4: song drafts contain peer info and teacher notes — teacher-only.
+    match /classSongs/{id} {
+      allow read, write: if isTeacher();
+    }
+
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    // AUDIT-C1: Teacher status now comes from a server-set Firebase Auth custom claim.
+    // Claims are set by the Admin SDK / Cloud Functions from the @paps.net teacher
+    // email pattern plus override lists. Do NOT read users/{uid}.data.role here —
+    // that field is self-writable by the owner and allowed privilege escalation.
+    // Transition note: existing teacher accounts will NOT pass this check until their
+    // custom claim is backfilled.
+    function isTeacher() {
+      return isLoggedIn() && request.auth.token.role == "teacher";
+    }
+
+    function isOwner(uid) {
+      return isLoggedIn() && request.auth.uid == uid;
+    }
+
+    // AUDIT-C1: privilege/economy fields a student must never self-assign.
+    function protectedUserFields() {
+      return [
+        "role", "enrolledCourses", "isTestStudent",
+        "balance", "credits", "mana", "lifetimeEarned", "level",
+        "manaBalance", "creditBalance"
+      ];
+    }
+
+    // AUDIT-C1: on create, protected fields must be absent or at safe defaults.
+    function userProtectedFieldsAreDefault() {
+      let d = request.resource.data;
+      return (d.role == null || d.role == "student")
+        && !d.keys().hasAny(["enrolledCourses"])
+        && (d.isTestStudent == null || d.isTestStudent == false)
+        && !d.keys().hasAny(["balance", "credits", "mana", "lifetimeEarned",
+                             "level", "manaBalance", "creditBalance"]);
+    }
+
+    // AUDIT-C1: on update, none of the protected fields may change.
+    function userProtectedFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(protectedUserFields());
+    }
+
+    // AUDIT-C2: sanity-check the fields a student may write to their own progress.
+    // This is a stopgap; the durable fix is server-side score recomputation.
+    function progressWriteIsSane() {
+      let d = request.resource.data;
+      return !d.keys().hasAny(["approved", "gradedBy"])
+        && (d.score == null || (d.maxScore != null && d.score >= 0 && d.score <= d.maxScore))
+        && (d.maxScore == null || (d.maxScore >= 0 && d.maxScore <= 1000))
+        && (d.writtenScore == null || (d.writtenScore >= 0 && d.writtenScore <= 1))
+        && (d.correct == null || d.correct is bool);
+    }
+
+    function isCourseOwner(courseId) {
+      return isTeacher()
+        && get(/databases/$(database)/documents/courses/$(courseId)).data.ownerUid == request.auth.uid;
+    }
+    // Co-teacher support: owner OR any teacher in the coTeachers array
+    function isCourseTeacher(courseId) {
+      let course = get(/databases/$(database)/documents/courses/$(courseId)).data;
+      return isTeacher() && (
+        course.ownerUid == request.auth.uid
+        || (course.coTeachers != null && request.auth.uid in course.coTeachers)
+      );
+    }
+    function isEnrolledStudent(courseId) {
+      return isLoggedIn()
+        && courseId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.enrolledCourses;
+    }
+    function hasCourseAccess(courseId) {
+      return isCourseTeacher(courseId) || isEnrolledStudent(courseId);
+    }
+
+    match /users/{uid} {
+      // AUDIT-C4: students read only their own profile; teachers read any profile.
+      allow read: if isOwner(uid) || isTeacher();
+
+      // AUDIT-C1: teachers may write any user doc. Students may create/update their
+      // own doc only if they do not touch privileged/economy fields.
+      // Note: enrolledCourses is protected to force enrollments through a server-side
+      // Cloud Function; the client-side enrollment flow will need to migrate.
+      allow create: if isTeacher() || (isOwner(uid) && userProtectedFieldsAreDefault());
+      allow update: if isTeacher() || (isOwner(uid) && userProtectedFieldsUnchanged());
+      allow delete: if isTeacher();
+
+      // Notifications: owner can read/write, teachers can create (for fan-out)
+      match /notifications/{notifId} {
+        allow read, write: if isOwner(uid);
+        allow create: if isTeacher();
+      }
+    }
+    match /courses/{courseId} {
+      allow read: if isLoggedIn();
+      allow create: if isTeacher();
+      // Co-teachers can update course doc; only owner can delete
+      allow update: if isCourseTeacher(courseId);
+      // Allow any teacher to add themselves as a co-teacher (self-join via enroll code)
+      allow update: if isTeacher()
+        && request.auth.uid in request.resource.data.coTeachers
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["coTeachers"]);
+      allow delete: if isCourseOwner(courseId);
+      match /lessons/{lessonId} {
+        allow read: if isTeacher() || isEnrolledStudent(courseId);
+        allow write: if isCourseTeacher(courseId);
+
+        // Per-student block responses (data tables, etc.)
+        // Path: lessons/{lessonId}/responses/{uid}/blocks/{blockId}
+        match /responses/{uid} {
+          allow read, write: if isOwner(uid) || isCourseTeacher(courseId);
+          match /blocks/{blockId} {
+            allow read, write: if isOwner(uid) || isCourseTeacher(courseId);
+          }
+        }
+      }
+      // Announcements: enrolled students + teacher can read, course teachers can write
+      match /announcements/{annId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isCourseTeacher(courseId);
+      }
+      match /settings/{settingId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isCourseTeacher(courseId);
+      }
+      match /teams/{teamId} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isCourseTeacher(courseId);
+      }
+      match /mana/{docId} {
+        allow read: if hasCourseAccess(courseId);
+        // Teachers (and Cloud Functions via the Admin SDK, which bypasses
+        // rules) may write anything. Students may ONLY change the voting
+        // fields — never mageStudentId / mageBudgetUsed / magePerStudent,
+        // which mageAwardMana trusts to enforce the daily caps. Mage
+        // selection runs in the selectMageForToday Cloud Function.
+        allow write: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'activeVote', 'lastUpdated']));
+      }
+      match /studentMana/{uid} {
+        allow read: if hasCourseAccess(courseId);
+        // A student may only write their OWN balance doc (redeem / charge /
+        // avatar rental). Crediting a classmate goes through the mageAwardMana
+        // and donateMana Cloud Functions (admin SDK — bypasses these rules),
+        // which enforce the daily budget + per-student cap atomically.
+        // Teachers may write any student's doc.
+        allow write: if isCourseTeacher(courseId) || request.auth.uid == uid;
+
+        // Per-student transaction ledger (unbounded history)
+        match /transactions/{txId} {
+          allow read: if hasCourseAccess(courseId);
+          allow write: if isCourseTeacher(courseId) || request.auth.uid == uid;
+        }
+      }
+      match /manaRequests/{requestId} {
+        allow read: if hasCourseAccess(courseId);
+        allow create: if isLoggedIn();
+        allow update: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId)
+              && resource.data.studentUid == request.auth.uid
+              && resource.data.status == "priced"
+              && request.resource.data.status in ["accepted", "cancelled"]
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "acceptedAt"]));
+        allow delete: if isCourseTeacher(courseId);
+
+        match /privateNotes/{noteId} {
+          allow read, write: if isCourseTeacher(courseId);
+        }
+      }
+      match /bossBattles/{battleId} {
+        allow read: if hasCourseAccess(courseId);
+        allow create, delete: if isCourseTeacher(courseId);
+        allow update: if hasCourseAccess(courseId);
+
+        // Player subcollection (v2 data model)
+        match /players/{uid} {
+          allow read: if hasCourseAccess(courseId);
+          allow write: if isOwner(uid) || isCourseTeacher(courseId);
+        }
+
+        // Events subcollection (future use)
+        match /events/{eventId} {
+          allow read: if hasCourseAccess(courseId);
+          allow create: if isCourseTeacher(courseId);
+        }
+      }
+      match /guessWhoGames/{gameId} {
+        allow read: if hasCourseAccess(courseId);
+        allow create: if hasCourseAccess(courseId);
+        allow update: if hasCourseAccess(courseId);
+      }
+      match /connectFourGames/{gameId} {
+        allow read: if hasCourseAccess(courseId);
+        allow create: if hasCourseAccess(courseId);
+        allow update: if hasCourseAccess(courseId);
+      }
+      match /gamification/{uid} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isOwner(uid) || isCourseTeacher(courseId);
+      }
+      match /botArcadeStats/{uid} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isOwner(uid) || isCourseTeacher(courseId);
+      }
+      match /battleshipEnergy/{uid} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isOwner(uid) || isCourseTeacher(courseId);
+      }
+      match /battleshipAI/{uid} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isOwner(uid) || isCourseTeacher(courseId);
+      }
+      match /momentumAttempts/{uid} {
+        allow read: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId) && request.auth.uid == uid);
+        allow write: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId) && request.auth.uid == uid);
+      }
+      match /biasInvestigations/{investigationId} {
+        allow read: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId) && resource.data.studentId == request.auth.uid);
+        allow create: if (isEnrolledStudent(courseId) || isCourseTeacher(courseId))
+          && request.resource.data.studentId == request.auth.uid;
+        allow update: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId) && resource.data.studentId == request.auth.uid);
+        allow delete: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId) && resource.data.studentId == request.auth.uid);
+      }
+      match /botReflections/{reflectionId} {
+        allow read: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId) && resource.data.studentId == request.auth.uid);
+        allow write: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId)
+              && reflectionId.matches(request.auth.uid + "_.*")
+              && request.resource.data.studentId == request.auth.uid);
+      }
+      match /chatLogs/{lessonId}/{blockId}/{studentId} {
+        // Students can only read their OWN chat logs; teachers can read all
+        allow read: if isOwner(studentId) || isCourseTeacher(courseId);
+        allow write: if isOwner(studentId) || isCourseTeacher(courseId);
+      }
+      match /perkRequests/{requestId} {
+        allow read: if hasCourseAccess(courseId);
+        allow create: if hasCourseAccess(courseId);
+        allow update, delete: if isCourseTeacher(courseId);
+      }
+      match /enrollments/{uid} {
+        allow read: if hasCourseAccess(courseId);
+        allow write: if isOwner(uid) || isCourseTeacher(courseId);
+      }
+      // Grades (teacher-graded entries + reflection gradebook)
+      match /grades/{gradeId} {
+        // Students can only read their own grades; teachers can read all
+        allow read: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId)
+              && gradeId.matches("reflection_" + request.auth.uid + "_.*"));
+        // Teachers can write any grade; students can only write their own reflection grades
+        allow write: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId)
+              && gradeId.matches("reflection_" + request.auth.uid + "_.*")
+              && request.resource.data.studentId == request.auth.uid);
+      }
+      // Reflections (read by MyGrades + StudentProgress)
+      match /reflections/{reflectionId} {
+        // Students can only read their own reflections; teachers can read all
+        allow read: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId)
+              && resource.data.studentId == request.auth.uid);
+        // Teachers can write any reflection; students can only write their own
+        // Cloud Function uses admin SDK and bypasses these rules
+        allow write: if isCourseTeacher(courseId)
+          || (isEnrolledStudent(courseId)
+              && reflectionId.matches(request.auth.uid + "_.*")
+              && request.resource.data.studentId == request.auth.uid);
+      }
+      match /chats/{chatId} {
+        allow read: if isTeacher()
+          || (isLoggedIn() && request.auth.uid in resource.data.members);
+        allow create: if hasCourseAccess(courseId);
+        allow update: if isLoggedIn()
+          && request.auth.uid in resource.data.members;
+
+        match /messages/{messageId} {
+          allow read: if isTeacher()
+            || (isLoggedIn() && request.auth.uid in get(/databases/$(database)/documents/courses/$(courseId)/chats/$(chatId)).data.members);
+          allow create: if isLoggedIn()
+            && request.auth.uid in get(/databases/$(database)/documents/courses/$(courseId)/chats/$(chatId)).data.members;
+        }
+
+        match /readBy/{userId} {
+          allow read, write: if isLoggedIn() && request.auth.uid == userId;
+          allow read: if isTeacher();
+        }
+      }
+    }
+    // Legacy global gamification (backward compat)
+    match /gamification/{uid} {
+      allow read: if isLoggedIn();
+      allow write: if isOwner(uid) || isTeacher();
+    }
+    match /progress/{uid}/{document=**} {
+      allow read: if isOwner(uid) || isTeacher();
+      // AUDIT-C2: only the owner (or a teacher) may write progress. Score-bearing
+      // fields must stay within sane bounds and teacher-owned fields (approved,
+      // gradedBy) are blocked. The durable fix is server-side score recomputation.
+      allow write: if isTeacher() || (isOwner(uid) && progressWriteIsSane());
+    }
+    // Weekly evidence log (photos + reflections per week per course)
+    match /evidence/{uid}/courses/{courseId}/weeks/{weekKey} {
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid);
+    }
+    // Telemetry buckets (daily engagement metrics per student per course)
+    match /telemetry/{uid}/{document=**} {
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid) || isTeacher();
+    }
+    // AUDIT-C4: enrollment docs may contain peer emails/courses. Students read only
+    // their own; teachers read all.
+    match /enrollments/{enrollmentId} {
+      allow read: if isTeacher()
+        || (isLoggedIn() && resource.data.email == request.auth.token.email);
+      allow write: if isTeacher()
+        || (isLoggedIn() && resource.data.email == request.auth.token.email);
+    }
+    match /chatLogs/{uid}/{document=**} {
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid) || isTeacher();
+    }
+    match /rateLimits/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+    // Standalone activity labs (Data Labeling, Ethics Courtroom, AI Training Sim)
+    match /dataLabelingLab/{uid} {
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid) || isTeacher();
+    }
+    match /ethicsCourtroom/{uid} {
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid);
+    }
+    match /aiTrainingSim/{uid} {
+      allow read: if isOwner(uid) || isTeacher();
+      allow write: if isOwner(uid);
+    }
+    // Build-a-Chatbot Workshop
+    // AUDIT-C4: project metadata is peer student work; restrict reads to owner/teacher.
+    match /botProjects/{projectId} {
+      allow read: if isLoggedIn()
+        && (resource.data.ownerId == request.auth.uid || isTeacher());
+      allow create: if isLoggedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isLoggedIn()
+        && (resource.data.ownerId == request.auth.uid || isTeacher());
+    }
+    match /botRatings/{projectId}/ratings/{ratingId} {
+      allow read: if isLoggedIn();
+      allow write: if isLoggedIn() && request.resource.data.raterId == request.auth.uid;
+    }
+    match /botConversations/{projectId}/sessions/{sessionId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn();
+    }
+    // Battleship Energy Quiz scores
+    // AUDIT-C4: scores are private to the owning student and teachers.
+    match /battleship-scores/{docId} {
+      allow create: if isLoggedIn() && request.resource.data.uid == request.auth.uid;
+      allow read: if isLoggedIn()
+        && (resource.data.uid == request.auth.uid || isTeacher());
+    }
+
+    // Assignment Queue — teacher-only
+    match /assignmentQueue/{docId} {
+      allow read, write: if isTeacher();
+    }
+
+    // Mission Control — teacher-only dashboard data
+    match /missionControl/{document=**} {
+      allow read, write: if isTeacher();
+    }
+
+    // Agent Inbox — Mission Control chat with agents
+    match /agentInbox/{agentName}/messages/{messageId} {
+      allow read, write: if isTeacher();
+    }
+
+    // ═══ PantherTrack — Behavior Tracking ═══
+    // Self-contained rules — does not depend on users collection
+    // AUDIT-C4: behavior data is private to the owning teacher/class.
+    function isPantherTrackClassTeacher(classId) {
+      return isLoggedIn()
+        && get(/databases/$(database)/documents/pantherTrack/classes/list/$(classId)).data.teacherUid == request.auth.uid;
+    }
+    match /pantherTrack/classes/list/{classId} {
+      // Only the owning teacher may read or manage their class.
+      allow read: if isPantherTrackClassTeacher(classId);
+      allow create: if isTeacher();
+      allow update, delete: if isPantherTrackClassTeacher(classId);
+
+      // Students subcollection
+      match /students/{studentId} {
+        allow read: if isPantherTrackClassTeacher(classId);
+        allow write: if isPantherTrackClassTeacher(classId);
+      }
+
+      // Events subcollection
+      match /events/{eventId} {
+        allow read: if isPantherTrackClassTeacher(classId);
+        allow create, update, delete: if isPantherTrackClassTeacher(classId);
+      }
+
+      // Deputies subcollection
+      match /deputies/{dateKey} {
+        allow read: if isPantherTrackClassTeacher(classId);
+        allow write: if isPantherTrackClassTeacher(classId);
+      }
+
+      // Rewards subcollection
+      match /rewards/{rewardId} {
+        allow read: if isPantherTrackClassTeacher(classId);
+        allow write: if isPantherTrackClassTeacher(classId);
+      }
+
+      // Redemptions subcollection
+      match /redemptions/{redemptionId} {
+        allow read: if isPantherTrackClassTeacher(classId);
+        allow create, update, delete: if isPantherTrackClassTeacher(classId);
+      }
+
+      // Notes subcollection (teacher-only)
+      match /notes/{noteId} {
+        allow read: if isPantherTrackClassTeacher(classId);
+        allow write: if isPantherTrackClassTeacher(classId);
+      }
+    }
+
+    // Deputy history
+    match /pantherTrack/deputyHistory/{classId} {
+      allow read, write: if isLoggedIn();
+    }
+
+    // Pairings Simulator — multiplayer rooms (auth required)
+    // Data is ephemeral game state only — no sensitive content
+    match /pairings-rooms/{roomId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Agent Context — workflow summaries written by agents, read by Mission Control
+    match /agentContext/{agentName} {
+      allow read: if isTeacher();
+      allow write: if isTeacher();
+      // history subcollection: run log entries written by update-agent-status.cjs, read by Memory tab
+      match /history/{runId} {
+        allow read: if isTeacher();
+        allow write: if isTeacher();
+      }
+    }
+
+    // Music Playlists — top-level collection scoped to N courses via courseIds[]
+    // Read: any authenticated user (player filters by course client-side; data is non-sensitive music URLs)
+    // Write: any teacher (playlists are a teacher-managed resource, not per-student)
+    match /playlists/{playlistId} {
+      allow read: if isLoggedIn();
+      allow create, update, delete: if isTeacher();
+    }
+  }
+}

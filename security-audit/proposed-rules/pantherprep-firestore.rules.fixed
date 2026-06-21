@@ -1,0 +1,182 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper: authenticated paps.net OR lachlan.internal agent user.
+    // Agents (pixel, link, etc.) sign in via Firebase email/password from the
+    // login screen using ?agent=&key= URL params and get teacher-level
+    // access for visual QA, integration checks, and nightly builds.
+    function isPapsUser() {
+      return request.auth != null && (
+        request.auth.token.email.matches('.*@paps\\.net$') ||
+        request.auth.token.email.matches('.*@lachlan\\.internal$')
+      );
+    }
+
+    // AUDIT-C1: staff status comes from a server-set Firebase Auth custom claim,
+    // NOT from the self-writable students/{uid}.data.role field. Claims are set
+    // by the Admin SDK / Cloud Functions from the @paps.net teacher email pattern
+    // plus override lists. Transition note: existing staff accounts won't pass
+    // until their claim is backfilled.
+    function isTeacher() {
+      return request.auth != null && request.auth.token.role == 'teacher';
+    }
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == 'admin';
+    }
+    function isStaff(uid) {
+      return isTeacher() || isAdmin();
+    }
+
+    // Students can write their own profile
+    // AUDIT-C1: students may create only as role='student' and may never update role.
+    // AUDIT-C4: students read only their own profile; staff reads any.
+    match /students/{uid} {
+      allow read: if isPapsUser() && (request.auth.uid == uid || isStaff(request.auth.uid));
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.role == "student";
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["role"]);
+      allow delete: if false;
+    }
+    // Sessions - students write their own, read only their own; staff reads all.
+    // AUDIT-C4: sessions contain per-student practice/test data.
+    match /sessions/{sessionId} {
+      allow read: if isPapsUser()
+        && (resource.data.uid == request.auth.uid || isStaff(request.auth.uid));
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+    // Question analytics - any authenticated user can read/write
+    match /questionStats/{qId} {
+      allow read: if isPapsUser();
+      allow write: if isPapsUser();
+    }
+    // Custom questions - any authenticated paps.net user can read/create
+    match /customQuestions/{qId} {
+      allow read: if isPapsUser();
+      allow create: if isPapsUser();
+    }
+    // Session auto-save progress - users can only access their own progress
+    match /progress/{progressId} {
+      allow read: if request.auth != null && progressId.matches(request.auth.uid + '_.*');
+      allow write: if request.auth != null && progressId.matches(request.auth.uid + '_.*');
+    }
+    // Classes - teachers create/manage, students read
+    match /classes/{classId} {
+      allow read: if isPapsUser();
+      allow create: if isPapsUser();
+      allow update: if isPapsUser() && request.auth.uid == resource.data.teacherUid;
+      allow delete: if isPapsUser() && request.auth.uid == resource.data.teacherUid;
+    }
+    // Questions - seeded via admin SDK, read-only for authenticated users
+    match /questions/{qId} {
+      allow read: if isPapsUser();
+      allow write: if false;
+    }
+    // Translation cache - Cloud Function manages this, no client access needed
+    match /translations/{translationId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    // ── ADAPTIVE ENGINE COLLECTIONS ──
+
+    // Performance Log — granular per-answer tracking
+    // Students can only write their own answers
+    match /performanceLog/{uid}/answers/{answerId} {
+      allow read: if isPapsUser() && (
+        request.auth.uid == uid ||
+        isStaff(request.auth.uid)
+      );
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update, delete: if false; // Answers are immutable
+    }
+
+    // Adaptive Profile — computed mastery state
+    match /adaptiveProfile/{uid} {
+      allow read: if isPapsUser() && (
+        request.auth.uid == uid ||
+        isStaff(request.auth.uid)
+      );
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Question Pool — normalized question bank for adaptive practice
+    match /questionPool/{questionId} {
+      allow read: if isPapsUser();
+      allow write: if isPapsUser() && isStaff(request.auth.uid);
+    }
+
+    // Skill Content — concept bundles authored by Parker (read-only for clients)
+    match /skillContent/{skillId} {
+      allow read: if isPapsUser();
+      allow write: if false;
+    }
+
+    // ── COACH CHAT COLLECTIONS ──
+
+    // Coach Thread header (one per student). Student reads own, staff reads all.
+    // Writes go through admin SDK (functions + Mac mini scripts).
+    match /coachThreads/{uid} {
+      allow read: if isPapsUser() && (
+        request.auth.uid == uid ||
+        isStaff(request.auth.uid)
+      );
+      allow write: if false;
+    }
+
+    // Coach Notes — immutable sent log. Students read their own thread and
+    // create only student-authored replies. Staff reads all; coach-authored
+    // creates come through admin SDK. No updates/deletes.
+    match /coachNotes/{noteId} {
+      allow read: if isPapsUser() && (
+        resource.data.threadUid == request.auth.uid ||
+        isStaff(request.auth.uid)
+      );
+      allow create: if isPapsUser()
+        && request.resource.data.threadUid == request.auth.uid
+        && request.resource.data.role == "student"
+        && request.resource.data.author == "student"
+        && request.resource.data.status == "sent";
+      allow update, delete: if false;
+    }
+
+    // Coach Drafts — staff-only staging area. Clients (Luke's dashboard) can
+    // edit body/status; Parker writes via admin SDK.
+    match /coachDrafts/{draftId} {
+      allow read: if isPapsUser() && isStaff(request.auth.uid);
+      allow write: if isPapsUser() && isStaff(request.auth.uid);
+    }
+
+    // Coach Trigger Queue — students write on session completion; only
+    // scripts (admin SDK) read + update. No client reads (preserves privacy
+    // of the queue processing state).
+    match /coachTriggerQueue/{id} {
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
+    // ── STUDY PLAN COLLECTION ──
+    // One plan per (student, course). Server writes weeklyNarrative +
+    // pullQuote + lastRegeneratedAt via admin SDK; client can update the rest.
+    match /studyPlans/{planId} {
+      allow read: if isPapsUser() && (
+        resource.data.uid == request.auth.uid ||
+        isStaff(request.auth.uid)
+      );
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "testDate", "skippedWeeks", "completedDays", "status",
+          "currentWeekIndex", "currentWeekSkills", "targetSessionsThisWeek",
+          "skillQueue", "mode", "lastAlgorithmRunAt"
+        ]);
+      allow delete: if false;
+    }
+  }
+}

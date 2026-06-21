@@ -1,0 +1,33 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper: check if requester is a teacher per Firebase Auth custom claim.
+    // AUDIT-C1: claims are set server-side by Admin SDK / Cloud Functions from the
+    // @paps.net teacher email pattern + override lists. Do NOT read Firestore
+    // users/{uid}.data.role here — that field is self-writable by the owner.
+    // Transition note: teachers won't pass this check until their claim is backfilled.
+    function isTeacher() {
+      return request.auth != null
+        && request.auth.token.role == 'teacher';
+    }
+
+    // Student media uploads: uploads/{courseId}/{lessonId}/{blockId}/{uid}/{filename}
+    match /uploads/{courseId}/{lessonId}/{blockId}/{uid}/{allPaths=**} {
+
+      // Students can write to their own folder; image/video only, max 50 MB.
+      allow create, update: if request.auth != null
+                            && request.auth.uid == uid
+                            && request.resource.size < 50 * 1024 * 1024
+                            && (request.resource.contentType.matches('image/.*')
+                                || request.resource.contentType.matches('video/.*'));
+
+      // Students can delete their own uploads.
+      allow delete: if request.auth != null && request.auth.uid == uid;
+
+      // AUDIT-C4: students read only their own uploads; teachers read any.
+      allow read: if (request.auth != null && request.auth.uid == uid)
+                  || isTeacher();
+    }
+  }
+}
