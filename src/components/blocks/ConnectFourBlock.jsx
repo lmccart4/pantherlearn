@@ -291,20 +291,23 @@ export default function ConnectFourBlock({ block, courseId, lessonId, studentDat
   }, [courseId, user, isTeacher]);
 
   // ─── Game end handler ───
+  // AUDIT bug: was double-counting completions (AI-move path + subscription + answer path) and
+  // reading a stale gamesCompleted from closure. Guard is now central + uses a functional update.
+  const lastCountedGameRef = useRef(null);
   const handleGameEnd = useCallback((result) => {
-    const newCompleted = gamesCompleted + 1;
-    setGamesCompleted(newCompleted);
-    sendScore(newCompleted, gamesStarted);
-  }, [gamesCompleted, gamesStarted, sendScore]);
+    if (lastCountedGameRef.current === activeGameId) return;
+    lastCountedGameRef.current = activeGameId;
+    setGamesCompleted((prev) => {
+      const newCompleted = prev + 1;
+      sendScore(newCompleted, gamesStarted);
+      return newCompleted;
+    });
+  }, [activeGameId, gamesStarted, sendScore]);
 
   // ─── Detect game finished from real-time data ───
-  const lastCountedGameRef = useRef(null);
   useEffect(() => {
     if (!gameData || gameData.status !== "finished") return;
     if (!activeGameId) return;
-    // Only count once per game ID
-    if (lastCountedGameRef.current === activeGameId) return;
-    lastCountedGameRef.current = activeGameId;
     handleGameEnd(gameData);
   }, [gameData?.status, activeGameId, handleGameEnd]);
 
@@ -412,6 +415,7 @@ export default function ConnectFourBlock({ block, courseId, lessonId, studentDat
     setActiveGameId(null);
     setGameData(null);
     setShowQuestion(false);
+    lastCountedGameRef.current = null;
     if (aiMoveTimeoutRef.current) clearTimeout(aiMoveTimeoutRef.current);
   };
 
@@ -485,8 +489,7 @@ export default function ConnectFourBlock({ block, courseId, lessonId, studentDat
           answeredCorrectly: correct,
         });
         // Backup: handle game end directly if subscription is slow
-        if (result?.gameOver && lastCountedGameRef.current !== activeGameId) {
-          lastCountedGameRef.current = activeGameId;
+        if (result?.gameOver) {
           handleGameEnd(result);
         }
       } catch (e) {
