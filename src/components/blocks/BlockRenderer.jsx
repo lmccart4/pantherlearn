@@ -46,6 +46,7 @@ const RubricBlock = lazy(() => import("./RubricBlock"));
 const ExemplarCompareBlock = lazy(() => import("./ExemplarCompareBlock"));
 const TeacherCheckpointBlock = lazy(() => import("./TeacherCheckpointBlock"));
 const MissionLogBlock = lazy(() => import("./MissionLogBlock"));
+const ConfidenceCheckBlock = lazy(() => import("./ConfidenceCheckBlock"));
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -94,6 +95,7 @@ const BLOCK_MAP = {
   exemplar_compare: ExemplarCompareBlock,
   teacher_checkpoint: TeacherCheckpointBlock,
   mission_log: MissionLogBlock,
+  confidence_check: ConfidenceCheckBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {

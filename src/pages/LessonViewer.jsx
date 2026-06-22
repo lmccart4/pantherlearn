@@ -391,6 +391,13 @@ export default function LessonViewer() {
         extraProps.lessonId = lessonId;
         extraProps.readOnly = isViewAsStudent;
       }
+      if (block.type === "confidence_check") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+        extraProps.courseId = courseId;
+        extraProps.lessonId = lessonId;
+        extraProps.readOnly = isViewAsStudent;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted, handleRequestReview, isViewAsStudent, user, isTestStudent]);
