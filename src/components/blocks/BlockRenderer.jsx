@@ -45,6 +45,7 @@ const ImageGenBlock = lazy(() => import("./ImageGenBlock"));
 const RubricBlock = lazy(() => import("./RubricBlock"));
 const ExemplarCompareBlock = lazy(() => import("./ExemplarCompareBlock"));
 const TeacherCheckpointBlock = lazy(() => import("./TeacherCheckpointBlock"));
+const MissionLogBlock = lazy(() => import("./MissionLogBlock"));
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -92,6 +93,7 @@ const BLOCK_MAP = {
   rubric: RubricBlock,
   exemplar_compare: ExemplarCompareBlock,
   teacher_checkpoint: TeacherCheckpointBlock,
+  mission_log: MissionLogBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {

@@ -384,6 +384,13 @@ export default function LessonViewer() {
       if (block.type === "rubric") {
         extraProps.studentData = studentData;
       }
+      if (block.type === "mission_log") {
+        extraProps.studentData = studentData;
+        extraProps.onAnswer = handleAnswer;
+        extraProps.courseId = courseId;
+        extraProps.lessonId = lessonId;
+        extraProps.readOnly = isViewAsStudent;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted, handleRequestReview, isViewAsStudent, user, isTestStudent]);
