@@ -1,0 +1,144 @@
+/* Challenge Progress Tracker — live class leaderboard. Bold, gamified, class-display friendly. */
+
+.chtrk-block {
+  margin: var(--space-6) 0;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.chtrk-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: color-mix(in oklab, var(--status-warn) 14%, var(--bg-sunken));
+  border-bottom: 1px solid color-mix(in oklab, var(--status-warn) 30%, transparent);
+}
+.chtrk-badge { font-size: 26px; line-height: 1; }
+.chtrk-headtext { display: flex; flex-direction: column; gap: 1px; }
+.chtrk-title { font-size: var(--t-lg, 1.05rem); font-weight: 800; color: var(--fg-default); letter-spacing: -0.01em; }
+.chtrk-sub { font-size: 12px; color: var(--fg-muted); }
+.chtrk-reset {
+  margin-left: auto;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.chtrk-reset:hover { color: var(--status-danger-display); border-color: color-mix(in oklab, var(--status-danger) 40%, transparent); }
+
+.chtrk-intro { padding: 14px 18px 0; font-size: var(--t-base); color: var(--fg-default); line-height: 1.5; }
+
+/* ── My team controls ── */
+.chtrk-mine {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-canvas);
+}
+.chtrk-mine-label { display: block; font-size: 12px; font-weight: 700; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+.chtrk-team-input {
+  width: 100%;
+  max-width: 360px;
+  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-surface);
+  color: var(--fg-default);
+  font-size: var(--t-base);
+  font-weight: 600;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+.chtrk-team-input:focus { border-color: var(--status-warn); }
+
+.chtrk-level-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chtrk-level-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px 7px 8px;
+  border-radius: 999px;
+  border: 2px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--fg-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.08s ease;
+}
+.chtrk-level-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.chtrk-level-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.chtrk-level-btn.is-cleared {
+  border-color: var(--status-success);
+  background: color-mix(in oklab, var(--status-success) 14%, var(--bg-surface));
+  color: var(--status-success-display);
+}
+.chtrk-level-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  background: color-mix(in oklab, var(--fg-default) 10%, transparent);
+  color: var(--fg-default);
+}
+.chtrk-level-btn.is-cleared .chtrk-level-n { background: var(--status-success); color: #fff; }
+.chtrk-mine-hint { margin-top: 8px; font-size: 12px; color: var(--fg-muted); font-style: italic; }
+
+/* ── Leaderboard ── */
+.chtrk-board { padding: 12px 18px 16px; display: flex; flex-direction: column; gap: 8px; }
+.chtrk-empty { font-size: 13px; color: var(--fg-muted); font-style: italic; padding: 8px 0; }
+.chtrk-team {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-canvas);
+}
+.chtrk-team.is-me { border-color: var(--status-warn); background: color-mix(in oklab, var(--status-warn) 8%, var(--bg-canvas)); }
+.chtrk-team-name { font-weight: 700; color: var(--fg-default); font-size: var(--t-base); display: flex; align-items: center; gap: 6px; }
+.chtrk-crown { font-size: 15px; }
+.chtrk-you {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--status-warn);
+  color: #fff;
+}
+
+.chtrk-pips { display: flex; align-items: center; gap: 5px; }
+.chtrk-pip {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--fg-default) 12%, transparent);
+  border: 1px solid var(--border-default);
+}
+.chtrk-pip.is-on { background: var(--status-success); border-color: var(--status-success); }
+.chtrk-count { margin-left: 6px; font-size: 12px; font-weight: 700; color: var(--fg-muted); }
+
+.chtrk-error { padding: 8px 18px 14px; font-size: 12px; color: var(--status-danger-display); }
+
+@media (max-width: 560px) {
+  .chtrk-team { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .chtrk-level-name { display: none; }
+}

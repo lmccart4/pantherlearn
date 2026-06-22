@@ -47,6 +47,11 @@ const ExemplarCompareBlock = lazy(() => import("./ExemplarCompareBlock"));
 const TeacherCheckpointBlock = lazy(() => import("./TeacherCheckpointBlock"));
 const LevelProgressBlock = lazy(() => import("./LevelProgressBlock"));
 const VideoOrLinkSubmitBlock = lazy(() => import("./VideoOrLinkSubmitBlock"));
+const MissionLogBlock = lazy(() => import("./MissionLogBlock"));
+const ConfidenceCheckBlock = lazy(() => import("./ConfidenceCheckBlock"));
+const ChallengeTrackerBlock = lazy(() => import("./ChallengeTrackerBlock"));
+const QuestionBoardBlock = lazy(() => import("./QuestionBoardBlock"));
+const ConsensusModelBlock = lazy(() => import("./ConsensusModelBlock"));
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -96,6 +101,11 @@ const BLOCK_MAP = {
   teacher_checkpoint: TeacherCheckpointBlock,
   level_progress: LevelProgressBlock,
   video_or_link_submit: VideoOrLinkSubmitBlock,
+  mission_log: MissionLogBlock,
+  confidence_check: ConfidenceCheckBlock,
+  challenge_tracker: ChallengeTrackerBlock,
+  question_board: QuestionBoardBlock,
+  consensus_model: ConsensusModelBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {
