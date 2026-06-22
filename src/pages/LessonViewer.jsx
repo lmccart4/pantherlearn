@@ -398,7 +398,7 @@ export default function LessonViewer() {
         extraProps.lessonId = lessonId;
         extraProps.readOnly = isViewAsStudent;
       }
-      if (block.type === "challenge_tracker") {
+      if (block.type === "challenge_tracker" || block.type === "question_board" || block.type === "consensus_model") {
         extraProps.courseId = courseId;
         extraProps.lessonId = lessonId;
       }

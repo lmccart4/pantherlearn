@@ -1,0 +1,122 @@
+/* Student Question Board — class-shared question wall. Info/blue accent. */
+
+.qbd-block {
+  margin: var(--space-6) 0;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.qbd-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: color-mix(in oklab, var(--status-info) 12%, var(--bg-sunken));
+  border-bottom: 1px solid color-mix(in oklab, var(--status-info) 28%, transparent);
+}
+.qbd-badge { font-size: 24px; line-height: 1; }
+.qbd-headtext { display: flex; flex-direction: column; gap: 1px; }
+.qbd-title { font-size: var(--t-lg, 1.05rem); font-weight: 800; color: var(--fg-default); letter-spacing: -0.01em; }
+.qbd-sub { font-size: 12px; color: var(--fg-muted); }
+.qbd-count { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--status-info); }
+
+.qbd-intro { padding: 14px 18px 0; font-size: var(--t-base); color: var(--fg-default); line-height: 1.5; }
+
+/* ── Compose ── */
+.qbd-compose { padding: 14px 18px; border-bottom: 1px solid var(--border-soft); background: var(--bg-canvas); }
+.qbd-starters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.qbd-starter {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px dashed color-mix(in oklab, var(--status-info) 40%, var(--border-default));
+  background: transparent;
+  color: var(--status-info);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.qbd-starter:hover { background: color-mix(in oklab, var(--status-info) 10%, transparent); }
+.qbd-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-surface);
+  color: var(--fg-default);
+  font-size: var(--t-base);
+  font-family: inherit;
+  resize: vertical;
+  line-height: 1.5;
+  box-sizing: border-box;
+  outline: none;
+}
+.qbd-input:focus { border-color: var(--status-info); }
+.qbd-post {
+  margin-top: 8px;
+  padding: 8px 16px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: var(--status-info);
+  color: #fff;
+  font-size: var(--t-base);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.qbd-post:hover:not(:disabled) { background: color-mix(in oklab, var(--status-info) 82%, black); }
+.qbd-post:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── List ── */
+.qbd-list { padding: 12px 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+.qbd-empty { font-size: 13px; color: var(--fg-muted); font-style: italic; padding: 6px 0; }
+.qbd-group { display: flex; flex-direction: column; gap: 8px; }
+.qbd-group-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--status-info);
+  padding: 2px 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--status-info) 20%, transparent);
+}
+.qbd-card {
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-canvas);
+}
+.qbd-card.is-answered { opacity: 0.7; background: color-mix(in oklab, var(--status-success) 6%, var(--bg-canvas)); }
+.qbd-card-text { font-size: var(--t-base); color: var(--fg-default); line-height: 1.45; }
+.qbd-card-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.qbd-author { font-size: 11px; font-weight: 600; color: var(--fg-muted); }
+.qbd-answered-badge { font-size: 11px; font-weight: 600; color: var(--status-success-display); }
+.qbd-tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.qbd-cluster-input {
+  width: 90px;
+  padding: 3px 7px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-surface);
+  color: var(--fg-default);
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+}
+.qbd-cluster-input:focus { border-color: var(--status-info); }
+.qbd-tool {
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--fg-muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.qbd-tool:hover { color: var(--fg-default); }
+.qbd-del:hover { color: var(--status-danger-display); border-color: color-mix(in oklab, var(--status-danger) 40%, transparent); }
+
+.qbd-error { padding: 8px 18px 14px; font-size: 12px; color: var(--status-danger-display); }

@@ -48,6 +48,8 @@ const TeacherCheckpointBlock = lazy(() => import("./TeacherCheckpointBlock"));
 const MissionLogBlock = lazy(() => import("./MissionLogBlock"));
 const ConfidenceCheckBlock = lazy(() => import("./ConfidenceCheckBlock"));
 const ChallengeTrackerBlock = lazy(() => import("./ChallengeTrackerBlock"));
+const QuestionBoardBlock = lazy(() => import("./QuestionBoardBlock"));
+const ConsensusModelBlock = lazy(() => import("./ConsensusModelBlock"));
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -98,6 +100,8 @@ const BLOCK_MAP = {
   mission_log: MissionLogBlock,
   confidence_check: ConfidenceCheckBlock,
   challenge_tracker: ChallengeTrackerBlock,
+  question_board: QuestionBoardBlock,
+  consensus_model: ConsensusModelBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {
