@@ -398,6 +398,10 @@ export default function LessonViewer() {
         extraProps.lessonId = lessonId;
         extraProps.readOnly = isViewAsStudent;
       }
+      if (block.type === "challenge_tracker") {
+        extraProps.courseId = courseId;
+        extraProps.lessonId = lessonId;
+      }
       return { block, extraProps };
     });
   }, [lesson?.blocks, lessonId, courseId, getToken, handleChatLog, studentData, handleAnswer, lessonCompleted, handleRequestReview, isViewAsStudent, user, isTestStudent]);
