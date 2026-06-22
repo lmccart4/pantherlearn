@@ -522,23 +522,30 @@ export default function FloatingMusicPlayer() {
     setDuration(0);
   }, [track?.url, trackType]);
 
-  // Audio play/pause + src sync
+  // Audio play/pause sync — consolidated effect.
+  // src is UNCONTROLLED (no src={track.url} on the <audio>). React reconciling src
+  // was firing `emptied` and aborting in-flight play() promises on track switch,
+  // leaving audio in NETWORK_LOADING with no pending play (hang). We own src here.
+  // Click handlers ALSO imperatively set src + call play() to keep user-activation
+  // for autoplay policy; this effect is the safety net + handles auto-advance.
   useEffect(() => {
-    if (!audioRef.current || trackType !== "audio") return;
-    audioRef.current.load();
-    if (isPlaying) {
-      audioRef.current.play().catch((e) => console.warn("Audio play failed:", e));
+    const el = audioRef.current;
+    if (!el || trackType !== "audio") return;
+    if (track?.url && el.src !== track.url) {
+      el.src = track.url; // assignment triggers reload; do NOT call .load()
     }
-  }, [track?.url, trackType]);
-
-  useEffect(() => {
-    if (!audioRef.current || trackType !== "audio") return;
     if (isPlaying) {
-      audioRef.current.play().catch((e) => console.warn("Audio play failed:", e));
+      const p = el.play();
+      if (p && typeof p.catch === "function") {
+        p.catch((e) => {
+          if (e && e.name === "AbortError") return;
+          console.warn("Audio play failed:", e);
+        });
+      }
     } else {
-      audioRef.current.pause();
+      el.pause();
     }
-  }, [isPlaying, trackType]);
+  }, [track?.url, trackType, isPlaying]);
 
   // ── YouTube IFrame API: init player on iframe mount; tear down on unmount/track switch
   useEffect(() => {
@@ -668,7 +675,16 @@ export default function FloatingMusicPlayer() {
 
   const handlePlayPause = () => {
     if (!track) return;
-    setIsPlaying(!isPlaying);
+    const next = !isPlaying;
+    // Drive audio synchronously from the click to preserve user activation
+    // (some browsers block play() that happens later in an effect).
+    if (next && trackType === "audio" && audioRef.current) {
+      const p = audioRef.current.play();
+      if (p && typeof p.catch === "function") {
+        p.catch((e) => { if (!e || e.name !== "AbortError") console.warn("Audio play failed:", e); });
+      }
+    }
+    setIsPlaying(next);
   };
 
   const handleNext = () => {
@@ -721,11 +737,10 @@ export default function FloatingMusicPlayer() {
       {trackType === "audio" && track && (
         <audio
           ref={audioRef}
-          src={track.url}
           onEnded={handleAudioEnded}
           onPlay={() => setIsPlaying(true)}
           onPause={() => { /* ignore — controlled */ }}
-          preload="metadata"
+          preload="auto"
         />
       )}
 
@@ -1036,7 +1051,25 @@ export default function FloatingMusicPlayer() {
                         <div key={t.id || i}
                           className={`fmt-item ${i === currentTrack ? "active" : ""}`}
                           style={{ alignItems: "center" }}>
-                          <button onClick={() => { setCurrentTrack(i); setIsPlaying(true); }}
+                          <button onClick={() => {
+                              // Drive audio synchronously from the click to preserve user
+                              // activation (autoplay policy) and to start playback even if
+                              // React's re-render hasn't run yet.
+                              const sameTrack = i === currentTrack;
+                              if (trackType === "audio" && audioRef.current) {
+                                const el = audioRef.current;
+                                const nextUrl = validTracks[i]?.url;
+                                if (!sameTrack && nextUrl && el.src !== nextUrl) {
+                                  el.src = nextUrl;
+                                }
+                                const p = el.play();
+                                if (p && typeof p.catch === "function") {
+                                  p.catch((e) => { if (!e || e.name !== "AbortError") console.warn("Audio play failed:", e); });
+                                }
+                              }
+                              setCurrentTrack(i);
+                              setIsPlaying(true);
+                            }}
                             style={{
                               display: "flex", alignItems: "center", gap: 8,
                               flex: 1, minWidth: 0,

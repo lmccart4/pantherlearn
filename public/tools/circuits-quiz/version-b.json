@@ -1,0 +1,350 @@
+{
+  "version": "B",
+  "questions": [
+    {
+      "id": "b-q1",
+      "category": "complete_circuits",
+      "correct": 1,
+      "en": {
+        "stem": "A flashlight bulb stays dark even though the battery is good. The wires are connected and the switch is set to OFF. What is most likely keeping the bulb dark?",
+        "options": [
+          "The battery has too much voltage",
+          "The open switch leaves a gap, so the circuit is not closed",
+          "The bulb is a conductor",
+          "Electrons are flowing too fast"
+        ]
+      },
+      "es": {
+        "stem": "Una bombilla de linterna permanece apagada aunque la batería está en buen estado. Los cables están conectados y el interruptor está en APAGADO. ¿Qué es lo más probable que mantenga la bombilla apagada?",
+        "options": [
+          "La batería tiene demasiado voltaje",
+          "El interruptor abierto deja un hueco, así que el circuito no está cerrado",
+          "La bombilla es un conductor",
+          "Los electrones fluyen demasiado rápido"
+        ]
+      }
+    },
+    {
+      "id": "b-q2",
+      "category": "complete_circuits",
+      "correct": 3,
+      "en": {
+        "stem": "In the PhET Circuit Construction Kit, you connect a battery directly to itself with only a plain wire and no bulb. What does this create?",
+        "options": [
+          "An open circuit that carries no current",
+          "A perfectly safe circuit with normal current",
+          "A circuit where the wire becomes an insulator",
+          "A short circuit, where current is very high and the wire heats up"
+        ]
+      },
+      "es": {
+        "stem": "En el PhET Circuit Construction Kit, conectas una batería directamente consigo misma usando solo un cable simple y sin bombilla. ¿Qué crea esto?",
+        "options": [
+          "Un circuito abierto que no lleva corriente",
+          "Un circuito perfectamente seguro con corriente normal",
+          "Un circuito donde el cable se vuelve un aislante",
+          "Un cortocircuito, donde la corriente es muy alta y el cable se calienta"
+        ]
+      }
+    },
+    {
+      "id": "b-q3",
+      "category": "complete_circuits",
+      "correct": 0,
+      "en": {
+        "stem": "While building circuits in PhET, which of these materials would let current pass through and complete the circuit?",
+        "options": [
+          "A copper wire",
+          "A rubber band",
+          "A piece of dry wood",
+          "A plastic ruler"
+        ]
+      },
+      "es": {
+        "stem": "Al construir circuitos en PhET, ¿cuál de estos materiales dejaría pasar la corriente y completar el circuito?",
+        "options": [
+          "Un cable de cobre",
+          "Una banda elástica de goma",
+          "Un trozo de madera seca",
+          "Una regla de plástico"
+        ]
+      }
+    },
+    {
+      "id": "b-q4",
+      "category": "current",
+      "correct": 2,
+      "en": {
+        "stem": "In the PhET Current simulation, the moving blue dots represent the electric current. What are those dots actually showing?",
+        "options": [
+          "Protons leaving the battery",
+          "Heat traveling through the wire",
+          "Electrons flowing through the circuit",
+          "Voltage stored in the wire"
+        ]
+      },
+      "es": {
+        "stem": "En la simulación PhET Current, los puntos azules en movimiento representan la corriente eléctrica. ¿Qué muestran realmente esos puntos?",
+        "options": [
+          "Protones saliendo de la batería",
+          "Calor viajando por el cable",
+          "Electrones fluyendo por el circuito",
+          "Voltaje almacenado en el cable"
+        ]
+      }
+    },
+    {
+      "id": "b-q5",
+      "category": "current",
+      "correct": 0,
+      "en": {
+        "stem": "You have one bulb wired in a single series loop with a battery. Compared to the current right at the battery, the current passing through the bulb is:",
+        "options": [
+          "The same — current is equal everywhere in a single loop",
+          "Larger, because the bulb adds current",
+          "Smaller, because the bulb uses up the current",
+          "Zero, because the bulb blocks all current"
+        ]
+      },
+      "es": {
+        "stem": "Tienes una bombilla conectada en un solo lazo en serie con una batería. Comparada con la corriente justo en la batería, la corriente que pasa por la bombilla es:",
+        "options": [
+          "La misma — la corriente es igual en todo el lazo único",
+          "Mayor, porque la bombilla agrega corriente",
+          "Menor, porque la bombilla consume la corriente",
+          "Cero, porque la bombilla bloquea toda la corriente"
+        ]
+      }
+    },
+    {
+      "id": "b-q6",
+      "category": "resistance",
+      "correct": 1,
+      "en": {
+        "stem": "In the PhET Resistance simulation, where do you connect the voltmeter to measure the voltage across a resistor?",
+        "options": [
+          "In series, in the same line as the resistor",
+          "In parallel, with its leads touching both sides of the resistor",
+          "Directly onto the battery only",
+          "It does not matter where you connect it"
+        ]
+      },
+      "es": {
+        "stem": "En la simulación PhET Resistance, ¿dónde conectas el voltímetro para medir el voltaje a través de un resistor?",
+        "options": [
+          "En serie, en la misma línea que el resistor",
+          "En paralelo, con sus puntas tocando ambos lados del resistor",
+          "Directamente solo sobre la batería",
+          "No importa dónde lo conectes"
+        ]
+      }
+    },
+    {
+      "id": "b-q7",
+      "category": "resistance",
+      "correct": 2,
+      "en": {
+        "stem": "Using your ammeter and voltmeter, you read a voltage of $12\\,\\text{V}$ across a resistor and a current of $3\\,\\text{A}$ through it. Using $R = V/I$, what is the resistance?",
+        "options": [
+          "$36\\,\\Omega$",
+          "$15\\,\\Omega$",
+          "$4\\,\\Omega$",
+          "$0.25\\,\\Omega$"
+        ]
+      },
+      "es": {
+        "stem": "Usando tu amperímetro y voltímetro, lees un voltaje de $12\\,\\text{V}$ a través de un resistor y una corriente de $3\\,\\text{A}$ que pasa por él. Usando $R = V/I$, ¿cuál es la resistencia?",
+        "options": [
+          "$36\\,\\Omega$",
+          "$15\\,\\Omega$",
+          "$4\\,\\Omega$",
+          "$0.25\\,\\Omega$"
+        ]
+      }
+    },
+    {
+      "id": "b-q8",
+      "category": "resistance",
+      "correct": 3,
+      "en": {
+        "stem": "Two resistors are connected to the same battery. Resistor X has a larger resistance than resistor Y. What does the larger resistance of X mean for the current through it?",
+        "options": [
+          "More current flows through X than Y",
+          "Resistance has no effect on current",
+          "X and Y carry exactly the same current",
+          "Less current flows through X than Y"
+        ]
+      },
+      "es": {
+        "stem": "Dos resistores están conectados a la misma batería. El resistor X tiene una resistencia mayor que el resistor Y. ¿Qué significa la mayor resistencia de X para la corriente que pasa por él?",
+        "options": [
+          "Pasa más corriente por X que por Y",
+          "La resistencia no afecta a la corriente",
+          "X y Y llevan exactamente la misma corriente",
+          "Pasa menos corriente por X que por Y"
+        ]
+      }
+    },
+    {
+      "id": "b-q9",
+      "category": "ohms_law",
+      "correct": 0,
+      "en": {
+        "stem": "A resistor follows $V = IR$. If you keep the resistance the same but double the voltage across it, what happens to the current?",
+        "options": [
+          "The current doubles",
+          "The current is cut in half",
+          "The current stays the same",
+          "The current drops to zero"
+        ]
+      },
+      "es": {
+        "stem": "Un resistor cumple $V = IR$. Si mantienes la resistencia igual pero duplicas el voltaje a través de él, ¿qué le pasa a la corriente?",
+        "options": [
+          "La corriente se duplica",
+          "La corriente se reduce a la mitad",
+          "La corriente permanece igual",
+          "La corriente baja a cero"
+        ]
+      }
+    },
+    {
+      "id": "b-q10",
+      "category": "ohms_law",
+      "correct": 2,
+      "en": {
+        "stem": "Using $V = IR$, if the voltage stays the same but you double the resistance, what happens to the current?",
+        "options": [
+          "The current doubles",
+          "The current stays the same",
+          "The current is cut in half",
+          "The current becomes four times larger"
+        ]
+      },
+      "es": {
+        "stem": "Usando $V = IR$, si el voltaje permanece igual pero duplicas la resistencia, ¿qué le pasa a la corriente?",
+        "options": [
+          "La corriente se duplica",
+          "La corriente permanece igual",
+          "La corriente se reduce a la mitad",
+          "La corriente se vuelve cuatro veces mayor"
+        ]
+      }
+    },
+    {
+      "id": "b-q11",
+      "category": "series_parallel",
+      "correct": 1,
+      "en": {
+        "stem": "A circuit has three bulbs, and there is only one single path for the current to travel from the battery through all three bulbs and back. This circuit is:",
+        "options": [
+          "A parallel circuit",
+          "A series circuit",
+          "A short circuit",
+          "An open circuit"
+        ]
+      },
+      "es": {
+        "stem": "Un circuito tiene tres bombillas, y solo hay un único camino para que la corriente viaje desde la batería a través de las tres bombillas y de regreso. Este circuito es:",
+        "options": [
+          "Un circuito en paralelo",
+          "Un circuito en serie",
+          "Un cortocircuito",
+          "Un circuito abierto"
+        ]
+      }
+    },
+    {
+      "id": "b-q12",
+      "category": "series_parallel",
+      "correct": 3,
+      "en": {
+        "stem": "Three bulbs are wired in parallel, each on its own branch. One bulb is unscrewed and removed. What happens to the other two bulbs?",
+        "options": [
+          "Both immediately go dark",
+          "Both get much dimmer but stay on",
+          "Both burn out",
+          "They stay lit, because each branch is its own path"
+        ]
+      },
+      "es": {
+        "stem": "Tres bombillas están conectadas en paralelo, cada una en su propia rama. Una bombilla se desenrosca y se retira. ¿Qué les pasa a las otras dos bombillas?",
+        "options": [
+          "Ambas se apagan de inmediato",
+          "Ambas se vuelven mucho más tenues pero siguen encendidas",
+          "Ambas se queman",
+          "Permanecen encendidas, porque cada rama es su propio camino"
+        ]
+      }
+    },
+    {
+      "id": "b-q13",
+      "category": "series_parallel",
+      "correct": 0,
+      "en": {
+        "stem": "Two identical bulbs are in series, and two identical bulbs are in parallel, each pair on the same type of battery. Which pair will shine brighter?",
+        "options": [
+          "The parallel pair shines brighter",
+          "The series pair shines brighter",
+          "Both pairs are exactly the same brightness",
+          "Neither pair lights up at all"
+        ]
+      },
+      "es": {
+        "stem": "Dos bombillas idénticas están en serie, y dos bombillas idénticas están en paralelo, cada par con el mismo tipo de batería. ¿Qué par brillará más?",
+        "options": [
+          "El par en paralelo brilla más",
+          "El par en serie brilla más",
+          "Ambos pares tienen exactamente el mismo brillo",
+          "Ningún par se enciende"
+        ]
+      }
+    },
+    {
+      "id": "b-q14",
+      "category": "series_parallel",
+      "correct": 2,
+      "en": {
+        "stem": "How does the path of the current differ between a series circuit and a parallel circuit?",
+        "options": [
+          "Both have many separate paths for the current",
+          "Both force the current through a single path",
+          "Series gives one single path; parallel splits the current into separate branches",
+          "Parallel gives one single path; series splits the current into separate branches"
+        ]
+      },
+      "es": {
+        "stem": "¿En qué se diferencia el camino de la corriente entre un circuito en serie y uno en paralelo?",
+        "options": [
+          "Ambos tienen muchos caminos separados para la corriente",
+          "Ambos obligan a la corriente a pasar por un único camino",
+          "La serie da un único camino; el paralelo divide la corriente en ramas separadas",
+          "El paralelo da un único camino; la serie divide la corriente en ramas separadas"
+        ]
+      }
+    },
+    {
+      "id": "b-q15",
+      "category": "troubleshooting",
+      "correct": 1,
+      "en": {
+        "stem": "In the Crack the Circuit Challenge, a student builds a loop with a battery and a bulb, but one wire is only resting near the battery terminal and not actually touching it. The bulb stays dark. What fix will light the bulb?",
+        "options": [
+          "Replace the wire with a piece of rubber",
+          "Press the loose wire firmly onto the terminal so the loop is closed",
+          "Remove the battery from the circuit",
+          "Add a second gap somewhere else in the loop"
+        ]
+      },
+      "es": {
+        "stem": "En el Crack the Circuit Challenge, un estudiante arma un lazo con una batería y una bombilla, pero un cable solo está apoyado cerca del terminal de la batería y en realidad no lo toca. La bombilla permanece apagada. ¿Qué solución encenderá la bombilla?",
+        "options": [
+          "Reemplazar el cable con un trozo de goma",
+          "Presionar firmemente el cable suelto sobre el terminal para que el lazo quede cerrado",
+          "Quitar la batería del circuito",
+          "Agregar un segundo hueco en otra parte del lazo"
+        ]
+      }
+    }
+  ]
+}

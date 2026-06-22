@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Crumple-Zone Designer</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:920px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .pill{padding:4px 10px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+  .panel{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .panel h2{font-size:15px;margin:0 0 10px;}
+  .controls{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+  select, input[type=range]{width:100%;background:#0b1220;border:1px solid #334155;color:var(--ink);border-radius:6px;padding:6px;font-size:13px;}
+  input[type=range]{padding:0;height:6px;cursor:pointer;}
+  .range-val{font-size:13px;color:var(--ink);margin-top:4px;}
+  .option-desc{font-size:11px;color:var(--muted);margin-top:4px;}
+  .diagram{display:flex;align-items:flex-end;justify-content:center;gap:4px;height:140px;margin:16px 0;padding:10px;background:#0b1220;border-radius:10px;position:relative;}
+  .passenger-cell{width:90px;height:70px;background:#334155;border-radius:8px 8px 4px 4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center;}
+  .crumple{height:var(--ch,50px);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#0f172a;writing-mode:vertical-rl;text-orientation:mixed;transition:width .2s ease, background .2s ease;min-width:28px;}
+  .wall{width:18px;height:110px;background:#475569;border-radius:4px;}
+  .force-arrow{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:18px;color:var(--bad);}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .primary{flex:1;min-width:160px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  textarea{width:100%;min-height:60px;background:#0b1220;border:1px solid #334155;color:var(--ink);border-radius:6px;padding:8px;font-size:13px;resize:vertical;}
+  #scoreBox{font-size:13px;color:var(--muted);margin-top:10px;}
+  .status{font-weight:600;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="readout">
+    <span class="pill" id="speedPill">—</span>
+    <span class="pill" id="thresholdPill">—</span>
+    <span class="pill" id="budgetPill">—</span>
+  </div>
+
+  <div class="panel">
+    <h2 id="designTitle"></h2>
+    <div class="controls">
+      <div>
+        <label id="matLabel"></label>
+        <select id="materialSel"></select>
+        <div class="option-desc" id="materialDesc"></div>
+      </div>
+      <div>
+        <label id="patLabel"></label>
+        <select id="patternSel"></select>
+        <div class="option-desc" id="patternDesc"></div>
+      </div>
+      <div>
+        <label id="lenLabel"></label>
+        <input id="lengthRange" type="range" min="10" max="80" step="1" />
+        <div class="range-val" id="lengthVal">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 id="previewTitle"></h2>
+    <div class="diagram" id="diagram">
+      <div class="passenger-cell" id="passengerLabel"></div>
+      <div class="crumple" id="crumpleZone"></div>
+      <div class="wall"></div>
+      <div class="force-arrow" id="forceArrow">⬅</div>
+    </div>
+    <div class="readout">
+      <span class="pill" id="peakPill">—</span>
+      <span class="pill" id="avgPill">—</span>
+      <span class="pill" id="timePill">—</span>
+      <span class="pill" id="costPill">—</span>
+      <span class="pill" id="weightPill">—</span>
+      <span class="pill" id="statusPill">—</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 id="rationaleTitle"></h2>
+    <label id="rationaleLabel"></label>
+    <textarea id="rationaleTa"></textarea>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import {
+  CAR_PARAMS, MATERIALS, PATTERNS, DEFAULT_CRITERIA,
+  evaluateDesign, scoreDesign, emptyDesign, materialById, patternById
+} from "./crumple-zone-designer-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Crumple-Zone Designer", es: "Diseñador de Zona de Aplastamiento" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: { en: "Design a front-end crumple zone that keeps peak force on the passenger cell below the safety threshold while staying inside the cost and weight budgets.", es: "Diseña una zona frontal de aplastamiento que mantenga el pico de fuerza sobre la celda de pasajeros por debajo del umbral de seguridad mientras se mantiene dentro de los presupuestos de costo y peso." },
+  speed: { en: "Crash speed", es: "Velocidad de impacto" },
+  threshold: { en: "Force limit", es: "Límite de fuerza" },
+  budget: { en: "Budget", es: "Presupuesto" },
+  designTitle: { en: "1. Choose your design", es: "1. Elige tu diseño" },
+  material: { en: "Material", es: "Material" },
+  pattern: { en: "Crumple pattern", es: "Patrón de aplastamiento" },
+  length: { en: "Crumple-zone length", es: "Longitud de la zona de aplastamiento" },
+  previewTitle: { en: "2. Crash preview", es: "2. Vista previa del choque" },
+  passenger: { en: "Passenger cell", es: "Celda de pasajeros" },
+  peakForce: { en: "Peak force", es: "Fuerza pico" },
+  avgForce: { en: "Average force", es: "Fuerza promedio" },
+  collisionTime: { en: "Collision time", es: "Tiempo de colisión" },
+  cost: { en: "Cost", es: "Costo" },
+  weight: { en: "Weight", es: "Peso" },
+  statusSafe: { en: "✓ Safe design", es: "✓ Diseño seguro" },
+  statusUnsafeForce: { en: "✗ Force too high", es: "✗ Fuerza demasiado alta" },
+  statusOverBudget: { en: "✗ Over budget", es: "✗ Sobre presupuesto" },
+  statusUnsafeAndOver: { en: "✗ Unsafe & over budget", es: "✗ Inseguro y sobre presupuesto" },
+  rationaleTitle: { en: "3. Explain your design", es: "3. Explica tu diseño" },
+  rationalePrompt: { en: "Why does your design keep peak force low? Mention material, pattern, and length.", es: "¿Por qué tu diseño mantiene baja la fuerza pico? Menciona material, patrón y longitud." },
+  submit: { en: "Submit Design", es: "Enviar Diseño" },
+  submitted: { en: "✓ Design submitted", es: "✓ Diseño enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+let design = emptyDesign();
+let submitted = false;
+let autoSent = false;
+
+const criteria = DEFAULT_CRITERIA;
+
+function formatForce(n) {
+  return n >= 1000 ? (n / 1000).toFixed(1) + " kN" : n + " N";
+}
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("designTitle").textContent = tr.t("designTitle");
+  document.getElementById("previewTitle").textContent = tr.t("previewTitle");
+  document.getElementById("rationaleTitle").textContent = tr.t("rationaleTitle");
+  document.getElementById("rationaleLabel").textContent = tr.t("rationalePrompt");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+  document.getElementById("matLabel").textContent = tr.t("material");
+  document.getElementById("patLabel").textContent = tr.t("pattern");
+  document.getElementById("lenLabel").textContent = tr.t("length");
+  document.getElementById("passengerLabel").textContent = DICT.passenger[tr.lang];
+}
+
+function populateSelects() {
+  const matSel = document.getElementById("materialSel");
+  const patSel = document.getElementById("patternSel");
+  matSel.innerHTML = "";
+  patSel.innerHTML = "";
+  for (const [id, m] of Object.entries(MATERIALS)) {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = m.label[tr.lang];
+    matSel.appendChild(opt);
+  }
+  for (const [id, p] of Object.entries(PATTERNS)) {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = p.label[tr.lang];
+    patSel.appendChild(opt);
+  }
+  matSel.value = design.materialId;
+  patSel.value = design.patternId;
+}
+
+function render() {
+  renderStaticText();
+  populateSelects();
+
+  const mat = materialById(design.materialId);
+  const pat = patternById(design.patternId);
+
+  document.getElementById("materialDesc").textContent = `${mat.costPerM}$/m · ${mat.weightPerM} kg/m`;
+  document.getElementById("patternDesc").textContent = pat.description[tr.lang];
+  document.getElementById("lengthRange").value = Math.round(design.lengthM * 100);
+  document.getElementById("lengthVal").textContent = `${design.lengthM.toFixed(2)} m`;
+
+  document.getElementById("speedPill").textContent = `${tr.t("speed")}: ${CAR_PARAMS.speedMs} m/s · ${CAR_PARAMS.massKg} kg`;
+  document.getElementById("thresholdPill").textContent = `${tr.t("threshold")}: ${formatForce(criteria.forceThresholdN)}`;
+  document.getElementById("budgetPill").textContent = `${tr.t("budget")}: $${criteria.costBudget} · ${criteria.weightBudget} kg`;
+
+  const ev = evaluateDesign(design, criteria);
+  const scoreInfo = scoreDesign(ev, criteria);
+
+  // Diagram
+  const crumpleEl = document.getElementById("crumpleZone");
+  const pxPerM = 220; // max length 0.8m -> 176px
+  crumpleEl.style.width = `${Math.max(28, design.lengthM * pxPerM)}px`;
+  crumpleEl.style.background = mat.color;
+  crumpleEl.textContent = pat.label[tr.lang];
+
+  document.getElementById("peakPill").textContent = `${tr.t("peakForce")}: ${formatForce(ev.peakForceN)}`;
+  document.getElementById("peakPill").className = "pill " + (ev.passesForce ? "ok" : "bad");
+  document.getElementById("avgPill").textContent = `${tr.t("avgForce")}: ${formatForce(ev.averageForceN)}`;
+  document.getElementById("timePill").textContent = `${tr.t("collisionTime")}: ${ev.deltaT.toFixed(3)} s`;
+  document.getElementById("costPill").textContent = `${tr.t("cost")}: $${ev.cost}`;
+  document.getElementById("costPill").className = "pill " + (ev.withinCost ? "ok" : "bad");
+  document.getElementById("weightPill").textContent = `${tr.t("weight")}: ${ev.weight} kg`;
+  document.getElementById("weightPill").className = "pill " + (ev.withinWeight ? "ok" : "bad");
+
+  const statusEl = document.getElementById("statusPill");
+  if (ev.passesAll) {
+    statusEl.textContent = DICT.statusSafe[tr.lang];
+    statusEl.className = "pill ok";
+  } else if (!ev.passesForce && (!ev.withinCost || !ev.withinWeight)) {
+    statusEl.textContent = DICT.statusUnsafeAndOver[tr.lang];
+    statusEl.className = "pill bad";
+  } else if (!ev.passesForce) {
+    statusEl.textContent = DICT.statusUnsafeForce[tr.lang];
+    statusEl.className = "pill bad";
+  } else {
+    statusEl.textContent = DICT.statusOverBudget[tr.lang];
+    statusEl.className = "pill warn";
+  }
+
+  // Rationale
+  document.getElementById("rationaleTa").value = design.rationale[tr.lang] || "";
+
+  // Auto-send once when a safe, in-budget design is reached.
+  if (ev.passesAll && !autoSent) {
+    sendActivityScore(scoreInfo.score, 5, true);
+    autoSent = true;
+  }
+
+  saveState();
+}
+
+function saveState() {
+  saver.save({ design, submitted, autoSent });
+}
+
+function submitDesign() {
+  const ev = evaluateDesign(design, criteria);
+  const scoreInfo = scoreDesign(ev, criteria);
+  sendActivityScore(scoreInfo.score, 5, true); // ALWAYS re-send, no guard
+  submitted = true;
+  saveState();
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${scoreInfo.score}/5 · ${scoreInfo.breakdown.slice(0, 4).join(" · ")}`;
+}
+
+function resetDesign() {
+  design = emptyDesign();
+  submitted = false;
+  autoSent = false;
+  document.getElementById("scoreBox").textContent = "";
+  saveState();
+  render();
+}
+
+// Events
+function updateFromUI() {
+  design.materialId = document.getElementById("materialSel").value;
+  design.patternId = document.getElementById("patternSel").value;
+  design.lengthM = parseInt(document.getElementById("lengthRange").value, 10) / 100;
+  submitted = false;
+  render();
+}
+
+document.getElementById("materialSel").onchange = updateFromUI;
+document.getElementById("patternSel").onchange = updateFromUI;
+document.getElementById("lengthRange").oninput = updateFromUI;
+document.getElementById("rationaleTa").oninput = () => {
+  design.rationale[tr.lang] = document.getElementById("rationaleTa").value;
+  saveState();
+};
+document.getElementById("submitBtn").onclick = submitDesign;
+document.getElementById("resetBtn").onclick = resetDesign;
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

@@ -205,7 +205,9 @@ export default function MyGrades() {
     const embeds = getEmbedBlocks(lesson);
     const checkpoints = (lesson.blocks || []).filter((b) => b.type === "teacher_checkpoint");
     const dataTables = (lesson.blocks || []).filter((b) => b.type === "data_table" && b.preset === "dropdown" && b.scored !== false);
-    const hasReflection = lessonHasReflection(lessonId);
+    // skipReflection lesson flag: lesson grade is computed without the reflection slot
+    // (used for embed-only assessments where the embed score IS the entire grade)
+    const hasReflection = !lesson.skipReflection && lessonHasReflection(lessonId);
 
     // Embed weighting: use explicit weight if set, otherwise dynamic 50/50 split
     const nonEmbedPts = mc.length + sa.length + (hasReflection ? 1 : 0);

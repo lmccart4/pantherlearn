@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stopping-Distance Calculator</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --react:#fbbf24; --brake:#f87171; --ok:#34d399; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .chart{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:12px;}
+  svg{width:100%;height:240px;display:block;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--muted);}
+  .legend .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .pill{padding:5px 11px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:14px;}
+  .ctl{background:var(--panel);border:1px solid #334155;border-radius:10px;padding:12px;}
+  .ctl label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .ctl input[type=range]{width:100%;}
+  .ctl .val{font-size:14px;color:var(--accent);font-weight:600;}
+  .ctl .sub{font-size:11px;color:var(--muted);margin-top:4px;}
+  .questions{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:14px;}
+  .q{margin-bottom:14px;}
+  .q:last-child{margin-bottom:0;}
+  .q-label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block;}
+  .q input[type=number]{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:7px 10px;color:var(--ink);font-size:14px;width:130px;}
+  .q-unit{margin-left:6px;font-size:13px;color:var(--muted);}
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .choice-btn{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:6px 12px;color:var(--muted);font-size:13px;cursor:pointer;}
+  .choice-btn:hover{border-color:var(--accent);}
+  .choice-btn.selected{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .primary{flex:1;min-width:160px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  #scoreBox{font-size:13px;color:var(--muted);margin-top:10px;}
+  .muted{font-size:12px;color:var(--muted);margin-top:4px;}
+  .ok{color:var(--ok);} .bad{color:var(--bad);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="chart">
+    <svg id="barsSvg" viewBox="0 0 600 240" preserveAspectRatio="none"></svg>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--react)"></span><span id="legReact"></span></span>
+      <span><span class="sw" style="background:var(--brake)"></span><span id="legBrake"></span></span>
+    </div>
+  </div>
+
+  <div class="readout">
+    <span class="pill" id="reactPill">—</span>
+    <span class="pill" id="brakePill">—</span>
+    <span class="pill" id="totalPill">—</span>
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <label id="speedLabel"></label>
+      <input type="range" id="speedSlider" min="20" max="80" step="5" />
+      <div class="val" id="speedVal">—</div>
+      <div class="sub" id="speedSub"></div>
+    </div>
+    <div class="ctl">
+      <label id="reactLabel"></label>
+      <input type="range" id="reactSlider" min="1.0" max="3.0" step="0.1" />
+      <div class="val" id="reactVal">—</div>
+      <div class="sub" id="reactSub"></div>
+    </div>
+  </div>
+
+  <div class="questions">
+    <div class="q">
+      <label class="q-label" id="qDoubleSpeedLabel"></label>
+      <div class="btn-group" id="qDoubleSpeed"></div>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qBiggerPartLabel"></label>
+      <div class="btn-group" id="qBiggerPart"></div>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qDoubleReactionLabel"></label>
+      <div class="btn-group" id="qDoubleReaction"></div>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qTotalLabel"></label>
+      <input type="number" id="qTotal" step="1" />
+      <span class="q-unit">ft</span>
+      <div class="muted" id="totalHint"></div>
+    </div>
+    <div class="q">
+      <label class="q-label" id="qReactionLabel"></label>
+      <input type="number" id="qReaction" step="1" />
+      <span class="q-unit">ft</span>
+      <div class="muted" id="reactionHint"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import { PARAMS, createState, reactionDistance, brakingDistance, totalDistance, scoreQuestions, answersComplete } from "./stopping-distance-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Stopping-Distance Calculator", es: "Calculadora de Distancia de Frenado" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: { en: "Set the speed and the reaction time, then read the reaction, braking, and total stopping distances. Use the tool to answer the prediction checks below.", es: "Ajusta la velocidad y el tiempo de reacción, luego lee las distancias de reacción, frenado y total. Usa la herramienta para responder las verificaciones de predicción de abajo." },
+  speed: { en: "Speed", es: "Velocidad" },
+  reactionTime: { en: "Reaction time", es: "Tiempo de reacción" },
+  reactDist: { en: "Reaction distance", es: "Distancia de reacción" },
+  brakeDist: { en: "Braking distance", es: "Distancia de frenado" },
+  totalDist: { en: "Total stopping distance", es: "Distancia total de frenado" },
+  speedSub: { en: "How fast the car is moving.", es: "Qué tan rápido se mueve el auto." },
+  reactSub: { en: "Higher = more distracted (phone, passengers).", es: "Más alto = más distraído (teléfono, pasajeros)." },
+  legReact: { en: "Reaction distance (linear with speed)", es: "Distancia de reacción (lineal con la velocidad)" },
+  legBrake: { en: "Braking distance (grows with speed²)", es: "Distancia de frenado (crece con la velocidad²)" },
+  qDoubleSpeed: { en: "1. If you DOUBLE your speed, the braking distance roughly...", es: "1. Si DUPLICAS tu velocidad, la distancia de frenado aproximadamente..." },
+  qBiggerPart: { en: "2. At highway speed (around 70 mph), which part of total stopping distance is bigger?", es: "2. A velocidad de autopista (alrededor de 70 mph), ¿qué parte de la distancia total de frenado es mayor?" },
+  qDoubleReaction: { en: "3. Texting raises reaction time from 1.5 s to 3.0 s. The reaction distance...", es: "3. Enviar mensajes sube el tiempo de reacción de 1.5 s a 3.0 s. La distancia de reacción..." },
+  qTotal: { en: "4. Read the TOTAL stopping distance for the current speed and reaction time.", es: "4. Lee la distancia TOTAL de frenado para la velocidad y el tiempo de reacción actuales." },
+  totalHint: { en: "Use the total shown above for your current slider settings.", es: "Usa el total mostrado arriba para tus ajustes actuales." },
+  qReaction: { en: "5. Read the REACTION distance for the current speed and reaction time.", es: "5. Lee la distancia de REACCIÓN para la velocidad y el tiempo de reacción actuales." },
+  reactionHint: { en: "This is the yellow part of the bar.", es: "Esta es la parte amarilla de la barra." },
+  optDoubles: { en: "doubles", es: "se duplica" },
+  optTriples: { en: "triples", es: "se triplica" },
+  optQuadruples: { en: "quadruples (~4×)", es: "se cuadruplica (~4×)" },
+  optStaysSame: { en: "stays the same", es: "permanece igual" },
+  optReaction: { en: "reaction distance", es: "distancia de reacción" },
+  optBraking: { en: "braking distance", es: "distancia de frenado" },
+  optEqual: { en: "they are always equal", es: "siempre son iguales" },
+  optHalf: { en: "is cut in half", es: "se reduce a la mitad" },
+  submit: { en: "Submit Answers", es: "Enviar respuestas" },
+  submitted: { en: "✓ Submitted", es: "✓ Enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+};
+
+const DOUBLE_SPEED_OPTS = [
+  { id: "staysSame", label: "optStaysSame" },
+  { id: "doubles", label: "optDoubles" },
+  { id: "triples", label: "optTriples" },
+  { id: "quadruples", label: "optQuadruples" },
+];
+
+const BIGGER_PART_OPTS = [
+  { id: "reaction", label: "optReaction" },
+  { id: "braking", label: "optBraking" },
+  { id: "equal", label: "optEqual" },
+];
+
+const DOUBLE_REACTION_OPTS = [
+  { id: "staysSame", label: "optStaysSame" },
+  { id: "half", label: "optHalf" },
+  { id: "doubles", label: "optDoubles" },
+  { id: "quadruples", label: "optQuadruples" },
+];
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+let state = createState();
+let answers = { predDoubleSpeed: null, predBiggerPart: null, predDoubleReaction: null, totalCalc: "", reactionCalc: "" };
+let submitted = false;
+let scoreResult = null;
+let autoSent = false;
+
+function fmt(n) { return Number(n).toFixed(0); }
+function fmt1(n) { return Number(n).toFixed(1); }
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("speedLabel").textContent = tr.t("speed");
+  document.getElementById("reactLabel").textContent = tr.t("reactionTime");
+  document.getElementById("speedSub").textContent = tr.t("speedSub");
+  document.getElementById("reactSub").textContent = tr.t("reactSub");
+  document.getElementById("legReact").textContent = tr.t("legReact");
+  document.getElementById("legBrake").textContent = tr.t("legBrake");
+  document.getElementById("qDoubleSpeedLabel").textContent = tr.t("qDoubleSpeed");
+  document.getElementById("qBiggerPartLabel").textContent = tr.t("qBiggerPart");
+  document.getElementById("qDoubleReactionLabel").textContent = tr.t("qDoubleReaction");
+  document.getElementById("qTotalLabel").textContent = tr.t("qTotal");
+  document.getElementById("totalHint").textContent = tr.t("totalHint");
+  document.getElementById("qReactionLabel").textContent = tr.t("qReaction");
+  document.getElementById("reactionHint").textContent = tr.t("reactionHint");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+}
+
+function renderReadouts() {
+  document.getElementById("reactPill").textContent = `${tr.t("reactDist")}: ${fmt(reactionDistance(state))} ft`;
+  document.getElementById("brakePill").textContent = `${tr.t("brakeDist")}: ${fmt(brakingDistance(state))} ft`;
+  document.getElementById("totalPill").textContent = `${tr.t("totalDist")}: ${fmt(totalDistance(state))} ft`;
+}
+
+function renderControls() {
+  document.getElementById("speedSlider").value = state.speed;
+  document.getElementById("reactSlider").value = state.reactionTime;
+  document.getElementById("speedVal").textContent = `${fmt(state.speed)} mph`;
+  document.getElementById("reactVal").textContent = `${fmt1(state.reactionTime)} s`;
+}
+
+function drawBars() {
+  const svg = document.getElementById("barsSvg");
+  const W = 600, H = 240, padL = 44, padR = 16, padT = 16, padB = 28;
+  const react = reactionDistance(state);
+  const brake = brakingDistance(state);
+  const total = react + brake;
+
+  // Fixed scale so growth is visible: max possible total at 80 mph, 3.0 s.
+  const maxState = createState({ speed: 80, reactionTime: 3.0 });
+  const xMax = Math.max(totalDistance(maxState), total, 50);
+
+  const plotW = W - padL - padR;
+  const toW = ft => (ft / xMax) * plotW;
+
+  const barY = padT + 30;
+  const barH = 70;
+  const reactW = toW(react);
+  const brakeW = toW(brake);
+
+  // x-axis gridlines every 50 ft
+  let grid = "", gridLabels = "";
+  for (let ft = 0; ft <= xMax; ft += 50) {
+    const x = padL + toW(ft);
+    grid += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${H - padB}" stroke="#334155" stroke-width="1" />`;
+    gridLabels += `<text x="${x}" y="${H - padB + 16}" fill="#64748b" font-size="11" text-anchor="middle">${ft}</text>`;
+  }
+
+  const reactLabel = react > 24
+    ? `<text x="${padL + reactW / 2}" y="${barY + barH / 2 + 4}" fill="#0f172a" font-size="12" font-weight="700" text-anchor="middle">${fmt(react)}</text>`
+    : "";
+  const brakeLabel = brakeW > 24
+    ? `<text x="${padL + reactW + brakeW / 2}" y="${barY + barH / 2 + 4}" fill="#0f172a" font-size="12" font-weight="700" text-anchor="middle">${fmt(brake)}</text>`
+    : "";
+
+  svg.innerHTML = `
+    ${grid}${gridLabels}
+    <rect x="${padL}" y="${barY}" width="${reactW}" height="${barH}" fill="var(--react)" rx="3" />
+    <rect x="${padL + reactW}" y="${barY}" width="${brakeW}" height="${barH}" fill="var(--brake)" rx="3" />
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${H - padB}" stroke="#64748b" stroke-width="1" />
+    ${reactLabel}${brakeLabel}
+    <text x="${padL + toW(total)}" y="${barY - 8}" fill="#f1f5f9" font-size="13" font-weight="700" text-anchor="${toW(total) > plotW - 40 ? "end" : "middle"}">${fmt(total)} ft</text>
+    <text x="${padL + plotW / 2}" y="${H - 4}" fill="#94a3b8" font-size="12" text-anchor="middle">${tr.t("totalDist")} (ft)</text>
+  `;
+}
+
+function renderQuestionChoices(groupId, options, field) {
+  const host = document.getElementById(groupId);
+  host.innerHTML = "";
+  for (const opt of options) {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn" + (answers[field] === opt.id ? " selected" : "");
+    btn.textContent = tr.t(opt.label);
+    btn.onclick = () => {
+      answers[field] = opt.id;
+      submitted = false;
+      saveState();
+      maybeAutoSend();
+      render();
+    };
+    host.appendChild(btn);
+  }
+}
+
+function renderInputs() {
+  document.getElementById("qTotal").value = answers.totalCalc;
+  document.getElementById("qReaction").value = answers.reactionCalc;
+  renderQuestionChoices("qDoubleSpeed", DOUBLE_SPEED_OPTS, "predDoubleSpeed");
+  renderQuestionChoices("qBiggerPart", BIGGER_PART_OPTS, "predBiggerPart");
+  renderQuestionChoices("qDoubleReaction", DOUBLE_REACTION_OPTS, "predDoubleReaction");
+}
+
+function saveState() {
+  saver.save({ state, answers, submitted, scoreResult });
+}
+
+// AUTO-SEND once when all five questions are answered (natural "done" state).
+function maybeAutoSend() {
+  if (autoSent || !answersComplete(answers)) return;
+  const r = scoreQuestions(state, answers);
+  sendActivityScore(r.score, 5, true);
+  autoSent = true;
+}
+
+function submitAnswers() {
+  scoreResult = scoreQuestions(state, answers);
+  submitted = true;
+  sendActivityScore(scoreResult.score, 5, true); // ALWAYS re-send, no guard
+  saveState();
+  renderScore();
+}
+
+function renderScore() {
+  const box = document.getElementById("scoreBox");
+  if (!submitted || !scoreResult) {
+    box.textContent = "";
+    return;
+  }
+  const cls = scoreResult.score === 5 ? "ok" : "bad";
+  box.innerHTML = `<span class="${cls}">${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${scoreResult.score}/5</span>`;
+}
+
+function resetAll() {
+  state = createState();
+  answers = { predDoubleSpeed: null, predBiggerPart: null, predDoubleReaction: null, totalCalc: "", reactionCalc: "" };
+  submitted = false;
+  scoreResult = null;
+  autoSent = false;
+  saveState();
+  render();
+}
+
+function render() {
+  renderStaticText();
+  renderReadouts();
+  renderControls();
+  drawBars();
+  renderInputs();
+  renderScore();
+}
+
+// Events
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+
+function clampState(key, v) {
+  const spec = PARAMS[key];
+  const rounded = Math.round(Math.max(spec.min, Math.min(spec.max, Number(v))) / spec.step) * spec.step;
+  return Math.round(rounded * 100) / 100;
+}
+
+document.getElementById("speedSlider").oninput = (e) => {
+  state.speed = clampState("speed", e.target.value);
+  submitted = false;
+  saveState();
+  render();
+};
+document.getElementById("reactSlider").oninput = (e) => {
+  state.reactionTime = clampState("reactionTime", e.target.value);
+  submitted = false;
+  saveState();
+  render();
+};
+
+document.getElementById("qTotal").oninput = (e) => { answers.totalCalc = e.target.value; submitted = false; saveState(); maybeAutoSend(); renderScore(); };
+document.getElementById("qReaction").oninput = (e) => { answers.reactionCalc = e.target.value; submitted = false; saveState(); maybeAutoSend(); renderScore(); };
+
+document.getElementById("submitBtn").onclick = submitAnswers;
+document.getElementById("resetBtn").onclick = resetAll;
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

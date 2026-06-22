@@ -1,0 +1,255 @@
+{
+  "title": "PSA Sprint Day 3 — Production Day",
+  "questionOfTheDay": "85% of social-feed video gets watched on mute. What does that fact change about how you produce a PSA?",
+  "course": "Digital Literacy",
+  "unit": "PSA Sprint",
+  "order": 64.2,
+  "dueDate": "2026-05-21",
+  "gradeCategory": "classwork",
+  "visibleSince": "2026-05-15",
+  "visible": false,
+  "blocks": [
+    {
+      "type": "section_header",
+      "title": "Warm Up",
+      "icon": "🎞️",
+      "id": "section-warmup",
+      "subtitle": "~5 minutes"
+    },
+    {
+      "content": "**Question of the Day:** What does an effective PSA do in its first 3 seconds — and how long does it hold the emotional moment before pulling back?",
+      "type": "callout",
+      "style": "question",
+      "id": "callout-qotd",
+      "icon": "❓"
+    },
+    {
+      "id": "b-warmup-intro",
+      "type": "text",
+      "content": "You picked your topic, your audience, your CTA, and three credible sources. Today is **build day on paper** — every shot, every line, every color decided before you touch the camera or Canva.\n\nThe rule is simple: PSAs that get planned in detail get made well. PSAs that get planned vaguely get made vaguely. Today is for detail."
+    },
+    {
+      "prompt": "Read your topic, audience, and CTA from Day 1 back to yourself. Has anything changed over the weekend? Is there a sharper angle now that you've done more research? Lock in your final version below — this is the version we're building today.",
+      "type": "question",
+      "placeholder": "Topic: ...\nAudience: ...\nCTA: ...\nFormat (60-sec video or 3-poster series): ...",
+      "questionType": "short_answer",
+      "id": "q-warmup",
+      "difficulty": "remember",
+      "aiBaselines": [
+        {
+          "provider": "gemini",
+          "text": "Okay, so my topic is still about the benefits of adopting shelter pets, specifically focusing on the positive impact on mental health. My audience remains people who are considering getting a pet, but might be undecided on where to get one from, or perhaps haven't even considered adoption. The call to action is still to visit a local animal shelter and consider adopting.\n\nLooking back at it, I don't think anything has fundamentally changed over the weekend. My research has just reinforced these points. However, I do feel like I have a sharper angle now. Instead of just broadly stating \"mental health benefits,\" I can be more specific. I've found a lot of information linking pet ownership to reduced stress and anxiety, increased feelings of companionship, and even a boost in physical activity which also contributes to better mental well-being.\n\nSo, my final version is:\n\n**Topic:** The profound positive impact of adopting shelter pets on mental health.\n**Audience:** Individuals contemplating pet ownership, particularly those open to adoption and seeking emotional well-being.\n**Call to Action:** Visit your local animal shelter to explore adoption and discover how a rescued companion can enrich your mental health.",
+          "generatedAt": "2026-05-15T13:38:43.610Z"
+        }
+      ]
+    },
+    {
+      "items": [
+        "Deconstruct three real PSAs (It's On Us, AT&T It Can Wait, 988) by identifying hook, emotional moment, and call-to-action",
+        "Build a complete 6-panel storyboard (video) or 3-poster sketch series (poster) before production",
+        "Lock a 2-3 color palette, type pairing, and voice — anchored to Brand Kit principles",
+        "Pass the teacher check-off (storyboard + sources verified) — required to start production tomorrow"
+      ],
+      "title": "Learning Objectives",
+      "type": "objectives",
+      "id": "b-objectives"
+    },
+    {
+      "id": "section-deconstruct",
+      "icon": "🔍",
+      "subtitle": "~10 minutes",
+      "type": "section_header",
+      "title": "Reference Deconstruction"
+    },
+    {
+      "content": "We're going to watch three of the most-studied PSAs of the last 15 years. As we watch each one, you're going to track three things:\n\n- **The hook** — what happens in the first 3 seconds that makes you not scroll away?\n- **The emotional moment** — when do they let the feeling land, and how long do they hold it before pulling back to the facts?\n- **The CTA** — what is the one action they want you to take, and how is it shown on screen?\n\nThree campaigns:\n\n1. **\"It's On Us\"** — consent and bystander intervention on college campuses. Started by the Obama White House, picked up by athletes and celebrities. Notice how it makes consent everyone's responsibility, not just the perpetrator's or the victim's.\n2. **AT&T \"It Can Wait\"** — the original anti-texting-and-driving campaign. The 30-second version with the survivor's voiceover is the one to watch. The hook is brutal. The CTA — \"No text is worth a life\" — is everywhere by second 25.\n3. **A 988 Lifeline spot** — modern mental-health PSAs. Watch how carefully they handle the topic: no graphic content, no method details, 988 on screen the entire time. This is what safe messaging looks like in production.",
+      "type": "text",
+      "id": "b-deconstruct-intro"
+    },
+    {
+      "title": "It's On Us — Campaign Site",
+      "type": "external_link",
+      "url": "https://www.itsonus.org/",
+      "description": "Watch the original 60-second spot and one of the athlete spots. Note how the CTA shifts from 'don't be a perpetrator' to 'don't be a bystander.' That's the whole campaign in one move.",
+      "id": "ext-itsonus"
+    },
+    {
+      "url": "https://www.att.com/itcanwait/",
+      "description": "Watch the 30-second spot featuring a real crash survivor. Time the hook (first 3 seconds), emotional peak, and CTA. Notice they NEVER show the crash itself — restraint.",
+      "id": "ext-itcanwait",
+      "title": "AT&T — It Can Wait",
+      "type": "external_link"
+    },
+    {
+      "url": "https://988lifeline.org/help-yourself/",
+      "id": "ext-988-spot",
+      "description": "Official 988 Lifeline resource hub. Use this as your reference for tone, language, and the 988 number itself if 988 appears in your PSA.",
+      "title": "988 Lifeline — Help Yourself",
+      "type": "external_link"
+    },
+    {
+      "id": "img-deconstruction-grid",
+      "url": "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/psa-deconstruction-grid.jpg",
+      "type": "image",
+      "caption": "Three campaigns, same anatomy: hook in the first 3 seconds, emotional moment in the middle, CTA hammered home at the end.",
+      "alt": "A 3-column reference grid showing freeze-frames from three PSA campaigns side by side: 'It's On Us' consent campaign, AT&T 'It Can Wait', and a 988 Suicide Prevention spot. Each column is annotated with hook, emotional moment, and call-to-action timing."
+    },
+    {
+      "icon": "💡",
+      "id": "callout-restraint",
+      "content": "**The pattern:** Hook → Data → Moment → CTA. AT&T never shows the crash. 988 never shows the act. Truth never shows a smoker dying. The most powerful PSAs **trust the audience to feel it without being shown.** That's restraint. That's respect.",
+      "style": "insight",
+      "type": "callout"
+    },
+    {
+      "questionType": "multiple_choice",
+      "id": "q-deconstruct-mc",
+      "difficulty": "analyze",
+      "correctIndex": 3,
+      "explanation": "AT&T's 'It Can Wait' deliberately does not show the crash. The audio, the survivor's voiceover, and the aftermath do all the work. Showing the crash would be exploitative and would shift attention from the CTA to the trauma. Restraint is the entire point of the campaign.",
+      "type": "question",
+      "prompt": "In the 30-second AT&T 'It Can Wait' spot, what does the campaign deliberately NOT show on screen, and why?",
+      "options": [
+        "The phone, because it's the villain of the story",
+        "The driver's face, because the campaign is about anonymity",
+        "The text message, because reading it would distract from the message",
+        "The crash itself, because trusting the audience to feel it without graphic footage is more powerful and respectful"
+      ]
+    },
+    {
+      "title": "Storyboard or Poster Sketch",
+      "type": "section_header",
+      "subtitle": "~15 minutes",
+      "icon": "✏️",
+      "id": "section-storyboard"
+    },
+    {
+      "content": "**If you're making a 60-second video:**\n- Draw a **6-panel storyboard.** One panel per ~10 seconds.\n  - Panel 1 (0–3s): the **hook.** What stops the scroll?\n  - Panels 2–3 (3–30s): the **problem with data.** Numbers on screen.\n  - Panels 4–5 (30–50s): the **emotional moment.** Brief, honest, not exploitative.\n  - Panel 6 (50–60s): the **CTA.** One action. Source citations visible.\n- Underneath each panel write: shot type (wide/medium/close-up), audio (voiceover line, music vibe, ambient sound), and on-screen text.\n- Make a **shot list** below your storyboard — every clip you need to film, in order.\n\n**If you're making a 3-poster series:**\n- Sketch all three posters on one page. Same brand, three angles on the same problem.\n- Each poster needs: a single dominant **headline**, a **visual** (photo, illustration, or data graphic), a **stat with source** in small text, and the **CTA**.\n- Posters work as a series — left poster opens the question, middle poster shows the data, right poster gives the action.\n- Plan two export sizes from the start: print (300 DPI, 11x17 or 18x24) and digital (1080x1080 IG square OR 9:16 vertical for the school monitors).",
+      "id": "b-storyboard-rules",
+      "type": "text"
+    },
+    {
+      "type": "image",
+      "caption": "Two production paths. Same anatomy. Pick one and commit.",
+      "alt": "A two-panel reference template: top half shows a 6-panel video storyboard with each panel labeled by phase (Hook, Problem, Data, Emotional Moment, CTA, Sources) and rows for shot type, audio, and on-screen text; bottom half shows a 3-poster series layout with shared brand identity but three angles on the same issue.",
+      "id": "img-storyboard-template",
+      "url": "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/lesson-images/digital-literacy/psa-storyboard-template.jpg"
+    },
+    {
+      "difficulty": "create",
+      "id": "q-storyboard",
+      "questionType": "short_answer",
+      "placeholder": "Format: video / posters\nPanel/Poster 1: ...\nPanel/Poster 2: ...\nPanel/Poster 3: ...\n(continue for video panels 4–6 if applicable)",
+      "type": "question",
+      "prompt": "Describe your storyboard or poster sketch in detail below. Video kids — list all 6 panels (timing, shot type, on-screen text, audio for each). Poster kids — list all 3 posters (headline, visual concept, stat + source, CTA). The more specific you are now, the faster production will go tomorrow.",
+      "aiBaselines": [
+        {
+          "provider": "gemini",
+          "text": "Here's the breakdown for our storyboard and poster sketches:\n\n## Video: \"Unplug and Play!\"\n\n**Overall Theme:** Encouraging kids to put down their screens and engage in active, imaginative play.\n\n**Panel 1:**\n*   **Timing:** 0-5 seconds\n*   **Shot Type:** Extreme Close-Up on a child's eyes, glued to a tablet screen. The reflection of the game is visible.\n*   **On-Screen Text:** (Appears briefly) \"Scrolling endlessly?\"\n*   **Audio:** Gentle, repetitive \"ding\" sound of notifications, a low hum of a device.\n\n**Panel 2:**\n*   **Timing:** 5-10 seconds\n*   **Shot Type:** Medium Shot, showing the child slumped on a couch, surrounded by dim light from the screen. Their posture is slumped and uninterested.\n*   **On-Screen Text:** (Fades in) \"Missing out on...\"\n*   **Audio:** The notification sounds continue, perhaps a slightly more prominent, monotonous game sound effect.\n\n**Panel 3:**\n*   **Timing:** 10-15 seconds\n*   **Shot Type:** Quick cuts, montage of vibrant, energetic outdoor activities: a child laughing while climbing a tree, kids running and playing tag in a park, someone riding a bike with a huge smile.\n*   **On-Screen Text:** (Flashes with each clip) \"Adventure!\" \"Friendship!\" \"Discovery!\"\n*   **Audio:** Upbeat, energetic music kicks in, sounds of laughter, nature sounds (birds chirping, wind).\n\n**Panel 4:**\n*   **Timing:** 15-20 seconds\n*   **Shot Type:** Over-the-shoulder shot of a child looking up from their tablet, a hesitant but curious expression on their face. The outdoor scene from Panel 3 is now visible through a window in the background.\n*   **On-Screen Text:** (Appears slowly) \"What if you could...\"\n*   **Audio:** The energetic music softens slightly, but remains positive. A gentle, inviting sound effect.\n\n**Panel 5:**\n*   **Timing:** 20-25 seconds\n*   **Shot Type:** Wide Shot. The child from Panel 4 is now outside, joining a group of kids building a fort with sticks and blankets. They are actively engaged and smiling. The tablet is forgotten on the couch inside.\n*   **On-Screen Text:** (Bold and clear) \"Unplug and Play!\"\n*   **Audio:** The energetic music swells, sounds of children collaborating and laughing, the rustling of leaves.\n\n**Panel 6:**\n*   **Timing:** 25-30 seconds\n*   **Shot Type:** Medium Shot. The group of kids are all together, looking at the camera with bright, happy faces, perhaps holding up a drawing or a found object.\n*   **On-Screen Text:** \"Your real adventure awaits!\" [Website/Hashtag]\n*   **Audio:** Music fades out with a final, uplifting chord. A final, joyful giggle.\n\n---\n\n## Posters: \"Unplug and Play!\"\n\n**Poster 1: The \"Lost World\" Poster**\n\n*   **Headline:** \"The Greatest Adventures Aren't Found on a Screen.\"\n*   **Visual Concept:** A child's hand reaching out towards a glowing smartphone screen, but their fingers are slightly blurred, as if fading away. Behind the hand, a vibrant, imaginative landscape is depicted – think lush jungle, fantastical creatures, a pirate ship on a distant horizon. The contrast between the sterile glow of the screen and the rich, colorful fantasy world is key.\n*   **Stat + Source:** \"Kids aged 8-12 spend an average of 7 hours a day on screens. [Source: Common Sense Media]\"\n*   **CTA:** \"Go explore. Unplug and Play.\"\n\n**Poster 2: The \"Connection\" Poster**\n\n*   **Headline:** \"Real Connections Happen Off-Screen.\"\n*   **Visual Concept:** A split image. On one side, a child is alone, hunched over a tablet, their face illuminated by the blue light. On the other side, the same child is now outside, laughing and sharing a secret with a friend, building something together, or engaged in a physical activity. The two sides are visually distinct in color palette and mood – one is cool and isolated, the other is warm and vibrant.\n*   **Stat + Source:** \"90% of childhood development happens before age 5. Active play is crucial. [Source: WHO]\"\n*   **CTA:** \"Build memories, not just likes. #Un",
+          "generatedAt": "2026-05-15T13:38:49.406Z"
+        }
+      ]
+    },
+    {
+      "subtitle": "~10 minutes",
+      "id": "section-design",
+      "icon": "🎨",
+      "title": "Design Lock",
+      "type": "section_header"
+    },
+    {
+      "content": "**Lock these decisions before you leave today.** Once you start shooting or designing, you don't change them. Every change costs production time.\n\n- **Color palette: 2–3 colors max.** One dominant, one accent, optional one for highlights. Tone matches the topic — quiet topics get muted palettes; urgent topics get high-contrast palettes. (Pull from your Brand Kit work.)\n- **Type pairing: 1 display font + 1 body font.** Display for headlines, body for everything else. No more than two fonts total. Inter, DM Sans, Bebas Neue, Anton, Cormorant — anything from your Brand Kit list.\n- **Voice:** Pick one. *Urgent. Warm. Blunt. Quiet. Direct.* Whatever you pick, every line of voiceover or every headline has to match it.\n- **Music vibe (video only):** Tempo, instrumentation, mood. Use royalty-free sources only. Pixabay Music, YouTube Audio Library, or CapCut's commercial-use library. Match the voice — urgent voice doesn't pair with sleepy lo-fi.\n- **Tie back to your Brand Kit.** This PSA needs a brand. If it looks like five different students made it, you'll lose 5 points on production polish.",
+      "type": "text",
+      "id": "b-design-rules"
+    },
+    {
+      "questionType": "multiple_choice",
+      "difficulty": "apply",
+      "id": "q-design-mc",
+      "options": [
+        "Muted navy + soft white + a single warm accent, slow ambient piano or lo-fi",
+        "Bright neon yellow + black, fast EDM with heavy bass drops",
+        "Bright red + flashing white, urgent action-movie score",
+        "Rainbow gradient, upbeat pop with vocal hooks"
+      ],
+      "explanation": "A quiet, intimate voice needs a quiet, intimate palette and audio. Muted navy + warm accent reads like a bedroom at night. Slow ambient piano or lo-fi matches that tone. The other options pair urgency or hype with a quiet message — that's a brand mismatch and the PSA will feel off.",
+      "correctIndex": 0,
+      "prompt": "Your PSA is about late-night phone use. You've decided your voice is 'quiet, direct, almost a whisper — like a friend telling you the truth at 1 AM.' Which color palette and music choice BEST match that voice?",
+      "type": "question"
+    },
+    {
+      "placeholder": "Colors: ...\nFonts: display ... / body ...\nVoice: ...\nMusic vibe (video only): ...",
+      "prompt": "Lock your design decisions in writing. List your 2-3 color palette (with hex codes if you have them), your display + body font pairing, your voice in one word or phrase, and your music vibe (video only). This is what you commit to — no changes after today.",
+      "type": "question",
+      "questionType": "short_answer",
+      "id": "q-design-lock",
+      "difficulty": "evaluate",
+      "aiBaselines": [
+        {
+          "provider": "gemini",
+          "text": "Here are my design decisions, locked in:\n\n**Color Palette:**\n\n*   **Primary:** Deep Ocean Blue - `#003366`\n*   **Secondary:** Sandy Beige - `#F5F5DC`\n*   **Accent:** Coral Orange - `#FF7F50`\n\n**Font Pairing:**\n\n*   **Display Font:** Montserrat (Bold)\n*   **Body Font:** Open Sans (Regular)\n\n**Voice:** Authoritative yet Accessible\n\n**Music Vibe (Video Only):** Uplifting Indie Pop",
+          "generatedAt": "2026-05-15T13:38:51.716Z"
+        }
+      ]
+    },
+    {
+      "title": "Teacher Check-Off",
+      "type": "section_header",
+      "subtitle": "~5 minutes",
+      "id": "section-checkoff",
+      "icon": "✅"
+    },
+    {
+      "content": "Before you leave today, **show me three things at the front:**\n\n1. **Storyboard or poster sketch** — fully drawn, all panels/posters, with shot details or layout details written out.\n2. **Source list** — your 3+ credible sources, written down, with the organization and one specific stat from each.\n3. **Design lock sheet** — colors, fonts, voice, music vibe.\n\n**No check-off, no production day tomorrow.** I'm not being mean — production goes wrong fast when the plan is fuzzy. The check-off catches the fuzziness today instead of letting it eat your whole Wednesday.",
+      "type": "text",
+      "id": "b-checkoff"
+    },
+    {
+      "style": "warning",
+      "type": "callout",
+      "content": "**Sensitive topic check-off:** If your PSA is about mental health, suicide, self-harm, eating disorders, or any other sensitive issue — your **full script** must be approved by Mr. McCarthy before you start production. I'll read every line. Follow safe messaging guidelines: no graphic depictions, no method details, no glorification. **988 must be visible on screen** for the entire emotional segment. Read the AFSP guide linked on Day 1 if you haven't yet.",
+      "icon": "⚠️",
+      "id": "callout-sensitive"
+    },
+    {
+      "type": "section_header",
+      "title": "Wrap Up",
+      "id": "section-closing",
+      "icon": "🎯",
+      "subtitle": "~3 minutes"
+    },
+    {
+      "id": "callout-guardrails",
+      "icon": "⚠️",
+      "content": "**Topic guardrails — still in effect:**\n\n- **No fake stats.** If you can't cite the source, cut the claim.\n- **No identifying classmates, teachers, or staff.** Use yourself, willing volunteers with consent, or stock footage.\n- **Sensitive topics** require teacher approval of the script before production. 988 visible on screen. No graphic content. No method details.\n- **Check in with yourself.** If researching or writing about your topic is putting you in a bad place, switch topics or come talk to me. Wellbeing first.",
+      "type": "callout",
+      "style": "warning"
+    },
+    {
+      "icon": "📅",
+      "id": "callout-due",
+      "style": "info",
+      "type": "callout",
+      "content": "**Tomorrow (Thu 5/21):** Production day. Heads-down work. Bring everything — your storyboard, your sources, your scripts, your phone if you're filming, your laptop logged in to CapCut/Canva. Mid-period checkpoint at minute 25: every student must show me a rough cut or draft poster."
+    },
+    {
+      "type": "question",
+      "prompt": "Exit ticket: What's the one part of your PSA you're most nervous about (the hook? the emotional moment? finding the right footage? sticking to safe messaging?), and what's your plan to handle it tomorrow? Be honest — naming the fear early is how you don't get blocked at minute 30 of production.",
+      "placeholder": "Most nervous about: ...\nMy plan to handle it: ...",
+      "questionType": "short_answer",
+      "id": "q-reflection",
+      "difficulty": "evaluate",
+      "aiBaselines": [
+        {
+          "provider": "gemini",
+          "text": "I'm most nervous about the emotional moment in my PSA. I want to convey the seriousness of the issue without being overly dramatic or alienating the audience. My plan for tomorrow is to rehearse the scene multiple times with my scene partner, focusing on genuine reactions and keeping the dialogue natural. I'll also ask for feedback from a trusted friend who can give me an honest assessment of whether the emotion feels authentic or forced. If it's still not landing, I'll be prepared to adjust the dialogue or even consider a different approach to conveying the emotional weight.",
+          "generatedAt": "2026-05-15T13:38:52.946Z"
+        }
+      ]
+    }
+  ],
+  "updatedAt": {
+    "_seconds": 1779369136,
+    "_nanoseconds": 724000000
+  }
+}

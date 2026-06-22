@@ -36,22 +36,25 @@ const COVER_URL = `${STORAGE_BASE}/cover.jpg`;
 
 const LYRICS_DIR = path.join(os.homedir(), "Lachlan", "drafts", "suno-songs", "luke");
 
-// Track order (album sequence) — title + YouTube video id + matching lyrics .md slug
-// Playlist: https://music.youtube.com/playlist?list=PLPfbrxETiGZo1SIfhwMfBlrwhhXgrmS6x
+// Track order (album sequence) — title + MP3 slug + matching lyrics .md slug.
+// MP3s transcoded from FLAC and uploaded to STORAGE_BASE by ~/Lachlan/tools/suno-pipeline/steady-flac-to-mp3.sh.
+// Switched from YouTube embed to direct audio (2026-05-18) — same code path as Class Songs,
+// no IFrame API race on track switch, native scrubbing, accurate durations (no MP4 silent tail).
+// YouTube IDs retained for reference / re-derivation; not used for playback.
 const ALBUM = [
-  { n: 1,  title: "Your CTO",            youtubeId: "Qm3yNchXXkw", lyricsSlug: "your-cto" },
-  { n: 2,  title: "Lights On",           youtubeId: "490qNVzrA-U", lyricsSlug: "lights-on" },
-  { n: 3,  title: "Belonging",           youtubeId: "XP5QEo1WC-I", lyricsSlug: "backstory" },
-  { n: 4,  title: "Eight Rounds",        youtubeId: "XFLP14ymss0", lyricsSlug: "warhammer" },
-  { n: 5,  title: "Already Here",        youtubeId: "AM34VjCdQwo", lyricsSlug: "photography" },
-  { n: 6,  title: "Look Up",             youtubeId: "1KiDH8QU7sc", lyricsSlug: "physics" },
-  { n: 7,  title: "Anchor",              youtubeId: "BPFjFqNX5Oc", lyricsSlug: "faith" },
-  { n: 8,  title: "Edge of the Night",   youtubeId: "sJquu4VsSCA", lyricsSlug: "space" },
-  { n: 9,  title: "I, Robot",            youtubeId: "WAQiYOdzheo", lyricsSlug: "i-robot" },
-  { n: 10, title: "Threshold",           youtubeId: "rPLDzTo6fHY", lyricsSlug: "the-moment" },
-  { n: 11, title: "Stay Sharp",          youtubeId: "mPmN585UtZc", lyricsSlug: "use-your-brain" },
-  { n: 12, title: "Get Up",              youtubeId: "E9pOchExGyA", lyricsSlug: "get-up" },
-  { n: 13, title: "Beautiful Surrender", youtubeId: "uGAKuqfoC-g", lyricsSlug: "rest" },
+  { n: 1,  title: "Your CTO",            mp3Slug: "01-your-cto",            lyricsSlug: "your-cto",       youtubeId: "Qm3yNchXXkw" },
+  { n: 2,  title: "Lights On",           mp3Slug: "02-lights-on",           lyricsSlug: "lights-on",      youtubeId: "490qNVzrA-U" },
+  { n: 3,  title: "Belonging",           mp3Slug: "03-belonging",           lyricsSlug: "backstory",      youtubeId: "XP5QEo1WC-I" },
+  { n: 4,  title: "Eight Rounds",        mp3Slug: "04-eight-rounds",        lyricsSlug: "warhammer",      youtubeId: "XFLP14ymss0" },
+  { n: 5,  title: "Already Here",        mp3Slug: "05-already-here",        lyricsSlug: "photography",    youtubeId: "AM34VjCdQwo" },
+  { n: 6,  title: "Look Up",             mp3Slug: "06-look-up",             lyricsSlug: "physics",        youtubeId: "1KiDH8QU7sc" },
+  { n: 7,  title: "Anchor",              mp3Slug: "07-anchor",              lyricsSlug: "faith",          youtubeId: "BPFjFqNX5Oc" },
+  { n: 8,  title: "Edge of the Night",   mp3Slug: "08-edge-of-the-night",   lyricsSlug: "space",          youtubeId: "sJquu4VsSCA" },
+  { n: 9,  title: "I, Robot",            mp3Slug: "09-i-robot",             lyricsSlug: "i-robot",        youtubeId: "WAQiYOdzheo" },
+  { n: 10, title: "Threshold",           mp3Slug: "10-threshold",           lyricsSlug: "the-moment",     youtubeId: "rPLDzTo6fHY" },
+  { n: 11, title: "Stay Sharp",          mp3Slug: "11-stay-sharp",          lyricsSlug: "use-your-brain", youtubeId: "mPmN585UtZc" },
+  { n: 12, title: "Get Up",              mp3Slug: "12-get-up",              lyricsSlug: "get-up",         youtubeId: "E9pOchExGyA" },
+  { n: 13, title: "Beautiful Surrender", mp3Slug: "13-beautiful-surrender", lyricsSlug: "rest",           youtubeId: "uGAKuqfoC-g" },
 ];
 
 function loadLyrics(slug) {
@@ -69,8 +72,8 @@ function buildTracks() {
     id: `steady-${entry.n}`,
     label: `${entry.n}. ${entry.title}`,
     artist: "Luke McCarthy",
-    type: "youtube",
-    url: `https://www.youtube.com/watch?v=${entry.youtubeId}`,
+    type: "audio",
+    url: `${STORAGE_BASE}/${entry.mp3Slug}.mp3`,
     coverUrl: COVER_URL,
     lyrics: loadLyrics(entry.lyricsSlug),
   }));

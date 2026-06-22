@@ -111,6 +111,12 @@ export default function LessonCompleteButton({ lesson, studentData, chatLogs, us
 
   const handleClickComplete = () => {
     if (!allComplete || completing) return;
+    // skipReflection lesson flag: bypass the reflection modal entirely
+    // (used for embed-only assessments — embed score IS the lesson grade)
+    if (lesson?.skipReflection) {
+      finishLesson();
+      return;
+    }
     // If already reflected for this lesson, skip the modal
     if (alreadyReflected) {
       finishLesson();

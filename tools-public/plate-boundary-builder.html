@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plate-Boundary Force-Diagram Builder</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:920px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .tab{background:var(--panel);border:1px solid #334155;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;color:var(--muted);}
+  .tab.active{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .scenario{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .scenario h2{font-size:16px;margin:0 0 4px;}
+  .scenario p.subtitle{margin:0 0 14px;color:var(--muted);font-size:13px;}
+  .diagram{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .plate{width:130px;height:90px;background:#0b1220;border:2px dashed #475569;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:relative;}
+  .plate-label{font-size:11px;color:var(--muted);}
+  .plate-arrow{font-size:28px;color:var(--ink);min-height:34px;display:flex;align-items:center;justify-content:center;}
+  .plate-arrow.empty{color:#475569;font-size:14px;}
+  .boundary{width:40px;height:90px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center;line-height:1.2;}
+  .palette{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:16px;}
+  .force-btn{width:46px;height:46px;background:#0b1220;border:1px solid #334155;border-radius:8px;color:var(--ink);font-size:22px;cursor:pointer;}
+  .force-btn:hover{border-color:var(--accent);}
+  .force-btn.selected{border-color:var(--accent);background:#0f172a;box-shadow:0 0 0 2px var(--accent);}
+  .question{margin-bottom:14px;}
+  .question-label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block;}
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .choice-btn{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:6px 12px;color:var(--muted);font-size:13px;cursor:pointer;}
+  .choice-btn:hover{border-color:var(--accent);}
+  .choice-btn.selected{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+  .primary{flex:1;min-width:160px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  #scoreBox{font-size:13px;color:var(--muted);margin-top:10px;}
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .pill{padding:4px 10px;border-radius:999px;background:#0b1220;font-size:13px;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="readout">
+    <span class="pill" id="progressPill">—</span>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div id="scenarioHost"></div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+</div>
+
+<script type="module">
+import {
+  SCENARIOS, FORCE_OPTIONS, BOUNDARY_OPTIONS, NET_FORCE_OPTIONS, HAZARD_OPTIONS,
+  emptyState, scoreScenarios
+} from "./plate-boundary-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Plate-Boundary Force-Diagram Builder", es: "Constructor de Diagramas de Fuerza en Fronteras de Placas" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: { en: "Place force vectors on each plate, classify the boundary, decide if the net force is balanced, and predict the hazard.", es: "Coloca vectores de fuerza en cada placa, clasifica la frontera, decide si la fuerza neta está equilibrada y predice el peligro." },
+  progress: { en: "Completed", es: "Completado" },
+  of: { en: "of", es: "de" },
+  boundaryQ: { en: "What type of boundary is this?", es: "¿Qué tipo de frontera es esta?" },
+  netForceQ: { en: "Is the net force on each plate balanced or unbalanced?", es: "¿La fuerza neta sobre cada placa está equilibrada o desequilibrada?" },
+  hazardQ: { en: "What motion or hazard does this cause?", es: "¿Qué movimiento o peligro causa esto?" },
+  noForce: { en: "tap to place", es: "tocar para colocar" },
+  submit: { en: "Submit Diagrams", es: "Enviar diagramas" },
+  submitted: { en: "✓ Submitted", es: "✓ Enviado" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+let state = emptyState();
+let activeScenarioId = SCENARIOS[0].id;
+let selectedForce = null;
+let submitted = false;
+let autoSent = false;
+
+function countCompleted() {
+  let n = 0;
+  for (const sc of SCENARIOS) {
+    const s = state[sc.id];
+    if (s.leftForce && s.rightForce && s.boundaryType && s.netForce && s.hazard) n++;
+  }
+  return n;
+}
+
+function allComplete() {
+  return countCompleted() === SCENARIOS.length;
+}
+
+function maybeAutoSend() {
+  if (autoSent || submitted) return;
+  if (!allComplete()) return;
+  autoSent = true;
+  const result = scoreScenarios(state);
+  sendActivityScore(result.score, 5, true);
+  submitted = true;
+  saveState();
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5`;
+}
+
+function forceSymbol(id) {
+  const f = FORCE_OPTIONS.find(x => x.id === id);
+  return f ? f.symbol : "";
+}
+
+function renderTabs() {
+  const host = document.getElementById("tabs");
+  host.innerHTML = "";
+  for (const sc of SCENARIOS) {
+    const btn = document.createElement("button");
+    btn.className = "tab" + (sc.id === activeScenarioId ? " active" : "");
+    btn.textContent = sc.title[tr.lang];
+    btn.onclick = () => { activeScenarioId = sc.id; render(); };
+    host.appendChild(btn);
+  }
+}
+
+function renderScenario() {
+  const sc = SCENARIOS.find(s => s.id === activeScenarioId);
+  const st = state[sc.id];
+  const host = document.getElementById("scenarioHost");
+  host.innerHTML = "";
+
+  const panel = document.createElement("div");
+  panel.className = "scenario";
+
+  const title = document.createElement("h2");
+  title.textContent = sc.title[tr.lang];
+  panel.appendChild(title);
+
+  const sub = document.createElement("p");
+  sub.className = "subtitle";
+  sub.textContent = sc.subtitle[tr.lang];
+  panel.appendChild(sub);
+
+  // Diagram
+  const diagram = document.createElement("div");
+  diagram.className = "diagram";
+  diagram.innerHTML = `
+    <div class="plate" data-side="left" data-sc="${sc.id}">
+      <div class="plate-label">${sc.leftLabel[tr.lang]}</div>
+      <div class="plate-arrow ${st.leftForce ? "" : "empty"}">${st.leftForce ? forceSymbol(st.leftForce) : DICT.noForce[tr.lang]}</div>
+    </div>
+    <div class="boundary">?</div>
+    <div class="plate" data-side="right" data-sc="${sc.id}">
+      <div class="plate-label">${sc.rightLabel[tr.lang]}</div>
+      <div class="plate-arrow ${st.rightForce ? "" : "empty"}">${st.rightForce ? forceSymbol(st.rightForce) : DICT.noForce[tr.lang]}</div>
+    </div>
+  `;
+  panel.appendChild(diagram);
+
+  diagram.querySelectorAll(".plate").forEach(plate => {
+    plate.onclick = () => {
+      if (!selectedForce) return;
+      const side = plate.dataset.side;
+      state[sc.id][side === "left" ? "leftForce" : "rightForce"] = selectedForce;
+      submitted = false;
+      saveState();
+      render();
+    };
+  });
+
+  // Force palette
+  const palette = document.createElement("div");
+  palette.className = "palette";
+  for (const f of FORCE_OPTIONS) {
+    const btn = document.createElement("button");
+    btn.className = "force-btn" + (selectedForce === f.id ? " selected" : "");
+    btn.textContent = f.symbol;
+    btn.title = f.label[tr.lang];
+    btn.onclick = () => {
+      selectedForce = selectedForce === f.id ? null : f.id;
+      render();
+    };
+    palette.appendChild(btn);
+  }
+  panel.appendChild(palette);
+
+  // Boundary type
+  panel.appendChild(makeQuestion(sc, "boundaryType", DICT.boundaryQ, BOUNDARY_OPTIONS));
+  // Net force
+  panel.appendChild(makeQuestion(sc, "netForce", DICT.netForceQ, NET_FORCE_OPTIONS));
+  // Hazard
+  panel.appendChild(makeQuestion(sc, "hazard", DICT.hazardQ, HAZARD_OPTIONS[sc.id]));
+
+  host.appendChild(panel);
+}
+
+function makeQuestion(sc, field, promptDict, options) {
+  const wrap = document.createElement("div");
+  wrap.className = "question";
+  const label = document.createElement("label");
+  label.className = "question-label";
+  label.textContent = tr.t(promptDict);
+  wrap.appendChild(label);
+  const group = document.createElement("div");
+  group.className = "btn-group";
+  for (const opt of options) {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn" + (state[sc.id][field] === opt.id ? " selected" : "");
+    btn.textContent = opt.label[tr.lang];
+    btn.onclick = () => {
+      state[sc.id][field] = opt.id;
+      submitted = false;
+      saveState();
+      render();
+    };
+    group.appendChild(btn);
+  }
+  wrap.appendChild(group);
+  return wrap;
+}
+
+function renderStaticText() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("submitBtn").textContent = tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+}
+
+function renderProgress() {
+  const pill = document.getElementById("progressPill");
+  const completed = countCompleted();
+  pill.textContent = `${tr.t("progress")}: ${completed} ${tr.t("of")} ${SCENARIOS.length}`;
+}
+
+function saveState() {
+  saver.save({ state, activeScenarioId, submitted });
+}
+
+function submitAll() {
+  const result = scoreScenarios(state);
+  sendActivityScore(result.score, 5, true); // ALWAYS re-send, no guard
+  submitted = true;
+  saveState();
+  const box = document.getElementById("scoreBox");
+  box.textContent = `${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${result.score}/5`;
+  // Reveal correctness on current tab (lead session may enhance full reveal)
+  render();
+}
+
+function resetAll() {
+  state = emptyState();
+  activeScenarioId = SCENARIOS[0].id;
+  selectedForce = null;
+  submitted = false;
+  autoSent = false;
+  document.getElementById("scoreBox").textContent = "";
+  saveState();
+  render();
+}
+
+function render() {
+  renderStaticText();
+  renderProgress();
+  renderTabs();
+  renderScenario();
+  maybeAutoSend();
+}
+
+// Events
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+document.getElementById("submitBtn").onclick = submitAll;
+document.getElementById("resetBtn").onclick = resetAll;
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

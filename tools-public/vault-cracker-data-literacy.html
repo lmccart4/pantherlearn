@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault Cracker: Data Literacy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08090f;
+  --surface: #12141e;
+  --steel: #2e3040;
+  --steel-light: #4a4c60;
+  --steel-dark: #1a1c28;
+  --green: #00ff41;
+  --green-dim: #00aa2a;
+  --green-glow: rgba(0,255,65,0.15);
+  --red: #ff1744;
+  --red-glow: rgba(255,23,68,0.2);
+  --gold: #ffd700;
+  --gold-dim: #b8960b;
+  --text: #c8cad0;
+  --muted: #555770;
+  /* Vault theme (updated dynamically) */
+  --v-accent: #DEB887;
+  --v-glow: rgba(222,184,135,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace}
+.screen{display:none;width:100%;height:100%;position:absolute;top:0;left:0}
+.screen.active{display:flex}
+
+/* === SCAN LINES === */
+#app{position:relative;width:100%;height:100%;overflow:hidden}
+#app::after{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+  pointer-events:none;z-index:10000;
+}
+
+/* === PARTICLES === */
+.particle{position:fixed;width:2px;height:2px;border-radius:50%;background:rgba(200,210,230,0.1);pointer-events:none;z-index:1}
+
+/* === INTRO SCREEN === */
+#intro{
+  flex-direction:column;align-items:center;justify-content:center;
+  background:url('../images/vault-cracker/bg-intro.jpg') center/cover no-repeat;
+  z-index:100;
+}
+#intro::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(6,7,12,0.55);
+}
+.classified-stamp{
+  width:clamp(340px, 55vw, 650px);
+  transform:rotate(-3deg);opacity:0;
+  animation:stampIn 0.4s 0.5s cubic-bezier(0.2,1.5,0.4,1) forwards;
+  position:relative;z-index:2;
+  margin-top:clamp(15px, 2.5vw, 30px);margin-bottom:0;
+  filter:drop-shadow(0 0 20px rgba(255,23,68,0.35)) drop-shadow(0 0 40px rgba(255,23,68,0.12));
+  opacity:0;
+}
+.classified-stamp img{
+  width:100%;height:auto;display:block;
+  opacity:0.8;
+}
+.intro-terminal{
+  margin-top:0.5rem;max-width:600px;width:90%;
+  background:rgba(0,10,5,0.75);border:1px solid rgba(0,255,65,0.2);
+  border-radius:4px;padding:1.5rem;min-height:120px;
+  overflow-y:auto;max-height:60vh;box-sizing:border-box;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  position:relative;z-index:2;
+}
+#intro-text{font-size:1.1rem;color:var(--green);line-height:1.6;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:break-word}
+#intro-text .cursor{
+  display:inline-block;width:8px;height:1.1em;background:var(--green);
+  vertical-align:text-bottom;animation:blink 0.7s steps(1) infinite;
+}
+#start-btn{
+  margin-top:2rem;font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;
+  background:rgba(0,10,5,0.6);color:var(--green);border:2px solid var(--green);
+  padding:0.8em 2.5em;cursor:pointer;letter-spacing:0.15em;
+  transition:all 0.25s;opacity:0;
+  box-shadow:0 0 15px var(--green-glow),inset 0 0 15px var(--green-glow);
+  position:relative;z-index:2;
+}
+#start-btn.visible{opacity:1}
+#start-btn:hover{background:var(--green);color:var(--bg);box-shadow:0 0 30px var(--green-glow),0 0 60px var(--green-glow)}
+#start-btn:active{transform:scale(0.96)}
+
+/* === GAME SCREEN === */
+#game{
+  flex-direction:column;align-items:center;
+  background:var(--bg);position:relative;
+}
+#vault-canvas{
+  position:fixed;inset:0;z-index:0;width:100vw;height:100vh;pointer-events:none;
+  transition:opacity 0.8s;
+}
+.vault-overlay{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(to right, rgba(6,7,12,0.05) 0%, rgba(6,7,12,0.05) 50%, rgba(6,7,12,0.65) 72%, rgba(6,7,12,0.85) 100%);
+}
+#game > .hud,
+#game > .vault-section,
+#game > .terminal-section{position:relative;z-index:1}
+
+/* === HUD (corners only) === */
+.hud{position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;pointer-events:none}
+.hud-corner{position:fixed;width:24px;height:24px}
+.hud-corner.tl{top:10px;left:10px;border-top:2px solid var(--green-dim);border-left:2px solid var(--green-dim)}
+.hud-corner.tr{top:10px;right:10px;border-top:2px solid var(--green-dim);border-right:2px solid var(--green-dim)}
+.hud-corner.bl{bottom:10px;left:10px;border-bottom:2px solid var(--green-dim);border-left:2px solid var(--green-dim)}
+.hud-corner.br{bottom:10px;right:10px;border-bottom:2px solid var(--green-dim);border-right:2px solid var(--green-dim)}
+
+/* === STATUS TERMINAL === */
+.status-terminal{
+  background:rgba(18,20,30,0.88);border:1px solid var(--steel);
+  border-radius:6px;overflow:hidden;
+  box-shadow:0 4px 30px rgba(0,0,0,0.6);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  margin-bottom:10px;
+}
+.status-terminal .terminal-header{
+  display:flex;align-items:center;gap:6px;padding:6px 12px;
+  background:linear-gradient(180deg,#1e2030 0%,#16182a 100%);
+  border-bottom:1px solid var(--steel);
+}
+.status-terminal .terminal-body{padding:0.8rem 1rem}
+
+/* Vault name in status terminal */
+.st-vault-name{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(1rem,2.5vw,1.4rem);
+  color:var(--v-accent);letter-spacing:0.15em;
+  text-shadow:0 0 12px var(--v-glow);
+  transition:color 0.6s,text-shadow 0.6s;
+  line-height:1;
+}
+.st-vault-subtitle{
+  font-family:'Orbitron',sans-serif;font-size:0.45rem;
+  color:var(--muted);letter-spacing:0.2em;margin-top:2px;
+}
+
+/* Vault progress pips */
+.st-progress{display:flex;gap:4px;align-items:center;margin-top:0.6rem}
+.st-pip-group{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1}
+.st-pip{
+  width:100%;height:10px;border-radius:3px;
+  background:var(--steel-dark);border:1.5px solid var(--steel);
+  transition:all 0.5s cubic-bezier(0.2,1.5,0.4,1);position:relative;
+}
+.st-pip.cleared{box-shadow:0 0 10px var(--v-glow)}
+.st-pip.current{animation:pulseBorder 1.5s ease-in-out infinite}
+.st-pip-inner{
+  position:absolute;inset:2px;border-radius:2px;
+  background:transparent;transition:background 0.5s;
+}
+.st-pip.cleared .st-pip-inner{background:var(--v-accent)}
+.st-pip.current .st-pip-inner{background:var(--v-accent);opacity:0.5}
+.st-pip-label{
+  font-family:'Orbitron',sans-serif;font-size:0.35rem;
+  color:var(--muted);letter-spacing:0.05em;white-space:nowrap;
+  transition:color 0.4s;
+}
+.st-pip.cleared + .st-pip-label,.st-pip-group.cleared .st-pip-label{color:var(--text)}
+
+/* Streak row */
+.st-streak-row{display:flex;align-items:center;gap:8px;margin-top:0.6rem}
+.st-streak-label{font-family:'Orbitron',sans-serif;font-size:0.6rem;color:var(--green-dim);letter-spacing:0.1em}
+.streak-pin{
+  width:14px;height:14px;border-radius:50%;
+  background:var(--steel-dark);border:2px solid var(--steel);
+  transition:all 0.3s cubic-bezier(0.2,1.5,0.4,1);
+}
+.streak-pin.lit{background:var(--v-accent);border-color:var(--v-accent);box-shadow:0 0 12px var(--v-glow),0 0 4px var(--v-accent)}
+
+/* Stats row */
+.st-stats-row{
+  display:flex;gap:12px;align-items:center;margin-top:0.6rem;padding-top:0.5rem;
+  border-top:1px solid var(--steel);
+  font-family:'Orbitron',sans-serif;font-size:0.6rem;letter-spacing:0.1em;
+}
+.st-stat{color:var(--green-dim)}
+.st-stat.alert{color:var(--red);opacity:0.7}
+.st-stat.score{color:var(--v-accent);font-weight:700;margin-left:auto}
+
+/* === VAULT VIEWPORT === */
+.vault-section{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding-top:10px;min-height:0;position:relative;overflow:hidden;
+}
+
+/* Breach text — centered on screen */
+.breach-text{
+  position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,6vw,4rem);
+  color:var(--v-accent);letter-spacing:0.2em;
+  text-shadow:0 0 20px var(--v-glow),0 0 40px var(--v-glow),0 0 80px var(--v-glow);
+  opacity:0;z-index:200;pointer-events:none;white-space:nowrap;
+}
+.breach-text.show{animation:breachFlash 2s forwards}
+
+/* === TERMINAL === */
+.terminal-section{width:100%;max-width:700px;padding:10px 16px 16px;flex-shrink:0}
+.terminal{
+  background:rgba(18,20,30,0.88);border:1px solid var(--steel);
+  border-radius:6px;overflow:hidden;
+  box-shadow:0 4px 30px rgba(0,0,0,0.6);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.terminal-header{
+  display:flex;align-items:center;gap:6px;padding:8px 12px;
+  background:linear-gradient(180deg,#1e2030 0%,#16182a 100%);
+  border-bottom:1px solid var(--steel);
+}
+.terminal-dot{width:8px;height:8px;border-radius:50%}
+.terminal-dot.r{background:#ff5f56}
+.terminal-dot.y{background:#ffbd2e}
+.terminal-dot.g{background:#27c93f}
+.terminal-title{font-family:'Orbitron',sans-serif;font-size:0.55rem;color:var(--muted);letter-spacing:0.2em;margin-left:8px}
+.terminal-body{padding:1.2rem}
+.q-category{font-family:'Orbitron',sans-serif;font-size:0.6rem;color:var(--v-accent);letter-spacing:0.2em;margin-bottom:0.6rem;opacity:0.7;transition:color 0.4s}
+.q-image{max-width:100%;border-radius:4px;margin-bottom:0.8rem;border:1px solid var(--steel);display:none}
+.q-image.visible{display:block}
+.q-text{font-size:1rem;color:var(--green);line-height:1.6;min-height:3em;margin-bottom:1rem}
+.answer-grid{display:grid;grid-template-columns:1fr;gap:8px}
+.answer-btn{
+  display:block;width:100%;text-align:left;
+  font-family:'Share Tech Mono',monospace;font-size:0.9rem;
+  color:var(--text);padding:12px 16px;
+  background:linear-gradient(180deg,#22243a 0%,#1a1c2e 100%);
+  border:1px solid var(--steel);border-bottom:3px solid var(--steel-dark);
+  border-radius:4px;cursor:pointer;transition:all 0.15s;
+}
+.answer-btn:hover:not(.locked){
+  background:linear-gradient(180deg,#2a2c44 0%,#22243a 100%);
+  border-color:var(--green-dim);color:var(--green);
+}
+.answer-btn:active:not(.locked){border-bottom-width:1px;transform:translateY(2px)}
+.answer-btn.correct{background:linear-gradient(180deg,#0a2a10 0%,#061a08 100%);border-color:var(--green);color:var(--green)}
+.answer-btn.wrong{background:linear-gradient(180deg,#2a0a0a 0%,#1a0606 100%);border-color:var(--red);color:var(--red)}
+.answer-btn.locked{cursor:default;opacity:0.6}
+.answer-btn .letter{font-family:'Orbitron',sans-serif;font-weight:700;color:var(--muted);margin-right:10px;font-size:0.8rem}
+.answer-btn.correct .letter,.answer-btn.wrong .letter{color:inherit}
+.explanation{
+  font-size:0.85rem;color:var(--text);opacity:0.7;line-height:1.5;
+  margin-top:0.8rem;padding:0.8rem;
+  background:rgba(0,255,65,0.03);border-left:2px solid var(--green-dim);
+  border-radius:0 4px 4px 0;display:none;
+}
+.explanation.visible{display:block}
+.next-btn{
+  display:none;margin-top:1rem;width:100%;
+  font-family:'Orbitron',sans-serif;font-size:0.8rem;font-weight:700;
+  background:transparent;color:var(--green);
+  border:1px solid var(--green-dim);padding:0.7em 2em;
+  cursor:pointer;letter-spacing:0.15em;transition:all 0.2s;border-radius:4px;
+}
+.next-btn.visible{display:block}
+.next-btn:hover{background:rgba(0,255,65,0.08);box-shadow:0 0 15px var(--green-glow)}
+
+/* === RESULTS === */
+#results{
+  flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 50%,#10121a 0%,#06070c 100%);z-index:200;
+}
+.results-box{text-align:center;max-width:550px;padding:2.5rem;background:rgba(10,12,20,0.7);border-radius:8px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(100,110,140,0.15)}
+.results-rank{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,10vw,6rem);letter-spacing:0.12em;margin-bottom:0.3rem;animation:rankReveal 0.6s cubic-bezier(0.2,1.5,0.4,1) forwards}
+@keyframes rankReveal{from{transform:scale(0.5);opacity:0}to{transform:scale(1);opacity:1}}
+.results-subtitle{font-family:'Orbitron',sans-serif;font-size:0.8rem;color:var(--text);letter-spacing:0.15em;margin-bottom:1.5rem;opacity:0.8}
+.results-depth-visual{display:flex;gap:8px;justify-content:center;margin-bottom:2rem}
+.results-vault-pip{width:48px;height:10px;border-radius:3px;background:var(--steel-dark);border:1.5px solid var(--steel);transition:all 0.5s;position:relative}
+.results-vault-pip.filled{border-color:var(--v-accent)}
+.pip-label{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:0.35rem;color:var(--muted);white-space:nowrap;letter-spacing:0.05em}
+.results-vault-pip.filled .pip-label{color:var(--text)}
+.results-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:2rem}
+.stat-box{background:rgba(18,20,30,0.8);border:1px solid var(--steel);border-radius:6px;padding:1rem}
+.stat-value{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--green)}
+.stat-label{font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;margin-top:0.2rem}
+.retry-btn{
+  font-family:'Orbitron',sans-serif;font-size:0.85rem;font-weight:700;
+  background:transparent;color:var(--green);border:2px solid var(--green-dim);
+  padding:0.8em 3em;cursor:pointer;letter-spacing:0.15em;transition:all 0.25s;border-radius:4px;
+}
+.retry-btn:hover{background:var(--green);color:var(--bg);box-shadow:0 0 30px var(--green-glow)}
+
+/* Denied stamp */
+.denied-stamp{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,6vw,4rem);
+  color:var(--red);border:4px solid var(--red);padding:0.1em 0.5em;
+  letter-spacing:0.2em;transform:rotate(-8deg);
+  opacity:0;animation:stampIn 0.3s forwards;
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) rotate(-8deg);
+  z-index:50;text-shadow:0 0 20px var(--red-glow);box-shadow:0 0 30px var(--red-glow);
+}
+
+/* Alert flash */
+.alert-flash{position:fixed;inset:0;z-index:9999;pointer-events:none;background:var(--red-glow);opacity:0}
+.alert-flash.fire{animation:flashRed 0.4s}
+
+/* Shake */
+.shake{animation:shakeIt 0.3s}
+
+/* Sound toggle */
+.sound-toggle{
+  position:fixed;bottom:12px;right:12px;z-index:10001;
+  font-family:'Orbitron',sans-serif;font-size:0.5rem;
+  background:var(--surface);color:var(--muted);
+  border:1px solid var(--steel);border-radius:4px;padding:6px 10px;
+  cursor:pointer;letter-spacing:0.1em;
+}
+.sound-toggle:hover{border-color:var(--green-dim);color:var(--green-dim)}
+
+/* === ANIMATIONS === */
+@keyframes stampIn{0%{opacity:0;transform:translate(-50%,-50%) rotate(-5deg) scale(3)}60%{opacity:1;transform:translate(-50%,-50%) rotate(-5deg) scale(0.9)}100%{opacity:1;transform:translate(-50%,-50%) rotate(-5deg) scale(1)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes pulseGlow{0%,100%{opacity:0.5}50%{opacity:1}}
+@keyframes pulseBorder{0%,100%{border-color:var(--v-accent);box-shadow:0 0 8px var(--v-glow)}50%{border-color:var(--muted);box-shadow:none}}
+@keyframes flashRed{0%{opacity:0}15%{opacity:0.6}100%{opacity:0}}
+@keyframes shakeIt{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes breachFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(0.5)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}30%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+@keyframes floatParticle{
+  0%{transform:translateY(0) translateX(0);opacity:0}10%{opacity:0.2}90%{opacity:0.2}
+  100%{transform:translateY(-120px) translateX(30px);opacity:0}
+}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
+
+/* === MOBILE === */
+@media(max-width:600px){
+  .terminal-body{padding:0.8rem}
+  .q-text{font-size:0.9rem}
+  .answer-btn{font-size:0.8rem;padding:10px 12px}
+  .status-terminal .terminal-body{padding:0.6rem 0.8rem}
+  .st-vault-name{font-size:0.95rem}
+  .st-pip{height:8px}
+  .st-stats-row{gap:8px;font-size:0.5rem}
+}
+@media(min-width:900px){
+  #game{flex-direction:row;padding-top:10px}
+  .vault-section{flex:1;min-height:100%}
+  .terminal-section{flex:0 0 420px;padding:10px 20px 20px;overflow-y:auto;max-height:100%}
+  .answer-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+  <link rel="stylesheet" href="/tools/savanna-embed.css">
+</head>
+<body class="savanna">
+<div id="app">
+  <div class="alert-flash" id="alert-flash"></div>
+
+  <div id="intro" class="screen active">
+    <div class="classified-stamp"><img src="../images/vault-cracker/classified-stamp.png" alt="CLASSIFIED"></div>
+    <div class="intro-terminal"><div id="intro-text"></div></div>
+    <button id="start-btn">INITIATE BREACH</button>
+  </div>
+
+  <div id="game" class="screen">
+    <canvas id="vault-canvas"></canvas>
+    <div class="vault-overlay"></div>
+    <div class="hud">
+      <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
+      <div class="hud-corner bl"></div><div class="hud-corner br"></div>
+    </div>
+
+    <div class="vault-section" id="vault-section"></div>
+
+    <div class="terminal-section">
+      <!-- Status Terminal -->
+      <div class="status-terminal">
+        <div class="terminal-header">
+          <span class="terminal-dot r"></span><span class="terminal-dot y"></span><span class="terminal-dot g"></span>
+          <span class="terminal-title">STATUS TERMINAL</span>
+        </div>
+        <div class="terminal-body">
+          <div class="st-vault-name" id="vault-name">BRONZE VAULT</div>
+          <div class="st-vault-subtitle" id="vault-subtitle">OUTER SECURITY</div>
+          <div class="st-progress" id="vault-progress"></div>
+          <div class="st-streak-row">
+            <span class="st-streak-label" id="streak-label">STREAK: 0/3</span>
+            <div id="streak-pins" style="display:flex;gap:6px;align-items:center"></div>
+          </div>
+          <div class="st-stats-row">
+            <span class="st-stat" id="q-counter">01 / 15</span>
+            <span class="st-stat" id="accuracy-stat">ACC: 0%</span>
+            <span class="st-stat alert" id="security-level">ALERT: 0</span>
+            <span class="st-stat score" id="score-display">SCORE: 0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question Terminal -->
+      <div class="terminal">
+        <div class="terminal-header">
+          <span class="terminal-dot r"></span><span class="terminal-dot y"></span><span class="terminal-dot g"></span>
+          <span class="terminal-title">SECURITY TERMINAL</span>
+        </div>
+        <div class="terminal-body">
+          <div class="q-category" id="q-category"></div>
+          <img class="q-image" id="q-image" alt="Chart for this question">
+          <div class="q-text" id="q-text"></div>
+          <div class="answer-grid" id="answers"></div>
+          <div class="explanation" id="explanation"></div>
+          <button class="next-btn" id="next-btn">NEXT</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="results" class="screen"></div>
+  <div id="particles"></div>
+  <button class="sound-toggle" id="sound-toggle">SOUND: ON</button>
+</div>
+
+<script>
+/* ============================================================
+   VAULT THEMES — Each vault has unique colors and opening style
+   ============================================================ */
+const VAULTS = [
+  {
+    name: 'BRONZE VAULT', subtitle: 'OUTER SECURITY',
+    primary: '#5a3a20', secondary: '#8B6842', accent: '#CD9B6A', glow: 'rgba(205,155,106,0.25)',
+    rim: '#3a2210', dial: '#4a2e18', bolt: '#8B6842',
+    openClass: 'open-swing-left', rank: 'INITIATE',
+    lootColor: '#CD9B6A', lootGlow: 'rgba(205,155,106,0.4)',
+    bg: '../images/vault-cracker/bg-bronze.jpg',
+    bgOpen: '../images/vault-cracker/bg-bronze-open.jpg',
+    frameDir: '../images/vault-cracker/frames/bronze', frameCount: 80,
+  },
+  {
+    name: 'STEEL VAULT', subtitle: 'SECONDARY BARRIER',
+    accent: '#94a3b8', glow: 'rgba(148,163,184,0.25)',
+    rank: 'OPERATIVE',
+    bg: '../images/vault-cracker/bg-steel.jpg',
+    bgOpen: '../images/vault-cracker/bg-steel-open.jpg',
+    frameDir: '../images/vault-cracker/frames/steel', frameCount: 80,
+  },
+  {
+    name: 'GOLD VAULT', subtitle: 'PRIMARY VAULT',
+    accent: '#ffd700', glow: 'rgba(255,215,0,0.25)',
+    rank: 'EXPERT',
+    bg: '../images/vault-cracker/bg-gold.jpg',
+    bgOpen: '../images/vault-cracker/bg-gold-open.jpg',
+    frameDir: '../images/vault-cracker/frames/gold', frameCount: 80,
+  },
+  {
+    name: 'TITANIUM VAULT', subtitle: 'INNER SANCTUM',
+    accent: '#14b8a6', glow: 'rgba(20,184,166,0.25)',
+    rank: 'MASTER',
+    bg: '../images/vault-cracker/bg-titanium.jpg',
+    bgOpen: '../images/vault-cracker/bg-titanium-open.jpg',
+    frameDir: '../images/vault-cracker/frames/titanium', frameCount: 80,
+  },
+  {
+    name: 'OBSIDIAN VAULT', subtitle: 'THE MOTHERLOAD',
+    accent: '#a855f7', glow: 'rgba(168,85,247,0.3)',
+    rank: 'LEGEND',
+    bg: '../images/vault-cracker/bg-obsidian.jpg',
+    bgOpen: '../images/vault-cracker/bg-obsidian-open.jpg',
+    frameDir: '../images/vault-cracker/frames/obsidian', frameCount: 80,
+  }
+];
+
+/* ============================================================
+   QUESTION BANK — Swap this for other subjects
+   ============================================================ */
+const QUESTIONS = [
+  {category:'CHART READING',question:'Look at this bar chart. The y-axis starts at 400 instead of 0. What effect does this have on how you read the data?',image:'../images/vault-cracker/charts/chart-truncated-bar.jpg',options:['It has no effect on how the data looks','It makes Brand B\'s bar appear far more than twice as tall as Brand A\'s','It makes both brands look equal','It makes Brand A look more popular'],correct:1,explanation:'When a y-axis doesn\'t start at 0, differences between bars are visually exaggerated. Brand B sold twice as many, but the bar looks 6x taller.'},
+  {category:'CHART READING',question:'You want to compare how many students in each grade signed up for a school event. Which chart type fits BEST?',options:['Scatter plot','Line graph','Bar chart','Pie chart showing all grades together'],correct:2,explanation:'Bar charts are ideal for comparing quantities across categories. Line graphs show trends over time, pie charts show parts of a whole, scatter plots show relationships.'},
+  {category:'CHART READING',question:'Look at this line graph and its headline. What\'s the issue?',image:'../images/vault-cracker/charts/chart-skyrocket-headline.jpg',options:['Line graphs can\'t show test scores','The scores actually went down','78 is still a failing grade','A 6-point rise is growth, but "skyrocket" exaggerates the change'],correct:3,explanation:'A 6-point increase is steady improvement, but "skyrocket" implies a dramatic jump. Always check if the headline matches the actual numbers.'},
+  {category:'CHART CRIMES',question:'This growth chart only shows data from the three best months each year, hiding months where users declined. What is this technique called?',image:'../images/vault-cracker/charts/chart-cherry-picked.jpg',options:['Cherry-picking data','Data normalization','Statistical analysis','Trend forecasting'],correct:0,explanation:'Cherry-picking means selecting only data points that support your narrative while hiding contradicting data.'},
+  {category:'CHART CRIMES',question:'In this 3D pie chart, the 25% slice looks nearly as large as the 40% slice. Why?',image:'../images/vault-cracker/charts/chart-3d-pie-distortion.jpg',options:['The percentages were calculated wrong','3D perspective distorts how we perceive slice sizes','Pie charts always show equal portions','The chart software has a bug'],correct:1,explanation:'3D effects add perspective distortion that makes slices closer to the viewer appear larger. Data experts recommend flat 2D charts.'},
+  {category:'CHART CRIMES',question:'Look at this graph. The y-axis ranges from 98% to 100%, making a tiny difference look dramatic. What is this technique called?',image:'../images/vault-cracker/charts/chart-truncated-axis-news.jpg',options:['Data smoothing','Extrapolation','Interpolation','Truncating the axis'],correct:3,explanation:'Truncating the axis to show only a narrow range makes tiny differences look enormous.'},
+  {category:'SPREADSHEET SKILLS',question:'Cell B2 contains the formula =A2*2. If A2 changes from 5 to 10, what happens to B2?',options:['B2 stays at 10 until you re-enter the formula','B2 shows a #REF! error','B2 automatically updates to 20','Nothing — formulas only calculate once'],correct:2,explanation:'Spreadsheet formulas automatically recalculate when referenced cells change.'},
+  {category:'SPREADSHEET SKILLS',question:'You have test scores in cells B2 through B31 (30 students). Which formula gives the class average?',options:['=AVERAGE(B2:B31)','=SUM(B2:B31)','=MEAN(B2:B31)','=TOTAL(B2:B31)/30'],correct:0,explanation:'AVERAGE calculates the mean of a range. SUM adds without dividing. MEAN and TOTAL are not real spreadsheet functions.'},
+  {category:'SPREADSHEET SKILLS',question:'Your spreadsheet has grades in column B (rows 2-31). You want to count how many students scored above 90. Which formula works?',options:['=COUNT(B2:B31>90)','=SUM(B2:B31>90)','=FILTER(B2:B31, ">90")','=COUNTIF(B2:B31, ">90")'],correct:3,explanation:'COUNTIF counts cells that meet a condition. COUNT just counts cells with numbers, ignoring the condition.'},
+  {category:'DATA INVESTIGATION',question:'A student surveys 5 friends about their favorite lunch and declares "the whole school loves pizza most." What\'s the biggest problem?',options:['Pizza isn\'t a valid lunch option','The sample is too small and only includes friends — it\'s not representative','You can\'t collect data about food','Five is actually enough for a valid survey'],correct:1,explanation:'A sample of 5 friends is neither large enough nor random enough to represent the whole school.'},
+  {category:'DATA INVESTIGATION',question:'A study finds students who eat breakfast score higher on tests. A headline says "Eating Breakfast CAUSES Better Grades." What\'s wrong?',options:['Correlation doesn\'t equal causation — other factors may explain both','Breakfast has been proven to boost grades','The study must be fake','Headlines are always accurate'],correct:0,explanation:'Just because two things happen together doesn\'t mean one causes the other.'},
+  {category:'DATA INVESTIGATION',question:'You\'re studying daily phone screen time among students. Which data collection method gives the most reliable results?',options:['Ask students to estimate from memory','Have parents report phone usage','Pull actual screen time data from phone settings','Observe students for one hour and multiply by 16'],correct:2,explanation:'Self-reported estimates are inaccurate — people underestimate screen time by up to 50%. Device data is far more reliable.'},
+  {category:'DATA STORYTELLING',question:'You have data showing temperature changes over 12 months. Which chart type best shows the TREND over time?',options:['Pie chart','Line graph','Bar chart','Table of numbers'],correct:1,explanation:'Line graphs excel at showing how values change over time. Connected dots reveal patterns of increase, decrease, or stability.'},
+  {category:'DATA STORYTELLING',question:'Look at this chart. What\'s the ethical concern with how it presents the data?',image:'../images/vault-cracker/charts/chart-visual-manipulation.jpg',options:['Red is a bad color choice','Walking to school isn\'t important','The data percentages are wrong','The visual design manipulates how viewers interpret the data'],correct:3,explanation:'Design choices like color, size, and emphasis can manipulate perception. Ethical data presentation treats all data points fairly.'},
+  {category:'DATA STORYTELLING',question:'You\'re presenting survey results to the school board. You have data on satisfaction by grade, subject, and time of year. Best approach?',options:['Focus on the key findings that answer the board\'s specific question','Show every single data point to be thorough','Only show the most positive results','Use as many chart types as possible to seem professional'],correct:0,explanation:'Good data storytelling means selecting the most relevant findings for your specific audience.'},
+
+  // === CHART CRIMES (9 new) ===
+  {category:'CHART CRIMES',question:'A bar chart comparing two companies\' profits starts the y-axis at $4.8 million instead of $0. Company A earned $5.0M and Company B earned $5.2M. How does the truncated axis mislead?',options:['It makes Company B look like it earned 4x more than A','It has no effect since both values are close','It makes Company A look more profitable','It hides that both companies are losing money'],correct:0,explanation:'When the y-axis starts at $4.8M, the visible difference between $5.0M and $5.2M fills most of the chart. Company B\'s bar appears dramatically taller, even though it only earned 4% more.'},
+  {category:'CHART CRIMES',question:'A news article shows a line graph of crime rates from June to August, claiming "crime is soaring." But the full-year data shows crime peaked in summer and dropped the rest of the year. What\'s the problem?',options:['Line graphs can\'t show crime data','The data should use a pie chart instead','They cherry-picked the 3 months that support their headline','Summer crime data is always unreliable'],correct:2,explanation:'Selecting only a date range that shows an upward trend while hiding the bigger picture is cherry-picking. The full year tells a very different story.'},
+  {category:'CHART CRIMES',question:'A bubble chart compares three cities\' populations: 100K, 200K, and 400K. The 400K bubble is drawn 4x the DIAMETER of the 100K bubble. Why is this misleading?',options:['Bubble charts can\'t show population data','The bubbles should be the same size','Colors would be more accurate than size','Area grows with the square of diameter, so the 400K bubble looks 16x bigger, not 4x'],correct:3,explanation:'When you double a circle\'s diameter, its area quadruples. A bubble with 4x the diameter has 16x the area, massively exaggerating the difference. Bubbles should scale by area, not diameter.'},
+  {category:'CHART CRIMES',question:'A chart has two y-axes: left axis shows "Number of ice cream sales" (0-1000), right axis shows "Number of shark attacks" (0-10). The lines appear to move together perfectly. What\'s the manipulation?',options:['Dual y-axes at different scales can make any two datasets appear correlated','Ice cream and sharks are actually related','The chart should only have one y-axis','The data must be fabricated'],correct:0,explanation:'With independent y-axes at different scales, you can stretch or compress either axis to make the lines look perfectly aligned. This tricks viewers into seeing correlation that may not exist — or exaggerating weak relationships.'},
+  {category:'CHART CRIMES',question:'A bar chart shows "Student Satisfaction: 95%!" but has no labels for sample size, margin of error, or what question was asked. What\'s the main issue?',options:['95% satisfaction is too high to be real','The chart is missing critical context that affects how the number should be interpreted','Bar charts can\'t display percentages','The chart needs a 3D effect to be valid'],correct:1,explanation:'Without context — how many students were surveyed, what exactly was asked, what the margin of error is — a statistic can mean almost anything. "95% satisfaction" from 10 hand-picked students is very different from 95% of 500 randomly selected students.'},
+  {category:'CHART CRIMES',question:'A headline reads: "School lunch program doubled participation!" The chart shows participation went from 2% to 4%. Why might this be misleading?',options:['2% to 4% is not a real increase','Percentages should always be shown as decimals','Using "doubled" (relative change) hides how small the actual numbers are','The headline is completely accurate and not misleading at all'],correct:2,explanation:'Going from 2% to 4% is technically a 100% increase ("doubled"), but the actual change is just 2 percentage points. Using relative change instead of raw numbers can dramatically exaggerate small shifts.'},
+  {category:'CHART CRIMES',question:'A college brochure shows a graph titled "Our Graduates Earn Top Salaries" based on a survey of alumni who responded voluntarily. What type of bias could affect this data?',options:['Survivorship bias — successful graduates are more likely to respond, while those earning less may not reply','The chart uses the wrong colors','College salary data is always accurate','Only the y-axis matters in salary charts'],correct:0,explanation:'Survivorship bias occurs when data only captures "survivors" (successful outcomes) while missing everyone else. Alumni earning high salaries are more likely to proudly respond to surveys, skewing results upward.'},
+  {category:'CHART CRIMES',question:'A graph shows that towns with more fire stations have more fires. The headline says: "Fire stations CAUSE fires!" What logical error is this?',options:['The graph is drawn incorrectly','This confuses correlation with causation — larger towns need more of both','Fire stations do cause fires','The data must be fake'],correct:1,explanation:'Bigger towns have more of everything — more people, more buildings, more fire stations, AND more fires. The fire stations don\'t cause fires; population size drives both variables. Correlation does not equal causation.'},
+  {category:'CHART CRIMES',question:'A social media infographic claims "80% of people support this policy!" but the survey only asked 15 people at one specific location. What\'s the biggest problem?',options:['80% is a suspicious number','Infographics are never trustworthy','The survey should have been conducted online instead','15 people is too small and too localized a sample to represent "people" in general'],correct:3,explanation:'A sample of 15 people from one location cannot represent a broad population. Small, non-random samples produce unreliable results that shouldn\'t be generalized with claims like "80% of people."'},
+
+  // === CHART READING (9 new) ===
+  {category:'CHART READING',question:'A bar chart shows monthly book sales: January=120, February=95, March=140, April=110. Which month had the highest sales?',options:['January','February','April','March'],correct:3,explanation:'Reading the bar heights directly: March at 140 is the tallest bar, making it the month with the highest sales. Always compare bar heights carefully against the y-axis.'},
+  {category:'CHART READING',question:'A line graph shows a company\'s revenue over 5 years. The line goes up from Year 1-3, flattens from Year 3-4, then drops from Year 4-5. How would you describe the overall trend?',options:['Steady growth the entire time','Constant decline','No clear trend — the data is random','Growth followed by a plateau and then decline'],correct:3,explanation:'The line shows three distinct phases: growth (up), plateau (flat), and decline (down). Describing trends means identifying these directional changes over time.'},
+  {category:'CHART READING',question:'A scatter plot shows the relationship between hours studied and test scores. Most dots form a cluster going from lower-left to upper-right. What does this suggest?',options:['A positive correlation — more studying tends to mean higher scores','A negative correlation — more studying means lower scores','No relationship between the variables','The data was collected incorrectly'],correct:0,explanation:'When dots trend from lower-left to upper-right, it shows a positive correlation: as one variable increases, the other tends to increase too. More study hours are associated with higher scores.'},
+  {category:'CHART READING',question:'A multi-series line chart shows sales for Products A, B, and C over 6 months. Product A\'s line is always above the others. Product C\'s line crosses above Product B in Month 4. What can you conclude?',options:['Product C is the best product overall','Product A had the highest sales every month, and Product C overtook Product B starting in Month 4','All three products had equal total sales','Product B should be discontinued'],correct:1,explanation:'In multi-series charts, compare the lines\' positions. A being on top means highest sales throughout. C crossing above B in Month 4 means C surpassed B\'s sales from that point forward.'},
+  {category:'CHART READING',question:'A chart\'s y-axis shows values in "thousands" and goes from 0 to 50. A bar reaches the 30 mark. What is the actual value represented?',options:['30','300','3,000','30,000'],correct:3,explanation:'When an axis says "thousands," multiply the reading by 1,000. A bar at the 30 mark represents 30 × 1,000 = 30,000. Always check axis labels and units before reading values.'},
+  {category:'CHART READING',question:'A bar chart compares average test scores across 4 subjects. Math=78, Science=82, English=85, History=80. Which comparison is correct?',options:['Science and History scored the same','Math had the highest average','English had the lowest average','English scored 7 points higher than Math'],correct:3,explanation:'English (85) minus Math (78) = 7 points. When comparing values across categories in a bar chart, subtract to find the exact difference rather than estimating visually.'},
+  {category:'CHART READING',question:'A pie chart shows how students get to school: Bus=45%, Car=30%, Walk=15%, Bike=10%. What percentage of students do NOT take the bus?',options:['45%','30%','10%','55%'],correct:3,explanation:'If 45% take the bus, then 100% - 45% = 55% use other methods. Pie charts show parts of a whole (100%), so you can subtract any slice from 100% to find the remainder.'},
+  {category:'CHART READING',question:'A stacked bar chart shows phone, tablet, and laptop usage per age group. In the 13-17 age group bar, phone takes up 60% of the bar, tablet 25%, and laptop 15%. What does this tell you?',options:['Teens use phones more total hours than adults','Teens don\'t use laptops at all','Among 13-17 year olds, phones are the most-used device by far','Phone usage is declining among teens'],correct:2,explanation:'Stacked bars show the composition within each category. The 60% phone share for teens means phones dominate their device usage. You can\'t compare total hours across age groups from the proportions alone.'},
+  {category:'CHART READING',question:'A data table shows city temperatures: NYC High=85°F Low=72°F, LA High=78°F Low=65°F, Chicago High=83°F Low=68°F. Which city has the largest temperature range (high minus low)?',options:['New York City (13°F range)','Los Angeles (13°F range)','Chicago (15°F range)','They all have the same range'],correct:2,explanation:'NYC: 85-72=13°F. LA: 78-65=13°F. Chicago: 83-68=15°F. Chicago has the largest daily temperature swing. Reading data tables requires careful calculation, not just scanning numbers.'},
+
+  // === DATA INVESTIGATION (9 new) ===
+  {category:'DATA INVESTIGATION',question:'You notice students who sit in the front row tend to get better grades. Which research question would best explore this pattern?',options:['"Why do smart students sit in front?"','\"Does seating position affect academic performance, or do more motivated students choose front seats?\"','\"Should teachers force all students to sit in front?\"','\"Are front-row seats more comfortable?\"'],correct:1,explanation:'A good research question avoids assuming a conclusion. It considers multiple explanations — maybe seat choice causes better grades, or maybe motivated students both choose front seats AND get better grades.'},
+  {category:'DATA INVESTIGATION',question:'In an experiment testing whether music affects study performance, the type of music played is the _____ variable and the test score is the _____ variable.',options:['Dependent; independent','Control; experimental','Experimental; control','Independent; dependent'],correct:3,explanation:'The independent variable is what the researcher changes (type of music). The dependent variable is what gets measured as a result (test score). "Independent" = what I change. "Dependent" = what I measure.'},
+  {category:'DATA INVESTIGATION',question:'A school survey about homework is given only during study hall. Students who skip study hall aren\'t surveyed. What type of bias does this create?',options:['Confirmation bias','Selection bias — the sample systematically excludes certain students','Anchoring bias','No bias exists in this scenario'],correct:1,explanation:'Selection bias happens when your sampling method systematically excludes certain groups. Students who skip study hall might have very different homework opinions, but they\'re completely missing from the data.'},
+  {category:'DATA INVESTIGATION',question:'What\'s the difference between a sample and a population in data collection?',options:['A population is the entire group you want to study; a sample is a smaller subset you actually collect data from','A sample is always bigger than a population','A sample and a population are the same thing','A population only refers to people, not data'],correct:0,explanation:'You usually can\'t study every single member of a population (too expensive, too slow), so you study a sample — a smaller group chosen to represent the whole. Good samples are random and large enough to be reliable.'},
+  {category:'DATA INVESTIGATION',question:'A dataset of student test scores reads: 78, 82, 79, 81, 80, 45, 83, 80, 77, 81. Which value is most likely an outlier?',options:['83','78','45','80'],correct:2,explanation:'An outlier is a data point that falls far outside the normal range. Most scores cluster between 77-83, but 45 is dramatically lower. Outliers can indicate errors, unusual circumstances, or genuinely extreme values.'},
+  {category:'DATA INVESTIGATION',question:'You\'re writing a research paper on teen social media usage. Which source is MOST reliable?',options:['A viral tweet claiming "teens spend 9 hours a day on social media"','A peer-reviewed study published in a psychology journal','A comment on a YouTube video about screen time','A blog post by someone who "feels like teens are always on their phones"'],correct:1,explanation:'Peer-reviewed studies undergo rigorous review by other experts before publication. Social media posts, blogs, and comments lack verification. Always evaluate sources by asking: Who wrote this? What evidence supports it? Was it reviewed?'},
+  {category:'DATA INVESTIGATION',question:'A survey asks: "Don\'t you agree that homework is a waste of time?" What\'s wrong with this question?',options:['Nothing — it\'s a clear question','Surveys can\'t ask about homework','The question is too short','It\'s a leading question that pushes respondents toward a specific answer'],correct:3,explanation:'Leading questions use phrasing that suggests the "right" answer. "Don\'t you agree..." pushes people to say yes. A neutral version: "How useful do you find homework?" Good survey design avoids influencing responses.'},
+  {category:'DATA INVESTIGATION',question:'A researcher finds data that contradicts their hypothesis but ignores it and only reports supporting evidence. What is this an example of?',options:['Good research methodology','Peer review','Confirmation bias — favoring evidence that confirms what you already believe','Data normalization'],correct:2,explanation:'Confirmation bias is the tendency to search for, interpret, and remember information that confirms existing beliefs while ignoring contradicting evidence. Ethical research reports ALL findings, even surprising ones.'},
+  {category:'DATA INVESTIGATION',question:'A tech company wants to collect student location data through a school app "to improve the learning experience." What ethical concern should be raised FIRST?',options:['Whether the app has good reviews','Whether the app\'s color scheme is appealing','Whether teachers will also be tracked','Whether students and parents gave informed consent and understand how their data will be used'],correct:3,explanation:'Informed consent is the foundation of ethical data collection. People must understand what data is being collected, how it will be used, who has access, and they must voluntarily agree. This is especially important with minors.'},
+
+  // === DATA STORYTELLING (9 new) ===
+  {category:'DATA STORYTELLING',question:'You have data comparing the popularity of 6 different school clubs. Which chart type is the BEST choice?',options:['Line graph','Scatter plot','Bar chart','Histogram'],correct:2,explanation:'Bar charts are ideal for comparing values across distinct categories (clubs). Line graphs are for trends over time, scatter plots for relationships between variables, and histograms for frequency distributions.'},
+  {category:'DATA STORYTELLING',question:'Which headline best represents data showing that average math scores rose from 72 to 76 over one semester?',options:['"MATH SCORES SKYROCKET TO ALL-TIME HIGHS!"','"Math Scores Show Steady 4-Point Gain This Semester"','"Math Scores Barely Change — Education System Failing"','"Students Finally Learning Math After Years of Failure"'],correct:1,explanation:'Good data headlines are accurate and proportional. A 4-point gain is real improvement but not a "skyrocket." The best headline states the actual change clearly without exaggeration or editorializing.'},
+  {category:'DATA STORYTELLING',question:'Your chart shows that 40% of students prefer reading on tablets. Without context, this number is hard to interpret. What context would make it more meaningful?',options:['Comparing it to last year\'s 25% and the national average of 35%','Adding a 3D effect to the chart','Making the font bigger','Using brighter colors'],correct:0,explanation:'Numbers gain meaning through comparison. Knowing it was 25% last year shows growth. Knowing the national average is 35% shows your school is above average. Context transforms isolated data points into insights.'},
+  {category:'DATA STORYTELLING',question:'You\'re building a data presentation about school recycling. What\'s the most effective narrative structure?',options:['Jump straight to the final number with no explanation','List every data point in a random order','Start with a hook (the problem), present the data (what we found), end with a takeaway (what to do next)','Only show charts with no text explanation'],correct:2,explanation:'Great data storytelling follows a narrative arc: hook your audience with a compelling problem, walk them through the evidence, and close with a clear takeaway. This structure makes data memorable and actionable.'},
+  {category:'DATA STORYTELLING',question:'You\'re presenting water usage data to fellow students vs. to the school board. How should your approach differ?',options:['Use the exact same presentation for both — data is data','For students, use relatable comparisons and visual metaphors; for the board, emphasize budget impact and specific metrics','Use more complicated charts for students to challenge them','Only present to the school board since students won\'t understand data'],correct:1,explanation:'Effective data communication adapts to the audience. Students relate to comparisons like "enough water to fill 50 swimming pools." Board members care about cost savings and efficiency metrics. Same data, different framing.'},
+  {category:'DATA STORYTELLING',question:'You have a complex dataset with 15 variables about student wellness. You need to present key findings in 5 minutes. Best strategy?',options:['Focus on the 2-3 most important findings and present them clearly with one chart each','Show all 15 variables on one chart to be thorough','Skip the presentation since the data is too complex','Only show the variable with the most positive result'],correct:0,explanation:'Simplifying complex data doesn\'t mean dumbing it down — it means identifying what matters most and presenting it clearly. Overloading an audience with information is as bad as giving too little.'},
+  {category:'DATA STORYTELLING',question:'A student claims "Our school\'s attendance is terrible" in a presentation but shows no data. How should they strengthen this claim?',options:['Say it more forcefully','Add a dramatic background image','Show specific attendance data with comparisons to district or state averages','Add their personal opinion about why attendance is bad'],correct:2,explanation:'Claims need evidence. "Terrible" is subjective — 90% attendance might be terrible for one school but great for another. Specific data with benchmarks (district average, state average) turns an opinion into a supported argument.'},
+  {category:'DATA STORYTELLING',question:'A chart shows test scores dropped 2% after switching textbooks. The presenter titles the slide "New Textbooks Are Destroying Student Achievement." What\'s the framing issue?',options:['The title accurately reflects the data','The presenter should have used a pie chart','The title uses emotionally loaded language that dramatically exaggerates a small, possibly insignificant change','2% is actually a huge drop'],correct:2,explanation:'Avoiding misleading framing means matching your language to the magnitude of the data. A 2% drop could be within normal variation and might have many causes. "Destroying" implies catastrophe for what might be statistical noise.'},
+  {category:'DATA STORYTELLING',question:'A school has data showing: (1) students who eat breakfast score 12% higher, (2) the cafeteria serves 200 fewer breakfasts than last year, and (3) breakfast costs $0.50/student. What data-driven recommendation follows?',options:['Cancel the breakfast program to save money','Invest in the breakfast program — the data shows a clear link between breakfast and performance, and the cost per student is low','Only serve breakfast to high-performing students','Ignore the data and ask students what they want'],correct:1,explanation:'Data-driven decisions connect evidence to action. The data shows breakfast correlates with better scores, participation is dropping (a problem), and the cost is low (affordable solution). The logical recommendation: invest in boosting breakfast participation.'},
+
+  // === SPREADSHEET SKILLS (9 new) ===
+  {category:'SPREADSHEET SKILLS',question:'Cells A1 through A5 contain: 10, 20, 30, 40, 50. What does =SUM(A1:A5) return?',options:['50','30','150','5'],correct:2,explanation:'SUM adds all values in the range: 10+20+30+40+50 = 150. SUM is the most fundamental spreadsheet function — it adds up every number in the specified range.'},
+  {category:'SPREADSHEET SKILLS',question:'You have test scores in B1:B20. =MAX(B1:B20) returns 98 and =MIN(B1:B20) returns 52. What is the range of the scores?',options:['98','52','46','150'],correct:2,explanation:'The range is the difference between the highest and lowest values: 98 - 52 = 46. MAX finds the largest value and MIN finds the smallest in a range.'},
+  {category:'SPREADSHEET SKILLS',question:'Cell C1 contains =A1+B1. When you copy C1 and paste it into C2, what formula appears in C2?',options:['=A1+B1 (unchanged)','=A2+B2','=#REF!+#REF!','=A1+B2'],correct:1,explanation:'Relative cell references automatically adjust when copied. Moving down one row shifts all row numbers up by 1: A1→A2, B1→B2. This is what makes spreadsheets powerful — one formula works for all rows.'},
+  {category:'SPREADSHEET SKILLS',question:'You have a column of data and want to see only rows where the grade is "A". Which feature should you use?',options:['Apply a filter to show only rows where the grade column equals "A"','Use the SUM function','Delete all non-A rows permanently','Change the font color of non-A rows to white'],correct:0,explanation:'Filtering temporarily hides rows that don\'t match your criteria without deleting any data. You can remove the filter anytime to see all data again. Never delete data just to view a subset.'},
+  {category:'SPREADSHEET SKILLS',question:'You have student names in column A (A2:A100) and grades in column B. =COUNTIF(B2:B100, "F") returns 7. What does this tell you?',options:['7 students have the highest grade','The average grade is F','7 students have a grade of F','The spreadsheet has 7 columns'],correct:2,explanation:'COUNTIF counts cells matching a condition. COUNTIF(B2:B100, "F") counts how many cells in that range contain exactly "F". Similarly, SUMIF adds values that meet a condition.'},
+  {category:'SPREADSHEET SKILLS',question:'Which formula correctly calculates 15% sales tax on a price in cell A1?',options:['=A1+15','=A1*15%','=A1*0.15','Both B and C are correct'],correct:3,explanation:'Both =A1*15% and =A1*0.15 calculate 15% of A1. Spreadsheets understand percentage notation (15%) and decimal notation (0.15) — they produce the same result. =A1+15 just adds 15 dollars, not 15%.'},
+  {category:'SPREADSHEET SKILLS',question:'Your spreadsheet has dates in column A, names in column B, and amounts in column C. The headers are bold, columns are properly sized, and currency values show $ signs. Why does formatting matter?',options:['Proper formatting makes data easier to read, reduces errors, and helps others understand the spreadsheet quickly','Formatting has no practical purpose — it\'s just decoration','Formatting is only important for printed spreadsheets','Only the header row needs formatting'],correct:0,explanation:'Formatting serves a functional purpose: clear headers prevent confusion, currency symbols clarify units, proper alignment makes scanning easier. A well-formatted spreadsheet reduces misreading and errors.'},
+  {category:'SPREADSHEET SKILLS',question:'You want to make sure a cell in your spreadsheet only accepts numbers between 1 and 100. Which feature prevents invalid entries?',options:['Conditional formatting','Data validation — it restricts what values can be entered into a cell','Password protection','The FILTER function'],correct:1,explanation:'Data validation sets rules for what can be entered in a cell (number ranges, text lengths, dropdown lists). It prevents errors at the point of entry rather than catching them later. Conditional formatting only changes appearance, not input.'},
+  {category:'SPREADSHEET SKILLS',question:'A VLOOKUP formula searches for a student ID in a table and returns their grade. Conceptually, what is VLOOKUP doing?',options:['Looking up a value in the first column of a table and returning a value from another column in the same row','Sorting the data alphabetically','Adding up all the grades','Creating a chart from the data'],correct:0,explanation:'VLOOKUP (Vertical Lookup) finds a value in the leftmost column of a table, then returns a value from a specified column in that same row. Think of it like looking up a word in a dictionary — find the word, read the definition next to it.'}
+];
+/* ============================================================ */
+
+// === AUDIO ENGINE ===
+class AudioEngine {
+  constructor(){this.ctx=null;this.enabled=true;this.initialized=false}
+  init(){if(this.initialized)return;try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();this.initialized=true}catch(e){this.enabled=false}}
+  play(t){if(!this.enabled||!this.ctx)return;if(this.ctx.state==='suspended')this.ctx.resume();this['_'+t]&&this['_'+t]()}
+  _osc(f,t,d,v=0.15,dl=0){const o=this.ctx.createOscillator();const g=this.ctx.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(0,this.ctx.currentTime+dl);g.gain.linearRampToValueAtTime(v,this.ctx.currentTime+dl+0.01);g.gain.exponentialRampToValueAtTime(0.001,this.ctx.currentTime+dl+d);o.connect(g);g.connect(this.ctx.destination);o.start(this.ctx.currentTime+dl);o.stop(this.ctx.currentTime+dl+d)}
+  _noise(d,v=0.08,dl=0){const b=this.ctx.createBuffer(1,this.ctx.sampleRate*d,this.ctx.sampleRate);const dt=b.getChannelData(0);for(let i=0;i<dt.length;i++)dt[i]=Math.random()*2-1;const s=this.ctx.createBufferSource();const g=this.ctx.createGain();const h=this.ctx.createBiquadFilter();h.type='highpass';h.frequency.value=2000;s.buffer=b;g.gain.setValueAtTime(v,this.ctx.currentTime+dl);g.gain.exponentialRampToValueAtTime(0.001,this.ctx.currentTime+dl+d);s.connect(h);h.connect(g);g.connect(this.ctx.destination);s.start(this.ctx.currentTime+dl)}
+  _click(){this._noise(0.04,0.12);this._osc(800,'sine',0.05,0.06)}
+  _type(){this._noise(0.02,0.04)}
+  _correct(){this._osc(660,'sine',0.15,0.1);this._osc(880,'sine',0.2,0.1,0.08)}
+  _wrong(){this._osc(200,'square',0.12,0.12);this._osc(160,'square',0.15,0.1,0.1)}
+  _tumbler(){this._osc(110,'sine',0.3,0.2);this._osc(55,'sine',0.4,0.15,0.05);this._noise(0.08,0.15,0.02);this._osc(220,'sine',0.1,0.08,0.15)}
+  _open(){for(let i=0;i<8;i++){this._osc(60+i*5,'sine',0.6,0.06,i*0.05);this._noise(0.15,0.04,i*0.08)}this._osc(110,'sine',1.2,0.1,0.3);this._osc(220,'sine',0.8,0.06,0.8)}
+  _denied(){for(let i=0;i<3;i++)this._osc(300,'square',0.15,0.15,i*0.25)}
+  _bolt(){this._osc(440,'sine',0.08,0.08);this._noise(0.03,0.06)}
+  toggle(){this.enabled=!this.enabled;return this.enabled}
+}
+const audio = new AudioEngine();
+
+// === STATE ===
+const QUESTIONS_PER_VAULT = 12;
+const state = {questions:[],vaultQuestions:[],current:0,correct:0,wrong:0,totalAnswered:0,streak:0,vaultIdx:0,dialRotation:0,answered:false,transitioning:false};
+// Test hook — exposes current correct answer index for automated QA
+window.__vcCorrect = () => state.questions[state.current]?.correct ?? -1;
+const STREAK_NEEDED = 3;
+
+// === DOM ===
+const $=id=>document.getElementById(id);
+const introScreen=$('intro'),gameScreen=$('game'),resultsScreen=$('results');
+const introText=$('intro-text'),startBtn=$('start-btn');
+const qCounter=$('q-counter'),secLevel=$('security-level');
+const vaultNameEl=$('vault-name'),vaultSubEl=$('vault-subtitle');
+const vaultProgress=$('vault-progress'),streakPins=$('streak-pins'),streakLabel=$('streak-label');
+const accuracyStat=$('accuracy-stat'),scoreDisplay=$('score-display');
+const qCategory=$('q-category'),qText=$('q-text'),answersEl=$('answers');
+const explanationEl=$('explanation'),nextBtn=$('next-btn');
+const alertFlash=$('alert-flash'),soundToggle=$('sound-toggle');
+const vaultCanvas=$('vault-canvas'),vaultCtx=vaultCanvas.getContext('2d');
+
+// === VAULT RENDERING (Canvas frame animation) ===
+const FRAME_CACHE = {}; // { vaultIdx: [Image, Image, ...] }
+let currentDisplayFrame = 0;
+let frameAnimationId = null;
+
+function resizeCanvas() {
+  vaultCanvas.width = window.innerWidth;
+  vaultCanvas.height = window.innerHeight;
+  drawFrame(currentDisplayFrame);
+}
+window.addEventListener('resize', resizeCanvas);
+
+function drawFrame(frameIdx) {
+  const frames = FRAME_CACHE[state.vaultIdx];
+  if (!frames) return;
+  const maxFrame = frames.length - 1;
+  const clamped = Math.max(0, Math.min(frameIdx, maxFrame));
+
+  // Integer frame — draw directly
+  const lo = Math.floor(clamped);
+  const hi = Math.ceil(clamped);
+  const blend = clamped - lo; // 0-1 fractional part
+
+  if (!frames[lo]?.complete) return;
+
+  // Draw the base frame
+  const img1 = frames[lo];
+  const scale1 = Math.max(vaultCanvas.width / img1.naturalWidth, vaultCanvas.height / img1.naturalHeight);
+  const w1 = img1.naturalWidth * scale1, h1 = img1.naturalHeight * scale1;
+  vaultCtx.globalAlpha = 1;
+  vaultCtx.drawImage(img1, (vaultCanvas.width - w1) / 2, (vaultCanvas.height - h1) / 2, w1, h1);
+
+  // Cross-fade with next frame if fractional
+  if (blend > 0.01 && hi <= maxFrame && frames[hi]?.complete) {
+    const img2 = frames[hi];
+    const scale2 = Math.max(vaultCanvas.width / img2.naturalWidth, vaultCanvas.height / img2.naturalHeight);
+    const w2 = img2.naturalWidth * scale2, h2 = img2.naturalHeight * scale2;
+    vaultCtx.globalAlpha = blend;
+    vaultCtx.drawImage(img2, (vaultCanvas.width - w2) / 2, (vaultCanvas.height - h2) / 2, w2, h2);
+    vaultCtx.globalAlpha = 1;
+  }
+
+  currentDisplayFrame = clamped;
+}
+
+function preloadVaultFrames(idx) {
+  if (FRAME_CACHE[idx]) return Promise.resolve();
+  const v = VAULTS[idx];
+  const frames = [];
+  let loaded = 0;
+  return new Promise(resolve => {
+    for (let i = 0; i < v.frameCount; i++) {
+      const img = new Image();
+      img.onload = () => { loaded++; if (loaded >= v.frameCount) resolve(); };
+      img.onerror = () => { loaded++; if (loaded >= v.frameCount) resolve(); };
+      img.src = v.frameDir + '/frame_' + String(i + 1).padStart(3, '0') + '.jpg';
+      frames.push(img);
+    }
+    FRAME_CACHE[idx] = frames;
+  });
+}
+
+function setVaultTheme(idx) {
+  const v = VAULTS[idx];
+  const s = document.documentElement.style;
+  s.setProperty('--v-accent', v.accent);
+  s.setProperty('--v-glow', v.glow);
+  vaultNameEl.textContent = v.name;
+  vaultSubEl.textContent = v.subtitle;
+  // Cancel any running frame animation
+  if (frameAnimationId) { cancelAnimationFrame(frameAnimationId); frameAnimationId = null; }
+  // Slow fade to black, swap vault, slow fade in — 1.5s each for smooth transition
+  vaultCanvas.style.transition = 'opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+  vaultCanvas.style.opacity = '0';
+  setTimeout(() => {
+    preloadVaultFrames(idx).then(() => {
+      drawFrame(0);
+      vaultCanvas.style.transition = 'opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      vaultCanvas.style.opacity = '1';
+    });
+  }, 1500);
+}
+
+// Streak-based frame position: 0=frame 0, 1=frame ~8, 2=frame ~16
+const STREAK_FRAMES = [0, 8, 16];
+
+function setVaultStage(streak) {
+  const targetFrame = STREAK_FRAMES[Math.min(streak, 2)] || 0;
+  // Animate smoothly from current frame to target
+  animateToFrame(targetFrame, 1200);
+}
+
+function animateToFrame(target, duration) {
+  if (frameAnimationId) { cancelAnimationFrame(frameAnimationId); frameAnimationId = null; }
+  const start = currentDisplayFrame;
+  const startTime = performance.now();
+  const diff = target - start;
+  if (Math.abs(diff) < 0.01) return;
+
+  function tick(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+    // Ease-out cubic — feels like a heavy door decelerating
+    const eased = 1 - Math.pow(1 - progress, 3);
+    // Use fractional frame index — drawFrame interpolates between frames
+    const frame = start + diff * eased;
+    drawFrame(frame);
+    if (progress < 1) frameAnimationId = requestAnimationFrame(tick);
+    else { drawFrame(target); frameAnimationId = null; }
+  }
+  frameAnimationId = requestAnimationFrame(tick);
+}
+
+
+function buildVaultProgress() {
+  vaultProgress.innerHTML = '';
+  for (let i = 0; i < VAULTS.length; i++) {
+    const group = document.createElement('div');
+    group.className = 'st-pip-group';
+    group.id = `pip-group-${i}`;
+    const pip = document.createElement('div');
+    pip.className = 'st-pip';
+    pip.id = `pip-${i}`;
+    const inner = document.createElement('div');
+    inner.className = 'st-pip-inner';
+    pip.appendChild(inner);
+    const label = document.createElement('div');
+    label.className = 'st-pip-label';
+    label.textContent = VAULTS[i].name.split(' ')[0];
+    group.appendChild(pip);
+    group.appendChild(label);
+    vaultProgress.appendChild(group);
+  }
+  updateVaultProgress();
+}
+
+function updateVaultProgress() {
+  for (let i = 0; i < VAULTS.length; i++) {
+    const pip = $(`pip-${i}`);
+    const group = $(`pip-group-${i}`);
+    if (!pip) continue;
+    pip.classList.remove('cleared', 'current');
+    const inner = pip.querySelector('.st-pip-inner');
+    const label = group.querySelector('.st-pip-label');
+    if (i < state.vaultIdx) {
+      pip.classList.add('cleared');
+      if (inner) inner.style.background = VAULTS[i].accent;
+      pip.style.borderColor = VAULTS[i].accent;
+      pip.style.boxShadow = `0 0 10px ${VAULTS[i].glow}`;
+      pip.style.setProperty('--v-accent', VAULTS[i].accent);
+      pip.style.setProperty('--v-glow', VAULTS[i].glow);
+      if (label) label.style.color = VAULTS[i].accent;
+    } else if (i === state.vaultIdx) {
+      pip.classList.add('current');
+      if (inner) inner.style.background = VAULTS[i].accent;
+      pip.style.borderColor = VAULTS[i].accent;
+      pip.style.setProperty('--v-accent', VAULTS[i].accent);
+      pip.style.setProperty('--v-glow', VAULTS[i].glow);
+      if (label) label.style.color = '';
+    } else {
+      if (inner) inner.style.background = 'transparent';
+      pip.style.borderColor = '';
+      pip.style.boxShadow = '';
+      if (label) label.style.color = '';
+    }
+  }
+  // Update score display (show percentage)
+  scoreDisplay.textContent = `SCORE: ${getScorePercent(state.vaultIdx)}%`;
+}
+
+function buildStreakPins() {
+  streakPins.innerHTML = '';
+  for (let i = 0; i < STREAK_NEEDED; i++) {
+    const p = document.createElement('div');
+    p.className = 'streak-pin';
+    p.id = `pin-${i}`;
+    streakPins.appendChild(p);
+  }
+  updateStreakPins();
+}
+
+function updateStreakPins() {
+  for (let i = 0; i < STREAK_NEEDED; i++) {
+    const p = $(`pin-${i}`);
+    if (p) p.classList.toggle('lit', i < state.streak);
+  }
+  streakLabel.textContent = `STREAK: ${state.streak}/${STREAK_NEEDED}`;
+}
+
+function updateAccuracy() {
+  const pct = state.totalAnswered > 0 ? Math.round((state.correct / state.totalAnswered) * 100) : 0;
+  accuracyStat.textContent = `ACC: ${pct}%`;
+}
+
+
+// === PARTICLES ===
+function spawnParticles(){
+  const c=$('particles');
+  for(let i=0;i<15;i++){const p=document.createElement('div');p.className='particle';p.style.cssText=`left:${Math.random()*100}%;top:${50+Math.random()*50}%;animation:floatParticle ${6+Math.random()*6}s ${Math.random()*6}s infinite;width:${1+Math.random()*2}px;height:${1+Math.random()*2}px`;c.appendChild(p)}
+}
+
+// === TYPEWRITER ===
+function typewrite(el,text,speed=35){
+  return new Promise(resolve=>{el.innerHTML='';let i=0;const cursor=document.createElement('span');cursor.className='cursor';cursor.textContent='\u00A0';const tick=()=>{if(i<text.length){el.textContent=text.slice(0,i+1);el.appendChild(cursor);audio.play('type');i++;setTimeout(tick,speed+Math.random()*25)}else resolve()};tick()})
+}
+
+// === SHUFFLE ===
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
+
+// === INIT GAME ===
+function initGame() {
+  const shuffled = shuffle(QUESTIONS);
+  // Split into 5 groups of QUESTIONS_PER_VAULT for each vault
+  state.vaultQuestions = [];
+  for (let i = 0; i < 5; i++) {
+    state.vaultQuestions.push(shuffled.slice(i * QUESTIONS_PER_VAULT, (i + 1) * QUESTIONS_PER_VAULT));
+  }
+  state.questions = state.vaultQuestions[0];
+  state.current = 0;
+  state.correct = 0;
+  state.wrong = 0;
+  state.totalAnswered = 0;
+  state.streak = 0;
+  state.vaultIdx = 0;
+  state.dialRotation = 0;
+  state.answered = false;
+  state.transitioning = false;
+
+  resizeCanvas();
+  preloadVaultFrames(0).then(() => { drawFrame(0); });
+  setVaultTheme(0);
+  buildVaultProgress();
+  buildStreakPins();
+  updateStreakPins();
+  updateAccuracy();
+  scoreDisplay.textContent = 'SCORE: 0%';
+
+  document.querySelectorAll('.denied-stamp,.breach-text').forEach(e => e.remove());
+  secLevel.textContent = 'ALERT: 0';
+  secLevel.style.opacity = '0.7';
+
+  showQuestion();
+}
+
+// === SHOW QUESTION ===
+function showQuestion() {
+  if (state.transitioning) return;
+  const q = state.questions[state.current];
+  state.answered = false;
+
+  qCounter.textContent = `${String(state.current+1).padStart(2,'0')} / ${String(QUESTIONS_PER_VAULT).padStart(2,'0')}`;
+  qCategory.textContent = q.category;
+  const qImage = $('q-image');
+  if (q.image) {
+    qImage.src = q.image;
+    qImage.classList.add('visible');
+  } else {
+    qImage.classList.remove('visible');
+    qImage.src = '';
+  }
+  qText.textContent = q.question;
+
+  const indices = shuffle([0,1,2,3]);
+  const letters = ['A','B','C','D'];
+  answersEl.innerHTML = '';
+  indices.forEach((origIdx, displayIdx) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.innerHTML = `<span class="letter">${letters[displayIdx]}</span>${q.options[origIdx]}`;
+    btn.dataset.origIdx = origIdx;
+    btn.addEventListener('click', () => handleAnswer(btn, origIdx, q.correct));
+    answersEl.appendChild(btn);
+  });
+
+  explanationEl.classList.remove('visible');
+  explanationEl.textContent = '';
+  nextBtn.classList.remove('visible');
+  nextBtn.textContent = (state.current === QUESTIONS_PER_VAULT - 1 && state.streak < STREAK_NEEDED - 1) ? 'VIEW RESULTS' : 'NEXT';
+}
+
+// === HANDLE ANSWER ===
+function handleAnswer(btn, selectedIdx, correctIdx) {
+  if (state.answered || state.transitioning) return;
+  state.answered = true;
+  audio.init();
+
+  const isCorrect = selectedIdx === correctIdx;
+  state.totalAnswered++;
+  const q = state.questions[state.current];
+  const allBtns = answersEl.querySelectorAll('.answer-btn');
+  allBtns.forEach(b => b.classList.add('locked'));
+  allBtns.forEach(b => {
+    if (parseInt(b.dataset.origIdx) === correctIdx) b.classList.add('correct');
+    if (b === btn && !isCorrect) b.classList.add('wrong');
+  });
+
+  if (isCorrect) {
+    state.correct++;
+    state.streak++;
+    audio.play('correct');
+    audio.play('click');
+    updateStreakPins();
+    updateAccuracy();
+
+    // Advance vault stage visually
+    if (state.streak < 3) setVaultStage(state.streak);
+    else animateToFrame(20, 1600); // streak 3 = animate to frame 20, crackVault handles the rest
+
+    // Check if vault cracked
+    if (state.streak >= STREAK_NEEDED && state.vaultIdx < VAULTS.length) {
+      setTimeout(() => crackVault(), 600);
+    }
+  } else {
+    state.wrong++;
+    // Step back one stage (but not below 0)
+    const prevStreak = state.streak;
+    state.streak = 0;
+    audio.play('wrong');
+    alertFlash.classList.add('fire');
+    setTimeout(() => alertFlash.classList.remove('fire'), 400);
+    secLevel.textContent = `ALERT: ${state.wrong}`;
+    if (state.wrong >= 3) secLevel.style.opacity = '1';
+    updateStreakPins();
+    updateAccuracy();
+
+    // Animate back to locked state
+    if (prevStreak > 0) animateToFrame(0, 1000);
+  }
+
+  explanationEl.textContent = q.explanation;
+  explanationEl.classList.add('visible');
+  setTimeout(() => nextBtn.classList.add('visible'), 400);
+}
+
+// === CRACK VAULT ===
+function crackVault() {
+  state.transitioning = true;
+  const crackedIdx = state.vaultIdx;
+  const v = VAULTS[crackedIdx];
+  const totalFrames = v.frameCount || 80;
+
+  audio.play('tumbler');
+  document.body.classList.add('shake');
+  setTimeout(() => document.body.classList.remove('shake'), 300);
+
+  // Breach text overlay
+  const breach = document.createElement('div');
+  breach.className = 'breach-text show';
+  breach.textContent = `${v.name} BREACHED`;
+  document.getElementById('app').appendChild(breach);
+  setTimeout(() => breach.remove(), 4000);
+
+  // Animate through ALL frames with eased timing (heavy vault door)
+  // Slow start, fast middle, slow settle — ~3 seconds total
+  setTimeout(() => audio.play('open'), 400);
+  animateToFrame(totalFrames - 1, 6000);
+
+  // Advance vault index
+  state.vaultIdx++;
+  updateVaultProgress();
+  // Send progressive score after each vault crack
+  sendScore(true);
+
+  // Pre-load next vault frames while animation plays
+  if (state.vaultIdx < VAULTS.length) {
+    preloadVaultFrames(state.vaultIdx);
+  }
+
+  const transitionDelay = 7000; // Let the full animation play + pause
+  if (state.vaultIdx < VAULTS.length) {
+    setTimeout(() => {
+      state.streak = 0;
+      state.questions = state.vaultQuestions[state.vaultIdx];
+      state.current = 0;
+      updateStreakPins();
+      setVaultTheme(state.vaultIdx);
+      setTimeout(() => { state.transitioning = false; showQuestion(); }, 1200);
+    }, transitionDelay);
+  } else {
+    state.streak = 0;
+    updateStreakPins();
+    setTimeout(() => { state.transitioning = false; }, 3000);
+  }
+}
+
+// === NEXT QUESTION ===
+nextBtn.addEventListener('click', () => {
+  audio.play('click');
+  nextBtn.classList.remove('visible');
+  state.current++;
+
+  function proceed() {
+    if (state.transitioning) {
+      // Vault was just cracked — crackVault handles showQuestion, just wait
+      setTimeout(proceed, 200);
+      return;
+    }
+    // If all vaults cracked, end the game
+    if (state.vaultIdx >= VAULTS.length) {
+      endGame();
+      return;
+    }
+    // If out of questions for this vault without cracking it, end the game
+    if (state.current >= QUESTIONS_PER_VAULT) {
+      endGame();
+    } else {
+      showQuestion();
+    }
+  }
+  proceed();
+});
+
+// === SCORING (progressive, tiered) ===
+function getScorePercent(depth) {
+  if (depth >= 5) return 100;
+  if (depth >= 4) return 85;
+  if (depth >= 2) return 65;
+  return depth >= 1 ? 55 : 0;
+}
+function sendScore(final = false) {
+  if (!final) return;
+  const max = 5;
+  const depth = state.vaultIdx;
+  let scoreVal = max * (getScorePercent(depth) / 100);
+  scoreVal = Math.round(scoreVal * 100) / 100;
+  try {
+    window.parent.postMessage({
+      type: 'activityScore',
+      score: scoreVal,
+      maxScore: max,
+      gameComplete: true,
+      completedAt: new Date().toISOString(),
+      breakdown: {
+        vaultsCracked: depth,
+        correct: state.correct,
+        total: state.totalAnswered,
+        accuracy: state.totalAnswered > 0 ? Math.round((state.correct / state.totalAnswered) * 100) : 0
+      }
+    }, '*');
+  } catch (e) {}
+}
+
+// === END GAME ===
+function endGame() {
+  const depth = state.vaultIdx;
+
+  sendScore(true);
+
+  if (depth === 0) {
+    // Total failure
+    audio.play('denied');
+    alertFlash.classList.add('fire');
+    setTimeout(() => alertFlash.classList.remove('fire'), 500);
+    const stamp = document.createElement('div');
+    stamp.className = 'denied-stamp';
+    stamp.textContent = 'LOCKED OUT';
+    document.getElementById('app').appendChild(stamp);
+    document.body.classList.add('shake');
+    setTimeout(() => document.body.classList.remove('shake'), 400);
+    setTimeout(() => showResults(depth), 2000);
+  } else {
+    setTimeout(() => showResults(depth), 500);
+  }
+}
+
+// === RESULTS ===
+function showResults(depth) {
+  gameScreen.classList.remove('active');
+  resultsScreen.classList.add('active');
+
+  const ranks = ['LOCKED OUT', 'INITIATE', 'OPERATIVE', 'EXPERT', 'MASTER', 'LEGEND'];
+  const rankColors = ['var(--red)', 'var(--green-dim)', 'var(--green)', '#ffd700', '#14b8a6', '#a855f7'];
+  const bgImg = depth === 0 ? VAULTS[0].bg : VAULTS[Math.min(depth, VAULTS.length) - 1].bgOpen;
+  const rank = ranks[depth];
+  const color = rankColors[depth];
+  const subtitle = depth === 0
+    ? 'You couldn\'t crack a single vault.'
+    : depth === 5
+    ? 'All 5 vaults breached. The motherload is yours.'
+    : `You breached ${depth} of 5 vaults — reached the ${VAULTS[depth-1].name}.`;
+
+  resultsScreen.style.backgroundImage = `url('${bgImg}')`;
+  resultsScreen.style.backgroundSize = 'cover';
+  resultsScreen.style.backgroundPosition = 'center';
+
+  resultsScreen.innerHTML = `
+    <div style="position:absolute;inset:0;background:rgba(6,7,12,0.65);z-index:0"></div>
+    <div class="results-box" style="position:relative;z-index:1">
+      <div class="results-rank" style="color:${color};text-shadow:0 0 30px ${color},0 0 60px ${color}">${rank}</div>
+      <div class="results-subtitle">${subtitle}</div>
+      <div class="results-depth-visual">
+        ${VAULTS.map((v, i) => `<div class="results-vault-pip ${i < depth ? 'filled' : ''}" style="${i < depth ? `background:${v.accent};border-color:${v.accent};box-shadow:0 0 10px ${v.glow}` : ''}"><span class="pip-label">${v.name.split(' ')[0]}</span></div>`).join('')}
+      </div>
+      <div class="results-stats">
+        <div class="stat-box"><div class="stat-value" style="color:${color}">${getScorePercent(depth)}%</div><div class="stat-label">SCORE</div></div>
+        <div class="stat-box"><div class="stat-value">${state.correct}</div><div class="stat-label">CORRECT</div></div>
+        <div class="stat-box"><div class="stat-value">${state.totalAnswered > 0 ? Math.round(state.correct/state.totalAnswered*100) : 0}%</div><div class="stat-label">ACCURACY</div></div>
+        <div class="stat-box"><div class="stat-value">${state.wrong}</div><div class="stat-label">WRONG</div></div>
+      </div>
+      <button class="retry-btn" id="retry-btn">TRY AGAIN</button>
+    </div>
+  `;
+  $('retry-btn').addEventListener('click', () => {
+    audio.play('click');
+    resultsScreen.classList.remove('active');
+    resultsScreen.style.backgroundImage = '';
+    gameScreen.classList.add('active');
+    initGame();
+  });
+}
+
+// === SOUND TOGGLE ===
+soundToggle.addEventListener('click', () => {
+  soundToggle.textContent = `SOUND: ${audio.toggle() ? 'ON' : 'OFF'}`;
+});
+
+// === INTRO ===
+async function runIntro() {
+  await new Promise(r => setTimeout(r, 1200));
+  await typewrite(introText, `AGENT, YOUR MISSION:\n\nBreach 5 sequential vaults, each deeper and more secure than the last. Answer questions to build your streak — 3 consecutive correct answers cracks the current vault.\n\nOne wrong answer resets your streak and re-locks the bolts.\n\nHow deep can you go?`, 28);
+  startBtn.classList.add('visible');
+}
+
+startBtn.addEventListener('click', () => {
+  audio.init();
+  audio.play('click');
+  introScreen.classList.remove('active');
+  gameScreen.classList.add('active');
+  spawnParticles();
+  initGame();
+});
+
+// Preload vault backgrounds
+// Pre-load first vault frames on page load
+preloadVaultFrames(0);
+
+runIntro();
+</script>
+</body>
+</html>

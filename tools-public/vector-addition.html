@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vector Addition Visualizer</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --ink:#f1f5f9; --accent:#38bdf8; --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --muted:#94a3b8; --east:#38bdf8; --west:#fb923c; --net:#a78bfa; }
+  * { box-sizing:border-box; } html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;padding:16px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .lang{background:var(--panel);border:1px solid #334155;color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--muted);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:16px;height:6px;border-radius:3px;display:inline-block;}
+  .scenario{background:var(--panel);border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #334155;}
+  .scenario h2{font-size:15px;margin:0 0 4px;color:var(--ink);}
+  .scenario .num{font-size:12px;color:var(--accent);font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+  .forces-list{font-size:13px;color:var(--muted);margin:6px 0 10px;}
+  .forces-list li{margin-bottom:2px;}
+  svg.diagram{width:100%;height:180px;display:block;background:#0b1220;border-radius:8px;margin-bottom:12px;}
+  .q-label{font-size:13px;color:var(--muted);margin:10px 0 6px;display:block;}
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .choice-btn{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:7px 13px;color:var(--muted);font-size:13px;cursor:pointer;}
+  .choice-btn:hover{border-color:var(--accent);}
+  .choice-btn.selected{border-color:var(--accent);color:var(--accent);background:#0f172a;}
+  .reveal{margin-top:12px;padding:10px 12px;border-radius:8px;background:#0b1220;border:1px solid #334155;font-size:13px;display:none;}
+  .reveal.show{display:block;}
+  .reveal .verdict{font-weight:600;margin-bottom:4px;}
+  .reveal .ok{color:var(--ok);} .reveal .bad{color:var(--bad);}
+  .reveal .explain{color:var(--muted);}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .primary{flex:1;min-width:160px;padding:10px;border-radius:8px;border:1px solid var(--accent);background:#0b1220;color:var(--accent);font-size:14px;cursor:pointer;}
+  .primary:hover{background:#0f172a;}
+  .secondary{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:var(--panel);color:var(--ink);font-size:14px;cursor:pointer;}
+  #scoreBox{font-size:14px;margin-top:12px;}
+  #scoreBox .ok{color:var(--ok);} #scoreBox .bad{color:var(--warn);}
+  .progress{font-size:12px;color:var(--muted);margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="titleEl"></h1>
+    <button class="lang" id="langBtn"></button>
+  </header>
+  <p class="hint" id="promptEl"></p>
+
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--east)"></i><span id="legEast"></span></span>
+    <span><i class="swatch" style="background:var(--west)"></i><span id="legWest"></span></span>
+    <span><i class="swatch" style="background:var(--net)"></i><span id="legNet"></span></span>
+  </div>
+
+  <div id="scenarios"></div>
+
+  <div class="actions">
+    <button class="primary" id="submitBtn"></button>
+    <button class="secondary" id="resetBtn"></button>
+  </div>
+  <div id="scoreBox"></div>
+  <div class="progress" id="progressEl"></div>
+</div>
+
+<script type="module">
+import { SCENARIOS, signedForce, netForce, correctAnswer, isScenarioCorrect, answersComplete, scoreScenarios } from "./vector-addition-model.js";
+import { makeTranslator, makeStateSaver, sendActivityScore } from "./embed-kit.js";
+
+const DICT = {
+  title: { en: "Vector Addition Visualizer", es: "Visualizador de Suma de Vectores" },
+  langName: { en: "🌐 Español", es: "🌐 English" },
+  prompt: { en: "Each plate feels forces pointing East (→) or West (←). Add them as vectors to find the NET force. For each scenario, choose which way the plate accelerates and whether the forces are balanced or unbalanced. Answers reveal after you pick both.", es: "Cada placa siente fuerzas que apuntan al Este (→) o al Oeste (←). Súmalas como vectores para hallar la fuerza NETA. En cada caso, elige hacia dónde acelera la placa y si las fuerzas están equilibradas o no. La respuesta se revela al elegir ambas." },
+  legEast: { en: "East force (+)", es: "Fuerza al Este (+)" },
+  legWest: { en: "West force (−)", es: "Fuerza al Oeste (−)" },
+  legNet: { en: "Net force", es: "Fuerza neta" },
+  east: { en: "East", es: "Este" },
+  west: { en: "West", es: "Oeste" },
+  units: { en: "units", es: "unidades" },
+
+  qDirection: { en: "Which way does the plate accelerate?", es: "¿Hacia dónde acelera la placa?" },
+  qBalance: { en: "Are the forces balanced or unbalanced?", es: "¿Las fuerzas están equilibradas o no equilibradas?" },
+  optEast: { en: "→ East", es: "→ Este" },
+  optWest: { en: "← West", es: "← Oeste" },
+  optNone: { en: "Neither (no acceleration)", es: "Ninguna (sin aceleración)" },
+  optBalanced: { en: "Balanced (net = 0)", es: "Equilibradas (neta = 0)" },
+  optUnbalanced: { en: "Unbalanced (net ≠ 0)", es: "No equilibradas (neta ≠ 0)" },
+
+  correct: { en: "Correct", es: "Correcto" },
+  incorrect: { en: "Not quite", es: "Casi" },
+  revealBalanced: { en: "Net force = 0 units. The forces are balanced, so the plate does not accelerate.", es: "Fuerza neta = 0 unidades. Las fuerzas están equilibradas, por lo que la placa no acelera." },
+  revealEast: { en: "Net force = {mag} units East. The forces are unbalanced, so the plate accelerates East.", es: "Fuerza neta = {mag} unidades al Este. Las fuerzas no están equilibradas, por lo que la placa acelera al Este." },
+  revealWest: { en: "Net force = {mag} units West. The forces are unbalanced, so the plate accelerates West.", es: "Fuerza neta = {mag} unidades al Oeste. Las fuerzas no están equilibradas, por lo que la placa acelera al Oeste." },
+
+  submit: { en: "Submit Score", es: "Enviar puntuación" },
+  submitted: { en: "Score Submitted", es: "Puntuación enviada" },
+  scoreLbl: { en: "Score", es: "Puntuación" },
+  reset: { en: "Reset", es: "Reiniciar" },
+  progress: { en: "Answered {done} of {total} scenarios.", es: "Respondidas {done} de {total} situaciones." },
+
+  // Scenario titles
+  s1Title: { en: "Mid-ocean ridge vs. mantle drag", es: "Dorsal oceánica vs. arrastre del manto" },
+  s2Title: { en: "Three forces on a spreading plate", es: "Tres fuerzas sobre una placa en expansión" },
+  s3Title: { en: "Strong slab pull", es: "Fuerte tracción de la losa" },
+  s4Title: { en: "Plate caught in a collision", es: "Placa atrapada en una colisión" },
+
+  // Force names
+  fRidgePush: { en: "Ridge push", es: "Empuje de la dorsal" },
+  fSlabPull: { en: "Slab pull", es: "Tracción de la losa" },
+  fMantleDrag: { en: "Mantle drag", es: "Arrastre del manto" },
+  fCollision: { en: "Collision push", es: "Empuje de colisión" },
+};
+
+const tr = makeTranslator(DICT, "en");
+const saver = makeStateSaver({});
+
+const DIR_OPTS = [
+  { id: "east", label: "optEast" },
+  { id: "west", label: "optWest" },
+  { id: "none", label: "optNone" },
+];
+const BAL_OPTS = [
+  { id: "balanced", label: "optBalanced" },
+  { id: "unbalanced", label: "optUnbalanced" },
+];
+
+let answers = blankAnswers();
+let submitted = false;
+let autoSent = false;
+
+function blankAnswers() {
+  const a = {};
+  for (const s of SCENARIOS) a[s.id] = { directionChoice: null, balanceChoice: null };
+  return a;
+}
+
+function getState() { return { answers, submitted }; }
+function saveState() { saver.save(getState()); }
+
+function dirArrow(force) {
+  return force.dir === "east" ? "→" : "←";
+}
+
+// Draw the scenario's force arrows on a baseline, plus the net force arrow once answered.
+function drawDiagram(scenario, answered) {
+  const W = 600, H = 180;
+  const cx = W / 2, baseY = 70;
+  const forces = scenario.forces;
+  const maxMag = Math.max(...forces.map(f => Math.abs(f.magnitude)), 1);
+  const unitPx = (W / 2 - 70) / maxMag; // longest arrow fits in half-width
+
+  let svg = "";
+  // origin marker (the plate)
+  svg += `<rect x="${cx-26}" y="${baseY-12}" width="52" height="24" rx="4" fill="#334155" stroke="#475569" />`;
+
+  // stack each force arrow with a small vertical offset so overlaps are visible
+  forces.forEach((f, i) => {
+    const len = Math.abs(f.magnitude) * unitPx;
+    const y = baseY - 30 - i * 16;
+    const color = f.dir === "east" ? "var(--east)" : "var(--west)";
+    const x2 = f.dir === "east" ? cx + len : cx - len;
+    svg += arrow(cx, y, x2, y, color, 2.5);
+    const lblX = f.dir === "east" ? x2 + 6 : x2 - 6;
+    const anchor = f.dir === "east" ? "start" : "end";
+    svg += `<text x="${lblX}" y="${y-6}" fill="${color}" font-size="12" text-anchor="${anchor}">${esc(tr.t(f.label))} ${Math.abs(f.magnitude)}</text>`;
+  });
+
+  // net force arrow (revealed after answering)
+  if (answered) {
+    const nf = netForce(scenario);
+    const ny = baseY + 42;
+    if (nf.magnitude === 0) {
+      svg += `<circle cx="${cx}" cy="${ny}" r="6" fill="none" stroke="var(--net)" stroke-width="2.5" />`;
+      svg += `<line x1="${cx-9}" y1="${ny-9}" x2="${cx+9}" y2="${ny+9}" stroke="var(--net)" stroke-width="2.5" />`;
+      svg += `<text x="${cx+16}" y="${ny+4}" fill="var(--net)" font-size="13" font-weight="600">${esc(tr.t("legNet"))} = 0</text>`;
+    } else {
+      const len = nf.magnitude * unitPx;
+      const x2 = nf.direction === "east" ? cx + len : cx - len;
+      svg += arrow(cx, ny, x2, ny, "var(--net)", 4);
+      const lblX = nf.direction === "east" ? x2 + 6 : x2 - 6;
+      const anchor = nf.direction === "east" ? "start" : "end";
+      const dirWord = nf.direction === "east" ? tr.t("east") : tr.t("west");
+      svg += `<text x="${lblX}" y="${ny+4}" fill="var(--net)" font-size="13" font-weight="600" text-anchor="${anchor}">${esc(tr.t("legNet"))} ${nf.magnitude} ${esc(dirWord)}</text>`;
+    }
+  }
+
+  // compass hint at bottom
+  svg += `<text x="20" y="${H-10}" fill="#64748b" font-size="11">← ${esc(tr.t("west"))}</text>`;
+  svg += `<text x="${W-20}" y="${H-10}" fill="#64748b" font-size="11" text-anchor="end">${esc(tr.t("east"))} →</text>`;
+
+  return `<svg class="diagram" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${svg}</svg>`;
+}
+
+function arrow(x1, y1, x2, y2, color, w) {
+  const head = 8;
+  const dir = x2 >= x1 ? 1 : -1;
+  const hx = x2 - dir * head;
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${w}" />` +
+         `<polygon points="${x2},${y2} ${hx},${y2-head*0.6} ${hx},${y2+head*0.6}" fill="${color}" />`;
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+}
+
+function scenarioAnswered(a) { return !!a.directionChoice && !!a.balanceChoice; }
+
+function revealText(scenario) {
+  const nf = netForce(scenario);
+  if (nf.balanced) return tr.t("revealBalanced");
+  const key = nf.direction === "east" ? "revealEast" : "revealWest";
+  return tr.t(key).replace("{mag}", nf.magnitude);
+}
+
+function render() {
+  document.getElementById("titleEl").textContent = tr.t("title");
+  document.getElementById("langBtn").textContent = tr.t("langName");
+  document.getElementById("promptEl").textContent = tr.t("prompt");
+  document.getElementById("legEast").textContent = tr.t("legEast");
+  document.getElementById("legWest").textContent = tr.t("legWest");
+  document.getElementById("legNet").textContent = tr.t("legNet");
+  document.getElementById("submitBtn").textContent = submitted ? tr.t("submitted") : tr.t("submit");
+  document.getElementById("resetBtn").textContent = tr.t("reset");
+
+  const host = document.getElementById("scenarios");
+  host.innerHTML = "";
+  SCENARIOS.forEach((s, idx) => {
+    const a = answers[s.id];
+    const answered = scenarioAnswered(a);
+    const card = document.createElement("div");
+    card.className = "scenario";
+
+    const forcesHtml = s.forces.map(f =>
+      `<li>${esc(tr.t(f.label))}: ${Math.abs(f.magnitude)} ${esc(tr.t("units"))} ${esc(f.dir === "east" ? tr.t("east") : tr.t("west"))} ${dirArrow(f)}</li>`
+    ).join("");
+
+    card.innerHTML = `
+      <div class="num">${idx + 1} / ${SCENARIOS.length}</div>
+      <h2>${esc(tr.t(s.titleKey))}</h2>
+      <ul class="forces-list">${forcesHtml}</ul>
+      ${drawDiagram(s, answered)}
+      <label class="q-label">${esc(tr.t("qDirection"))}</label>
+      <div class="btn-group" data-group="direction" data-sid="${s.id}"></div>
+      <label class="q-label">${esc(tr.t("qBalance"))}</label>
+      <div class="btn-group" data-group="balance" data-sid="${s.id}"></div>
+      <div class="reveal ${answered ? "show" : ""}" data-reveal="${s.id}"></div>
+    `;
+    host.appendChild(card);
+
+    fillGroup(card.querySelector('[data-group="direction"]'), DIR_OPTS, s.id, "directionChoice");
+    fillGroup(card.querySelector('[data-group="balance"]'), BAL_OPTS, s.id, "balanceChoice");
+
+    if (answered) {
+      const rv = card.querySelector(`[data-reveal="${s.id}"]`);
+      const ok = isScenarioCorrect(s, a);
+      rv.innerHTML = `<div class="verdict ${ok ? "ok" : "bad"}">${ok ? "✓ " + tr.t("correct") : "✕ " + tr.t("incorrect")}</div>` +
+                     `<div class="explain">${esc(revealText(s))}</div>`;
+    }
+  });
+
+  renderScoreBox();
+  renderProgress();
+}
+
+function fillGroup(host, options, sid, field) {
+  host.innerHTML = "";
+  const current = answers[sid][field];
+  for (const opt of options) {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn" + (current === opt.id ? " selected" : "");
+    btn.textContent = tr.t(opt.label);
+    btn.onclick = () => {
+      answers[sid][field] = opt.id;
+      submitted = false;
+      saveState();
+      maybeAutoSend();
+      render();
+    };
+    host.appendChild(btn);
+  }
+}
+
+function renderProgress() {
+  const done = SCENARIOS.filter(s => scenarioAnswered(answers[s.id])).length;
+  document.getElementById("progressEl").textContent =
+    tr.t("progress").replace("{done}", done).replace("{total}", SCENARIOS.length);
+}
+
+function renderScoreBox() {
+  const box = document.getElementById("scoreBox");
+  if (!submitted) { box.textContent = ""; return; }
+  const r = scoreScenarios(getState());
+  const cls = r.score === 5 ? "ok" : "bad";
+  box.innerHTML = `<span class="${cls}">${tr.t("submitted")} — ${tr.t("scoreLbl")}: ${r.score}/5</span>`;
+}
+
+// AUTO-SEND once, when every scenario is answered.
+function maybeAutoSend() {
+  if (autoSent || !answersComplete(getState())) return;
+  const r = scoreScenarios(getState());
+  sendActivityScore(r.score, 5, true);
+  autoSent = true;
+}
+
+// Submit ALWAYS re-sends (no guard) per the scored-embed checklist.
+function submitScore() {
+  const r = scoreScenarios(getState());
+  sendActivityScore(r.score, 5, true);
+  submitted = true;
+  saveState();
+  render();
+}
+
+function resetAll() {
+  answers = blankAnswers();
+  submitted = false;
+  autoSent = false;
+  saveState();
+  render();
+}
+
+document.getElementById("langBtn").onclick = () => {
+  tr.setLang(tr.lang === "en" ? "es" : "en");
+  render();
+};
+document.getElementById("submitBtn").onclick = submitScore;
+document.getElementById("resetBtn").onclick = resetAll;
+window.addEventListener("beforeunload", () => saver.flush());
+
+render();
+</script>
+</body>
+</html>

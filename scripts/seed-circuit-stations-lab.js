@@ -37,7 +37,7 @@ const blocks = [
       "Build series, parallel, and combination circuits in the PhET simulator",
       "Use the ammeter and voltmeter to measure current and voltage",
       "Predict each reading from your own circuit values, then verify it",
-      "Lock in all 6 stations to earn full credit",
+      "Lock in all 10 stations to earn full credit",
     ],
   },
   {
@@ -46,38 +46,46 @@ const blocks = [
     content:
       "**Everyone has different numbers.** Your Circuit Kit (battery + 3 resistors) is unique to your login, " +
       "so a classmate's reading won't match yours — you have to build each circuit yourself. " +
-      "Work through all six stations below. Your score saves automatically as you check each one, and your **best score is kept**.",
+      "Work through all ten stations below. Your score saves automatically as you check each one, and your **best score is kept**.",
   },
   {
     id: uid(), type: "callout",
     icon: "🔧", style: "warning",
     content:
-      "**How to work:** (1) Open the PhET simulator from the button in the activity. " +
+      "**How to work:** (1) Open the PhET simulator from the link below (or the button inside the activity). " +
       "(2) Drag out your battery and resistors and set them to *your* kit's values. " +
       "(3) Wire the circuit the station asks for, drop in the ammeter/voltmeter, and read it. " +
       "(4) Type your reading and press **Check**. Green = locked in.",
+  },
+  {
+    id: "ext-phet-cck-dc",
+    type: "external_link",
+    url: "https://phet.colorado.edu/sims/html/circuit-construction-kit-dc/latest/circuit-construction-kit-dc_en.html",
+    title: "PhET — Circuit Construction Kit: DC (open in new tab)",
+    description: "The simulator you'll build all 10 stations in. Tip: open this in a separate tab/window so you can keep the lesson visible while you wire and measure.",
   },
   {
     // STABLE id — do not change; student scores key to this block id.
     id: "circuit-stations-embed",
     type: "embed",
     url: EMBED_URL,
-    caption: "Circuit Stations Digital Lab — 6 auto-graded PhET builds (6 pts)",
+    caption: "Circuit Stations Digital Lab — 10 auto-graded PhET builds (10 pts)",
     scored: true,
-    weight: 6,
-    height: 1180,
+    weight: 10,
+    height: 1480,
   },
 ];
 
 const lesson = {
   title: "Circuit Stations — Digital Lab",
   description:
-    "Auto-graded digital half of the circuits closeout. Each student builds 6 circuits in PhET " +
+    "Auto-graded digital circuits closeout. Each student builds 10 circuits in PhET " +
     "using login-specific values; the embed checks their readings against their own kit.",
   unit: "Circuits",
   course: COURSE_ID,
   visible: false,        // Luke flips visible:true morning-of (Mon 6/1)
   gradesReleased: true,  // same-day grades visible in MyGrades
+  skipReflection: true,  // embed score IS the lesson grade (no reflection slot in denominator)
   dueDate: "2026-06-02",
   order: 9000,           // park at end; reorder when scheduled
   blocks,

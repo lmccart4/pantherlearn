@@ -659,9 +659,21 @@ export default function ClassroomDisplay() {
     const courseLessons = lessons[period.courseId] || [];
     const visible = courseLessons.filter((l) => l.visible !== false);
 
-    // Priority 1: lesson due today
-    const exact = visible.find((l) => l.dueDate === todayStr);
-    if (exact) return exact;
+    // Look ahead 7 days so a freshly-posted lesson due tomorrow wins over an
+    // older lesson still hanging on with dueDate==today.
+    const horizon = new Date(todayStr);
+    horizon.setDate(horizon.getDate() + 7);
+    const horizonStr = horizon.toISOString().slice(0, 10);
+
+    // Priority 1: most recently posted upcoming/today lesson.
+    // "Most recently posted" = latest dueDate in [today, today+7], tiebreak by highest order.
+    const upcoming = visible
+      .filter((l) => l.dueDate && l.dueDate >= todayStr && l.dueDate <= horizonStr)
+      .sort((a, b) => {
+        if (a.dueDate !== b.dueDate) return a.dueDate > b.dueDate ? -1 : 1;
+        return (b.order || 0) - (a.order || 0);
+      });
+    if (upcoming[0]) return upcoming[0];
 
     // Priority 2: most recently activated lesson (visibleSince <= today)
     const activated = visible

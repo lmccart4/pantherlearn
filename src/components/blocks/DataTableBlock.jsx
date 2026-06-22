@@ -193,7 +193,9 @@ function NumericTablePreset({ block, lessonId, courseId, studentData = {}, onAns
                   <td className="dt-label-cell">{row.label}</td>
                   {columns.map((col) => (
                     <td key={col.key} className="dt-td">
-                      {col.type === "select" ? (
+                      {(row.skip || []).includes(col.key) ? (
+                        <span className="dt-dash" aria-hidden>—</span>
+                      ) : col.type === "select" ? (
                         <select
                           className="dt-select"
                           value={rd[col.key] || ""}

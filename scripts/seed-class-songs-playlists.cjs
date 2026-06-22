@@ -2,12 +2,19 @@
 /**
  * Create or update per-period "Class Songs" playlists.
  * One playlist per AI Lit period (P4, P5, P7, P9), each scoped to just its own courseId.
- * Tracks point to MP3s on Firebase Storage uploaded by ~/Lachlan/tools/suno-pipeline/pipeline.sh.
+ * Includes BOTH v1 and v2 of every track, with v1 immediately followed by v2.
+ *
+ * Enumerates source-of-truth WAV files from /Users/lukemccarthy/Desktop/AI Music/
+ * and builds Firebase Storage URLs for the matching transcoded MP3s.
  *
  * Idempotent: matches by playlist name + scoped courseId.
  *
- * REQUIRES: bulk pipeline has finished uploading MP3s. Check the log at
- *   /tmp/suno-stage/pipeline.log
+ * Track order per playlist:
+ *   1. ALL v1 tracks first — students (alphabetical by name) then anthems (alphabetical by title)
+ *   2. ALL v2 tracks second — students (alphabetical by name) then anthems (alphabetical by title)
+ *
+ * REQUIRES: local-pipeline.sh has finished uploading. Verify with:
+ *   gsutil ls 'gs://pantherlearn-d6f7c.firebasestorage.app/class-songs/p4/students/*-v1.mp3' | wc -l
  *
  * Usage:
  *   node scripts/seed-class-songs-playlists.cjs --dry
@@ -24,57 +31,74 @@ const db = admin.firestore();
 
 const dryRun = process.argv.includes("--dry");
 
+const ROOT = "/Users/lukemccarthy/Desktop/AI Music";
+const PERIOD_DIRS = { p4: "Period 4", p5: "Period 5", p7: "Period 7", p9: "Period 9" };
 const COURSE_ID_BY_PERIOD = {
   p4: "Y9Gdhw5MTY8wMFt6Tlvj",
   p5: "DacjJ93vUDcwqc260OP3",
   p7: "M2MVSXrKuVCD9JQfZZyp",
   p9: "fUw67wFhAtobWFhjwvZ5",
 };
-
 const STORAGE_BASE = "https://storage.googleapis.com/pantherlearn-d6f7c.firebasestorage.app/class-songs";
-const MANIFEST_PATH = "/tmp/suno-manifest/bulk-manifest.json";
 
-function loadManifest() {
-  if (!fs.existsSync(MANIFEST_PATH)) {
-    throw new Error(`Manifest not found at ${MANIFEST_PATH}. Run the bulk pipeline first.`);
-  }
-  return JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf8"));
+function slugify(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-function buildTracksForPeriod(manifest, period) {
-  const period_key = period; // 'p4', 'p5', etc
-  const anthems = manifest.byPeriod[period_key].whole_class.slice();
-  const students = manifest.byPeriod[period_key].students.slice();
+// Walk a directory of WAVs, return entries grouped by (title, person) with v1+v2 paths.
+function enumerateDir(absDir) {
+  if (!fs.existsSync(absDir)) return [];
+  const files = fs.readdirSync(absDir).filter(f => f.endsWith(".wav") && !f.startsWith("."));
+  const byBase = new Map();
+  for (const f of files) {
+    const m = f.match(/^(.+?)\s*-\s*(.+?)\s+(v[12])\.wav$/i);
+    if (!m) continue;
+    const title = m[1].trim();
+    const person = m[2].trim();
+    const ver = m[3].toLowerCase();
+    const baseKey = `${title}|||${person}`;
+    if (!byBase.has(baseKey)) byBase.set(baseKey, { title, person, versions: {} });
+    byBase.get(baseKey).versions[ver] = true;
+  }
+  return Array.from(byBase.values());
+}
 
-  // Class anthems: alphabetical by title (gives a consistent ordering)
-  anthems.sort((a, b) => a.title.localeCompare(b.title));
-  // Student songs: alphabetical by student name
-  students.sort((a, b) => a.person.localeCompare(b.person));
+function buildTracksForPeriod(period) {
+  const periodDir = path.join(ROOT, PERIOD_DIRS[period]);
+  const studentsRaw = enumerateDir(path.join(periodDir, "Students"));
+  const anthemsRaw = enumerateDir(path.join(periodDir, "Whole Class"));
+
+  // Sort: students by person name, anthems by title
+  studentsRaw.sort((a, b) => a.person.localeCompare(b.person));
+  anthemsRaw.sort((a, b) => a.title.localeCompare(b.title));
 
   const tracks = [];
 
-  // Student songs first — students should find their own song fast
-  for (const t of students) {
-    tracks.push({
-      id: t.slug,
-      label: `${t.title} — ${t.person}`,
-      artist: t.person,
-      type: "audio",
-      url: `${STORAGE_BASE}/${period}/students/${t.slug}.mp3`,
-    });
-  }
-
-  // Class anthems last
-  for (const t of anthems) {
-    // person = "P4 Hype", "P4 Mariachi" etc — strip the period prefix for the label
-    const genre = (t.person || "").replace(/^P\d+\s+/i, "").trim() || t.person;
-    tracks.push({
-      id: t.slug,
-      label: `${t.title} (${genre})`,
-      artist: `${period.toUpperCase()} Class`,
-      type: "audio",
-      url: `${STORAGE_BASE}/${period}/whole-class/${t.slug}.mp3`,
-    });
+  // All v1s first, then all v2s. Within each version: students then anthems.
+  for (const ver of ["v1", "v2"]) {
+    for (const t of studentsRaw) {
+      if (!t.versions[ver]) continue;
+      const slug = `${period}-students-${slugify(t.title)}-${slugify(t.person)}-${ver}`;
+      tracks.push({
+        id: slug,
+        label: `${t.title} — ${t.person} · ${ver}`,
+        artist: t.person,
+        type: "audio",
+        url: `${STORAGE_BASE}/${period}/students/${slug}.mp3`,
+      });
+    }
+    for (const t of anthemsRaw) {
+      if (!t.versions[ver]) continue;
+      const genre = (t.person || "").replace(/^P\d+\s+/i, "").trim() || t.person;
+      const slug = `${period}-whole-class-${slugify(t.title)}-${slugify(t.person)}-${ver}`;
+      tracks.push({
+        id: slug,
+        label: `${t.title} (${genre}) · ${ver}`,
+        artist: `${period.toUpperCase()} Class`,
+        type: "audio",
+        url: `${STORAGE_BASE}/${period}/whole-class/${slug}.mp3`,
+      });
+    }
   }
 
   return tracks;
@@ -89,20 +113,17 @@ async function upsertPlaylist(period, tracks) {
     coverUrl: null,
     tracks,
     artist: `${period.toUpperCase()} Class`,
-    description: `Personalized Suno songs for every student in ${period.toUpperCase()}, plus 10 class anthems across different genres. Generated by Mr. McCarthy. Browse other periods on Google Drive.`,
+    description: `Personalized Suno songs for every student in ${period.toUpperCase()}, plus 10 class anthems across different genres. Both v1 and v2 of every track included. Generated by Mr. McCarthy. Browse other periods on Google Drive.`,
     ownerUid: "luke-mccarthy",
     order: 1,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  const existing = await db.collection("playlists")
-    .where("name", "==", playlistName)
-    .get();
-
+  const existing = await db.collection("playlists").where("name", "==", playlistName).get();
   if (existing.empty) {
     doc.createdAt = admin.firestore.FieldValue.serverTimestamp();
     if (dryRun) {
-      console.log(`[DRY] would CREATE "${playlistName}" with ${tracks.length} tracks, scoped to ${courseId}`);
+      console.log(`[DRY] CREATE "${playlistName}" (${tracks.length} tracks)`);
     } else {
       const ref = await db.collection("playlists").add(doc);
       console.log(`✓ Created ${ref.id}: "${playlistName}" (${tracks.length} tracks)`);
@@ -110,7 +131,7 @@ async function upsertPlaylist(period, tracks) {
   } else {
     const existingDoc = existing.docs[0];
     if (dryRun) {
-      console.log(`[DRY] would UPDATE ${existingDoc.id}: "${playlistName}" with ${tracks.length} tracks`);
+      console.log(`[DRY] UPDATE ${existingDoc.id}: "${playlistName}" (${tracks.length} tracks)`);
     } else {
       await existingDoc.ref.set(doc, { merge: true });
       console.log(`✓ Updated ${existingDoc.id}: "${playlistName}" (${tracks.length} tracks)`);
@@ -120,20 +141,12 @@ async function upsertPlaylist(period, tracks) {
 
 async function main() {
   console.log(dryRun ? "DRY RUN — no writes\n" : "LIVE — writing to Firestore\n");
-
-  const manifest = loadManifest();
-  console.log(`Loaded manifest: ${manifest.tracks.length} total v2 tracks across 4 periods\n`);
-
   for (const period of ["p4", "p5", "p7", "p9"]) {
-    const tracks = buildTracksForPeriod(manifest, period);
+    const tracks = buildTracksForPeriod(period);
     await upsertPlaylist(period, tracks);
   }
-
-  console.log(`\nDone.`);
+  console.log("\nDone.");
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error("Seed failed:", err);
-  process.exit(1);
-});
+main().catch((err) => { console.error("Seed failed:", err); process.exit(1); });

@@ -45,6 +45,8 @@ const ImageGenBlock = lazy(() => import("./ImageGenBlock"));
 const RubricBlock = lazy(() => import("./RubricBlock"));
 const ExemplarCompareBlock = lazy(() => import("./ExemplarCompareBlock"));
 const TeacherCheckpointBlock = lazy(() => import("./TeacherCheckpointBlock"));
+const LevelProgressBlock = lazy(() => import("./LevelProgressBlock"));
+const VideoOrLinkSubmitBlock = lazy(() => import("./VideoOrLinkSubmitBlock"));
 
 const BLOCK_MAP = {
   section_header: SectionHeader,
@@ -92,6 +94,8 @@ const BLOCK_MAP = {
   rubric: RubricBlock,
   exemplar_compare: ExemplarCompareBlock,
   teacher_checkpoint: TeacherCheckpointBlock,
+  level_progress: LevelProgressBlock,
+  video_or_link_submit: VideoOrLinkSubmitBlock,
 };
 
 export default function BlockRenderer({ block, extraProps = {} }) {
